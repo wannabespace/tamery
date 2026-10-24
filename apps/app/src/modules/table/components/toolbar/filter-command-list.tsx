@@ -13,7 +13,8 @@ import {
 } from '@tamery/ui/components/command'
 import { EnterIcon } from '@tamery/ui/components/custom/shortcuts'
 import { cn } from '@tamery/ui/lib/utils'
-import { getRouteApi } from '@tanstack/react-router'
+
+import { useConnectionContext } from '~/core/connection/route'
 
 import type { FilterAi } from './filter-ai'
 import { FilterAskAiItem } from './filter-ai'
@@ -21,8 +22,6 @@ import { filterLabel } from './filter-chip'
 import type { FilterComposer } from './filter-composer'
 import { offeredFilters, operatorMatches } from './filter-composer'
 import { useFilterTargets } from './filter-targets'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export const FilterCommandList = ({
   ai,
@@ -33,7 +32,7 @@ export const FilterCommandList = ({
 }) => {
   const { matchingColumns, matchingRelated, matchingValues } =
     useFilterTargets(composer)
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   const { applyValue, committedParts, filters, query, stage } = composer
   const trimmedQuery = query.trim()
   const matchingOperators = offeredFilters(dialect)

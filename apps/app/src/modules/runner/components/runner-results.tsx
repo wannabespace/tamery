@@ -33,11 +33,11 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { cn } from '@tamery/ui/lib/utils'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useDeferredValue, useState } from 'react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { useObjectNames } from '~/core/catalog/names'
+import { useTabContext } from '~/core/connection/route'
 import type { ExportDataProps } from '~/core/export/export-data'
 import { ExportData } from '~/core/export/export-data'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
@@ -51,10 +51,6 @@ import type { FailedRunnerResult, RunnerResult } from '../lib/run'
 import { runnerResultsOptions } from '../lib/run'
 import { useRunnerTab } from '../lib/store'
 import { RunnerResultsTable } from './runner-results-table'
-
-const { useRouteContext } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
 
 const running = (
   <div className="flex h-full flex-col items-center justify-center gap-2">
@@ -134,7 +130,7 @@ const ResultBody = ({
   columns: string[]
   rows: Record<string, unknown>[]
 }) => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useTabContext()
   const { names } = getCapabilities(dialect)
 
   if (result.pending) {
@@ -211,7 +207,7 @@ const ResultMeta = ({
 }
 
 export const RunnerResults = () => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useTabContext()
   const { names } = getCapabilities(dialect)
   const tab = useRunnerTab()
   const { data: run } = useQuery(runnerResultsOptions(tab))

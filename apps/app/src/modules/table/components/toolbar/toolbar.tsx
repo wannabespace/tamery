@@ -21,10 +21,10 @@ import {
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { ExportDataMenu } from '~/core/export/export-data'
 import {
   resourceRowsQuery,
@@ -47,8 +47,6 @@ import { ActionsView } from './actions/actions-view'
 import { FilterSearchBar } from './filter-search-bar'
 import { TableStats } from './table-stats'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 const EXPORT_PAGE_SIZE = 1000
 
 export const TableToolbar = ({
@@ -60,7 +58,7 @@ export const TableToolbar = ({
   table: string
   schema: string
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { columns } = useTableColumnsContext()
   const store = useTablePageStore()
   const sessionStore = useTableSessionStore()

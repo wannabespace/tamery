@@ -19,7 +19,7 @@ import { Input } from '@tamery/ui/components/input'
 import { Label } from '@tamery/ui/components/label'
 import { Switch } from '@tamery/ui/components/switch'
 import { useMutation } from '@tanstack/react-query'
-import { getRouteApi, useParams, useRouter } from '@tanstack/react-router'
+import { useParams, useRouter } from '@tanstack/react-router'
 import { useImperativeHandle, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -27,6 +27,7 @@ import { OptionField } from '~/components/option-field'
 import { getCapabilities } from '~/core/catalog/capabilities'
 import type { TableType } from '~/core/catalog/table-type'
 import { getTableTypeLabel } from '~/core/catalog/table-type'
+import { useConnectionContext } from '~/core/connection/route'
 import { dropTableQuery } from '~/core/queries/tables/drop'
 import { dropViewQuery } from '~/core/queries/views/drop'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
@@ -34,8 +35,6 @@ import { tableTabId } from '~/core/tabs/ids'
 import { queryClient } from '~/lib/query-client'
 
 import { pinnedTable } from './pinned-tables'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const dropConsequence = {
   'materialized view': () =>
@@ -53,7 +52,7 @@ interface DropTableDialogProps {
 }
 
 export const DropTableDialog = ({ ref }: DropTableDialogProps) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { tabId: activeTabId } = useParams({ strict: false })
   const router = useRouter()
   const [confirmationText, setConfirmationText] = useState('')

@@ -32,7 +32,6 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { count, eq, useLiveQuery } from '@tanstack/react-db'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import type { editor } from 'monaco-editor'
 import { Range } from 'monaco-editor'
 import type { ComponentRef } from 'react'
@@ -41,6 +40,7 @@ import { useSubscription } from 'seitu/react'
 import { toast } from 'sonner'
 
 import { useCollections } from '~/core/collections'
+import { useTabContext } from '~/core/connection/route'
 import { wrapExplainQuery } from '~/core/connection/utils'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcuts } from '~/core/keyboard/use-shortcuts'
@@ -71,10 +71,6 @@ import { RunnerResults } from './runner-results'
 import { RunnerSaveDialog } from './runner-save-dialog'
 import { SavedQueries } from './saved-queries'
 import { TransactionControls } from './transaction-controls'
-
-const { useRouteContext } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
 
 const toRunnerStatement = (
   statement: Statement,
@@ -110,7 +106,7 @@ const ToolbarButton = ({
 )
 
 const SavedQueriesButton = () => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useTabContext()
   const { queriesCollection } = useCollections()
   const { data: { queriesCount } = { queriesCount: 0 } } = useLiveQuery({
     query: (q) =>
@@ -141,7 +137,7 @@ const SavedQueriesButton = () => {
 }
 
 export const Runner = () => {
-  const { connection, connectionResource, dialect } = useRouteContext()
+  const { connection, connectionResource, dialect } = useTabContext()
   const tab = useRunnerTab()
   const store = useRunnerPageStore()
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null)

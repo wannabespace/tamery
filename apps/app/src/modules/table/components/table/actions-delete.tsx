@@ -23,12 +23,12 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { cn } from '@tamery/ui/lib/utils'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { createRef, useImperativeHandle, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 import { toast } from 'sonner'
 
 import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import { deleteRowsQuery } from '~/core/queries/rows/delete'
@@ -48,8 +48,6 @@ import { plural } from '~/utils/plural'
 import { useTableColumnsContext } from '../../lib/columns'
 import { tickedRowCount } from '../../lib/row-selection'
 import { useTablePageStore } from '../../lib/store'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const display = (value: unknown) =>
   getDisplayValue(value, Number.MAX_SAFE_INTEGER)
@@ -71,7 +69,7 @@ export const DeleteRowsDialog = ({
   schema: string
 }) => {
   const names = useObjectNames()
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const [open, setOpen] = useState(false)
   const [rows, setRows] = useState<PrimaryKeys[]>([])
   const store = useTablePageStore()

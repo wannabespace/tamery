@@ -1,19 +1,15 @@
 import type { Dialect } from '@tamery/shared/enums/connection-type'
-import { getRouteApi } from '@tanstack/react-router'
 import { type } from 'arktype'
 import { memoize } from 'memoza'
 import { createContext, use } from 'react'
 import { createComputed } from 'seitu'
 import { createWebStorageValue } from 'seitu/web'
 
+import { useTabContext } from '~/core/connection/route'
 import { getQueryLanguage } from '~/core/runtime/language'
 
 import { starterQuery } from './starter'
 import { runnerStoreKey } from './tab'
-
-const { useRouteContext } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
 
 export const RUNNER_RESULTS_MIN_HEIGHT = 160
 export const RUNNER_RESULTS_MAX_HEIGHT = 720
@@ -68,7 +64,7 @@ export const useRunnerTab = () => {
 }
 
 export const useRunnerPageStore = () => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useTabContext()
   return runnerPageStore({ dialect, ...useRunnerTab() })
 }
 

@@ -12,11 +12,12 @@ import { Separator } from '@tamery/ui/components/separator'
 import { cn } from '@tamery/ui/lib/utils'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi, useParams, useRouter } from '@tanstack/react-router'
+import { useParams, useRouter } from '@tanstack/react-router'
 import { Reorder } from 'motion/react'
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { getConnectionResourceStore } from '~/core/connection/stores'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
@@ -32,10 +33,8 @@ import { NewTabMenu } from './new-tab-menu'
 import { Tab } from './tab'
 import { TabRefresh } from './tab-refresh'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const TabBar = ({ className }: { className?: string }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { data: tablesAndSchemas } = useQuery(
     resourceTablesAndSchemasQueryOptions({ connectionResource })
   )

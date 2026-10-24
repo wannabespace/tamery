@@ -1,10 +1,10 @@
 import { enabledFilters } from '@tamery/shared/filters'
 import { useIsFetching } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceConstraintsQueryOptions } from '~/core/queries/constraints/list'
 import { resourceEnumsQueryOptions } from '~/core/queries/enums/list'
 import { resourceRowsQueryInfiniteOptions } from '~/core/queries/rows/list'
@@ -17,15 +17,13 @@ import { queryClient } from '~/lib/query-client'
 import { tablePageStore } from '../lib/store'
 import type { TableParams } from '../lib/tab'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const TableRefresh = ({
   params: { schema, table },
 }: {
   params: TableParams
 }) => {
   const names = useObjectNames()
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const store = tablePageStore({ id: connectionResource.id, schema, table })
   const { filters, orderBy } = useSubscription(store, {
     selector: (state) => ({

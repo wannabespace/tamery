@@ -1,9 +1,10 @@
-import { getRouteApi, useRouter } from '@tanstack/react-router'
+import { useRouter } from '@tanstack/react-router'
 import { useReactFlow } from '@xyflow/react'
 import type { Dispatch, SetStateAction } from 'react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { engineName } from '~/core/catalog/engine-name'
+import { useConnectionContext } from '~/core/connection/route'
 import type { constraintsType } from '~/core/queries/constraints/list'
 import { foreignKeyName } from '~/core/queries/constraints/shape'
 import type { NewColumn } from '~/core/queries/tables/shape'
@@ -22,8 +23,6 @@ import { visualizerLayout } from './positions'
 import type { Diagram, DiagramColumn, DiagramTable } from './schema'
 import { tableNodeId } from './schema'
 import type { DiagramDraft } from './statements'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export const useDiagramActions = ({
   constraints,
@@ -48,7 +47,7 @@ export const useDiagramActions = ({
   setSelectedId: Dispatch<SetStateAction<string | null>>
   setTableRequest: (request: TableDialogRequest<DiagramTable> | null) => void
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const router = useRouter()
   const flow = useReactFlow()
 

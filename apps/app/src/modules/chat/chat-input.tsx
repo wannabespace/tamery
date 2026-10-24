@@ -12,15 +12,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
-import { getRouteApi } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { useIsOnline } from '~/store'
 
 import { chatOpen } from './stores'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export const ChatInput = ({
   isStreaming,
@@ -31,7 +29,7 @@ export const ChatInput = ({
   onSend: (text: string) => void
   onStop: () => void
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const isOpened = useSubscription(chatOpen(connectionResource.id))
   const isOnline = useIsOnline()
   const [value, setValue] = useState('')

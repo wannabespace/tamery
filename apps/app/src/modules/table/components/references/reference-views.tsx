@@ -15,16 +15,14 @@ import {
   TableRow,
 } from '@tamery/ui/components/table'
 import { cn } from '@tamery/ui/lib/utils'
-import { getRouteApi } from '@tanstack/react-router'
 
+import { useConnectionContext } from '~/core/connection/route'
 import type { Column } from '~/core/table/cell/utils'
 import { createTransformer } from '~/core/transformers/create-transformer'
 
 import { useTableColumnsQuery } from '../../lib/columns'
 import type { Hop } from './hops'
 import { followReference } from './hops'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const VALUE_CHARS = 400
 
@@ -37,7 +35,7 @@ export const Display = ({
   column: Column
   value: unknown
 }) => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   return (
     <span
       data-mask
@@ -102,7 +100,7 @@ export const RecordView = ({
   schema: string
   table: string
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const { data = [] } = useTableColumnsQuery({
     connectionResource,
     schema,

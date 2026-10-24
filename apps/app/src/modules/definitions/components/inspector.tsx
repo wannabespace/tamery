@@ -23,18 +23,16 @@ import { cn } from '@tamery/ui/lib/utils'
 import type { AnyFormApi } from '@tanstack/react-form'
 import type { QueryKey, UseQueryOptions } from '@tanstack/react-query'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { AnimatePresence } from 'motion/react'
 import type { ReactNode } from 'react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
+import { useConnectionContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import { getQueryLanguage } from '~/core/runtime/language'
 
 import type { DefinitionsState } from '../hooks/use-definitions-state'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export interface InspectorWarning {
   action: string
@@ -205,7 +203,7 @@ export const InspectorSection = ({
 )
 
 export const InspectorDefinition = ({ code }: { code: string }) => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   const { highlight, name } = getQueryLanguage(dialect)
   return (
     <InspectorSection

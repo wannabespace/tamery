@@ -8,12 +8,13 @@ import {
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi, useParams } from '@tanstack/react-router'
+import { useParams } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { tableTabId } from '~/core/tabs/ids'
 
@@ -23,14 +24,12 @@ import { navigatorStore } from './stores'
 import { TablesList } from './tables-list'
 import { buildTreeRows } from './tree-row'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const TablesPanel = ({
   onCreateTable,
 }: {
   onCreateTable: (schema?: string) => void
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const names = useObjectNames()
   const { tabId: activeTabId } = useParams({ strict: false })
   const store = navigatorStore(connectionResource.id)

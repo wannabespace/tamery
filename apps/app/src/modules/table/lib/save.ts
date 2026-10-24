@@ -1,11 +1,11 @@
 import { toError } from '@tamery/shared/utils'
 import { useMutation } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { Result } from 'better-result'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
+import { useConnectionContext } from '~/core/connection/route'
 import { insertQuery } from '~/core/queries/rows/insert'
 import { resourceRowsQueryKey } from '~/core/queries/rows/list'
 import { setQuery } from '~/core/queries/rows/set'
@@ -32,8 +32,6 @@ import { plural } from '~/utils/plural'
 import { useTableColumnsContext } from './columns'
 import { tableGridRef } from './grid-ref'
 import { stagedHistory } from './history'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 interface Submitted {
   drafts: Draft[]
@@ -81,7 +79,7 @@ export const useSaveStaged = ({
   schema: string
   table: string
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const sessionStore = useTableSessionStore()
   const { columns } = useTableColumnsContext()
   const [isCounting, setIsCounting] = useState(false)

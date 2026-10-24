@@ -1,9 +1,6 @@
-import { getRouteApi } from '@tanstack/react-router'
 import { useEffect, useEffectEvent, useState } from 'react'
 
-const { useNavigate, useSearch } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
+import { useTabNavigate, useTabSearch } from '~/core/connection/route'
 
 const LINKED_OPEN_DELAY = 80
 
@@ -18,10 +15,10 @@ export const useInspector = <T>({
   getKey: (item: T) => string
   loading: boolean
 }) => {
-  const navigate = useNavigate()
-  const linkedKey = useSearch({ select: (current) => current.open })
-  const linkedSchema = useSearch({ select: (current) => current.schema })
-  const linkedPreset = useSearch({ select: (current) => current.create })
+  const navigate = useTabNavigate()
+  const linkedKey = useTabSearch({ select: (current) => current.open })
+  const linkedSchema = useTabSearch({ select: (current) => current.schema })
+  const linkedPreset = useTabSearch({ select: (current) => current.create })
   const [inspected, setInspected] = useState<{
     item: T | null
     open: boolean

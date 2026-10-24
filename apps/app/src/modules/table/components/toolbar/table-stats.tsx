@@ -11,15 +11,13 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { cn } from '@tamery/ui/lib/utils'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceTableTotalQueryOptions } from '~/core/queries/rows/total'
 
 import { useTableColumnsContext } from '../../lib/columns'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const COMPACT_COUNT_FORMAT = {
   maximumFractionDigits: 1,
@@ -75,7 +73,7 @@ export const TableStats = ({
   schema: string
   table: string
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const { columns } = useTableColumnsContext()
   const [exact, setExact] = useState(false)
   const {

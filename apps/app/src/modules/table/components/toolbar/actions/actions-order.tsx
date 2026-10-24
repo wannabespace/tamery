@@ -28,11 +28,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
-import { getRouteApi } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 import { plural } from '~/utils/plural'
 
 import { isSortable } from '../../../lib/column-menu'
@@ -95,11 +95,9 @@ const SortedItem = ({
   </CommandItem>
 )
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const ActionsOrder = () => {
   const names = useObjectNames()
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   const store = useTablePageStore()
   const orderEntries = useSubscription(store, {
     selector: (state) => Object.entries(state.orderBy),

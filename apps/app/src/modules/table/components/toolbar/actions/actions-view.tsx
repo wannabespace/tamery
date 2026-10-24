@@ -6,9 +6,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
-import { getRouteApi } from '@tanstack/react-router'
 import { useSubscription } from 'seitu/react'
 
+import { useTabParams } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import { focusGridWhenReady } from '~/core/table/pending-grid-focus'
@@ -16,10 +16,8 @@ import { posthog } from '~/lib/posthog'
 
 import { useTablePageStore } from '../../../lib/store'
 
-const { useParams } = getRouteApi('/_protected/connection/$resourceId/$tabId')
-
 export const ActionsView = () => {
-  const { tabId } = useParams()
+  const { tabId } = useTabParams()
   const store = useTablePageStore()
   const view = useSubscription(store, { selector: (state) => state.view })
   const label = view === 'grid' ? 'Show as documents' : 'Show as grid'

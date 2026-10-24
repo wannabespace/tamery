@@ -1,16 +1,15 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { getRouteApi, useRouter } from '@tanstack/react-router'
+import { useRouter } from '@tanstack/react-router'
 import { toast } from 'sonner'
 
 import { useCollections } from '~/core/collections'
+import { useConnectionContext } from '~/core/connection/route'
 import { saveConnectionString } from '~/core/connection/save'
 import { ConnectionPage } from '~/modules/connection-form/components/connection-page'
 import { getEditMode } from '~/modules/connection-form/lib/form-mode'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const UnlockForm = ({ scope }: { scope: 'credentials' | 'details' }) => {
-  const { connection, connectionResource } = useRouteContext()
+  const { connection, connectionResource } = useConnectionContext()
   const { connectionStringsCollection } = useCollections()
   const router = useRouter()
   const { data: connectionString } = useQuery({

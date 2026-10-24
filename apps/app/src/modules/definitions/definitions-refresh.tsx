@@ -1,8 +1,8 @@
 import { useIsFetching } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import type { DefinitionsSection } from '~/core/catalog/sections'
+import { useConnectionContext } from '~/core/connection/route'
 import type { ConnectionResource } from '~/core/connection/sync'
 import { resourceConstraintsQueryOptions } from '~/core/queries/constraints/list'
 import { resourceEnumsQueryOptions } from '~/core/queries/enums/list'
@@ -15,8 +15,6 @@ import { resourceTriggersQueryOptions } from '~/core/queries/triggers/list'
 import { TabRefreshButton } from '~/core/tabs/refresh-button'
 import { useRefreshHotkey } from '~/hooks/use-refresh-hotkey'
 import { queryClient } from '~/lib/query-client'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const DEFINITIONS_QUERY_OPTIONS: Record<
   DefinitionsSection,
@@ -36,7 +34,7 @@ export const DefinitionsRefresh = ({
 }: {
   params: { section: DefinitionsSection }
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const { queryKey } = DEFINITIONS_QUERY_OPTIONS[section]({
     connectionResource,
   })

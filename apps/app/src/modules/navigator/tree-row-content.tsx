@@ -2,11 +2,11 @@ import { FolderAddIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Separator } from '@tamery/ui/components/separator'
 import { SidebarMenuButton } from '@tamery/ui/components/sidebar'
-import { getRouteApi } from '@tanstack/react-router'
 import type { ComponentRef, RefObject } from 'react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 
 import { createSchemaDialogRef } from './create-schema-dialog'
 import { createViewDialogRef } from './create-view-dialog'
@@ -17,8 +17,6 @@ import type { RenameTableDialog } from './rename-table-dialog'
 import { SchemaRow } from './schema-row'
 import { TableRow } from './table-row'
 import type { TreeRow } from './tree-row'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export const TreeRowContent = ({
   controlId,
@@ -40,7 +38,7 @@ export const TreeRowContent = ({
   row: TreeRow
   search?: string
 }) => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   const names = useObjectNames()
 
   if (row.kind === 'schema') {

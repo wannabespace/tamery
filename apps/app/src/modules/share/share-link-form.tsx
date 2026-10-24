@@ -28,7 +28,6 @@ import { Switch } from '@tamery/ui/components/switch'
 import { Form, useAppForm } from '@tamery/ui/components/tanstack-form'
 import { copy } from '@tamery/ui/lib/copy'
 import { useMutation } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { type } from 'arktype'
 import { isFuture } from 'date-fns'
 import { AnimatePresence } from 'motion/react'
@@ -36,6 +35,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { OptionField } from '~/components/option-field'
+import { useConnectionContext } from '~/core/connection/route'
 import { checkOrUpgrade } from '~/core/user/permissions'
 import { orpc, orpcProxy } from '~/lib/orpc'
 import { queryClient } from '~/lib/query-client'
@@ -47,8 +47,6 @@ import { getExpiresAt, getExpiryItems } from './share-expiry'
 import type { Share } from './shares-query'
 import { sharesQueryOptions } from './shares-query'
 import { sameShareView } from './use-table-share'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export const SHARE_FORM_ID = 'share-dialog'
 
@@ -80,7 +78,7 @@ export const ShareLinkForm = ({
   share: Share | null
   view: ShareView
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { filters } = view
   const [rowsQuery, setRowsQuery] = useState('')
   const typedRows = Number(rowsQuery.trim())

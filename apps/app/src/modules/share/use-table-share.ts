@@ -1,11 +1,10 @@
 import { SyncType } from '@tamery/shared/enums/sync-type'
 import type { ShareView } from '@tamery/shared/share'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
+
+import { useConnectionContext } from '~/core/connection/route'
 
 import { sharesQueryOptions } from './shares-query'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 type ComparedView = Pick<ShareView, 'columns' | 'filters' | 'orderBy'>
 
@@ -26,7 +25,7 @@ export const sameShareView = (left: ComparedView, right: ComparedView) =>
   viewKey(left) === viewKey(right)
 
 export const useTableShare = (schema: string, table: string) => {
-  const { connection, connectionResource } = useRouteContext()
+  const { connection, connectionResource } = useConnectionContext()
   const { data: shares = [], isSuccess } = useQuery(sharesQueryOptions)
 
   return {

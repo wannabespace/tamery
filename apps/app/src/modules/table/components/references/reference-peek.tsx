@@ -3,12 +3,12 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
 import { ScrollArea } from '@tamery/ui/components/custom/scroll-area'
 import { Popover, PopoverContent } from '@tamery/ui/components/popover'
-import { getRouteApi } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'motion/react'
 import type { RefObject } from 'react'
 import { Fragment, useEffect, useRef, useState } from 'react'
 
 import { Link } from '~/components/link'
+import { useConnectionContext } from '~/core/connection/route'
 import { tableTabId } from '~/core/tabs/ids'
 import { posthog } from '~/lib/posthog'
 
@@ -17,8 +17,6 @@ import type { Hop } from './hops'
 import { tableView } from './hops'
 import { RowsView } from './reference-rows'
 import { FollowList, RecordView } from './reference-views'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const SLIDE_OFFSET = 12
 const slide = {
@@ -86,7 +84,7 @@ const Trail = ({
   onJump: (index: number) => void
   ref: RefObject<HTMLDivElement | null>
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const hop = hops.at(-1)
   if (!hop) {
     return null

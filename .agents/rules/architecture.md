@@ -40,7 +40,7 @@ One folder per domain; a file goes in the domain it is about, never in a technic
 | --- | --- |
 | `collections.ts` | Every synced collection, core and module alike |
 | `workspace/`, `user/` | Workspace records and hooks; the user's subscription |
-| `connection/` | Connection and resource records, connection strings, fetching and password gating, the connection and resource stores, icon, resource link, refreshing a resource's cache after a statement runs |
+| `connection/` | Connection and resource records, connection strings, fetching and password gating, the connection and resource stores, icon, resource link, refreshing a resource's cache after a statement runs; `route.ts`, the one reader of the open connection/tab route context (see Connection routes) |
 | `runtime/` | Running queries: `createQuery`, the proxy, MongoDB's `MongoDatabase`, each dialect's query language (`language.ts`), per-engine Kysely dialects (each SQL engine's spelling — adapter and compiler — and how a compiled statement reaches an executor, `toQueryPayload`, come from `@tamery/connection/queries/kysely`, which the proxy compiles share queries with too), the query log |
 | `catalog/` | Per-engine vocabulary: capabilities, column types, definition sections, definition keys, table types; the drop confirmation dialog |
 | `queries/<subject>/` | One file per catalog or row statement (see below) |
@@ -68,6 +68,8 @@ Every app's entry imports `@tamery/shared/arktype-config` first. It sets `onUnde
 - Verify by walking the dev module graph from `/src/main.tsx`, not by reading imports.
 
 ## Connection routes
+
+The open connection's route context, and the tab's, are read only through `core/connection/route.ts` (`useConnectionContext`/`useConnectionParams` for `$resourceId`; `useTabContext`/`useTabParams`/`useTabSearch`/`useTabNavigate` for `$resourceId/$tabId`), the single place that names those route paths, so retargeting the route tree is one edit. A component never calls `getRouteApi('/_protected/connection/$resourceId…')` itself; only the two route files that define these routes keep their own `getRouteApi`.
 
 Exactly two routes: `$resourceId/index.tsx` (empty state, redirecting to the active tab when it still exists) and `$resourceId/$tabId.tsx`, which resolves the id through the tab kinds in `core/tabs/kinds.ts` and renders that kind's view from `core/tabs/views.ts`; the layout renders the navigator, query-logger and chat panels and the tab bar. Runner state is per **tab** (`runnerPageStore({ resourceId, tabId })` via `RunnerTabContext`), never off the resource store. The visualizer has no page store — its state is keyed by resource id alone: persisted viewport and node positions on its own store (`modules/visualizer/lib/positions.ts`), pending DDL drafts in a memory seitu store per resource (`modules/visualizer/lib/drafts.ts`) that survives closing the tab but not an app reload, since a draft is a statement nobody has run. A new key on `connectionResourceType` can be required: seitu repairs a schema-invalid stored value by filling missing keys from the defaults and keeping every stored key whose `typeof` matches, so existing tabs survive. Changing an existing key's `typeof` does drop that key.
 

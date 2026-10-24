@@ -22,12 +22,12 @@ import {
   InputGroupInput,
 } from '@tamery/ui/components/input-group'
 import { Switch } from '@tamery/ui/components/switch'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { OptionField } from '~/components/option-field'
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { submittedName } from '~/core/catalog/engine-name'
+import { useConnectionContext } from '~/core/connection/route'
 import type { RenamedValue } from '~/core/queries/shared/inline-enum'
 
 import { CommentField } from './column-comment-field'
@@ -49,8 +49,6 @@ export interface ColumnDialogRequest<
   column: Column | null
   table: Table
 }
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const FORM_ID = 'column-dialog'
 
@@ -95,7 +93,7 @@ const ColumnForm = ({
   request: ColumnDialogRequest
 }) => {
   const { column, table } = request
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   const [name, setName] = useState(column?.name ?? '')
   const columnType = useColumnType(dialect, column?.type ?? '')
   const {

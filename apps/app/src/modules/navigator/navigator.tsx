@@ -2,10 +2,11 @@ import { PlusSignIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { SidebarMenuButton } from '@tamery/ui/components/sidebar'
-import { getRouteApi, useParams, useRouter } from '@tanstack/react-router'
+import { useParams, useRouter } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'motion/react'
 import { useSubscription } from 'seitu/react'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { QueryLoggerToggle } from '~/modules/query-logger/query-logger-toggle'
 import { newQueryAction } from '~/modules/runner/lib/new-query'
 import { pressNavProps } from '~/utils/press-nav'
@@ -18,10 +19,8 @@ import { NavigatorSwitcher } from './navigator-switcher'
 import { getNavigatorStore } from './stores'
 import { TablesPanel } from './tables-panel'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 const NavigatorFooter = () => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const router = useRouter()
 
   return (
@@ -53,7 +52,7 @@ const createTable = (schema?: string) =>
   createTableDialogRef.current?.create(schema)
 
 export const Navigator = () => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { tabId } = useParams({ strict: false })
   const navigator = useSubscription(
     getNavigatorStore(connectionResource.id, tabId)

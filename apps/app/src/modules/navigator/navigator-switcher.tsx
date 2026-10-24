@@ -6,20 +6,18 @@ import {
 import { HugeiconsIcon } from '@hugeicons/react'
 import { uppercaseFirst } from '@tamery/shared/utils'
 import { SidebarMenuButton } from '@tamery/ui/components/sidebar'
-import { getRouteApi } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'motion/react'
 import { useSubscription } from 'seitu/react'
 
 import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 
 import { getNavigatorStore } from './stores'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const TRANSITION = { duration: 0.15, ease: [0.32, 0.72, 0, 1] } as const
 
 export const NavigatorSwitcher = () => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const navigatorStore = getNavigatorStore(connectionResource.id)
   const navigator = useSubscription(navigatorStore)
   const isDefinitions = navigator === 'definitions'

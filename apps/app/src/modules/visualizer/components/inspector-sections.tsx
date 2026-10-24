@@ -8,13 +8,13 @@ import {
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
 import { cn } from '@tamery/ui/lib/utils'
-import { getRouteApi } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 
 import { AppContextMenu, AppMenuButton } from '~/components/app-context-menu'
 import { Link } from '~/components/link'
 import { definitionKey } from '~/core/catalog/definition-keys'
 import type { DefinitionsSection } from '~/core/catalog/sections'
+import { useConnectionContext } from '~/core/connection/route'
 import type { indexesType } from '~/core/queries/indexes/list'
 import type { policyType } from '~/core/queries/policies/list'
 import type { triggersType } from '~/core/queries/triggers/list'
@@ -25,8 +25,6 @@ import { useDiagram } from '../lib/context'
 import type { DiagramRelation, DiagramTable } from '../lib/schema'
 import { relationMenu } from './menus'
 import { draftStateClass } from './table-node'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export const Section = ({
   action,
@@ -169,7 +167,7 @@ const DefinitionLink = ({
   schema: string
   section: DefinitionsSection
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
 
   return (
     <li>

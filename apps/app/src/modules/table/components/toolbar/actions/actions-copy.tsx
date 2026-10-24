@@ -9,7 +9,6 @@ import {
 } from '@tamery/ui/components/dialog'
 import { Tabs, TabsList, TabsTrigger } from '@tamery/ui/components/tabs'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
@@ -34,12 +33,11 @@ import type {
   QueryParams,
   SchemaParams,
 } from '~/core/codegen/types'
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceIndexesQueryOptions } from '~/core/queries/indexes/list'
 
 import { useTableColumnsContext } from '../../../lib/columns'
 import { useTablePageStore } from '../../../lib/store'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 type Kind = 'schema' | 'query'
 
@@ -123,7 +121,7 @@ export const ActionsCopy = ({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) => {
-  const { connectionResource, defaultSchema, dialect } = useRouteContext()
+  const { connectionResource, defaultSchema, dialect } = useConnectionContext()
   const store = useTablePageStore()
   const filters = useSubscription(store, {
     selector: (state) => state.filters,

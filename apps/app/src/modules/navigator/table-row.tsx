@@ -20,7 +20,7 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { copy as copyToClipboard } from '@tamery/ui/lib/copy'
 import { cn } from '@tamery/ui/lib/utils'
-import { getRouteApi, useParams, useRouter } from '@tanstack/react-router'
+import { useParams, useRouter } from '@tanstack/react-router'
 import { useSubscription } from 'seitu/react'
 
 import { AppContextMenu, AppMenuButton } from '~/components/app-context-menu'
@@ -28,6 +28,7 @@ import type { AppMenuNode } from '~/components/app-menu'
 import { Link } from '~/components/link'
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { getTableTypeLabel, tableTypeIcon } from '~/core/catalog/table-type'
+import { useConnectionContext } from '~/core/connection/route'
 import { focusGridWhenReady } from '~/core/table/pending-grid-focus'
 import { tableSessionStore } from '~/core/table/session'
 import { openTab } from '~/core/tabs/actions'
@@ -42,8 +43,6 @@ import {
 } from './row-level-security'
 import type { TreeRow } from './tree-row'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const TableRow = ({
   controlId,
   row,
@@ -57,7 +56,7 @@ export const TableRow = ({
   onRename?: () => void
   onDrop: () => void
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const router = useRouter()
   const tabId = tableTabId(row.schema, row.table.name)
   const isActive = useParams({

@@ -7,15 +7,13 @@ import {
   ComboboxList,
 } from '@tamery/ui/components/combobox'
 import { Field, FieldLabel } from '@tamery/ui/components/field'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { foreignKeysCreatable } from '~/core/catalog/section-capabilities'
+import { useConnectionContext } from '~/core/connection/route'
 
 import type { ReferenceTarget } from './use-reference-targets'
 import { useReferenceTargets } from './use-reference-targets'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export const ReferenceField = ({
   column,
@@ -26,7 +24,7 @@ export const ReferenceField = ({
   onValueChange: (target: ReferenceTarget | null) => void
   value: ReferenceTarget | null
 }) => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   const referable = foreignKeysCreatable(dialect) && !column?.foreign
   const [opened, setOpened] = useState(false)
   const { loading, targets } = useReferenceTargets(referable && opened)

@@ -4,12 +4,12 @@ import {
   languageIds,
 } from '@tamery/monaco/sql-language'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import type { editor } from 'monaco-editor'
 import type { RefObject } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { useTabContext } from '~/core/connection/route'
 import { resourceEnumsQueryOptions } from '~/core/queries/enums/list'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { attachSqlSource } from '~/core/sql-editor/sql-source'
@@ -23,10 +23,6 @@ import type { RunAnchor } from '../lib/statement-band'
 import { sameSpot, useStatementBand } from '../lib/statement-band'
 import { setQuery, useRunnerPageStore, useRunnerTab } from '../lib/store'
 import { openMenuFromKeyboard, StatementControls } from './statement-controls'
-
-const { useRouteContext } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
 
 const MONACO_OPTIONS = {
   contextmenu: false,
@@ -51,7 +47,7 @@ export const RunnerEditor = ({
   acceptAi: () => void
   rejectAi: () => void
 }) => {
-  const { connection, connectionResource, dialect } = useRouteContext()
+  const { connection, connectionResource, dialect } = useTabContext()
   const store = useRunnerPageStore()
   const query = useSubscription(store, { selector: (state) => state.query })
   const actions = useRunnerActions()

@@ -6,17 +6,15 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
-import { getRouteApi } from '@tanstack/react-router'
 import { useSubscription } from 'seitu/react'
 
+import { useConnectionParams } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 
 import { loggerOpen, toggleLogger } from './logger-open'
 
-const { useParams } = getRouteApi('/_protected/connection/$resourceId')
-
 export const QueryLoggerToggle = () => {
-  const { resourceId } = useParams()
+  const { resourceId } = useConnectionParams()
   const loggerOpened = useSubscription(loggerOpen(resourceId))
 
   return (

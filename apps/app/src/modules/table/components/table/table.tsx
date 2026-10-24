@@ -5,11 +5,11 @@ import { TableSkeleton } from '@tamery/table'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { useMountedEffect } from '@tamery/ui/hookas/use-mounted-effect'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useRef } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceRowsQueryInfiniteOptions } from '~/core/queries/rows/list'
 import { rowIdentity } from '~/core/queries/rows/shape'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
@@ -44,8 +44,6 @@ import { TableFieldLabel, TableHeaderCell } from './table-header-cell'
 import { keysInRange } from './table-selection'
 import { DocumentsSkeleton } from './table-skeleton'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const Table = ({
   onAddColumn,
   schema,
@@ -55,7 +53,7 @@ export const Table = ({
   schema: string
   table: string
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { names } = getCapabilities(dialect)
   const { columns, isPending: isColumnsPending } = useTableColumnsContext()
   const store = useTablePageStore()
