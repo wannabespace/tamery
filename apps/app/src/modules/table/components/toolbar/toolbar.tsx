@@ -1,8 +1,4 @@
-import {
-  MoreHorizontalIcon,
-  SourceCodeIcon,
-  SproutIcon,
-} from '@hugeicons/core-free-icons'
+import { MoreHorizontalIcon, SourceCodeIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import type { ActiveFilter } from '@tamery/shared/filters'
@@ -166,7 +162,12 @@ export const TableToolbar = ({
         <ActionsColumns />
         <ActionsOrder />
         <ActionsView />
-        {isTable && <ActionsAdd onAddColumn={onAddColumn} />}
+        {isTable && (
+          <ActionsAdd
+            onAddColumn={onAddColumn}
+            onSeed={() => setSeedOpen(true)}
+          />
+        )}
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger
@@ -182,12 +183,6 @@ export const TableToolbar = ({
             <TooltipContent side="bottom">More actions</TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="end" className="min-w-44">
-            {isTable && (
-              <DropdownMenuItem onClick={() => setSeedOpen(true)}>
-                <HugeiconsIcon icon={SproutIcon} strokeWidth={2} />
-                Seed data
-              </DropdownMenuItem>
-            )}
             <ExportDataMenu
               selected={selected}
               filename={`${schema}_${table}`}

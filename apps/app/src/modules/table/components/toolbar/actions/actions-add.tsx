@@ -2,6 +2,7 @@ import {
   LayoutThreeColumnIcon,
   LayoutThreeRowIcon,
   PlusSignIcon,
+  SproutIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
@@ -25,7 +26,13 @@ import { useTableColumnsContext } from '../../../lib/columns'
 import { stageRow } from '../../../lib/staged-edits'
 import { columnView, useTablePageStore } from '../../../lib/store'
 
-export const ActionsAdd = ({ onAddColumn }: { onAddColumn?: () => void }) => {
+export const ActionsAdd = ({
+  onAddColumn,
+  onSeed,
+}: {
+  onAddColumn?: () => void
+  onSeed: () => void
+}) => {
   const store = useTablePageStore()
   const sessionStore = useTableSessionStore()
   const names = useObjectNames()
@@ -68,6 +75,10 @@ export const ActionsAdd = ({ onAddColumn }: { onAddColumn?: () => void }) => {
             Add column
           </DropdownMenuItem>
         )}
+        <DropdownMenuItem disabled={columns.length === 0} onClick={onSeed}>
+          <HugeiconsIcon icon={SproutIcon} strokeWidth={2} />
+          Seed data
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
