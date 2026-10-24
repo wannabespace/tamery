@@ -1,7 +1,7 @@
 import { partialMatchKey, useIsFetching } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { structureQueryKey } from '~/core/queries/indexes/list'
 import { resourcePoliciesQueryOptions } from '~/core/queries/policies/list'
 import { resourceColumnsQueryKey } from '~/core/queries/tables/columns'
@@ -11,10 +11,8 @@ import { TabRefreshButton } from '~/core/tabs/refresh-button'
 import { useRefreshHotkey } from '~/hooks/use-refresh-hotkey'
 import { queryClient } from '~/lib/query-client'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const VisualizerRefresh = () => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const tablesAndSchemasKey = resourceTablesAndSchemasQueryOptions({
     connectionResource,
   }).queryKey

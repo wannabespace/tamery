@@ -15,6 +15,7 @@ import { getConnectionStringToShow } from '~/core/connection/utils'
 
 import { dialects } from './dialects'
 import type { DialectOptions } from './dialects/driver'
+import type { MongoDatabase } from './dialects/mongodb'
 import { logQuery } from './log'
 import { watchForSlowQuery } from './slow-queries'
 
@@ -113,7 +114,7 @@ export const createQuery = <T extends Type = Type<unknown>>(options: {
   const run = async (
     queryParams: QueryParams,
     // oxlint-disable-next-line ts/no-explicit-any
-    tx?: Transaction<any>
+    tx?: Transaction<any> | MongoDatabase
   ): Promise<T extends Type ? T['inferOut'] : unknown> => {
     const instance = tx ?? getDatabase(queryParams)
     const queryFn = options.query[queryParams.dialect]

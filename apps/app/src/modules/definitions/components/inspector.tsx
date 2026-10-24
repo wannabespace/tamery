@@ -27,8 +27,10 @@ import { AnimatePresence } from 'motion/react'
 import type { ReactNode } from 'react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
+import { useConnectionContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
+import { getQueryLanguage } from '~/core/runtime/language'
 
 import type { DefinitionsState } from '../hooks/use-definitions-state'
 
@@ -147,20 +149,20 @@ export const replaceWarning = ({
   name: string
   noun: string
 }): InspectorWarning | undefined =>
-  getCapabilities(dialect).ddlRollback
+  getCapabilities(dialect).flags.includes('ddlRollback')
     ? undefined
     : {
         action: `Replace ${noun}`,
         description: (
           <>
             This database cannot roll DDL back, so{' '}
-            {getCapabilities(dialect).replacesInPlace
+            {getCapabilities(dialect).flags.includes('replacesInPlace')
               ? 'saving overwrites'
               : 'we drop'}{' '}
             <span data-mask className="font-medium">
               {name}
             </span>{' '}
-            {getCapabilities(dialect).replacesInPlace
+            {getCapabilities(dialect).flags.includes('replacesInPlace')
               ? 'in place'
               : 'and create it again'}
             . If the new statement fails, we recreate the old one from its saved
@@ -200,22 +202,32 @@ export const InspectorSection = ({
   </section>
 )
 
-export const InspectorDefinition = ({ code }: { code: string }) => (
-  <InspectorSection
-    title="SQL"
-    description="How the database defines this object today. Read-only."
-    action={
-      <CopyIconButton
-        label="Copy SQL"
-        side="left"
-        className="-mt-0.5"
-        text={code}
+export const InspectorDefinition = ({ code }: { code: string }) => {
+  const { dialect } = useConnectionContext()
+  const { highlight, name } = getQueryLanguage(dialect)
+  return (
+    <InspectorSection
+      title={name}
+      description="How the database defines this object today. Read-only."
+      action={
+        <CopyIconButton
+          label={`Copy ${name}`}
+          side="left"
+          className="-mt-0.5"
+          text={code}
+        />
+      }
+    >
+      <CodeBlock
+        code={code}
+        language={highlight}
+        size="xs"
+        variant="field"
+        wrap
       />
-    }
-  >
-    <CodeBlock code={code} language="sql" size="xs" variant="field" wrap />
-  </InspectorSection>
-)
+    </InspectorSection>
+  )
+}
 
 export const InspectorSql = ({
   query,

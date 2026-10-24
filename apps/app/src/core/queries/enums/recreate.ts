@@ -39,6 +39,7 @@ export const recreateEnumQuery = ({
   createQuery({
     query: {
       clickhouse: unsupported('Editing enums'),
+      mongodb: unsupported('Enums'),
       mssql: unsupported('Enums'),
       mysql: unsupported('Editing enums'),
       oracle: unsupported('Editing enums'),

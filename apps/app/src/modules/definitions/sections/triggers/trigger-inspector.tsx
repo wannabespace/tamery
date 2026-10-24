@@ -1,4 +1,4 @@
-import { sqlLanguageIds } from '@tamery/monaco/sql-language'
+import { languageIds } from '@tamery/monaco/sql-language'
 import { sameShape } from '@tamery/shared/utils'
 import { useAppForm } from '@tamery/ui/components/tanstack-form'
 import { useSelector } from '@tanstack/react-form'
@@ -255,7 +255,7 @@ export const TriggerInspector = ({
                 label="Body"
                 description="Runs for every change the trigger answers to."
                 disabled={readOnly}
-                language={sqlLanguageIds[dialect]}
+                language={languageIds[dialect]}
               />
             )}
           </form.AppField>

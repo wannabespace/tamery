@@ -2,17 +2,15 @@ import type { Dialect } from '@tamery/shared/enums/connection-type'
 import type { ActiveFilter, Filter } from '@tamery/shared/filters'
 import { FILTERS_GROUPED } from '@tamery/shared/filters'
 import { useHotkeys } from '@tanstack/react-hotkeys'
-import { getRouteApi } from '@tanstack/react-router'
 import type { RefObject } from 'react'
 import { useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
+import { useConnectionContext } from '~/core/connection/route'
 
 import { tableGridRef } from '../../lib/grid-ref'
 import { useTablePageStore } from '../../lib/store'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export type FilterTarget = Pick<ActiveFilter, 'column' | 'via'>
 
@@ -25,7 +23,9 @@ export const offeredFilters = (dialect: Dialect) =>
   FILTERS_GROUPED.map((group) => ({
     ...group,
     filters: group.filters.filter(
-      (filter) => filter.operator !== 'ilike' || getCapabilities(dialect).ilike
+      (filter) =>
+        filter.operator !== 'ilike' ||
+        getCapabilities(dialect).flags.includes('ilike')
     ),
   }))
 
@@ -58,7 +58,7 @@ export const useFilterComposer = ({
   inputRef: RefObject<HTMLInputElement | null>
   onQueryChange: () => void
 }) => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   const store = useTablePageStore()
   const filters = useSubscription(store, {
     selector: (state) => state.filters,

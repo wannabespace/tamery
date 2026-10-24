@@ -39,7 +39,7 @@ const ASK_GHOST_TEXT = {
   title: 'Suggest',
 }
 
-const resuggestOnceLoaded = async (
+export const resuggestOnceLoaded = async (
   loading: Promise<unknown>,
   model: editor.ITextModel,
   position: IPosition

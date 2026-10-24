@@ -13,6 +13,7 @@
           "connections/mysql",
           "connections/mssql",
           "connections/oracle",
+          "connections/mongodb",
           "connections/clickhouse",
           "connections/sqlite",
           "connections/security"

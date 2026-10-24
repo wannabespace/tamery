@@ -22,6 +22,7 @@ const triggerDefinitionQuery = ({ name, oid, schema }: TriggerItem) =>
   createQuery({
     query: {
       clickhouse: unsupported('Triggers'),
+      mongodb: unsupported('Triggers'),
       mssql: readDefinition(mssqlObjectDefinition(schema, name)),
       mysql: async (db) => {
         const { rows } = await sql<Record<string, string>>`

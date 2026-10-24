@@ -10,7 +10,7 @@ import {
 
 import { resourceRowsQueryKey } from './list'
 import type { ContainsText } from './shape'
-import { textContains } from './shape'
+import { fromMongodbDocument, mongodbTextContains, textContains } from './shape'
 
 const rowsType = type('Record<string, unknown>[]')
 
@@ -46,6 +46,20 @@ export const searchRowsQuery = (params: SearchRowsParams) =>
   createQuery({
     query: {
       clickhouse: (db) => searchRows(db, textContains.clickhouse, params),
+      mongodb: async (db) => {
+        const filter =
+          params.term === ''
+            ? {}
+            : {
+                $or: params.columns.map((column) =>
+                  mongodbTextContains(column, params.term)
+                ),
+              }
+        const collection = db.collection(params.table)
+        // oxlint-disable-next-line unicorn/no-array-method-this-argument -- a collection's find takes options, not a thisArg
+        const documents = await collection.find(filter, { limit: params.limit })
+        return documents.map(fromMongodbDocument)
+      },
       mssql: (db) => searchRows(db, textContains.mssql, params),
       mysql: (db) => searchRows(db, textContains.mysql, params),
       oracle: (db) => searchRows(db, textContains.oracle, params),

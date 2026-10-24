@@ -9,6 +9,7 @@ import {
   bindValue,
   clickhouseWrite,
   matchesPrimaryKeys,
+  mongodbDocument,
 } from './shape'
 
 interface SetParams {
@@ -39,6 +40,12 @@ export const setQuery = (params: SetParams) =>
     query: {
       clickhouse: (db) =>
         clickhouseWrite((bind) => updateRow(db, bind, params)),
+      mongodb: (db) =>
+        db
+          .collection(params.table)
+          .updateOne(mongodbDocument(params.columns, params.primaryKeys), {
+            $set: mongodbDocument(params.columns, params.values),
+          }),
       mssql: (db) => updateRow(db, bindValue.mssql, params),
       mysql: (db) => updateRow(db, bindValue.mysql, params),
       oracle: (db) => updateRow(db, bindValue.oracle, params),

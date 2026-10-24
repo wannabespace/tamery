@@ -1,6 +1,6 @@
 import { ScrollArea } from '@tamery/ui/components/scroll-area'
-import { getRouteApi } from '@tanstack/react-router'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { openTab } from '~/core/tabs/actions'
 import { definitionsTabId } from '~/core/tabs/ids'
 import type { TabView } from '~/core/tabs/types'
@@ -14,8 +14,6 @@ import { Indexes } from './sections/indexes'
 import { Policies } from './sections/policies/policies'
 import { Privileges } from './sections/privileges'
 import { Triggers } from './sections/triggers/triggers'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const SECTIONS = {
   constraints: Constraints,
@@ -32,7 +30,7 @@ const DefinitionsTab = ({
 }: {
   params: DefinitionsParams
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const Section = SECTIONS[section]
 
   return (

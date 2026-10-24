@@ -3,8 +3,9 @@ import type { DialectSpec, TokenizerState } from '@tamery/sql'
 import { INITIAL_STATE, tokenize } from '@tamery/sql'
 import { languages } from 'monaco-editor'
 
-export const sqlLanguageIds = {
+export const languageIds = {
   [Dialect.ClickHouse]: 'sql-clickhouse',
+  [Dialect.MongoDB]: 'mongodb',
   [Dialect.MSSQL]: 'sql-mssql',
   [Dialect.MySQL]: 'sql-mysql',
   [Dialect.Oracle]: 'sql-oracle',

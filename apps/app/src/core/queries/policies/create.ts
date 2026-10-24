@@ -23,6 +23,7 @@ export const createPolicyQuery = ({
     query: {
       clickhouse: (db) =>
         createRowPolicyStatement({ schema, shape, table }).execute(db),
+      mongodb: unsupported('Row policies'),
       mssql: (db) =>
         sql`
           CREATE SECURITY POLICY ${sql.id(schema, shape.name)}

@@ -15,6 +15,7 @@ export const renameConstraintQuery = ({
   createQuery({
     query: {
       clickhouse: unsupported('Renaming constraints'),
+      mongodb: unsupported('Constraints'),
       mssql: (db) =>
         sql`EXEC sp_rename ${sql.val(mssqlQualified(schema, name))}, ${sql.val(newName)}, 'OBJECT'`.execute(
           db

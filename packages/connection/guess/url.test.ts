@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
 
 import { guessConnection } from './index'
 
@@ -26,6 +26,42 @@ describe('guessConnection — URLs', () => {
         port: '3306',
         type: ConnectionType.MySQL,
         user: 'root',
+      },
+    ],
+    [
+      'mongodb://admin:pw@db.acme.io:27017/app?authSource=admin',
+      {
+        database: 'app',
+        host: 'db.acme.io',
+        options: 'authsource=admin',
+        password: 'pw',
+        port: '27017',
+        type: ConnectionType.MongoDB,
+        user: 'admin',
+      },
+    ],
+    [
+      'mongodb://app:pw@db1.acme.io:27017,db2.acme.io:27017/shop?replicaSet=rs0',
+      {
+        database: 'shop',
+        host: 'db1.acme.io',
+        options: 'replicaset=rs0',
+        password: 'pw',
+        port: '27017',
+        type: ConnectionType.MongoDB,
+        user: 'app',
+      },
+    ],
+    [
+      'mongodb+srv://app:pw@cluster0.abcde.mongodb.net/shop?retryWrites=true',
+      {
+        database: 'shop',
+        host: 'cluster0.abcde.mongodb.net',
+        options: 'retrywrites=true',
+        password: 'pw',
+        provider: Provider.MongoDBAtlas,
+        type: ConnectionType.MongoDB,
+        user: 'app',
       },
     ],
     [

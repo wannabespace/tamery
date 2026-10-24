@@ -4,7 +4,7 @@ import {
   SidebarLeftIcon,
   ViewIcon,
 } from '@hugeicons/core-free-icons'
-import { getDialect } from '@tamery/shared/enums/connection-type'
+import { getDialect, isSqlDialect } from '@tamery/shared/enums/connection-type'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import type {
@@ -26,19 +26,25 @@ export const navigatorCommands = ({
           action: () => createTableDialogRef.current?.create(),
           group: 'Database',
           icon: PlusSignIcon,
-          keywords: ['create', 'add', 'table'],
+          keywords: ['create', 'add', 'table', 'collection'],
           order: 10,
-          value: 'New table…',
+          value: `New ${getCapabilities(getDialect(current.connection.type)).names.table}…`,
         },
-        {
-          action: () => createViewDialogRef.current?.create(),
-          group: 'Database',
-          icon: ViewIcon,
-          keywords: ['create', 'add', 'view', 'materialized'],
-          order: 15,
-          value: 'New view…',
-        },
-        ...(getCapabilities(getDialect(current.connection.type)).schemas
+        ...(isSqlDialect(getDialect(current.connection.type))
+          ? [
+              {
+                action: () => createViewDialogRef.current?.create(),
+                group: 'Database',
+                icon: ViewIcon,
+                keywords: ['create', 'add', 'view', 'materialized'],
+                order: 15,
+                value: 'New view…',
+              } satisfies CommandEntry,
+            ]
+          : []),
+        ...(getCapabilities(getDialect(current.connection.type)).flags.includes(
+          'schemas'
+        )
           ? [
               {
                 action: () => createSchemaDialogRef.current?.create(),

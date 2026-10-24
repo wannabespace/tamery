@@ -5,7 +5,12 @@ import {
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
-import { matchesSearch, pushUnique, sameList } from '@tamery/shared/utils'
+import {
+  uppercaseFirst,
+  matchesSearch,
+  pushUnique,
+  sameList,
+} from '@tamery/shared/utils'
 import { MotionCollapse } from '@tamery/ui/components/collapse.motion'
 import { FieldDescription } from '@tamery/ui/components/field'
 import { useAppForm } from '@tamery/ui/components/tanstack-form'
@@ -18,8 +23,10 @@ import { toast } from 'sonner'
 import { Link } from '~/components/link'
 import type { SectionCapabilities } from '~/core/catalog/capabilities'
 import { getCapabilities } from '~/core/catalog/capabilities'
+import type { ObjectNames } from '~/core/catalog/capability-presets'
 import { definitionKey } from '~/core/catalog/definition-keys'
 import { submittedName, suggestedName } from '~/core/catalog/engine-name'
+import { useObjectNames } from '~/core/catalog/names'
 import { groupInSchema } from '~/core/connection/utils'
 import { createIndexQuery } from '~/core/queries/indexes/create'
 import { dropIndexQuery } from '~/core/queries/indexes/drop'
@@ -193,10 +200,10 @@ const getLocks = ({
   item: GroupedIndex | null
 }) => {
   const owned = !!item?.constraintOwned
-  const { indexes, renameConstraints } = getCapabilities(dialect)
+  const { flags, indexes } = getCapabilities(dialect)
   const readOnly = item
     ? !can.edit ||
-      (owned && !renameConstraints) ||
+      (owned && !flags.includes('renameConstraints')) ||
       (!!item.custom && !indexes.rename)
     : !can.create
 
@@ -439,19 +446,21 @@ const IndexInspector = ({
   )
 }
 
-const columns: DefinitionsColumn<GroupedIndex>[] = [
+const indexColumns = (
+  names: ObjectNames
+): DefinitionsColumn<GroupedIndex>[] => [
   nameColumn({
     icon: (item: GroupedIndex) =>
       item.kind === 'primary' ? Key01Icon : LeftToRightListDashIcon,
     width: '4/12',
   }),
   textColumn({
-    header: 'Table',
+    header: uppercaseFirst(names.table),
     valueOf: (item: GroupedIndex) => item.table,
     width: '2/12',
   }),
   textColumn({
-    header: 'Columns',
+    header: `${uppercaseFirst(names.column)}s`,
     valueOf: (item: GroupedIndex) => item.columns.join(', '),
   }),
   labelColumn({
@@ -467,6 +476,7 @@ export const Indexes = () => {
   const state = useDefinitionsState({ section: 'indexes' })
   const { connectionResource, getRelationNames, run, search, selectedSchema } =
     state
+  const names = useObjectNames()
   const query = resourceIndexesQueryOptions({ connectionResource })
   const { data: indexes = [], isPending } = useQuery(query)
   const kindFilter = useFilter<IndexKind>('All types', [
@@ -478,7 +488,7 @@ export const Indexes = () => {
   return (
     <DefinitionsPage
       canDropItem={(item) => !item.constraintOwned}
-      columns={columns}
+      columns={indexColumns(names)}
       createBlocked={
         getRelationNames(selectedSchema ?? '', 'table').length === 0
           ? 'This schema has no tables to index.'

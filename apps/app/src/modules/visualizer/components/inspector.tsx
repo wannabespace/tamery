@@ -15,11 +15,11 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { cn } from '@tamery/ui/lib/utils'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'motion/react'
 import type { ComponentProps } from 'react'
 
 import { AppContextMenu, AppMenuButton } from '~/components/app-context-menu'
+import { useConnectionContext } from '~/core/connection/route'
 import type { indexesType } from '~/core/queries/indexes/list'
 import type { policyType } from '~/core/queries/policies/list'
 import { resourceTableTotalQueryOptions } from '~/core/queries/rows/total'
@@ -38,8 +38,6 @@ import {
 } from './inspector-sections'
 import { columnMenu, tableMenu } from './menus'
 import { draftStateClass } from './table-node'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const noFilters: never[] = []
 
@@ -106,7 +104,7 @@ const ColumnItem = ({
 }
 
 const RowCount = ({ table }: { table: DiagramTable }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const { data, isPending } = useQuery({
     ...resourceTableTotalQueryOptions({
       connectionResource,

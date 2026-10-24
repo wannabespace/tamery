@@ -1,4 +1,5 @@
 import type { Dialect } from '@tamery/shared/enums/connection-type'
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { silently } from '@tamery/shared/utils'
 import type { SqlCatalog } from '@tamery/sql'
 import { dialects, splitStatements, statementScope } from '@tamery/sql'
@@ -40,9 +41,11 @@ export const getRange = (
 ) => Range.fromPositions(model.getPositionAt(start), model.getPositionAt(end))
 
 export const tablesIn = (text: string, dialect: Dialect) =>
-  splitStatements(text, dialects[dialect]).flatMap(
-    (statement) => statementScope(statement.tokens).tables
-  )
+  isSqlDialect(dialect)
+    ? splitStatements(text, dialects[dialect]).flatMap(
+        (statement) => statementScope(statement.tokens).tables
+      )
+    : []
 
 export const catalogSummaryFor = async (
   model: editor.ITextModel,

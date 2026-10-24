@@ -91,6 +91,30 @@ const RULES: DiagnosisRule[] = [
     match: /is not registered with the listener|ora-12514|ora-12505/iu,
   },
   {
+    diagnose: ({ parts }) =>
+      new URLSearchParams(parts.options.toLowerCase()).has('authsource')
+        ? {
+            focus: 'password',
+            hint: 'Check the user and password, and the authSource option: it names the database the user was created in.',
+            title: 'Wrong user or password',
+          }
+        : {
+            fix: {
+              label: 'Sign in through admin',
+              patch: {
+                options: [parts.options, 'authSource=admin']
+                  .filter(Boolean)
+                  .join('&'),
+              },
+            },
+            focus: 'password',
+            hint: 'MongoDB checks a user against the database in the string unless authSource names another; a root user lives in admin.',
+            title: 'Wrong user or password',
+          },
+    engine: ConnectionType.MongoDB,
+    match: /authentication failed/iu,
+  },
+  {
     diagnose: () => ({
       focus: 'user',
       hint: "Supabase's pooler doesn't know this project: check the project ref in the user (postgres.<project-ref>), and that the project isn't paused.",

@@ -1,6 +1,7 @@
 import type { Dialect } from '@tamery/shared/enums/connection-type'
 import { useState } from 'react'
 
+import { getCapabilities } from '~/core/catalog/capabilities'
 import { isComputed } from '~/core/queries/tables/columns'
 import type { Column } from '~/core/table/cell/utils'
 import { isComparableColumn } from '~/core/table/cell/utils'
@@ -25,6 +26,7 @@ export const useColumnActions = ({
   const [distinct, setDistinct] = useState<DistinctValuesTarget | null>(null)
 
   const getActions = (column: Column): ColumnActions => ({
+    names: getCapabilities(dialect).names,
     onDistinctValues: isComparableColumn(dialect, column)
       ? (anchor) => setDistinct({ anchor, column })
       : undefined,

@@ -202,6 +202,6 @@ export const hasTabularFigures = (column: Column) =>
   column.uiType !== 'raw' || isNumericColumn(column)
 
 export const canWriteDefault = (dialect: Dialect, column: Column) =>
-  getCapabilities(dialect).setDefault &&
+  getCapabilities(dialect).flags.includes('setDefault') &&
   column.defaultValue !== null &&
   column.defaultValue !== undefined

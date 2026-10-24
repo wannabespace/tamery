@@ -15,6 +15,7 @@ export const renameIndexQuery = ({
   createQuery({
     query: {
       clickhouse: unsupported('Renaming indexes'),
+      mongodb: unsupported('Indexes'),
       mssql: (db) =>
         sql`EXEC sp_rename ${sql.val(mssqlQualified(schema, table, name))}, ${sql.val(newName)}, 'INDEX'`.execute(
           db

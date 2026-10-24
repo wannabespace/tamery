@@ -1,3 +1,4 @@
+import { unsupported } from '@tamery/shared/unsupported'
 import { queryOptions } from '@tanstack/react-query'
 import { type } from 'arktype'
 import { sql } from 'kysely'
@@ -22,6 +23,7 @@ const dependentsQuery = ({ name, schema }: { name: string; schema: string }) =>
   createQuery({
     query: {
       clickhouse: () => Promise.resolve([]),
+      mongodb: unsupported('Enums'),
       mssql: () => Promise.resolve([]),
       mysql: () => Promise.resolve([]),
       oracle: () => Promise.resolve([]),

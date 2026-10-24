@@ -97,8 +97,8 @@ export const PolicyInspector = ({
   )
 
   const readOnly = item ? !can.edit : !can.create
-  const { policies: options, rowLevelSecurity: rlsTables } =
-    getCapabilities(dialect)
+  const { flags, policies: options } = getCapabilities(dialect)
+  const rlsTables = flags.includes('rowLevelSecurity')
   const expressions = expressionsFor(draft.command)
   const checks = options.commands.some(
     (command) => expressionsFor(command).check

@@ -29,7 +29,7 @@ const INSTRUCTIONS = [
   'The desktop app connects directly and can open SSH tunnels; the web app connects through a proxy and cannot tunnel.',
   'Explain the most likely cause in one or two plain sentences, naming the provider or tool when the settings show one.',
   'Then give at most three short, concrete steps the person can take, most likely first.',
-  'Propose a fix only when you are confident it resolves the error. A fix may change only: port, ssl (on to require TLS, off to turn it off, unverified to keep TLS but skip certificate checks; PostgreSQL, MySQL and SQL Server, and on or off only for Oracle, not ClickHouse), the engine type, database (empty for the default), or turning on an SSH tunnel (desktop only, never for Oracle). Its label is a short imperative button text, e.g. "Use port 5432"; every field it does not change is null. Otherwise fix is null.',
+  'Propose a fix only when you are confident it resolves the error. A fix may change only: port, ssl (on to require TLS, off to turn it off, unverified to keep TLS but skip certificate checks; PostgreSQL, MySQL, SQL Server and MongoDB, and on or off only for Oracle, not ClickHouse), the engine type, database (empty for the default), or turning on an SSH tunnel (desktop only, never for Oracle). A MongoDB login that fails while the server is reachable is often checked against the wrong database: its options need authSource=admin. Its label is a short imperative button text, e.g. "Use port 5432"; every field it does not change is null. Otherwise fix is null.',
   'Never ask for or repeat a password, never invent hostnames, and never put a placeholder or <redacted> in a fix.',
 ].join('\n')
 

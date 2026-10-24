@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
 
 import { guessConnection } from './index'
 
@@ -17,6 +17,14 @@ describe('guessConnection — bare hosts', () => {
         host: 'db.acme.io',
         port: '6543',
         type: ConnectionType.Postgres,
+      },
+    ],
+    [
+      'cluster0.abcde.mongodb.net',
+      {
+        host: 'cluster0.abcde.mongodb.net',
+        provider: Provider.MongoDBAtlas,
+        type: ConnectionType.MongoDB,
       },
     ],
     [
@@ -69,13 +77,12 @@ describe('guessConnection — bare hosts', () => {
     ).toBe(ConnectionType.MySQL)
   })
 
-  it.each([
-    'redis://u:p@cache.acme.io:6379',
-    'mongodb://db.acme.io:27017/app',
-    'README.md',
-  ])('ignores %s', (text) => {
-    expect(guessConnection(text)).toBeNull()
-  })
+  it.each(['redis://u:p@cache.acme.io:6379', 'README.md'])(
+    'ignores %s',
+    (text) => {
+      expect(guessConnection(text)).toBeNull()
+    }
+  )
 
   it('lets an explicit scheme beat the host hint and port', () => {
     expect(

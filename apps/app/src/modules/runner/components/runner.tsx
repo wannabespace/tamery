@@ -9,14 +9,9 @@ import {
   Tick02Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import type { Statement } from '@tamery/sql'
-import {
-  destructiveKeywords,
-  dialects,
-  splitStatements,
-  statementAt,
-  unwrapTransaction,
-} from '@tamery/sql'
+import { statementAt } from '@tamery/sql'
 import { Button } from '@tamery/ui/components/button'
 import { ContentSwitch } from '@tamery/ui/components/custom/content-switch'
 import {
@@ -37,7 +32,6 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { count, eq, useLiveQuery } from '@tanstack/react-db'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import type { editor } from 'monaco-editor'
 import { Range } from 'monaco-editor'
 import type { ComponentRef } from 'react'
@@ -46,9 +40,11 @@ import { useSubscription } from 'seitu/react'
 import { toast } from 'sonner'
 
 import { useCollections } from '~/core/collections'
+import { useTabContext } from '~/core/connection/route'
 import { wrapExplainQuery } from '~/core/connection/utils'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcuts } from '~/core/keyboard/use-shortcuts'
+import { getQueryLanguage } from '~/core/runtime/language'
 import { checkOrUpgrade } from '~/core/user/permissions'
 import { formatSql } from '~/utils/formatter'
 
@@ -75,10 +71,6 @@ import { RunnerResults } from './runner-results'
 import { RunnerSaveDialog } from './runner-save-dialog'
 import { SavedQueries } from './saved-queries'
 import { TransactionControls } from './transaction-controls'
-
-const { useRouteContext } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
 
 const toRunnerStatement = (
   statement: Statement,
@@ -114,7 +106,7 @@ const ToolbarButton = ({
 )
 
 const SavedQueriesButton = () => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useTabContext()
   const { queriesCollection } = useCollections()
   const { data: { queriesCount } = { queriesCount: 0 } } = useLiveQuery({
     query: (q) =>
@@ -145,7 +137,7 @@ const SavedQueriesButton = () => {
 }
 
 export const Runner = () => {
-  const { connection, connectionResource, dialect } = useRouteContext()
+  const { connection, connectionResource, dialect } = useTabContext()
   const tab = useRunnerTab()
   const store = useRunnerPageStore()
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null)
@@ -159,7 +151,7 @@ export const Runner = () => {
   const { data: lastRun } = useQuery(runnerResultsOptions(tab))
   const running = lastRun?.running ?? false
   const statements = runnerStatements({ ...tab, dialect })
-  const spec = dialects[dialect]
+  const language = getQueryLanguage(dialect)
   const aiEdit = useAiEdit({ connectionType: connection.type, editorRef })
 
   const current = (): {
@@ -177,9 +169,9 @@ export const Runner = () => {
       const offset = model.getOffsetAt(selection.getStartPosition())
       return {
         range: selection,
-        statements: splitStatements(model.getValueInRange(selection), spec).map(
-          (statement) => toRunnerStatement(statement, offset)
-        ),
+        statements: language
+          .split(model.getValueInRange(selection))
+          .map((statement) => toRunnerStatement(statement, offset)),
       }
     }
     const statement = statementAt(
@@ -233,9 +225,8 @@ export const Runner = () => {
         statements: pending,
         tabId: tab.tabId,
       })
-    const keywords = destructiveKeywords(
-      pending.map((statement) => statement.text).join(';\n'),
-      spec
+    const keywords = language.destructive(
+      pending.map((statement) => statement.text).join(';\n')
     )
     if (keywords.length > 0) {
       alertDialogRef.current?.confirm(keywords, start)
@@ -258,7 +249,7 @@ export const Runner = () => {
       run(
         current().statements.flatMap((statement) =>
           (
-            unwrapTransaction(statement.source, spec)?.statements ?? [
+            language.unwrapTransaction(statement.source)?.statements ?? [
               statement.source,
             ]
           ).map((text) => ({ ...statement, text: wrapExplainQuery(text) }))
@@ -357,21 +348,23 @@ export const Runner = () => {
             )}
             <TransactionControls disabled={running} />
             <div className="ml-auto flex shrink-0 items-center gap-1">
-              <ToolbarButton label="Format" onClick={() => actions.format()}>
-                <ContentSwitch
-                  active={formatted}
-                  activeContent={
-                    <HugeiconsIcon
-                      icon={Tick02Icon}
-                      strokeWidth={2}
-                      className="text-success"
-                    />
-                  }
-                  onSwitchEnd={() => setFormatted(false)}
-                >
-                  <HugeiconsIcon icon={BrushCleaningIcon} strokeWidth={2} />
-                </ContentSwitch>
-              </ToolbarButton>
+              {isSqlDialect(dialect) && (
+                <ToolbarButton label="Format" onClick={() => actions.format()}>
+                  <ContentSwitch
+                    active={formatted}
+                    activeContent={
+                      <HugeiconsIcon
+                        icon={Tick02Icon}
+                        strokeWidth={2}
+                        className="text-success"
+                      />
+                    }
+                    onSwitchEnd={() => setFormatted(false)}
+                  >
+                    <HugeiconsIcon icon={BrushCleaningIcon} strokeWidth={2} />
+                  </ContentSwitch>
+                </ToolbarButton>
+              )}
               <ToolbarButton
                 label="Save tab as query"
                 shortcut={<ShortcutKbd shortcut="saveTab" />}

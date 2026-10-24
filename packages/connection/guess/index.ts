@@ -2,7 +2,7 @@ import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { Result } from 'better-result'
 
 import { CLICKHOUSE_HTTP_PORT_OF_NATIVE } from '../connection-parts'
-import { getHostHint, TYPE_OF_PORT } from '../hosts'
+import { getBareHostProvider, getHostHint, TYPE_OF_PORT } from '../hosts'
 import { guessAdo } from './ado'
 import { guessCli } from './cli'
 import { guessEnv } from './env'
@@ -77,7 +77,10 @@ export const guessConnection = (
     const httpPort =
       type === ConnectionType.ClickHouse && CLICKHOUSE_HTTP_PORT_OF_NATIVE[port]
     const { fixes, parts: fixed } = fixParts(
-      mergeParts({ ...parts, port: httpPort || port, type })
+      mergeParts(
+        { ...parts, port: httpPort || port, type },
+        { provider: getBareHostProvider(parts) }
+      )
     )
     const routingFixes: GuessFix[] = [
       ...(pasted.host && parts !== pasted ? (['ssh-forward'] as const) : []),

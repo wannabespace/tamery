@@ -27,6 +27,8 @@
     "tamery",
     "clickhouse",
     "mariadb",
+    "mongodb",
+    "mongodb+srv",
     "mssql",
     "mysql",
     "oracle",

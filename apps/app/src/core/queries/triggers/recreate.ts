@@ -40,6 +40,7 @@ export const recreateTriggerQuery = ({
   return createQuery({
     query: {
       clickhouse: unsupported('Triggers'),
+      mongodb: unsupported('Triggers'),
       mssql: (db) =>
         db.transaction().execute(async (tx) => {
           await drop.mssql.execute(tx)

@@ -83,6 +83,7 @@ export const electron = {
   openAtLogin,
   query: {
     clickhouse: queryProcess.executor(Dialect.ClickHouse),
+    mongodb: queryProcess.executor(Dialect.MongoDB),
     mssql: queryProcess.executor(Dialect.MSSQL),
     mysql: queryProcess.executor(Dialect.MySQL),
     oracle: queryProcess.executor(Dialect.Oracle),

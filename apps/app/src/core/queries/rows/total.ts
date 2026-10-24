@@ -21,6 +21,8 @@ import {
   bindValue,
   clickhouseWrite,
   matchesPrimaryKeys,
+  mongodbDocument,
+  mongodbMatch,
   rowsPerStatement,
 } from './shape'
 
@@ -93,6 +95,20 @@ export const resourceTableTotalQuery = memoize(
             target,
             filterValueBindings.clickhouse?.(columns)
           )
+        },
+        mongodb: async (db) => {
+          const collection = db.collection(table)
+          if (!exact && !filters?.length) {
+            const count = await collection.estimatedDocumentCount()
+            if (count > 0) {
+              return { count, isEstimated: true }
+            }
+          }
+          const [counted] = await collection.aggregate<{ count: number }>([
+            ...mongodbMatch(columns, filters),
+            { $count: 'count' },
+          ])
+          return { count: counted?.count ?? 0, isEstimated: false }
         },
         mssql: (db) => countRows(db, sql`count_big(*)`, target),
         mysql: async (db) => {
@@ -263,6 +279,12 @@ export const keyedRowsCountQuery = (target: KeyedRowsTarget) =>
         clickhouseWrite((bind) =>
           countKeyedRows(db, bind, Dialect.ClickHouse, target)
         ),
+      mongodb: (db) =>
+        db.collection(target.table).countDocuments({
+          $or: target.primaryKeys.map((pk) =>
+            mongodbDocument(target.columns, pk)
+          ),
+        }),
       mssql: (db) => countKeyedRows(db, bindValue.mssql, Dialect.MSSQL, target),
       mysql: (db) => countKeyedRows(db, bindValue.mysql, Dialect.MySQL, target),
       oracle: (db) =>

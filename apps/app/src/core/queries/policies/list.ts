@@ -62,6 +62,7 @@ const query = createQuery({
         using: row.select_filter,
       }))
     },
+    mongodb: unsupported('Row policies'),
     mssql: async (db) => {
       const rows = await db
         .selectFrom('sys.security_policies as sp')

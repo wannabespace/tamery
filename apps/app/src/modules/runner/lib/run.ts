@@ -1,5 +1,4 @@
 import { silently, toError } from '@tamery/shared/utils'
-import { dialects, unwrapTransaction } from '@tamery/sql'
 import { queryOptions, skipToken } from '@tanstack/react-query'
 import { Result } from 'better-result'
 import { toast } from 'sonner'
@@ -8,6 +7,7 @@ import { refreshAfterRun } from '~/core/connection/refresh-after-run'
 import { getConnectionResourceStore } from '~/core/connection/stores'
 import type { ConnectionResource } from '~/core/connection/sync'
 import type { ResultSet } from '~/core/queries/connection/custom'
+import { getQueryLanguage } from '~/core/runtime/language'
 import type { QueryParams } from '~/core/runtime/query'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
 import { posthog } from '~/lib/posthog'
@@ -137,7 +137,7 @@ const runOne = async ({
       kind = 'connection'
     } else if (
       !inSession &&
-      unwrapTransaction(statement.text, dialects[params.dialect])
+      getQueryLanguage(params.dialect).unwrapTransaction(statement.text)
     ) {
       kind = 'block'
     }

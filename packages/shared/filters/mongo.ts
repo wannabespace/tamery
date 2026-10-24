@@ -1,3 +1,4 @@
+import type { FilterValueBinding } from './kysely'
 import type { ActiveFilter, FilterOperator } from './types'
 
 const escapeRegex = (text: string) =>
@@ -5,7 +6,7 @@ const escapeRegex = (text: string) =>
 
 const LIKE_WILDCARDS: Record<string, string> = { '%': '.*', _: '.' }
 
-const likeToRegex = (pattern: unknown) =>
+export const likeToRegex = (pattern: unknown) =>
   `^${String(pattern).replaceAll(
     /\\?[\s\S]/gu,
     (token) => LIKE_WILDCARDS[token] ?? escapeRegex(token.slice(-1))
@@ -30,15 +31,27 @@ const MONGO_CONDITIONS: Record<
   notLike: ([value]) => ({ $not: { $regex: likeToRegex(value) } }),
 }
 
-const condition = ({ ref, values }: Pick<ActiveFilter, 'ref' | 'values'>) =>
-  MONGO_CONDITIONS[ref.operator](values)
+const PATTERN_OPERATORS = new Set<FilterOperator>(['ilike', 'like', 'notLike'])
+
+const unbound: FilterValueBinding = (_column, value) => value
+
+const condition = (
+  { column, ref, values }: Pick<ActiveFilter, 'column' | 'ref' | 'values'>,
+  bind: FilterValueBinding = unbound
+) =>
+  MONGO_CONDITIONS[ref.operator](
+    PATTERN_OPERATORS.has(ref.operator)
+      ? values
+      : values.map((value) => bind(column, value))
+  )
 
 const viaField = (index: number) => `__via_${index}`
 
 // `$lookup` combining `localField` with `pipeline` needs MongoDB 5.0+, and its `from` cannot leave the current database, so `via.schema` goes unused.
 export const toMongoPipeline = (
   filters: ActiveFilter[],
-  concatOperator: 'AND' | 'OR' = 'AND'
+  concatOperator: 'AND' | 'OR' = 'AND',
+  bind: FilterValueBinding = unbound
 ) => {
   if (filters.length === 0) {
     return []
@@ -53,7 +66,11 @@ export const toMongoPipeline = (
               from: via.table,
               localField: column,
               pipeline: [
-                { $match: { [via.target]: condition(filter) } },
+                {
+                  $match: {
+                    [via.target]: condition({ ...filter, column: via.target }),
+                  },
+                },
                 { $limit: 1 },
               ],
             },
@@ -67,7 +84,7 @@ export const toMongoPipeline = (
         (filter, index) =>
           filter.via
             ? { [viaField(index)]: { $ne: [] } }
-            : { [filter.column]: condition(filter) }
+            : { [filter.column]: condition(filter, bind) }
       ),
     },
   }

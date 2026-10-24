@@ -10,6 +10,8 @@ import { SSH_PARAMS } from './ssh/params'
 export const SQLITE_RESOURCE_NAME = 'main'
 
 interface EngineString {
+  /** The login is checked against the path's database unless `authSource` says otherwise, so a resource switch keeps it there. */
+  authenticatesInPath?: boolean
   /** The database the server opens when the string names none; absent when only the server knows (a login's default). */
   defaultDatabase?: (user: string) => string
   /** The schema unqualified names resolve in, where the engine takes it from the login rather than the database. */
@@ -24,12 +26,19 @@ const SERVER_STRING: EngineString = {
   resource: null,
 }
 
+const MONGODB_STRING: EngineString = {
+  ...SERVER_STRING,
+  authenticatesInPath: true,
+  defaultDatabase: () => 'test',
+}
+
 const ENGINE_STRINGS: Record<ConnectionType | Provider, EngineString> = {
   [ConnectionType.ClickHouse]: {
     ...SERVER_STRING,
     defaultDatabase: () => 'default',
   },
   [ConnectionType.MariaDB]: SERVER_STRING,
+  [ConnectionType.MongoDB]: MONGODB_STRING,
   [ConnectionType.MSSQL]: SERVER_STRING,
   [ConnectionType.MySQL]: SERVER_STRING,
   [ConnectionType.Oracle]: {
@@ -48,6 +57,7 @@ const ENGINE_STRINGS: Record<ConnectionType | Provider, EngineString> = {
     label: ({ database }) => database,
     resource: SQLITE_RESOURCE_NAME,
   },
+  [Provider.MongoDBAtlas]: MONGODB_STRING,
   [Provider.Turso]: {
     label: ({ host }) => host,
     resource: SQLITE_RESOURCE_NAME,
@@ -80,14 +90,23 @@ export const describeConnectionString = (connectionString: string) => {
   }
 }
 
+const AUTH_SOURCE = 'authsource'
+const MONGODB_AUTH_DATABASE = 'admin'
+
 export const resourceConnectionString = (
   connectionString: string,
   resourceName: string | null
 ) => {
-  if (getEngineString(connectionString).resource) {
+  const { authenticatesInPath, resource } = getEngineString(connectionString)
+  if (resource) {
     return connectionString
   }
   const url = new SafeURL(connectionString)
+  const { database, searchParams, user } =
+    readConnectionString(connectionString)
+  if (authenticatesInPath && user && !searchParams.has(AUTH_SOURCE)) {
+    url.searchParams.set('authSource', database || MONGODB_AUTH_DATABASE)
+  }
   url.pathname = encodeURIComponent(resourceName ?? '')
   return url.toString()
 }

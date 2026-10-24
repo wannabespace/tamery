@@ -265,6 +265,13 @@ Suggested order: 5 → 1 → 3 → 2. Schema notes improve every AI feature at o
 - **Include the last day of an AI usage range.** The filter compares `createdAt` to the end date at midnight, so a picked range drops its final day.
 - **Fix the Metadata only description in the Sync menu.** It says only the name and color sync; the label, engine and provider sync too.
 - **Stop the AUR package claiming the `tamery` binary.** `/usr/bin/tamery` points at the desktop app and the package `provides`/`conflicts` `tamery`, the same name as the npm CLI's binary, so Arch users cannot have both on the path.
+- **Keep every MongoDB seed host.** A pasted `h1,h2,h3` string keeps only the first host, since a URL holds one; storing the rest in a param would keep connecting when that member is down.
+- **Show BSON types the shell way in Query results.** Runner cells show relaxed Extended JSON (`{"$oid": …}`); `ObjectId("…")` and `ISODate("…")`, as mongosh prints them, would read better and paste back into a query.
+- **Edit MongoDB indexes and validation.** The Indexes section is read-only and a collection's `$jsonSchema` validator is not shown; create, drop and a validator editor would cover the rest of a collection's structure.
+- **Fields beyond the sample.** Columns come from 100 random documents, so a rare field never shows; a "Load all fields" action, or merging fields seen in loaded rows, would surface them.
+- **AI ghost text and Explain for mongosh.** Inline completion and Explain are SQL-only; `cursor.explain()` and a mongosh FIM prompt would give MongoDB the same.
+- **Run `use <db>` in a MongoDB Query tab.** Only `db.getSiblingDB('x')` reaches another database; reading `use` as switching the tab's resource would match the shell.
+- **Number alignment for MongoDB longs.** A `long` field reads as text, since the shared numeric type pattern cannot learn `long` without catching Oracle's text `LONG`; a per-engine numeric pattern would right-align it.
 
 ## Sharing
 
@@ -272,6 +279,7 @@ Suggested order: 5 → 1 → 3 → 2. Schema notes improve every AI feature at o
 - **Viewer filters.** Viewers can only sort and page; a search over the shown columns, narrowing on top of the owner's filters, would cover most "find my row" visits.
 - **A share cache shared across proxy instances.** Each proxy keeps its own bounded page cache and rate limit in memory; Redis would let a second instance reuse the first one's pages and count one limit.
 - **CSV download for viewers.** Left out of the first version; the proxy would need an export read capped well past a page, and the share site a server route turning it into CSV.
+- **Share a MongoDB collection.** Shares compile one Kysely `SELECT`, so Share is hidden for MongoDB; the proxy reading a page through the mongodb executor's `find` would cover collections too.
 - **Share a saved query.** A share is one table; a share of a saved runner query would cover joins and aggregates, with the same read-only and public-host checks.
 - **Say why Share is greyed out when the share list fails.** The ⋯ menu's **Share** waits for the share list, so offline or with the API down it stays disabled with no reason; a muted trailing "Offline" like "Needs Full sync" would explain it.
 - **Show free links left in the share dialog.** A Free user learns about the 3-link limit only when **Share** opens the upgrade dialog; a muted "2 of 3 free links" footnote on New link would set the expectation first.

@@ -7,10 +7,14 @@
     "check-types": "tsc"
   },
   "dependencies": {
+    "@mongodb-js/shell-bson-parser": "catalog:",
+    "@tamery/mongo": "workspace:*",
     "@tamery/shared": "workspace:*",
     "@tamery/sql": "workspace:*",
+    "acorn": "catalog:",
     "arktype": "catalog:",
     "better-result": "catalog:",
+    "bson": "catalog:",
     "json5": "catalog:",
     "kysely": "catalog:",
     "memoza": "catalog:",
@@ -18,15 +22,18 @@
   },
   "devDependencies": {
     "@libsql/client": "catalog:",
+    "@mongodb-js/socksv5": "catalog:",
     "@tamery/configs": "workspace:*",
     "@types/bun": "catalog:",
     "@types/mssql": "catalog:",
     "@types/oracledb": "catalog:",
     "@types/pg": "catalog:",
     "@types/ssh2": "catalog:",
+    "mongodb": "catalog:",
     "mssql": "catalog:",
     "mysql2": "catalog:",
     "oracledb": "catalog:",
+    "socks": "catalog:",
     "ssh-config": "catalog:",
     "ssh2": "catalog:",
     "typescript": "catalog:"
@@ -34,10 +41,13 @@
   "peerDependencies": {
     "@clickhouse/client": "catalog:",
     "@libsql/client": "catalog:",
+    "@mongodb-js/socksv5": "catalog:",
+    "mongodb": "catalog:",
     "mssql": "catalog:",
     "mysql2": "catalog:",
     "oracledb": "catalog:",
     "pg": "catalog:",
+    "socks": "catalog:",
     "ssh-config": "catalog:",
     "ssh2": "catalog:"
   }

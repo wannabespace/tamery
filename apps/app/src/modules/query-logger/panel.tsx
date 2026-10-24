@@ -1,6 +1,6 @@
-import { getRouteApi } from '@tanstack/react-router'
 import { lazy, Suspense } from 'react'
 
+import { useConnectionContext } from '~/core/connection/route'
 import type { Panel } from '~/lib/panels'
 import { resourcePanelClassName } from '~/shell'
 
@@ -13,10 +13,8 @@ const QueryLogger = lazy(async () => {
   return { default: component }
 })
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 const QueryLoggerPanel = () => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
 
   return (
     <div className="flex h-full flex-col pt-1.5">

@@ -10,6 +10,7 @@ import {
 
 import type { ColumnDefinition, ColumnsFilter } from '../shape'
 import { clickhouseColumns } from './clickhouse'
+import { mongodbColumns } from './mongodb'
 import { mssqlColumns } from './mssql'
 import { mysqlColumns } from './mysql'
 import { oracleColumns } from './oracle'
@@ -79,6 +80,7 @@ const columnsQuery = memoize((filter: ColumnsFilter) =>
   createQuery({
     query: {
       clickhouse: (db) => clickhouseColumns(db, filter),
+      mongodb: (db) => mongodbColumns(db, filter),
       mssql: (db) => mssqlColumns(db, filter),
       mysql: (db) => mysqlColumns(db, filter),
       oracle: (db) => oracleColumns(db, filter),

@@ -5,9 +5,11 @@ import { coldDialect, toQueryPayload } from '@tamery/connection/queries/kysely'
 import { selectPage } from '@tamery/connection/queries/select-page'
 import { filterValueBindings } from '@tamery/connection/queries/value-binding'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import type { ShareRefresh } from '@tamery/shared/enums/share-refresh'
 import { SHARE_REFRESH_MS } from '@tamery/shared/enums/share-refresh'
 import type { ShareView } from '@tamery/shared/share'
+import { unsupported } from '@tamery/shared/unsupported'
 import { LRUCache } from 'lru-cache'
 
 import { assertReachable } from '~/public-host'
@@ -25,6 +27,9 @@ interface ShareRead {
 
 export const readShareRows = async (read: ShareRead) => {
   const { dialect, view } = read
+  if (!isSqlDialect(dialect)) {
+    return unsupported('Sharing')()
+  }
   await assertReachable(read.connectionString)
   const compiled = selectPage(
     coldDialect(dialect),

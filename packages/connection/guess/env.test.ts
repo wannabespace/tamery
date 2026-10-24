@@ -31,6 +31,11 @@ describe('guessConnection — env files', () => {
       },
     ],
     [
+      "the mongo image's root user, signed in through admin",
+      'MONGO_INITDB_ROOT_USERNAME=root\nMONGO_INITDB_ROOT_PASSWORD=secret\nMONGO_INITDB_DATABASE=app',
+      { password: 'secret', type: ConnectionType.MongoDB, user: 'root' },
+    ],
+    [
       'a Laravel .env on MariaDB',
       'DB_CONNECTION=mariadb\nDB_HOST=127.0.0.1\nDB_DATABASE=laravel\nDB_USERNAME=root',
       {

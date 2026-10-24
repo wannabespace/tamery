@@ -1,4 +1,5 @@
 import type { Dialect } from '@tamery/shared/enums/connection-type'
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { unsupported } from '@tamery/shared/unsupported'
 import { dialects, splitStatements } from '@tamery/sql'
 import type { Type } from 'arktype'
@@ -35,9 +36,16 @@ const ESTIMATED_COMMANDS = new Set([
 ])
 
 export const estimateQuery = (text: string, dialect: Dialect) => {
+  if (
+    !(
+      isSqlDialect(dialect) &&
+      getCapabilities(dialect).flags.includes('explain')
+    )
+  ) {
+    return null
+  }
   const [statement, ...rest] = splitStatements(text, dialects[dialect])
   if (
-    !getCapabilities(dialect).explain ||
     rest.length > 0 ||
     !ESTIMATED_COMMANDS.has(statement?.tokens[0]?.text.toUpperCase() ?? '')
   ) {
@@ -46,6 +54,7 @@ export const estimateQuery = (text: string, dialect: Dialect) => {
   return createQuery<Type<number | null>>({
     query: {
       clickhouse: unsupported('Row estimates'),
+      mongodb: unsupported('Row estimates'),
       mssql: unsupported('Row estimates'),
       mysql: async (db) => {
         // Not read only: MySQL refuses even EXPLAIN of a write there.

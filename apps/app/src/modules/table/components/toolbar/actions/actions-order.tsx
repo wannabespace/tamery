@@ -28,10 +28,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
-import { getRouteApi } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 import { plural } from '~/utils/plural'
 
 import { isSortable } from '../../../lib/column-menu'
@@ -94,10 +95,9 @@ const SortedItem = ({
   </CommandItem>
 )
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const ActionsOrder = () => {
-  const { dialect } = useRouteContext()
+  const names = useObjectNames()
+  const { dialect } = useConnectionContext()
   const store = useTablePageStore()
   const orderEntries = useSubscription(store, {
     selector: (state) => Object.entries(state.orderBy),
@@ -124,7 +124,7 @@ export const ActionsOrder = () => {
   if (isPending) {
     label = 'Loading columns…'
   } else if (activeCount > 0) {
-    label = `Sorted by ${plural(activeCount, 'column')}`
+    label = `Sorted by ${plural(activeCount, names.column)}`
   }
 
   return (
@@ -187,7 +187,7 @@ export const ActionsOrder = () => {
             placeholder={activeCount > 0 ? 'Then by…' : 'Sort by…'}
           />
           <CommandList className="max-h-72">
-            <CommandEmpty>No columns found.</CommandEmpty>
+            <CommandEmpty>No {names.column}s found.</CommandEmpty>
             {activeCount > 0 && (
               <CommandGroup heading="Sorted">
                 {orderEntries.map(([columnId, order], index) => (

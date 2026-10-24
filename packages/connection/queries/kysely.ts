@@ -1,3 +1,4 @@
+import type { SqlDialect } from '@tamery/shared/enums/connection-type'
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import type { CompiledQuery, Dialect as KyselyDialect } from 'kysely'
 import {
@@ -61,11 +62,11 @@ export const kyselyDialects = {
     createIntrospector,
     createQueryCompiler: () => new SqliteQueryCompiler(),
   },
-} satisfies Record<Dialect, Omit<KyselyDialect, 'createDriver'>>
+} satisfies Record<SqlDialect, Omit<KyselyDialect, 'createDriver'>>
 
 /** Compile-only: executing on one fails. Run what it compiles through `toQueryPayload`. */
 export const coldDialect = memoize(
-  (dialect: Dialect) =>
+  (dialect: SqlDialect) =>
     new Kysely({
       dialect: {
         ...kyselyDialects[dialect],
@@ -74,7 +75,7 @@ export const coldDialect = memoize(
     })
 )
 
-export const toQueryPayload = (dialect: Dialect, compiled: CompiledQuery) =>
+export const toQueryPayload = (dialect: SqlDialect, compiled: CompiledQuery) =>
   dialect === Dialect.ClickHouse
     ? { query: prepareQuery(compiled), values: [] }
     : { query: compiled.sql, values: [...compiled.parameters] }

@@ -3,6 +3,8 @@ import type { Kysely } from 'kysely'
 
 import { createQuery } from '~/core/runtime/query'
 
+import { fromMongodbDocument } from './shape'
+
 const distinctType = type('Record<string, unknown>[]')
 
 const DISTINCT_LIMIT = 1000
@@ -31,6 +33,16 @@ export const distinctQuery = (params: DistinctParams) =>
   createQuery({
     query: {
       clickhouse: (db) => selectDistinct(db, params),
+      mongodb: async (db) => {
+        const values = await db
+          .collection(params.table)
+          .aggregate([
+            { $group: { _id: `$${params.column}` } },
+            { $limit: DISTINCT_LIMIT },
+            { $project: { _id: 0, [params.column]: '$_id' } },
+          ])
+        return values.map(fromMongodbDocument)
+      },
       mssql: (db) => selectDistinct(db, params),
       mysql: (db) => selectDistinct(db, params),
       oracle: (db) => selectDistinct(db, params),

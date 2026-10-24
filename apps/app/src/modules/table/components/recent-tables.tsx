@@ -1,21 +1,19 @@
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useSubscription } from 'seitu/react'
 
 import { Link } from '~/components/link'
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { tableTypeIcon } from '~/core/catalog/table-type'
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { tableTabId } from '~/core/tabs/ids'
 
 import { recentTables } from '../lib/tab'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const RecentTables = () => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const recent = useSubscription(recentTables(connectionResource.id))
   const { data } = useQuery(
     resourceTablesAndSchemasQueryOptions({ connectionResource })
@@ -64,7 +62,7 @@ export const RecentTables = () => {
           <span data-mask className="truncate">
             {table.table}
           </span>
-          {getCapabilities(dialect).schemas && (
+          {getCapabilities(dialect).flags.includes('schemas') && (
             <span
               data-mask
               className="text-muted-foreground ml-auto pl-4 text-xs"

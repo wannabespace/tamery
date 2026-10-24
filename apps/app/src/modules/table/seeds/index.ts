@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker/locale/en'
-import { Dialect } from '@tamery/shared/enums/connection-type'
+import { Dialect, isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { sql } from 'kysely'
 import { memoize } from 'memoza'
 
@@ -27,6 +27,7 @@ import {
 
 const DIALECT_CONFIGS: Record<Dialect, DialectSeedConfig> = {
   clickhouse: clickhouseSeedConfig,
+  mongodb: { generators: {}, types: { objectId: SKIP_GENERATOR } },
   mssql: mssqlSeedConfig,
   mysql: mysqlSeedConfig,
   oracle: oracleSeedConfig,
@@ -68,6 +69,8 @@ const canSkipColumn = (column: Column, dialect: Dialect) =>
 const AVAILABILITY: Partial<
   Record<GeneratorId, (column: Column, dialect: Dialect) => boolean>
 > = {
+  // A custom value is a SQL expression the insert splices in.
+  [CUSTOM_GENERATOR]: (_column, dialect) => isSqlDialect(dialect),
   [ENUM_GENERATOR]: (column) => !!column.availableValues?.length,
   [NULL_GENERATOR]: (column) => !!column.isNullable,
   [REFERENCE_GENERATOR]: (column) => !!column.foreign,

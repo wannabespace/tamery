@@ -5,6 +5,7 @@ import type { ReactNode, Ref, RefObject } from 'react'
 import { useRef } from 'react'
 
 import { AppContextMenu } from '~/components/app-context-menu'
+import { getCapabilities } from '~/core/catalog/capabilities'
 
 import type { CellGeometry } from './cell/cell'
 import { TableCell } from './cell/cell'
@@ -154,6 +155,7 @@ export const DataGrid = ({
             columns: columns.map((column) => column.id),
             cursor,
             extra: menuItems,
+            row: getCapabilities(dialect).names.row,
           })
         }
         render={<div {...pointer} />}
@@ -175,6 +177,7 @@ export const DataGrid = ({
           leading={leading?.renderCell}
           renderCell={renderDataCell}
           renderLabel={renderLabel}
+          rowNoun={getCapabilities(dialect).names.row}
         />
       ) : (
         <ColumnGrid

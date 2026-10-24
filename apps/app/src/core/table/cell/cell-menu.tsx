@@ -9,6 +9,7 @@ import {
   ViewIcon,
 } from '@hugeicons/core-free-icons'
 import { recordToMarkdownTable, toCSV } from '@tamery/shared/files'
+import { uppercaseFirst } from '@tamery/shared/utils'
 import { valueToText } from '@tamery/shared/value-text'
 import { copy } from '@tamery/ui/lib/copy'
 
@@ -26,9 +27,12 @@ export const cellMenu = ({
   columns,
   cursor,
   extra,
+  row: rowNoun,
 }: {
   columns: string[]
   cursor: GridCursor
+  /** What the engine calls a row. */
+  row: string
   extra?: (
     cell: DataGridCell,
     element: Element | null | undefined
@@ -38,6 +42,7 @@ export const cellMenu = ({
   if (!cell) {
     return []
   }
+  const Row = uppercaseFirst(rowNoun)
   const { row } = cell
   const editable = cursor.isEditable(cell.column, cell.rowIndex)
   const cells = cursor.selection().flat().length
@@ -88,12 +93,13 @@ export const cellMenu = ({
             {
               icon: CodeIcon,
               label: 'JSON',
-              onSelect: () => copy(valueToText(row, 2), 'Row copied as JSON'),
+              onSelect: () =>
+                copy(valueToText(row, 2), `${Row} copied as JSON`),
             },
             {
               icon: Csv01Icon,
               label: 'CSV',
-              onSelect: () => copy(toCSV(keys, [row]), 'Row copied as CSV'),
+              onSelect: () => copy(toCSV(keys, [row]), `${Row} copied as CSV`),
             },
             {
               icon: TextIcon,
@@ -101,15 +107,15 @@ export const cellMenu = ({
               onSelect: () =>
                 copy(
                   recordToMarkdownTable(row, keys),
-                  'Row copied as Markdown table'
+                  `${Row} copied as Markdown table`
                 ),
             },
           ],
-          label: 'Copy Row As',
+          label: `Copy ${Row} As`,
           type: 'sub',
         },
       ],
-      label: 'Row',
+      label: Row,
       type: 'group',
     },
   ]

@@ -17,6 +17,8 @@ const WEB_SCHEME = /^https?:/iu
 const SECURE_VALUES = new Set(['1', 'true'])
 const SEMICOLON_URL =
   /^(?:sqlserver|mssql):\/\/(?<address>[^;/?]*);(?<props>.*)$/iu
+const MONGODB_SEED_LIST =
+  /^(?<head>mongodb:\/\/(?:[^@/]*@)?[^,/?]+)(?:,[^,/?]+)+/iu
 
 const takeParam = (params: URLSearchParams, keys: string[]) => {
   const value = keys.map((key) => params.get(key)).find(Boolean) ?? ''
@@ -47,7 +49,8 @@ const guessOfUrl = ({ type, url: candidate }: FoundUrl): DatabaseGuess => {
     }
   }
 
-  const parts = connectionParts.parse(url)
+  // A URL holds one host; the driver finds the rest of a replica set from any member, so the first seed is enough.
+  const parts = connectionParts.parse(url.replace(MONGODB_SEED_LIST, '$<head>'))
   const params = new URLSearchParams(parts.options)
   const user = takeParam(params, ['user', 'username'])
   const password = takeParam(params, ['password'])

@@ -18,11 +18,12 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useMutation } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 import { toast } from 'sonner'
 
+import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import { resourceRowsQueryKey } from '~/core/queries/rows/list'
@@ -51,8 +52,6 @@ import {
 import { SeedColumns } from './seed-columns'
 import { SeedInspector } from './seed-inspector'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 const MAX_SEED_ROWS = 10_000
 
 export const SeedPanel = ({
@@ -64,8 +63,9 @@ export const SeedPanel = ({
   schema: string
   onOpenChange: (open: boolean) => void
 }) => {
+  const names = useObjectNames()
   const { columns } = useTableColumnsContext()
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const generators = getGenerators(dialect)
   const groups = getGeneratorGroups(dialect)
   const store = useTablePageStore()
@@ -157,7 +157,7 @@ export const SeedPanel = ({
         incrementSeedUsage()
       }
       toast.success(
-        `Seeded ${plural(seedsCount, 'row')} into ${schema}.${table}`
+        `Seeded ${plural(seedsCount, names.row)} into ${schema}.${table}`
       )
       queryClient.invalidateQueries({
         queryKey: resourceRowsQueryKey({ connectionResource, schema, table }),
@@ -280,7 +280,7 @@ export const SeedPanel = ({
               )}
             </LoadingContent>
           </TooltipTrigger>
-          <TooltipContent>Seed rows</TooltipContent>
+          <TooltipContent>Seed {names.row}s</TooltipContent>
         </Tooltip>
       </DrawerFooter>
     </div>

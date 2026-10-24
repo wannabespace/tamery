@@ -106,7 +106,8 @@ export const DefinitionsPage = <T extends { name: string }>({
     open: false,
   })
   const [cascade, setCascade] = useState(false)
-  const cascadable = cascades && getCapabilities(dialect).cascade
+  const cascadable =
+    cascades && getCapabilities(dialect).flags.includes('cascade')
   const getDropWording = (item: T | null): DropWording => ({
     action: `Drop ${noun}`,
     done: `${uppercaseFirst(noun)} "${item?.name}" dropped`,

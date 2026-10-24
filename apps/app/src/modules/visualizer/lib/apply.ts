@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { toast } from 'sonner'
 
+import { useConnectionContext } from '~/core/connection/route'
 import {
   connectionResourceToQueryParams,
   transaction,
@@ -15,8 +15,6 @@ import type { diagramDrafts } from './drafts'
 import { draftQuery } from './queries'
 import { inApplyOrder, isDrop } from './statements'
 import type { DiagramDraft } from './statements'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export const applyConsequence = (
   drafts: DiagramDraft[],
@@ -57,7 +55,7 @@ export const useApplyDrafts = ({
   reviewOpen: boolean
   setReviewOpen: (open: boolean) => void
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { ddlRollback } = getGates(dialect)
   const mutation = useMutation({
     meta: { event: 'diagram_changes_applied' },

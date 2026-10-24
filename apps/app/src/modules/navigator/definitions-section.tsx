@@ -10,20 +10,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@tamery/ui/components/sidebar'
-import { getRouteApi, useParams } from '@tanstack/react-router'
+import { useParams } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
 import { Link } from '~/components/link'
+import { useConnectionContext } from '~/core/connection/route'
 import { openTab } from '~/core/tabs/actions'
 import { schemaGroups } from '~/core/tabs/kinds'
 
 import { useNavigatorSearch } from './keyboard'
 import { getNavigatorStore } from './stores'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const DefinitionsPanel = () => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { tabId: activeTabId } = useParams({ strict: false })
   const [search, setSearch] = useState('')
 

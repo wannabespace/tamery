@@ -28,13 +28,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
-import { getRouteApi } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { useRef, useState } from 'react'
 
+import { getCapabilities } from '~/core/catalog/capabilities'
 import { submittedName } from '~/core/catalog/engine-name'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
+import { useConnectionContext } from '~/core/connection/route'
 
 interface TableTarget {
   name: string
@@ -74,7 +73,7 @@ const TableForm = ({
   const schemas = knownSchemas.includes(initialSchema)
     ? knownSchemas
     : [initialSchema, ...knownSchemas]
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   const nameRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(table?.name ?? '')
   const [schema, setSchema] = useState(initialSchema)
@@ -83,7 +82,7 @@ const TableForm = ({
   const taken = stored !== table?.name && isTaken(schema, stored)
   let nameError: string | null = null
   if (taken) {
-    nameError = 'A table or view with this name already exists'
+    nameError = `A ${getCapabilities(dialect).names.table} or view with this name already exists`
   } else if (submitted && !stored) {
     nameError = `Give the ${noun} a name.`
   }

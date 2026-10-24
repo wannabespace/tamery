@@ -80,6 +80,15 @@ export const resourceTablesAndSchemasQuery = memoize(
             .execute(),
         // information_schema cannot tell the tables SQL Server ships in master
         // (spt_*, MSreplication_options) from the user's own.
+        mongodb: async (db) => {
+          const collections = await db.collections()
+          return collections.map(({ name, type: kind }) => ({
+            comment: null,
+            schema: db.name,
+            table: name,
+            type: kind === 'view' ? ('view' as const) : ('base table' as const),
+          }))
+        },
         mssql: (db) =>
           db
             .selectFrom('sys.schemas as s')

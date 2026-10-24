@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@tamery/ui/components/dialog'
 
+import { getQueryLanguage } from '~/core/runtime/language'
 import { formatSql } from '~/utils/formatter'
 
 import type { ActivityEntry } from './call-title'
@@ -46,7 +47,11 @@ export const CallDialog = ({
                 ? formatSql(query, getDialect(entry.connection.type))
                 : query
             }
-            language="sql"
+            language={
+              entry.connection
+                ? getQueryLanguage(getDialect(entry.connection.type)).highlight
+                : 'sql'
+            }
             lineNumbers
             size="xs"
             wrap

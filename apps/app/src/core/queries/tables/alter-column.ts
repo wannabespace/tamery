@@ -11,6 +11,7 @@ export const alterColumnQuery = (target: AlterColumnTarget) =>
     query: {
       clickhouse: (db) =>
         db.executeQuery(alterColumnStatement(Dialect.ClickHouse, db, target)),
+      mongodb: unsupported('Column changes'),
       mssql: (db) =>
         db.executeQuery(alterColumnStatement(Dialect.MSSQL, db, target)),
       mysql: (db) =>

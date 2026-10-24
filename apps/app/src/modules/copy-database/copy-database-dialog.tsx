@@ -44,7 +44,9 @@ export const copyDatabaseDialogRef = createRef<{
 export const getCopyDatabaseAction = (source: CopyEnd | null) =>
   window.electron &&
   source &&
-  getCapabilities(getDialect(source.connection.type)).copyDatabase &&
+  getCapabilities(getDialect(source.connection.type)).flags.includes(
+    'copyDatabase'
+  ) &&
   canQueryConnection(source.connection)
     ? () => copyDatabaseDialogRef.current?.open(source)
     : null

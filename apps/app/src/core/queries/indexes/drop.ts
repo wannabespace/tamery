@@ -1,3 +1,4 @@
+import { unsupported } from '@tamery/shared/unsupported'
 import { sql } from 'kysely'
 
 import { createQuery } from '~/core/runtime/query'
@@ -10,6 +11,7 @@ export const dropIndexQuery = ({ name, schema, table }: IndexTarget) =>
     query: {
       clickhouse: (db) =>
         dropSkipIndexStatement({ name, schema, table }).execute(db),
+      mongodb: unsupported('Indexes'),
       mssql: (db) =>
         sql`DROP INDEX ${sql.id(name)} ON ${sql.id(schema, table)}`.execute(db),
       mysql: (db) =>

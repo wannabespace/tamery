@@ -22,14 +22,14 @@ export const getGates = (dialect: Dialect) => {
   const constraints = getSectionCapabilities('constraints', dialect)
 
   return {
-    alterColumns: capabilities.alterColumns,
-    cascade: capabilities.cascade,
-    ddlRollback: capabilities.ddlRollback,
+    alterColumns: capabilities.flags.includes('alterColumns'),
+    cascade: capabilities.flags.includes('cascade'),
+    ddlRollback: capabilities.flags.includes('ddlRollback'),
     dropForeignKeys: !!constraints.drop,
     foreignKeys: foreignKeysCreatable(dialect),
     indexes: sectionAvailable('indexes', dialect),
     policies: sectionAvailable('policies', dialect),
-    schemas: capabilities.schemas,
+    schemas: capabilities.flags.includes('schemas'),
     triggers: sectionAvailable('triggers', dialect),
   }
 }

@@ -1,4 +1,5 @@
-import { silently } from '@tamery/shared/utils'
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
+import { noop, silently } from '@tamery/shared/utils'
 import { diagnose, dialects } from '@tamery/sql'
 import { editor, MarkerSeverity } from 'monaco-editor'
 
@@ -12,6 +13,9 @@ export const attachSqlDiagnostics = (
   codeEditor: editor.IStandaloneCodeEditor,
   source: SqlSource
 ) => {
+  if (!isSqlDialect(source.dialect)) {
+    return noop
+  }
   const dialect = dialects[source.dialect]
   let timer: ReturnType<typeof setTimeout> | undefined
 

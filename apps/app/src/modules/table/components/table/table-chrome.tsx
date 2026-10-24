@@ -17,6 +17,7 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { cn } from '@tamery/ui/lib/utils'
 
+import { useObjectNames } from '~/core/catalog/names'
 import type { Column } from '~/core/table/cell/utils'
 import { INTERNAL_COLUMN_IDS } from '~/core/table/cell/utils'
 import type { ExtraColumn } from '~/core/table/column-grid'
@@ -121,19 +122,22 @@ export const tableBar = ({
     : []),
 ]
 
-export const EndOfRows = ({ hasNextPage }: { hasNextPage: boolean }) => (
-  <div className="pointer-events-none sticky left-0 flex h-80 w-[100cqw] items-center justify-center">
-    {hasNextPage ? (
-      <Spinner />
-    ) : (
-      <IconEmpty
-        icon={MoreHorizontalIcon}
-        title="No more rows"
-        description="You've reached the end of this table."
-      />
-    )}
-  </div>
-)
+export const EndOfRows = ({ hasNextPage }: { hasNextPage: boolean }) => {
+  const names = useObjectNames()
+  return (
+    <div className="pointer-events-none sticky left-0 flex h-80 w-[100cqw] items-center justify-center">
+      {hasNextPage ? (
+        <Spinner />
+      ) : (
+        <IconEmpty
+          icon={MoreHorizontalIcon}
+          title={`No more ${names.row}s`}
+          description={`You've reached the end of this ${names.table}.`}
+        />
+      )}
+    </div>
+  )
+}
 
 export const NoRows = ({
   isDocuments,
@@ -141,21 +145,24 @@ export const NoRows = ({
 }: {
   isDocuments: boolean
   isFiltered: boolean
-}) => (
-  <div
-    className={cn(
-      'pointer-events-none absolute inset-x-0 bottom-0 flex',
-      isDocuments ? 'top-0' : 'top-8'
-    )}
-  >
-    <IconEmpty
-      icon={TableIcon}
-      title="No rows"
-      description={
-        isFiltered
-          ? 'Nothing matches the current filters.'
-          : 'This table is empty.'
-      }
-    />
-  </div>
-)
+}) => {
+  const names = useObjectNames()
+  return (
+    <div
+      className={cn(
+        'pointer-events-none absolute inset-x-0 bottom-0 flex',
+        isDocuments ? 'top-0' : 'top-8'
+      )}
+    >
+      <IconEmpty
+        icon={TableIcon}
+        title={`No ${names.row}s`}
+        description={
+          isFiltered
+            ? 'Nothing matches the current filters.'
+            : `This ${names.table} is empty.`
+        }
+      />
+    </div>
+  )
+}

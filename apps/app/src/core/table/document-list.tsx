@@ -1,4 +1,5 @@
 /* oxlint-disable jsx-a11y/prefer-tag-over-role -- a virtualized grid cannot be built from table elements */
+import { uppercaseFirst } from '@tamery/shared/utils'
 import type { GridRow, GridScrollerProps, ScrollToCell } from '@tamery/table'
 import { GridScroller } from '@tamery/table'
 import { DEFAULT_ROW_HEIGHT } from '@tamery/table/constants'
@@ -39,6 +40,8 @@ interface DocumentProps {
   renderCell: (cell: DataGridCell) => ReactNode
   renderLabel?: (column: Column) => ReactNode
   row: GridRow
+  /** What the engine calls a row, which heads each document. */
+  rowNoun: string
 }
 
 const DocumentBase = ({
@@ -50,6 +53,7 @@ const DocumentBase = ({
   renderCell,
   renderLabel,
   row,
+  rowNoun,
 }: DocumentProps) => {
   const label = identity
     .filter((column) => row[column.id] !== undefined)
@@ -74,7 +78,7 @@ const DocumentBase = ({
           htmlFor={rowSelectId(index)}
           className="flex min-w-0 flex-1 items-center gap-1"
         >
-          Row {index + 1}
+          {uppercaseFirst(rowNoun)} {index + 1}
           {label && (
             <span
               data-mask
@@ -105,6 +109,7 @@ export const DocumentList = ({
   leading,
   renderCell,
   renderLabel,
+  rowNoun,
   rows,
   scrollToRef,
   ...scroller
@@ -113,6 +118,7 @@ export const DocumentList = ({
   leading?: DocumentProps['leading']
   renderCell: DocumentProps['renderCell']
   renderLabel?: DocumentProps['renderLabel']
+  rowNoun: string
   rows: GridRow[]
   scrollToRef?: Ref<ScrollToCell>
 }) => {
@@ -144,6 +150,7 @@ export const DocumentList = ({
               renderCell={renderCell}
               renderLabel={renderLabel}
               row={row}
+              rowNoun={rowNoun}
             />
           )
         )

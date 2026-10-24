@@ -122,6 +122,11 @@ describe('diagnoseConnectionError', () => {
       'ssl=false',
     ],
     [ConnectionType.Oracle, 'ssl=true', 'ssl=false'],
+    [
+      ConnectionType.MongoDB,
+      'tls=true&tlsCAFile=/ca.pem&replicaSet=rs0',
+      'replicaSet=rs0&tls=false',
+    ],
   ])(
     'turns off SSL on %s without the TLS options the driver refuses beside it',
     (type, options, fixed) => {
@@ -141,6 +146,15 @@ describe('diagnoseConnectionError', () => {
         type: ConnectionType.MSSQL,
       })?.fix?.patch
     ).toStrictEqual({ options: 'encrypt=true&trustservercertificate=true' })
+  })
+
+  it('signs a MongoDB user in through admin when the string names no authSource', () => {
+    expect(
+      diagnose('Authentication failed.', {
+        options: 'retryWrites=true',
+        type: ConnectionType.MongoDB,
+      })?.fix?.patch
+    ).toStrictEqual({ options: 'retryWrites=true&authSource=admin' })
   })
 
   it('switches the engine when the port belongs to another one', () => {

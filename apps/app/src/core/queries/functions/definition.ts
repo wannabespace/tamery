@@ -28,6 +28,7 @@ const functionDefinitionQuery = ({
   createQuery({
     query: {
       clickhouse: unsupported('Functions'),
+      mongodb: unsupported('Functions'),
       mssql: readDefinition(mssqlObjectDefinition(schema, name)),
       mysql: async (db) => {
         const { rows } = await sql<Record<string, string>>`

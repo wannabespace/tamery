@@ -15,6 +15,7 @@ export const dropConstraintQuery = (
         db.executeQuery(
           dropConstraintStatement(Dialect.ClickHouse, db, target)
         ),
+      mongodb: unsupported('Constraints'),
       mssql: (db) =>
         db.executeQuery(dropConstraintStatement(Dialect.MSSQL, db, target)),
       mysql: (db) =>

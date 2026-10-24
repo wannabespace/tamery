@@ -11,6 +11,7 @@ import {
   clickhouseWrite,
   rowsPerStatement,
   matchesPrimaryKeys,
+  mongodbDocument,
 } from './shape'
 
 interface DeleteParams {
@@ -58,6 +59,23 @@ export const deleteRowsQuery = memoize((params: DeleteParams) => {
             params
           )
         ),
+      mongodb: (db) =>
+        db.transaction().execute(async (tx) => {
+          const batchSize = rowsPerStatement(Dialect.MongoDB, keyWidth)
+          const collection = tx.collection(params.table)
+          for (
+            let index = 0;
+            index < params.primaryKeys.length;
+            index += batchSize
+          ) {
+            // oxlint-disable-next-line no-await-in-loop
+            await collection.deleteMany({
+              $or: params.primaryKeys
+                .slice(index, index + batchSize)
+                .map((pk) => mongodbDocument(params.columns, pk)),
+            })
+          }
+        }),
       mssql: (db) =>
         deleteInBatches(
           db,

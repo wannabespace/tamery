@@ -5,6 +5,7 @@ import {
   bindSqlModel,
   EMPTY_CATALOG,
 } from '@tamery/monaco/sql-language'
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import type {
   ConnectionType,
   Dialect,
@@ -44,7 +45,7 @@ const getSqlCatalog = (
       table: metadata?.table,
       values,
     })),
-    nameCase: dialects[dialect].nameCase,
+    nameCase: isSqlDialect(dialect) ? dialects[dialect].nameCase : null,
     schemas: tables.schemas.map((schema) => ({
       name: schema.name,
       tables: schema.tables.map((table) => ({

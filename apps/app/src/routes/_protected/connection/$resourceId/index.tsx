@@ -3,12 +3,14 @@ import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { useEffect } from 'react'
 
+import { useObjectNames } from '~/core/catalog/names'
 import { getConnectionResourceStore } from '~/core/connection/stores'
 import { resolveTab } from '~/core/tabs/kinds'
 import { RecentTables } from '~/modules/table/components/recent-tables'
 
 const EmptyPane = () => {
   const router = useRouter()
+  const names = useObjectNames()
 
   useEffect(() => {
     void router.loadRouteChunk(
@@ -20,7 +22,7 @@ const EmptyPane = () => {
     <IconEmpty
       icon={LayoutTable02Icon}
       title="Nothing Open"
-      description="Choose a table from the sidebar, or open a new query to get started."
+      description={`Choose a ${names.table} from the sidebar, or open a new query to get started.`}
     >
       <RecentTables />
     </IconEmpty>

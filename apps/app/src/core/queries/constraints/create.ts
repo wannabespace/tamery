@@ -17,6 +17,7 @@ export const createConstraintQuery = ({
   createQuery({
     query: {
       clickhouse: (db) => addConstraint(db, { schema, table }, shape).execute(),
+      mongodb: unsupported('Constraints'),
       mssql: (db) => addConstraint(db, { schema, table }, shape).execute(),
       mysql: (db) => addConstraint(db, { schema, table }, shape).execute(),
       oracle: (db) => addConstraint(db, { schema, table }, shape).execute(),

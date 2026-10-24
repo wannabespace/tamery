@@ -17,18 +17,16 @@ import {
   InputGroupInput,
 } from '@tamery/ui/components/input-group'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { createRef, useImperativeHandle, useState } from 'react'
 
 import { submittedName } from '~/core/catalog/engine-name'
+import { useConnectionContext } from '~/core/connection/route'
 import { createSchemaQuery } from '~/core/queries/schemas/create'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
 import { queryClient } from '~/lib/query-client'
 
 import { createTableDialogRef } from './create-table-dialog'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const FORM_ID = 'schema-dialog'
 
@@ -47,7 +45,7 @@ export const SchemaForm = ({
   pending: boolean
   schema?: string
 }) => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   const [name, setName] = useState(schema ?? '')
   const [submitted, setSubmitted] = useState(false)
   const stored = submittedName(dialect, name, schema ? { name: schema } : null)
@@ -119,7 +117,7 @@ export const SchemaForm = ({
 }
 
 export const CreateSchemaDialog = () => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const [open, setOpen] = useState(false)
   const { data: tablesAndSchemas } = useQuery(
     resourceTablesAndSchemasQueryOptions({ connectionResource })

@@ -15,6 +15,7 @@ export const dropFunctionQuery = ({
   return createQuery({
     query: {
       clickhouse: unsupported('Functions'),
+      mongodb: unsupported('Functions'),
       mssql: (db) => drop.mssql.execute(db),
       mysql: (db) => drop.mysql.execute(db),
       oracle: (db) => drop.oracle.execute(db),

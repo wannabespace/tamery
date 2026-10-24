@@ -21,6 +21,7 @@ export const renameTableQuery = memoize(
       query: {
         clickhouse: (db) =>
           db.executeQuery(renameTableStatement(Dialect.ClickHouse, db, target)),
+        mongodb: (db) => db.collection(oldTable).rename(newTable),
         mssql: (db) =>
           db.executeQuery(renameTableStatement(Dialect.MSSQL, db, target)),
         mysql: (db) =>

@@ -1,10 +1,11 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { getRouteApi, useParams, useRouter } from '@tanstack/react-router'
+import { useParams, useRouter } from '@tanstack/react-router'
 import { useImperativeHandle, useState } from 'react'
 import { toast } from 'sonner'
 
 import type { TableType } from '~/core/catalog/table-type'
-import { tableTypeLabel } from '~/core/catalog/table-type'
+import { getTableTypeLabel } from '~/core/catalog/table-type'
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { renameTableQuery } from '~/core/queries/tables/rename'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
@@ -15,8 +16,6 @@ import { queryClient } from '~/lib/query-client'
 
 import { pinnedTable } from './pinned-tables'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 interface RenameTableDialogProps {
   ref: React.RefObject<{
     rename: (schema: string, table: string, type: TableType) => void
@@ -24,7 +23,7 @@ interface RenameTableDialogProps {
 }
 
 export const RenameTableDialog = ({ ref }: RenameTableDialogProps) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { tabId: activeTabId } = useParams({ strict: false })
   const router = useRouter()
   const [request, setRequest] = useState<TableDialogRequest | null>(null)
@@ -33,7 +32,7 @@ export const RenameTableDialog = ({ ref }: RenameTableDialogProps) => {
     resourceTablesAndSchemasQueryOptions({ connectionResource })
   )
   const schemas = tablesAndSchemas?.schemas ?? []
-  const label = tableTypeLabel[type]
+  const label = getTableTypeLabel(dialect, type)
   const noun = label.toLowerCase()
 
   const {

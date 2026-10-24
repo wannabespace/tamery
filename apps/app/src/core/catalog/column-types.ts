@@ -7,6 +7,18 @@ import type { ColumnTypeCapabilities } from './capability-presets'
 import { JSON_COLUMN_TYPE } from './capability-presets'
 
 const COLUMN_TYPES: Record<Dialect, readonly string[]> = {
+  [Dialect.MongoDB]: [
+    'objectId',
+    'string',
+    'int',
+    'long',
+    'double',
+    'decimal',
+    'bool',
+    'date',
+    'object',
+    'array',
+  ],
   [Dialect.ClickHouse]: [
     'UInt8',
     'UInt32',
@@ -124,6 +136,22 @@ export const COLUMN_TYPE_CAPABILITIES: Record<Dialect, ColumnTypeCapabilities> =
       uuid: /\bUUID\b/u,
       xml: null,
       zoned: /\bDateTime/u,
+    },
+    // BSON type names as `$type` reports them; a binary value stays Extended JSON, so it edits as JSON.
+    [Dialect.MongoDB]: {
+      array: null,
+      boolean: /^bool$/u,
+      bytes: null,
+      dateKeywords: null,
+      datesWithTime: /^date$/u,
+      enum: null,
+      id: 'objectId',
+      incomparable: null,
+      json: /^(?:array|bindata|mixed|object)$/iu,
+      options: COLUMN_TYPES[Dialect.MongoDB],
+      uuid: null,
+      xml: null,
+      zoned: /^date$/u,
     },
     [Dialect.MSSQL]: {
       array: null,

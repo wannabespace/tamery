@@ -22,12 +22,12 @@ import {
   InputGroupInput,
 } from '@tamery/ui/components/input-group'
 import { Switch } from '@tamery/ui/components/switch'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { OptionField } from '~/components/option-field'
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { submittedName } from '~/core/catalog/engine-name'
+import { useConnectionContext } from '~/core/connection/route'
 import type { RenamedValue } from '~/core/queries/shared/inline-enum'
 
 import { CommentField } from './column-comment-field'
@@ -50,8 +50,6 @@ export interface ColumnDialogRequest<
   table: Table
 }
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 const FORM_ID = 'column-dialog'
 
 const lockedFields = (
@@ -59,8 +57,10 @@ const lockedFields = (
   column: EditableColumn | null,
   primaryKey: boolean
 ) => {
-  const { alterColumns, renameColumns, retypeKeyColumns } =
-    getCapabilities(dialect)
+  const { flags } = getCapabilities(dialect)
+  const alterColumns = flags.includes('alterColumns')
+  const renameColumns = flags.includes('renameColumns')
+  const retypeKeyColumns = flags.includes('retypeKeyColumns')
   const stored = column !== null && column.state !== 'added'
   const name = stored && !renameColumns
   const type =
@@ -75,7 +75,9 @@ const lockedFields = (
 }
 
 const editableComment = (dialect: Dialect, column: EditableColumn | null) =>
-  getCapabilities(dialect).comments ? column?.comment : undefined
+  getCapabilities(dialect).flags.includes('comments')
+    ? column?.comment
+    : undefined
 
 const ColumnForm = ({
   onSubmit,
@@ -91,7 +93,7 @@ const ColumnForm = ({
   request: ColumnDialogRequest
 }) => {
   const { column, table } = request
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   const [name, setName] = useState(column?.name ?? '')
   const columnType = useColumnType(dialect, column?.type ?? '')
   const {

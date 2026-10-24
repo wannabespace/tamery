@@ -1,5 +1,4 @@
-import { getRouteApi } from '@tanstack/react-router'
-
+import { useConnectionContext } from '~/core/connection/route'
 import type { Column } from '~/core/table/cell/utils'
 import { getColumnUiType } from '~/core/table/cell/utils'
 import { useReferencedColumns } from '~/core/table/referenced-columns'
@@ -8,14 +7,12 @@ import { useTableColumnsContext } from '../../lib/columns'
 import { filterLabel } from './filter-chip'
 import type { FilterComposer } from './filter-composer'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const useFilterTargets = ({
   query,
   stage,
   valueFilterText,
 }: FilterComposer) => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   const { columns } = useTableColumnsContext()
   const referenced = useReferencedColumns(columns)
   const related = columns.flatMap(({ foreign, id }) =>

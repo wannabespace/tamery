@@ -1,11 +1,9 @@
 import { useQueries } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceTableColumnsQueryOptions } from '~/core/queries/tables/columns'
 
 import type { Column } from './cell/utils'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 // Casting anything else to text can fail (SQL Server `image`, spatial types).
 const TEXT_TYPE = /char|text|uuid|string|enum|name/iu
@@ -18,7 +16,7 @@ export const labelCandidates = <T extends { id: string; type: string }>(
 
 /** Keyed by the foreign-key column's id; a column is missing until its referenced table's columns load. */
 export const useReferencedColumns = (columns: Column[]) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const foreignKeys = columns.flatMap(({ foreign, id }) =>
     foreign ? [{ foreign, id }] : []
   )

@@ -10,7 +10,7 @@ const CONNECTION_LINK_SCHEMES = todesktop.appProtocolScheme.filter(
   (scheme) => scheme !== DEEPLINK_PROTOCOL
 )
 const CONNECTION_LINK = new RegExp(
-  `^(?:${CONNECTION_LINK_SCHEMES.join('|')})://`,
+  `^(?:${CONNECTION_LINK_SCHEMES.map((scheme) => scheme.replace('+', String.raw`\+`)).join('|')})://`,
   'iu'
 )
 

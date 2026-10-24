@@ -13,6 +13,8 @@ import { getCollections, mutateOffline } from '~/core/collections'
 import type { Connection } from '~/core/connection/sync'
 import { connectionToQueryParams, createQuery } from '~/core/runtime/query'
 
+const MONGODB_SYSTEM_DATABASES = new Set(['admin', 'config', 'local'])
+
 const connectionResourcesQuery = (defaultResourceName: string | null) =>
   createQuery({
     query: {
@@ -28,6 +30,16 @@ const connectionResourcesQuery = (defaultResourceName: string | null) =>
           .orderBy('name')
           .execute()
         return rows.map((r) => r.name)
+      },
+
+      mongodb: async (db) => {
+        const [result] = await db.adminCommand<{
+          databases: { name: string }[]
+        }>('listDatabases', { authorizedDatabases: true, nameOnly: true })
+        return (result?.databases ?? [])
+          .map(({ name }) => name)
+          .filter((name) => !MONGODB_SYSTEM_DATABASES.has(name))
+          .toSorted()
       },
 
       mssql: async (db) => {

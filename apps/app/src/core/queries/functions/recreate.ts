@@ -28,6 +28,7 @@ export const recreateFunctionQuery = ({
   return createQuery({
     query: {
       clickhouse: unsupported('Functions'),
+      mongodb: unsupported('Functions'),
       mssql: (db) =>
         db.transaction().execute(async (tx) => {
           if (replacesObject) {

@@ -1,5 +1,6 @@
+import type { LookupAddress } from 'node:dns'
 import { lookup } from 'node:dns/promises'
-import { BlockList } from 'node:net'
+import { BlockList, connect } from 'node:net'
 
 import { ORPCError } from '@orpc/server'
 import { readConnectionString } from '@tamery/connection/parse-connection-string'
@@ -28,30 +29,67 @@ for (const [network, prefix, family] of [
 }
 
 /** The drivers read each of these as a path on the proxy's own disk. */
-const FILE_PARAMS = ['sslca', 'sslcert', 'sslkey', 'sslrootcert']
+const FILE_PARAMS = [
+  'sslca',
+  'sslcert',
+  'sslkey',
+  'sslrootcert',
+  'tlscafile',
+  'tlscertificatekeyfile',
+  'tlscrlfile',
+]
 
 export const PRIVATE_HOST_MESSAGE =
   'The cloud proxy reaches only public hosts. Run `tamery proxy` or open this connection in the desktop app.'
 
+const SRV_SCHEME = 'mongodb+srv'
+
+const isPublic = ({ address, family }: LookupAddress) =>
+  !NON_PUBLIC_NETWORKS.check(address, family === 6 ? 'ipv6' : 'ipv4')
+
+const publicAddresses = async (
+  hostname: string
+): Promise<[LookupAddress, ...LookupAddress[]]> => {
+  const [first, ...rest] = await lookup(hostname, { all: true })
+  if (!first || ![first, ...rest].every(isPublic)) {
+    throw new ORPCError('FORBIDDEN', { message: PRIVATE_HOST_MESSAGE })
+  }
+  return [first, ...rest]
+}
+
 /**
- * The driver resolves the host again, so a DNS answer that changes between the two lookups still slips through.
- * An empty host is refused too: drivers fall back to localhost for it.
+ * Dials the address it just checked, so the MongoDB driver reaches every server it discovers — a replica set member at a
+ * literal private IP among them, which a DNS lookup never sees — only after that server passed the public-host check.
+ */
+export const guardedConnect = async ({
+  host,
+  port,
+}: {
+  host: string
+  port: number
+}) => {
+  const [address] = await publicAddresses(host)
+  return connect({ family: address.family, host: address.address, port })
+}
+
+/**
+ * A fast pre-check that refuses the seed before the driver starts; `guardedConnect` re-checks every socket it opens, the
+ * seed included, so this one need not be authoritative. An empty host is refused too: drivers fall back to localhost for it.
  */
 export const assertReachable = async (connectionString: string) => {
-  const { host, searchParams } = readConnectionString(connectionString)
+  const { host, scheme, searchParams } = readConnectionString(connectionString)
   if (FILE_PARAMS.some((param) => searchParams.has(param))) {
     throw new ORPCError('FORBIDDEN', {
       message:
         'The cloud proxy cannot read certificate files. Run `tamery proxy` or open this connection in the desktop app.',
     })
   }
-  const addresses = host ? await lookup(host, { all: true }) : []
-  if (
-    addresses.length === 0 ||
-    addresses.some(({ address, family }) =>
-      NON_PUBLIC_NETWORKS.check(address, family === 6 ? 'ipv6' : 'ipv4')
-    )
-  ) {
+  // An SRV name has no address of its own: the servers it lists are checked by `guardedConnect` as the driver dials them.
+  if (host && scheme === SRV_SCHEME) {
+    return
+  }
+  if (!host) {
     throw new ORPCError('FORBIDDEN', { message: PRIVATE_HOST_MESSAGE })
   }
+  await publicAddresses(host)
 }

@@ -1,4 +1,5 @@
 import { Dialect } from '@tamery/shared/enums/connection-type'
+import { unsupported } from '@tamery/shared/unsupported'
 import { memoize } from 'memoza'
 
 import { createQuery } from '~/core/runtime/query'
@@ -25,6 +26,7 @@ export const renameColumnQuery = memoize(
           db.executeQuery(
             renameColumnStatement(Dialect.ClickHouse, db, target)
           ),
+        mongodb: unsupported('Column changes'),
         mssql: (db) =>
           db.executeQuery(renameColumnStatement(Dialect.MSSQL, db, target)),
         mysql: (db) =>

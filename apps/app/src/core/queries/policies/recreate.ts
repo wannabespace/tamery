@@ -12,6 +12,7 @@ export const recreatePolicyQuery = (
   createQuery({
     query: {
       clickhouse: unsupported('Row policies'),
+      mongodb: unsupported('Row policies'),
       mssql: unsupported('Row policies'),
       mysql: unsupported('Row policies'),
       oracle: unsupported('Row policies'),

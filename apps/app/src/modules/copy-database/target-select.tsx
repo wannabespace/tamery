@@ -23,8 +23,8 @@ import { useActiveWorkspace } from '~/core/workspace/hooks'
 import type { CopyEnd } from './copy-end-label'
 import { CopyEndLabel } from './copy-end-label'
 
-const COPYABLE_TYPES = Object.values(ConnectionType).filter(
-  (type) => getCapabilities(getDialect(type)).copyDatabase
+const COPYABLE_TYPES = Object.values(ConnectionType).filter((type) =>
+  getCapabilities(getDialect(type)).flags.includes('copyDatabase')
 )
 
 export const TargetSelect = ({

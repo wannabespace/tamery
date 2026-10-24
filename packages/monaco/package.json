@@ -14,6 +14,7 @@
   "dependencies": {
     "@tamery/ai": "workspace:*",
     "@tamery/configs": "workspace:*",
+    "@tamery/mongo": "workspace:*",
     "@tamery/shared": "workspace:*",
     "@tamery/sql": "workspace:*",
     "@tamery/ui": "workspace:*",
