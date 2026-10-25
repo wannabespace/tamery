@@ -18,6 +18,9 @@ const sslFix = (
   return options ? { label, patch: { options } } : undefined
 }
 
+const TLS_HANDSHAKE_ALERT =
+  /tlsv1_alert|sslv3_alert|ssl alert number|alert (?:internal error|handshake failure)|handshake failure/iu
+
 const RULES: DiagnosisRule[] = [
   ...SSH_RULES,
   ...SQLITE_RULES,
@@ -240,8 +243,7 @@ const RULES: DiagnosisRule[] = [
       hint: 'MongoDB Atlas ends the handshake this way when your IP is not on its access list. Add your current IP under Network Access in Atlas, or allow it in the server’s firewall, then try again.',
       title: 'Your IP may not be allowed in',
     }),
-    match:
-      /tlsv1_alert|sslv3_alert|ssl alert number|alert (?:internal error|handshake failure)|handshake failure/iu,
+    match: TLS_HANDSHAKE_ALERT,
   },
   {
     diagnose: ({ parts }) => ({
@@ -249,8 +251,7 @@ const RULES: DiagnosisRule[] = [
       hint: 'The server ended the encrypted handshake with an alert. It may not expect SSL on this port, or its certificate or TLS settings may be off. Try turning SSL off, or check the server.',
       title: 'The TLS handshake failed',
     }),
-    match:
-      /tlsv1_alert|sslv3_alert|ssl alert number|alert (?:internal error|handshake failure)|handshake failure/iu,
+    match: TLS_HANDSHAKE_ALERT,
   },
   ...NETWORK_RULES,
   {
