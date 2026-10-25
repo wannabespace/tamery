@@ -13,7 +13,6 @@
 
 ## Chat
 
-- `routers/ai/v2/legacy-sql.ts` keeps `ai.completeSQL` / `ai.fixSQL` / `ai.updateSQL` alive after the rename to `*Query` (`sql` → `query`); shipped desktop builds still call the old paths, so delete it only once those builds are gone.
 - `routers/ai/v1/chat.ts` (`ai.chat`) is **frozen** — shipped desktop builds parse its wire format; never change it, never import from it. It only gates old clients into a "update the app" error, since chat moved to `ai.stream`. `routers/ai/v2/` holds everything current. **Folders only**: barrels re-export flat so procedure paths stay `ai.chat` / `ai.stream`, never `ai.v1.*` / `ai.chat.*`. `ai.chat` is a procedure, so the namespace is taken — which is why the send endpoint is `ai.stream`.
 - Stack: AI SDK (`ai` v7 + `@ai-sdk/react`) + OpenRouter (`@openrouter/ai-sdk-provider`, the only model provider package) + `ai-retry` (cross-model fallbacks) + `ai-resumable-stream` (Redis). Not `@tanstack/ai`.
 - `ai.stream`: the wire carries only the new turn; the stored transcript is the model context, so a client can never send stale history. Titles generate server-side beside the first answer.
