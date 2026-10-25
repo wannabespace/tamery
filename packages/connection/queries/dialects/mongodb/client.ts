@@ -15,34 +15,30 @@ const require = createRequire(import.meta.url)
 
 export const mongodb = require('mongodb') as typeof Mongo
 
-/** Its ESM wrapper loses every export under Bun, so it loads through `require` like the drivers do. */
+// Its ESM wrapper loses every export under Bun, so it loads through `require` like the drivers do.
 export const { parse: parseShellValue } =
   require('@mongodb-js/shell-bson-parser') as typeof ShellParser
 
 let egressGuard: OpenChannel | undefined
 
-/**
- * The cloud proxy installs this so every server the driver dials — a seed, a replica set member, an SRV target and a
- * literal IP among them — is reached through a validated socket, closing the private hosts a DNS-only guard never saw.
- */
+// Routes every address the driver dials through a validated socket, so a replica-set member or SRV target cannot reach a private host a DNS-only guard never saw.
 export const mongodbGuard = {
   use: (connect: OpenChannel) => {
     egressGuard = connect
   },
 }
 
-// Fail an unreachable server in seconds instead of the driver's 30s default, which × reconnection retries left the app "connecting" for minutes before surfacing an error.
+// The driver's 30s default, times its reconnection retries, leaves the app "connecting" for minutes before an unreachable server surfaces.
 const DEFAULT_SERVER_SELECTION_TIMEOUT_MS = 10_000
 
 export const getClient = memoize(async (connectionString: string) => {
   const forwarding = await sshForwarding.of(connectionString)
   const url = new SafeURL(connectionString)
   deleteSshParams(url.searchParams)
-  // Connection-string option names are case-insensitive, so a user override can carry any casing.
   const hasTimeoutOverride = [...url.searchParams.keys()].some(
     (key) => key.toLowerCase() === 'serverselectiontimeoutms'
   )
-  // The driver takes no stream and dials every member itself, so a tunnel or the guard reaches them as a SOCKS proxy.
+  // The driver dials every member itself, so a tunnel or the guard must reach them as a SOCKS proxy, not one forwarded socket.
   const open: OpenChannel | undefined = forwarding
     ? (target) => forwarding.socketTo(target)
     : egressGuard

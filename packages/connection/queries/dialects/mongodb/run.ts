@@ -27,11 +27,7 @@ import { mongodb, parseShellValue } from './client'
 
 const { EJSON, Long } = mongodb.BSON
 
-/**
- * Relaxed Extended JSON would turn a 64-bit `NumberLong` into a double, so an `_id` past 2^53 would read back a different
- * number and an edit or delete would target the wrong document; pre-wrapping each Long keeps it exact while every other
- * scalar stays plain. BSON types (ObjectId, Decimal128, Date…) are left for the serializer; only plain documents recurse.
- */
+// Relaxed Extended JSON turns a 64-bit Long into a double, so an `_id` past 2^53 reads back changed and an edit or delete would hit the wrong document. Pre-wrapping each Long keeps it exact; other BSON types are left for the serializer.
 const keepLongs = (value: unknown): unknown => {
   if (value instanceof Long) {
     return { $numberLong: value.toString() }
@@ -51,7 +47,6 @@ const keepLongs = (value: unknown): unknown => {
   return value
 }
 
-/** Values cross IPC and HTTP as relaxed Extended JSON, which keeps an ObjectId or Decimal128 its type and a scalar plain. */
 const toWire = (value: unknown) =>
   EJSON.serialize({ value: keepLongs(value) }, { relaxed: true }).value
 
@@ -354,7 +349,7 @@ const rowsOf = (docs: Document[], maxRows: number): ResultSet => {
   )
 }
 
-/** Keeps one document past `maxRows`, then closes the cursor: a read stops there without side effects. */
+// One document past maxRows lets resultSet flag truncation; closing the cursor stops the read without side effects.
 const readCursor = async (cursor: QueryCursor, maxRows: number) => {
   const docs: Document[] = []
   for await (const doc of cursor) {
@@ -409,7 +404,7 @@ const applyStep = (cursor: QueryCursor, method: CursorMethod, arg: unknown) => {
       break
     }
   }
-  // `in` narrows to a find() cursor; the parser allows these after aggregate() too, where they do not apply.
+  // The parser allows these after aggregate() too, where they do not exist; `in` narrows to the find() cursor that has them.
   if ('allowDiskUse' in cursor) {
     switch (method) {
       case 'allowDiskUse': {
@@ -462,7 +457,6 @@ const chained =
 
 const WRITE_STAGES = new Set(['$merge', '$out'])
 
-/** A pipeline stage can be assembled from BSON constructors, so the write check reads the evaluated value, not its source. */
 const hasWriteStage = (node: unknown): boolean => {
   if (Array.isArray(node)) {
     return node.some(hasWriteStage)
@@ -475,7 +469,7 @@ const hasWriteStage = (node: unknown): boolean => {
   return false
 }
 
-// `getEffect` reads the syntax, which can miss a `$out` the pipeline only names once evaluated; the BSON scan catches it.
+// getEffect reads syntax only, so a $out/$merge assembled from BSON constructors slips past it; scanning the evaluated pipeline catches it before a read-only run.
 const writesWhenRun = (call: MongoCall, args: unknown[]) =>
   getEffect(call) !== 'read' ||
   (call.method === 'aggregate' && args.some(hasWriteStage))
@@ -522,7 +516,7 @@ export const runScript = async (
     )
   }
 
-  // Every call carries the query id as its comment, which is how a cancel finds the operation to kill.
+  // The query id rides along as each call's comment, so currentOp can find the operation to kill.
   const cancel = async () => {
     const admin = client.db('admin')
     const ownOperation = { $ownOps: true, 'command.comment': queryId }
@@ -548,8 +542,7 @@ export const runScript = async (
       read: chained(call, text, maxRows),
       rows: (docs: Document[]) => rowsOf(docs, maxRows),
     }
-    // Statements run in order, as the shell runs them.
-    // oxlint-disable-next-line no-await-in-loop
+    // oxlint-disable-next-line no-await-in-loop -- statements run in order, like the shell
     const set = await cancellable({ cancel, connectionString, queryId }, () =>
       runCall(client, call, context)
     )
