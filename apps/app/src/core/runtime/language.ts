@@ -1,7 +1,11 @@
 import * as mongo from '@tamery/mongo/effects'
 import { splitStatements as splitMongoStatements } from '@tamery/mongo/statements'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
-import { isSqlDialect } from '@tamery/shared/enums/connection-type'
+import {
+  dialectLanguage,
+  isSqlDialect,
+  QueryLanguage as QueryLang,
+} from '@tamery/shared/enums/connection-type'
 import type { DialectSpec, Statement } from '@tamery/sql'
 import {
   destructiveKeywords,
@@ -64,5 +68,17 @@ const mongosh: QueryLanguage = {
   writesData: mongo.writesData,
 }
 
-export const getQueryLanguage = (dialect: Dialect) =>
-  isSqlDialect(dialect) ? sql(dialects[dialect]) : mongosh
+export const getQueryLanguage = (dialect: Dialect): QueryLanguage => {
+  if (isSqlDialect(dialect)) {
+    return sql(dialects[dialect])
+  }
+  const language = dialectLanguage[dialect]
+  switch (language) {
+    case QueryLang.Mongosh: {
+      return mongosh
+    }
+    default: {
+      return language satisfies never
+    }
+  }
+}
