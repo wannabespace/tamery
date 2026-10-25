@@ -35,9 +35,15 @@ export const getClient = memoize(async (connectionString: string) => {
   const forwarding = await sshForwarding.of(connectionString)
   const url = new SafeURL(connectionString)
   deleteSshParams(url.searchParams)
-  const hasTimeoutOverride = [...url.searchParams.keys()].some(
+  const setsOwnTimeout = [...url.searchParams.keys()].some(
     (key) => key.toLowerCase() === 'serverselectiontimeoutms'
   )
+  if (!setsOwnTimeout) {
+    url.searchParams.set(
+      'serverSelectionTimeoutMS',
+      String(DEFAULT_SERVER_SELECTION_TIMEOUT_MS)
+    )
+  }
   // The driver dials every member itself, so a tunnel or the guard must reach them as a SOCKS proxy, not one forwarded socket.
   const open: OpenChannel | undefined = forwarding
     ? (target) => forwarding.socketTo(target)
@@ -45,9 +51,6 @@ export const getClient = memoize(async (connectionString: string) => {
   const proxy = open && (await socksProxy(open))
   const client = new mongodb.MongoClient(url.toString(), {
     appName: 'Tamery',
-    ...(hasTimeoutOverride
-      ? {}
-      : { serverSelectionTimeoutMS: DEFAULT_SERVER_SELECTION_TIMEOUT_MS }),
     ...proxy?.options,
   })
   const connected = await Result.tryPromise(() => client.connect())
