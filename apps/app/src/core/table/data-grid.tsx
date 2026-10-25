@@ -177,7 +177,6 @@ export const DataGrid = ({
           leading={leading?.renderCell}
           renderCell={renderDataCell}
           renderLabel={renderLabel}
-          rowNoun={getCapabilities(dialect).names.row}
         />
       ) : (
         <ColumnGrid

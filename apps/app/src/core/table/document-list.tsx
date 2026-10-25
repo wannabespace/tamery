@@ -7,6 +7,7 @@ import { useVirtualizer } from '@tamery/ui/hooks/use-virtualizer'
 import type { ReactNode, Ref } from 'react'
 import { memo, useImperativeHandle } from 'react'
 
+import { useObjectNames } from '~/core/catalog/names'
 import { getDisplayValue } from '~/core/transformers/value-transformer'
 
 import type { Column } from './cell/utils'
@@ -40,8 +41,6 @@ interface DocumentProps {
   renderCell: (cell: DataGridCell) => ReactNode
   renderLabel?: (column: Column) => ReactNode
   row: GridRow
-  /** What the engine calls a row, which heads each document. */
-  rowNoun: string
 }
 
 const DocumentBase = ({
@@ -53,8 +52,8 @@ const DocumentBase = ({
   renderCell,
   renderLabel,
   row,
-  rowNoun,
 }: DocumentProps) => {
+  const { row: rowNoun } = useObjectNames()
   const label = identity
     .filter((column) => row[column.id] !== undefined)
     .map((column) => getDisplayValue(row[column.id], Number.MAX_SAFE_INTEGER))
@@ -109,7 +108,6 @@ export const DocumentList = ({
   leading,
   renderCell,
   renderLabel,
-  rowNoun,
   rows,
   scrollToRef,
   ...scroller
@@ -118,7 +116,6 @@ export const DocumentList = ({
   leading?: DocumentProps['leading']
   renderCell: DocumentProps['renderCell']
   renderLabel?: DocumentProps['renderLabel']
-  rowNoun: string
   rows: GridRow[]
   scrollToRef?: Ref<ScrollToCell>
 }) => {
@@ -150,7 +147,6 @@ export const DocumentList = ({
               renderCell={renderCell}
               renderLabel={renderLabel}
               row={row}
-              rowNoun={rowNoun}
             />
           )
         )
