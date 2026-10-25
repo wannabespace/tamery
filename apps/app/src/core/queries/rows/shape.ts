@@ -165,10 +165,9 @@ export const fromMongodbDocument = (document: Record<string, unknown>) =>
 
 export const mongodbMatch = (
   columns: ColumnTypes = [],
-  filters: ActiveFilter[] = [],
-  concatOperator?: 'AND' | 'OR'
+  filters: ActiveFilter[] = []
 ) =>
-  toMongoPipeline(filters, concatOperator, (column, value) =>
+  toMongoPipeline(filters, undefined, (column, value) =>
     bindValue.mongodb(
       columns.find(({ id }) => id === column)?.type ?? '',
       value

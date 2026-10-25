@@ -78,8 +78,6 @@ export const resourceTablesAndSchemasQuery = memoize(
             .where('is_temporary', '=', 0)
             .where('name', 'not like', CLICKHOUSE_MATERIALIZED_VIEW_STORAGE)
             .execute(),
-        // information_schema cannot tell the tables SQL Server ships in master
-        // (spt_*, MSreplication_options) from the user's own.
         mongodb: async (db) => {
           const collections = await db.collections()
           return collections.map(({ name, type: kind }) => ({
@@ -89,6 +87,8 @@ export const resourceTablesAndSchemasQuery = memoize(
             type: kind === 'view' ? ('view' as const) : ('base table' as const),
           }))
         },
+        // information_schema cannot tell the tables SQL Server ships in master
+        // (spt_*, MSreplication_options) from the user's own.
         mssql: (db) =>
           db
             .selectFrom('sys.schemas as s')

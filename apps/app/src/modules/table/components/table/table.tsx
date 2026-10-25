@@ -5,7 +5,7 @@ import { TableSkeleton } from '@tamery/table'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { useMountedEffect } from '@tamery/ui/hookas/use-mounted-effect'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useMemo, useRef } from 'react'
+import { useRef } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
@@ -118,10 +118,7 @@ export const Table = ({
     target: peekTarget,
   } = useReferencePeek(scrollRef)
 
-  const displayColumns = useMemo(
-    () => withRowFieldColumns(dialect, columns, rows),
-    [dialect, columns, rows]
-  )
+  const displayColumns = withRowFieldColumns(dialect, columns, rows)
   const { pinned, reordered, visible } = columnView(
     displayColumns,
     { columnOrder, hiddenColumns, pinnedColumns },

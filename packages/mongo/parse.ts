@@ -1,9 +1,4 @@
-import type {
-  AnyNode,
-  Expression,
-  MemberExpression,
-  SpreadElement,
-} from 'acorn'
+import type { AnyNode, Expression, MemberExpression } from 'acorn'
 import { parse } from 'acorn'
 import { Result } from 'better-result'
 
@@ -58,13 +53,6 @@ const stringOf = (node: AnyNode | undefined) => {
   return null
 }
 
-const callArguments = (args: (Expression | SpreadElement)[]) =>
-  args.map((arg) =>
-    arg.type === 'SpreadElement'
-      ? fail('Spread arguments are not supported.')
-      : arg
-  )
-
 const propertyName = ({ computed, property }: MemberExpression) => {
   if (computed) {
     return stringOf(property)
@@ -98,7 +86,11 @@ const linksOf = (node: Expression): Link[] => {
       if (!callee || callee.args) {
         return fail('Unsupported call.')
       }
-      callee.args = callArguments(node.arguments)
+      callee.args = node.arguments.map((arg) =>
+        arg.type === 'SpreadElement'
+          ? fail('Spread arguments are not supported.')
+          : arg
+      )
       return links
     }
     case 'AwaitExpression': {

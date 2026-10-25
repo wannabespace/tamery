@@ -34,7 +34,6 @@ const DefinitionsTab = ({
   const Section = SECTIONS[section]
 
   return (
-    // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <ScrollArea
       className="min-h-0 flex-1"
       onClick={() => openTab(connectionResource.id, definitionsTabId(section))}
