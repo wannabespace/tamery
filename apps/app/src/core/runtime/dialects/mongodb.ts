@@ -3,6 +3,7 @@ import { rowObjects } from '@tamery/connection/queries'
 import { describeConnectionString } from '@tamery/connection/utils'
 import { toShell } from '@tamery/mongo/shell'
 import { Dialect } from '@tamery/shared/enums/connection-type'
+import { toError } from '@tamery/shared/utils'
 import type { TransactionSettings } from 'kysely'
 import { memoize } from 'memoza'
 
@@ -29,8 +30,6 @@ const call = (method: string, ...args: unknown[]) => {
 
 type Execute = (text: string) => Promise<ResultSet[]>
 
-const SYSTEM_COLLECTION = /^system\./u
-
 const reader = (execute: Execute) => ({
   affected: async (text: string) => {
     const [set] = await execute(text)
@@ -46,23 +45,27 @@ const reader = (execute: Execute) => ({
 const mongoCollection = (execute: Execute, name: string) => {
   const { affected, documents, value } = reader(execute)
   const target = `db.getCollection(${toShell(name)})`
+  const on = (method: string, ...args: unknown[]) =>
+    `${target}.${call(method, ...args)}`
   return {
     aggregate: <T = MongoDocument>(pipeline: MongoDocument[]) =>
-      documents<T>(`${target}.${call('aggregate', pipeline)}`),
+      documents<T>(on('aggregate', pipeline)),
     countDocuments: (filter: MongoDocument = {}) =>
-      value<number>(`${target}.${call('countDocuments', filter)}`, 'count'),
-    deleteMany: (filter: MongoDocument) =>
-      affected(`${target}.${call('deleteMany', filter)}`),
-    drop: () => execute(`${target}.drop()`),
+      value<number>(on('countDocuments', filter), 'count'),
+    createIndex: (keys: MongoDocument, options: MongoDocument = {}) =>
+      execute(on('createIndex', keys, options)),
+    dropIndex: (indexName: string) => affected(on('dropIndex', indexName)),
+    deleteMany: (filter: MongoDocument) => affected(on('deleteMany', filter)),
+    drop: () => execute(on('drop')),
     estimatedDocumentCount: () =>
-      value<number>(`${target}.estimatedDocumentCount()`, 'count'),
+      value<number>(on('estimatedDocumentCount'), 'count'),
     find: <T = MongoDocument>(
       filter: MongoDocument = {},
       { limit, projection, skip, sort }: MongoFindOptions = {}
     ) =>
       documents<T>(
         [
-          `${target}.${call('find', filter, projection)}`,
+          on('find', filter, projection),
           sort && call('sort', sort),
           skip && call('skip', skip),
           limit && call('limit', limit),
@@ -70,13 +73,11 @@ const mongoCollection = (execute: Execute, name: string) => {
           .filter(Boolean)
           .join('.')
       ),
-    indexes: <T = MongoDocument>() => documents<T>(`${target}.getIndexes()`),
-    insertMany: (rows: MongoDocument[]) =>
-      affected(`${target}.${call('insertMany', rows)}`),
-    rename: (to: string) =>
-      execute(`${target}.${call('renameCollection', to)}`),
+    indexes: <T = MongoDocument>() => documents<T>(on('getIndexes')),
+    insertMany: (rows: MongoDocument[]) => affected(on('insertMany', rows)),
+    rename: (to: string) => execute(on('renameCollection', to)),
     updateOne: (filter: MongoDocument, update: MongoDocument) =>
-      affected(`${target}.${call('updateOne', filter, update)}`),
+      affected(on('updateOne', filter, update)),
   }
 }
 
@@ -116,11 +117,18 @@ const createMongoDatabase = (
   const { provider, run } = createStatementRunner(Dialect.MongoDB, options)
 
   const execute: Execute = async (text) => {
-    const { result } = await run(
-      { query: text, queryId: crypto.randomUUID(), values: [] },
-      txId ?? options.txId ?? null
-    )
-    return result
+    try {
+      const { result } = await run(
+        { query: text, queryId: crypto.randomUUID(), values: [] },
+        txId ?? options.txId ?? null
+      )
+      return result
+    } catch (error) {
+      // A server or driver error arrives without a stack, so the failing statement is the only pointer to what ran.
+      const wrapped = toError(error)
+      wrapped.cause ??= `Failed statement:\n${text}`
+      throw wrapped
+    }
   }
 
   return {
@@ -129,10 +137,16 @@ const createMongoDatabase = (
         `db.${call('adminCommand', { [name]: 1, ...fields })}`
       ),
     collection: (name) => mongoCollection(execute, name),
-    collections: () =>
-      reader(execute).documents(
-        `db.${call('getCollectionInfos', { name: { $not: SYSTEM_COLLECTION } }, { authorizedCollections: true, nameOnly: true })}`
-      ),
+    // The server's own collections are dropped here, not through a `$not` regex filter a strict server (DocumentDB, FerretDB) refuses.
+    collections: async () => {
+      const infos = await reader(execute).documents<{
+        name: string
+        type: string
+      }>(
+        `db.${call('getCollectionInfos', {}, { authorizedCollections: true, nameOnly: true })}`
+      )
+      return infos.filter(({ name }) => !name.startsWith('system.'))
+    },
     command: (name, fields) =>
       reader(execute).documents(
         `db.${call('runCommand', { [name]: 1, ...fields })}`
