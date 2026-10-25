@@ -41,7 +41,7 @@ export const distinctQuery = (params: DistinctParams) =>
             { $limit: DISTINCT_LIMIT },
             { $project: { _id: 0, [params.column]: '$_id' } },
           ])
-        return values.map(fromMongodbDocument)
+        return values.map((value) => fromMongodbDocument(value))
       },
       mssql: (db) => selectDistinct(db, params),
       mysql: (db) => selectDistinct(db, params),

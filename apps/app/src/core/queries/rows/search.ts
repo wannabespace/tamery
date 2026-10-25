@@ -58,7 +58,7 @@ export const searchRowsQuery = (params: SearchRowsParams) =>
         const collection = db.collection(params.table)
         // oxlint-disable-next-line unicorn/no-array-method-this-argument -- a collection's find takes options, not a thisArg
         const documents = await collection.find(filter, { limit: params.limit })
-        return documents.map(fromMongodbDocument)
+        return documents.map((document) => fromMongodbDocument(document))
       },
       mssql: (db) => searchRows(db, textContains.mssql, params),
       mysql: (db) => searchRows(db, textContains.mysql, params),

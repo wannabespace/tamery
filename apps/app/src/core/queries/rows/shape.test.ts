@@ -8,7 +8,9 @@ import {
   bindRow,
   bindValue,
   clickhouseWrite,
+  fromMongodbDocument,
   matchesPrimaryKeys,
+  mongodbDocument,
   rowIdentity,
 } from './shape'
 
@@ -127,4 +129,23 @@ test('a NULL in a row identity matches with IS NULL', () => {
   expect(query.sql).toBe(
     'delete from "events" where ("name" is null and "id" = $1)'
   )
+})
+
+test('a mixed _id column keeps BSON identity so a write matches the exact document', () => {
+  const mixed = [{ id: '_id', type: 'mixed' }]
+  const oid = { $oid: '6ad7b564729d8ccee1efdaed' }
+
+  // An ObjectId stays Extended JSON, distinct from a string _id of the same hex.
+  expect(fromMongodbDocument({ _id: oid }, mixed)).toStrictEqual({ _id: oid })
+  expect(
+    fromMongodbDocument({ _id: '6ad7b564729d8ccee1efdaed' }, mixed)
+  ).toStrictEqual({ _id: '6ad7b564729d8ccee1efdaed' })
+
+  // A single-type column still shows the plain value, which toWire rebuilds.
+  expect(
+    fromMongodbDocument({ _id: oid }, [{ id: '_id', type: 'objectId' }])
+  ).toStrictEqual({ _id: '6ad7b564729d8ccee1efdaed' })
+
+  // The write filter carries the ObjectId back, not its bare hex.
+  expect(mongodbDocument(mixed, { _id: oid })).toStrictEqual({ _id: oid })
 })

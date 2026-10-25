@@ -158,9 +158,18 @@ export const mongodbDocument = (
   values: Record<string, unknown>
 ) => bindRow(bindValue.mongodb, columns, definedFields(values))
 
-export const fromMongodbDocument = (document: Record<string, unknown>) =>
+export const fromMongodbDocument = (
+  document: Record<string, unknown>,
+  columns: ColumnTypes = []
+) =>
   Object.fromEntries(
-    Object.entries(document).map(([field, value]) => [field, fromWire(value)])
+    Object.entries(document).map(([field, value]) => [
+      field,
+      // A mixed-type column has no single BSON type for toWire to rebuild from the shown value, so its values stay Extended JSON that the write path serializes back by their own type. Collapsing them (an ObjectId to its hex) would make it and a same-hex string _id one grid key, and a write could hit the wrong document.
+      columns.find((column) => column.id === field)?.type === 'mixed'
+        ? value
+        : fromWire(value),
+    ])
   )
 
 export const mongodbMatch = (

@@ -56,7 +56,9 @@ export const resourceRowsQuery = memoize(
           const documents = await db
             .collection(page.table)
             .aggregate(mongoPage({ ...page, columnTypes: columns }))
-          return documents.map(fromMongodbDocument)
+          return documents.map((document) =>
+            fromMongodbDocument(document, columns)
+          )
         },
         mssql: (db) => selectPage(db, page).execute(),
         mysql: (db) => selectPage(db, page).execute(),
