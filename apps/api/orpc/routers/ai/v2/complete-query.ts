@@ -26,10 +26,7 @@ export const completeQuery = orpc
     },
   })
   .handler(async ({ context, errors, input, signal }) => {
-    const quota = await usage.get(context, 'complete')
-    if (quota && quota.used >= quota.max) {
-      throw errors.TOO_MANY_REQUESTS()
-    }
+    await usage.enforce(context, 'complete', errors.TOO_MANY_REQUESTS)
     const scope = { feature: AiFeature.CompleteQuery, userId: context.user.id }
     const result = await runCompleteQuery({
       connectionType: input.type,

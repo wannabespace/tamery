@@ -26,11 +26,7 @@ export const filters = orpc
       filterInput: input.prompt,
     })
 
-    const quota = await usage.get(context, 'filters')
-
-    if (quota && quota.used >= quota.max) {
-      throw errors.TOO_MANY_REQUESTS()
-    }
+    await usage.enforce(context, 'filters', errors.TOO_MANY_REQUESTS)
 
     const result = await generateFilters({
       context: input.context,
