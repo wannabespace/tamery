@@ -77,6 +77,14 @@ const RULES: DiagnosisRule[] = [
     match: /host '[^']*' is not allowed to connect/iu,
   },
   {
+    diagnose: () => ({
+      hint: "Azure SQL blocks your IP at the server firewall. Add it under the server's Networking → firewall rules in the Azure portal, then try again.",
+      title: "Azure SQL won't accept connections from here",
+    }),
+    engine: ConnectionType.MSSQL,
+    match: /is not allowed to access the server/iu,
+  },
+  {
     diagnose: ({ message }) => {
       const service = /service "(?<name>[^"]+)"/iu.exec(message)?.groups?.name
       return {
@@ -89,6 +97,14 @@ const RULES: DiagnosisRule[] = [
     },
     engine: ConnectionType.Oracle,
     match: /is not registered with the listener|ora-12514|ora-12505/iu,
+  },
+  {
+    diagnose: () => ({
+      hint: 'Oracle is reachable but its listener refused the connection. Check that the database and its listener are running, and that the port is right.',
+      title: "Oracle's listener isn't answering",
+    }),
+    engine: ConnectionType.Oracle,
+    match: /ora-12541|tns:no listener/iu,
   },
   {
     diagnose: ({ parts }) =>
@@ -121,6 +137,24 @@ const RULES: DiagnosisRule[] = [
       title: "Supabase can't find this project",
     }),
     match: /tenant or user not found/iu,
+  },
+  {
+    diagnose: () => ({
+      focus: 'user',
+      hint: 'The server locked this account, after too many failed sign-ins or by an administrator. Unlock it on the server, or wait for the lockout to clear.',
+      title: 'This account is locked',
+    }),
+    // Before the password rule: the lockout message also carries "access denied"/"login failed".
+    match:
+      /account is locked|account has been locked|account is currently locked|ora-28000/iu,
+  },
+  {
+    diagnose: () => ({
+      focus: 'password',
+      hint: 'The server still knows this user, but the password has expired and must be changed on the server before it will let a client in.',
+      title: 'The password has expired',
+    }),
+    match: /password has expired|password .+ must be changed|ora-28001/iu,
   },
   {
     diagnose: ({ parts }) => {

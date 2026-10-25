@@ -242,6 +242,11 @@ describe('diagnoseConnectionError', () => {
       'Failed to connect to db.acme.io:1433 - Could not connect (sequence)',
       'Connection refused',
     ],
+    ['ORA-28001: the password has expired', 'The password has expired'],
+    [
+      "Access denied for user 'me'@'%'. Account is locked.",
+      'This account is locked',
+    ],
   ])('names %p', (message, title) => {
     expect(diagnose(message)?.title).toBe(title)
   })
@@ -256,6 +261,22 @@ describe('diagnoseConnectionError', () => {
       focus: 'database',
       title: 'Service "NOPE" isn\'t on this server',
     })
+  })
+
+  it('names the Oracle listener when it refuses the connection', () => {
+    expect(
+      diagnose('ORA-12541: TNS:no listener', { type: ConnectionType.Oracle })
+        ?.title
+    ).toBe("Oracle's listener isn't answering")
+  })
+
+  it("blames Azure SQL's firewall when the server refuses the IP", () => {
+    expect(
+      diagnose(
+        "Cannot open server 'acme' requested by the login. Client with IP address '203.0.113.7' is not allowed to access the server.",
+        { type: ConnectionType.MSSQL }
+      )?.title
+    ).toBe("Azure SQL won't accept connections from here")
   })
 
   it('reads a missing SQLite file without asking for a password', () => {
