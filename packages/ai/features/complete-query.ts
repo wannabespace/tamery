@@ -35,11 +35,11 @@ const completeInstructions = (data: {
   [
     ...engineInstructions(data.connectionType),
     `You get the text before the caret and the text after it, each marked with ${CARET} on the caret side.`,
-    `Return only the text to insert at ${CARET}: no explanations, markdown or fences.`,
+    `Your reply is inserted verbatim at ${CARET} as code. Return only that code — never prose, explanations, apologies, advice, questions, markdown or fences. You are a completion engine, not a chat assistant.`,
+    `When nothing valid fits — the call is already complete, or the method takes no arguments (such as drop()) — return an empty string and nothing else. Never write a sentence about why; just return empty.`,
     `Never repeat text that is already before or after ${CARET}; your text goes between them.`,
     MATCH_USER_STYLE,
     `Your text is inserted at ${CARET} exactly as returned, character for character, and the editor adds no whitespace: when the character right before ${CARET} ends a token and your text starts the next one, begin with the whitespace the user puts between tokens.`,
-    'Return an empty response when nothing useful can be suggested.',
     '',
     'Database schema:',
     data.context,
@@ -90,17 +90,29 @@ const schemaAsDdl = (context: string) =>
       : `-- ${line}`
   })
 
-const fimCompleteSql = async (data: CompleteQueryInput) => {
+const schemaAsMongo = (context: string) =>
+  context.split('\n').map((line) => {
+    const table = TABLE_LINE.exec(line)?.groups
+    return table
+      ? `// db.${table.name} fields: ${table.columns ?? ''}`
+      : `// ${line}`
+  })
+
+const fimPrompt = (data: CompleteQueryInput) =>
+  [
+    ...(isMongo(data.connectionType)
+      ? ['// MongoDB shell (mongosh)', ...schemaAsMongo(data.context)]
+      : [`-- Database: ${data.connectionType}`, ...schemaAsDdl(data.context)]),
+    '',
+    data.prefix,
+  ].join('\n')
+
+const fimComplete = async (data: CompleteQueryInput) => {
   const { choices, usage } = await mistral.fim.complete(
     {
       maxTokens: 200,
       model: FIM_MODEL,
-      prompt: [
-        `-- Database: ${data.connectionType}`,
-        ...schemaAsDdl(data.context),
-        '',
-        data.prefix,
-      ].join('\n'),
+      prompt: fimPrompt(data),
       stop: ['\n\n'],
       suffix: data.suffix,
       temperature: 0,
@@ -128,12 +140,9 @@ const fimCompleteSql = async (data: CompleteQueryInput) => {
 }
 
 export const completeQuery = async (data: CompleteQueryInput) => {
-  // The FIM path frames the context as SQL DDL, so MongoDB goes straight to the mongosh chat prompt.
-  if (isMongo(data.connectionType)) {
-    return chatComplete(data)
-  }
+  // Codestral FIM completes mongosh and SQL alike and never writes prose; the chat model is only a fallback when FIM errors.
   try {
-    return await fimCompleteSql(data)
+    return await fimComplete(data)
   } catch (error) {
     if (data.signal?.aborted) {
       throw error
