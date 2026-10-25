@@ -6,10 +6,12 @@ export const SKIP_INDEX_TYPES = ['minmax', 'set(0)', 'bloom_filter'] as const
 
 export interface IndexShape {
   columns: string[]
+  expireAfterSeconds?: number
   granularity?: number
   name: string
   schema: string
   skipType?: string
+  sparse?: boolean
   table: string
   unique?: boolean
 }

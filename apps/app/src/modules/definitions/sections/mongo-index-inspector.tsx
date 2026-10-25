@@ -4,7 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { type } from 'arktype'
 import { toast } from 'sonner'
 
-import { createMongoIndexQuery } from '~/core/queries/indexes/create-mongodb'
+import { createIndexQuery } from '~/core/queries/indexes/create'
 import { resourceTableColumnIdsQueryOptions } from '~/core/queries/tables/columns'
 import { queryClient } from '~/lib/query-client'
 
@@ -59,12 +59,13 @@ const saveIndex = (
   run: SectionInspectorProps<GroupedIndex>['run']
 ) =>
   run(
-    createMongoIndexQuery({
+    createIndexQuery({
+      columns: draft.fields,
       expireAfterSeconds: draft.expireAfterSeconds.trim()
         ? Number(draft.expireAfterSeconds)
         : undefined,
-      keys: Object.fromEntries(draft.fields.map((field) => [field, 1])),
-      name: draft.name.trim() || undefined,
+      name: draft.name.trim(),
+      schema: '',
       sparse: draft.sparse,
       table: draft.table,
       unique: draft.unique,
