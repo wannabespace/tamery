@@ -43,7 +43,7 @@ import {
 } from '../../../seeds'
 import { insertSeedRows } from '../../../seeds/insert'
 import type { Generator } from '../../../seeds/registry'
-import { CUSTOM_GENERATOR, SKIP_GENERATOR } from '../../../seeds/types'
+import { SQL_EXPRESSION_GENERATOR, SKIP_GENERATOR } from '../../../seeds/types'
 import {
   FREE_SEED_LIMIT,
   incrementSeedUsage,
@@ -131,7 +131,7 @@ export const SeedPanel = ({
   )
   const hasEmptyExpression = activeGenerators.some(
     (generator) =>
-      generator.generatorId === CUSTOM_GENERATOR &&
+      generator.generatorId === SQL_EXPRESSION_GENERATOR &&
       !generator.customExpression?.trim()
   )
   const canSeed =
