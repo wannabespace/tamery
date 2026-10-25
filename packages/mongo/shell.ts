@@ -11,6 +11,9 @@ const record = (value: unknown) =>
     ? (value as Record<string, unknown>)
     : null
 
+const ctor = (name: string, value: unknown) =>
+  text(value) === null ? null : `${name}(${quote(String(value))})`
+
 const WRAPPERS: Record<string, Wrapper> = {
   $binary: (value) => {
     const binary = record(value)
@@ -30,16 +33,11 @@ const WRAPPERS: Record<string, Wrapper> = {
   },
   $maxKey: () => 'MaxKey()',
   $minKey: () => 'MinKey()',
-  $numberDecimal: (value) =>
-    text(value) === null ? null : `NumberDecimal(${quote(String(value))})`,
-  $numberDouble: (value) =>
-    text(value) === null ? null : `Double(${quote(String(value))})`,
-  $numberInt: (value) =>
-    text(value) === null ? null : `NumberInt(${quote(String(value))})`,
-  $numberLong: (value) =>
-    text(value) === null ? null : `NumberLong(${quote(String(value))})`,
-  $oid: (value) =>
-    text(value) === null ? null : `ObjectId(${quote(String(value))})`,
+  $numberDecimal: (value) => ctor('NumberDecimal', value),
+  $numberDouble: (value) => ctor('Double', value),
+  $numberInt: (value) => ctor('NumberInt', value),
+  $numberLong: (value) => ctor('NumberLong', value),
+  $oid: (value) => ctor('ObjectId', value),
   $regularExpression: (value) => {
     const regex = record(value)
     const pattern = text(regex?.pattern)
@@ -53,8 +51,7 @@ const WRAPPERS: Record<string, Wrapper> = {
       ? `Timestamp({ t: ${timestamp.t}, i: ${timestamp.i} })`
       : null
   },
-  $uuid: (value) =>
-    text(value) === null ? null : `UUID(${quote(String(value))})`,
+  $uuid: (value) => ctor('UUID', value),
 }
 
 const wrapped = (value: Record<string, unknown>) => {
