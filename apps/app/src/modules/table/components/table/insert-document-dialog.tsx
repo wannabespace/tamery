@@ -5,7 +5,7 @@ import {
 } from '@tamery/monaco/query-language'
 import { parseScript } from '@tamery/mongo/parse'
 import { newObjectId } from '@tamery/mongo/values'
-import { toError, uppercaseFirst } from '@tamery/shared/utils'
+import { uppercaseFirst } from '@tamery/shared/utils'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
 import {
@@ -18,7 +18,6 @@ import {
   DialogTitle,
 } from '@tamery/ui/components/dialog'
 import { useMutation } from '@tanstack/react-query'
-import { Result } from 'better-result'
 import type { editor } from 'monaco-editor'
 import {
   createRef,
@@ -90,11 +89,13 @@ export const InsertDocumentDialog = ({
   const { mutate, isPending } = useMutation({
     meta: { event: 'document_inserted' },
     mutationFn: async () => {
+      parseScript(statementOf(table, document))
       await insertDocumentQuery({ document, table }).run(
         await connectionResourceToQueryParams(connectionResource)
       )
     },
     onError: (mutationError) => setError(mutationError.message),
+    onMutate: () => setError(null),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
@@ -116,16 +117,6 @@ export const InsertDocumentDialog = ({
     },
   })
 
-  const insert = () => {
-    const parsed = Result.try(() => parseScript(statementOf(table, document)))
-    if (parsed.isErr()) {
-      setError(toError(parsed.error.cause).message)
-      return
-    }
-    setError(null)
-    mutate()
-  }
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-2xl">
@@ -142,7 +133,7 @@ export const InsertDocumentDialog = ({
             language={MONGO_DOCUMENT_LANGUAGE}
             leaveOnEscape
             onChange={setDocument}
-            onSubmit={insert}
+            onSubmit={() => mutate()}
             options={EDITOR_OPTIONS}
             ref={editorRef}
             value={document}
@@ -157,7 +148,7 @@ export const InsertDocumentDialog = ({
           <DialogClose render={<Button variant="outline" />}>
             Cancel
           </DialogClose>
-          <Button disabled={isPending} onClick={insert}>
+          <Button disabled={isPending} onClick={() => mutate()}>
             <LoadingContent loading={isPending}>
               Insert {names.row}
             </LoadingContent>
