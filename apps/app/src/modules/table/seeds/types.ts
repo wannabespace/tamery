@@ -6,8 +6,7 @@ export const SKIP_GENERATOR = 'skip-generator'
 export const NULL_GENERATOR = 'null'
 export const REFERENCE_GENERATOR = 'reference-generator'
 export const ENUM_GENERATOR = 'enum-generator'
-// The id stays 'custom-generator': per-table seed configs persist it in localStorage, so renaming the value orphans a saved selection.
-export const SQL_EXPRESSION_GENERATOR = 'custom-generator'
+export const SQL_EXPRESSION_GENERATOR = 'sql-expression'
 
 export interface GeneratorDef {
   label: string
