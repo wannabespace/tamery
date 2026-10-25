@@ -135,6 +135,7 @@ const chained =
     const plan = await (verbosity === undefined
       ? cursor.explain()
       : cursor.explain(verbosity))
+    await cursor.close()
     return rowsOf([plan], maxRows)
   }
 
