@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import { AI_SQL_LIMITS } from '@tamery/ai/limits'
+import { AI_QUERY_LIMITS } from '@tamery/ai/limits'
 import type { SqlCatalog } from '@tamery/sql'
 
 import { catalogSummary } from './catalog-summary'
@@ -65,7 +65,7 @@ describe('catalogSummary', () => {
 
   it('stays within what the AI routes accept', () => {
     const summary = catalogSummary(catalog(20_000))
-    expect(summary.length).toBeLessThanOrEqual(AI_SQL_LIMITS.context)
+    expect(summary.length).toBeLessThanOrEqual(AI_QUERY_LIMITS.context)
     expect(summary.startsWith('public.table_19999(id int)')).toBe(true)
   })
 })

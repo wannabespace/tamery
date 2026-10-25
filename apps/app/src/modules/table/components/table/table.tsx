@@ -5,7 +5,7 @@ import { TableSkeleton } from '@tamery/table'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { useMountedEffect } from '@tamery/ui/hookas/use-mounted-effect'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
@@ -19,7 +19,7 @@ import { TableError } from '~/core/table/table-error'
 import { tableTabId } from '~/core/tabs/ids'
 import { posthog } from '~/lib/posthog'
 
-import { useTableColumnsContext } from '../../lib/columns'
+import { useTableColumnsContext, withRowFieldColumns } from '../../lib/columns'
 import { tableGridRef } from '../../lib/grid-ref'
 import { stagedHistory, useStagedHistoryHotkeys } from '../../lib/history'
 import { useFlashChangedCells, useSyncSelectionWithRows } from '../../lib/hooks'
@@ -118,16 +118,20 @@ export const Table = ({
     target: peekTarget,
   } = useReferencePeek(scrollRef)
 
+  const displayColumns = useMemo(
+    () => withRowFieldColumns(dialect, columns, rows),
+    [dialect, columns, rows]
+  )
   const { pinned, reordered, visible } = columnView(
-    columns,
+    displayColumns,
     { columnOrder, hiddenColumns, pinnedColumns },
     view === 'grid'
   )
-  const identityColumns = rowIdentity(columns, dialect).columns
+  const identityColumns = rowIdentity(displayColumns, dialect).columns
   const isEditable = identityColumns.length > 0
   const canWriteRows = isEditable && !!isBaseTable
   const staged = useStagedEdits({
-    columns,
+    columns: displayColumns,
     dialect,
     rows,
     visible,

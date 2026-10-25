@@ -28,9 +28,11 @@ import { columnView, useTablePageStore } from '../../../lib/store'
 
 export const ActionsAdd = ({
   onAddColumn,
+  onInsertDocument,
   onSeed,
 }: {
   onAddColumn?: () => void
+  onInsertDocument?: () => void
   onSeed: () => void
 }) => {
   const store = useTablePageStore()
@@ -65,7 +67,10 @@ export const ActionsAdd = ({
         <TooltipContent side="bottom">Add</TooltipContent>
       </Tooltip>
       <DropdownMenuContent align="end" className="min-w-36">
-        <DropdownMenuItem disabled={!canAddRow} onClick={addRow}>
+        <DropdownMenuItem
+          disabled={!onInsertDocument && !canAddRow}
+          onClick={onInsertDocument ?? addRow}
+        >
           <HugeiconsIcon icon={LayoutThreeRowIcon} strokeWidth={2} />
           Add {names.row}
         </DropdownMenuItem>

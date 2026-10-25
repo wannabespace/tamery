@@ -1,15 +1,16 @@
-import type { SqlSource, TableRef } from '@tamery/monaco/sql-language'
+import type { QuerySource, TableRef } from '@tamery/monaco/query-language'
 import {
   attachGhostTextEscape,
   attachSqlDiagnostics,
-  bindSqlModel,
+  bindQueryModel,
   EMPTY_CATALOG,
-} from '@tamery/monaco/sql-language'
+} from '@tamery/monaco/query-language'
 import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import type {
   ConnectionType,
   Dialect,
 } from '@tamery/shared/enums/connection-type'
+import { noop } from '@tamery/shared/utils'
 import type { SqlCatalog } from '@tamery/sql'
 import { dialects, findTableWithSchema } from '@tamery/sql'
 import { matchQuery } from '@tanstack/react-query'
@@ -73,11 +74,11 @@ const getSqlCatalog = (
   }
 }
 
-const sqlSourceFor = (
+const querySourceFor = (
   connectionResource: ConnectionResource,
   connectionType: ConnectionType,
   dialect: Dialect
-): SqlSource => {
+): QuerySource => {
   const catalog = () => getSqlCatalog(connectionResource, dialect)
   const tablesOptions = resourceTablesAndSchemasQueryOptions({
     connectionResource,
@@ -112,13 +113,13 @@ const sqlSourceFor = (
   return {
     catalog,
     complete: (input, signal) =>
-      orpc.ai.completeSQL.call(
+      orpc.ai.completeQuery.call(
         { ...input, type: connectionType },
         { context: { silent: true }, signal }
       ),
     dialect,
     ghostTextEnabled: () =>
-      appStore.get().isOnline && permix.check('ai.sql.use'),
+      appStore.get().isOnline && permix.check('ai.query.use'),
     load: (refs) =>
       [tablesOptions, enumsOptions].every(
         (options) => queryClient.getQueryData(options.queryKey) !== undefined
@@ -140,18 +141,22 @@ const sqlSourceFor = (
   }
 }
 
-export const attachSqlSource = (
+export const attachQuerySource = (
   codeEditor: editor.IStandaloneCodeEditor,
   connectionResource: ConnectionResource,
   connectionType: ConnectionType,
-  dialect: Dialect
+  dialect: Dialect,
+  // A routine body is not a top-level statement, so SQL diagnostics would flag valid PL/pgSQL; completion and ghost text still help.
+  { diagnostics = true }: { diagnostics?: boolean } = {}
 ) => {
-  const source = sqlSourceFor(connectionResource, connectionType, dialect)
+  const source = querySourceFor(connectionResource, connectionType, dialect)
   const model = codeEditor.getModel()
   if (model) {
-    bindSqlModel(model, source)
+    bindQueryModel(model, source)
   }
-  const detachDiagnostics = attachSqlDiagnostics(codeEditor, source)
+  const detachDiagnostics = diagnostics
+    ? attachSqlDiagnostics(codeEditor, source)
+    : noop
   const detachEscape = attachGhostTextEscape(codeEditor)
   return () => {
     detachDiagnostics()

@@ -13,7 +13,7 @@ export interface TableRef {
   schema: string | null
 }
 
-export interface SqlSource {
+export interface QuerySource {
   catalog: () => SqlCatalog
   complete: (
     input: { context: string; prefix: string; suffix: string },
@@ -25,7 +25,7 @@ export interface SqlSource {
   dialect: Dialect
 }
 
-export const boundSources = new WeakMap<editor.ITextModel, SqlSource>()
+export const boundSources = new WeakMap<editor.ITextModel, QuerySource>()
 
 export const EMPTY_CATALOG: SqlCatalog = {
   defaultSchema: null,

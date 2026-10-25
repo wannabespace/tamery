@@ -9,7 +9,7 @@ export const EDITOR_CONTEXT =
 export const MATCH_USER_STYLE =
   "Match the user's formatting exactly: keyword and identifier casing, spacing around operators and commas, quoting, indentation and line breaks."
 
-const MONGOSH_OUTPUT_RULES = [
+export const MONGOSH_OUTPUT_RULES = [
   'The database is MongoDB: queries are mongosh calls such as db.orders.find({ status: "paid" }) or db.orders.aggregate([...]), never SQL. Collections are its tables, fields its columns.',
   MATCH_USER_STYLE,
   'Return only mongosh code, nothing else: no explanations, greetings, markdown, or ``` fences.',
@@ -17,7 +17,7 @@ const MONGOSH_OUTPUT_RULES = [
   'Write literal values and BSON constructors (ObjectId("…"), ISODate("…"), NumberLong("…")); when a value is unknown, use the shortest generic literal of the right type, never invented realistic-looking data.',
 ]
 
-export const sqlOutputRules = (connectionType: string) =>
+export const queryOutputRules = (connectionType: string) =>
   connectionType === ConnectionType.MongoDB
     ? MONGOSH_OUTPUT_RULES
     : [

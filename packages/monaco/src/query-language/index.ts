@@ -3,23 +3,29 @@ import { Dialect, isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { dialects } from '@tamery/sql'
 import type { IDisposable } from 'monaco-editor'
 
-import { registerMongoCompletion } from '../mongo-language/completion'
+import {
+  MONGO_DOCUMENT_LANGUAGE,
+  registerMongoCompletion,
+  registerMongoDocumentCompletion,
+} from '../mongo-language/completion'
+import { mongoGhostLanguage } from '../mongo-language/ghost-text'
 import { registerMongoTokens } from '../mongo-language/language'
 import { registerCompletion } from './completion'
-import { registerGhostText } from './ghost-text'
+import { registerGhostText, sqlGhostLanguage } from './ghost-text'
 import { languageIds, registerLanguage } from './language'
 
-export { SQL_COMPLETION_OPTIONS } from './completion'
+export { QUERY_COMPLETION_OPTIONS } from './completion'
 export { attachSqlDiagnostics } from './diagnostics'
 export {
   acceptGhostText,
   attachGhostTextEscape,
-  bindSqlModel,
+  bindQueryModel,
   dismissGhostText,
   drawnGhostTextElement,
 } from './ghost-text'
 export { languageIds } from './language'
-export type { SqlSource, TableRef } from './source'
+export { MONGO_DOCUMENT_LANGUAGE } from '../mongo-language/completion'
+export type { QuerySource, TableRef } from './source'
 export { catalogSummaryFor, EMPTY_CATALOG } from './source'
 
 const registerSqlLanguage = (dialect: SqlDialect) => {
@@ -28,9 +34,11 @@ const registerSqlLanguage = (dialect: SqlDialect) => {
   return [
     ...registerLanguage(id, spec),
     registerCompletion(id, spec),
-    registerGhostText(id, spec),
+    registerGhostText(id, sqlGhostLanguage(spec)),
   ]
 }
+
+const mongoGhost = mongoGhostLanguage()
 
 declare global {
   // Monaco is page-wide: a hot reload must dispose the earlier evaluation's providers, or every suggestion repeats.
@@ -44,4 +52,8 @@ globalThis.tamerySqlLanguage = [
   ...Object.values(Dialect).filter(isSqlDialect).flatMap(registerSqlLanguage),
   ...registerMongoTokens(languageIds.mongodb),
   registerMongoCompletion(languageIds.mongodb),
+  registerGhostText(languageIds.mongodb, mongoGhost),
+  ...registerMongoTokens(MONGO_DOCUMENT_LANGUAGE),
+  registerMongoDocumentCompletion(MONGO_DOCUMENT_LANGUAGE),
+  registerGhostText(MONGO_DOCUMENT_LANGUAGE, mongoGhost),
 ]

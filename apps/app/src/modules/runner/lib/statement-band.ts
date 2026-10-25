@@ -1,4 +1,4 @@
-import { drawnGhostTextElement } from '@tamery/monaco/sql-language'
+import { drawnGhostTextElement } from '@tamery/monaco/query-language'
 import { statementAt } from '@tamery/sql'
 import { editor } from 'monaco-editor'
 import type { RefObject } from 'react'

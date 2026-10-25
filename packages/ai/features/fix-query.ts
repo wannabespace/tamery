@@ -2,40 +2,40 @@ import type { TelemetryOptions } from 'ai'
 import { generateText } from 'ai'
 
 import { models } from '../models/list'
-import { EDITOR_CONTEXT, section, sqlOutputRules } from './prompt'
+import { EDITOR_CONTEXT, section, queryOutputRules } from './prompt'
 
-const fixSqlInstructions = (data: {
+const fixQueryInstructions = (data: {
   connectionType: string
   context: string
 }) =>
   [
-    'You are an expert at fixing SQL queries based on an error message.',
+    'You are an expert at fixing database queries based on an error message.',
     'Fix the query so it is valid and correct.',
     'If the query is already valid and correct, return it unchanged.',
-    'Use only tables and columns from the schema; never invent a name it does not list.',
+    'Use only names from the schema; never invent a name it does not list.',
     EDITOR_CONTEXT,
-    ...sqlOutputRules(data.connectionType),
+    ...queryOutputRules(data.connectionType),
     '',
     'Database schema:',
     data.context,
   ].join('\n')
 
-export const fixSql = async (data: {
+export const fixQuery = async (data: {
   connectionType: string
   context: string
   editor: string
   error: string
   signal?: AbortSignal
-  sql: string
+  query: string
   telemetry?: TelemetryOptions
 }) => {
   const { text } = await generateText({
     abortSignal: data.signal,
-    instructions: fixSqlInstructions(data),
-    model: models.sql,
+    instructions: fixQueryInstructions(data),
+    model: models.query,
     prompt: [
       section('WHOLE EDITOR', data.editor),
-      section('SQL QUERY', data.sql),
+      section('QUERY', data.query),
       section('ERROR', data.error),
     ].join('\n'),
     telemetry: data.telemetry,

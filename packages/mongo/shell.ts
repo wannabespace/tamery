@@ -87,7 +87,8 @@ export const toShell = (value: unknown): string => {
     return `ISODate(${quote(value.toISOString())})`
   }
   if (value instanceof RegExp) {
-    return `RegExp(${quote(value.source)}, ${quote(value.flags)})`
+    // Mongo regex options are i, m, s and x; a JS-only flag like `u` reaches a strict server (DocumentDB, FerretDB) as a regex it refuses.
+    return `RegExp(${quote(value.source)}, ${quote(value.flags.replaceAll(/[^imsx]/gu, ''))})`
   }
   if (Array.isArray(value)) {
     return `[${value.map(toShell).join(', ')}]`

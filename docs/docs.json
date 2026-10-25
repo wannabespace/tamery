@@ -24,7 +24,7 @@
         "pages": [
           "features/navigator",
           "features/table-browser",
-          "features/sql-editor",
+          "features/query-editor",
           "features/export",
           "features/copy-database",
           "features/ai-assistant",

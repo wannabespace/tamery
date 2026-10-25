@@ -6,7 +6,7 @@
   background-color: color-mix(in oklch, var(--foreground) 6%, transparent);
 }
 
-.monaco-editor .sql-ai-band {
+.monaco-editor .ai-edit-band {
   background-color: color-mix(in oklch, var(--primary) 12%, transparent);
 }
 

@@ -1,4 +1,4 @@
-import { AI_SQL_LIMITS } from '@tamery/ai/limits'
+import { AI_QUERY_LIMITS } from '@tamery/ai/limits'
 import type { SqlCatalog } from '@tamery/sql'
 
 const noted = (text: string, comment?: string | null) =>
@@ -25,7 +25,7 @@ export const catalogSummary = (catalog: SqlCatalog) => {
   let length = 0
   for (const line of lines) {
     length += line.length + 1
-    if (length > AI_SQL_LIMITS.context) {
+    if (length > AI_QUERY_LIMITS.context) {
       break
     }
     kept.push(line)

@@ -47,10 +47,12 @@ const EXPORT_PAGE_SIZE = 1000
 
 export const TableToolbar = ({
   onAddColumn,
+  onInsertDocument,
   table,
   schema,
 }: {
   onAddColumn?: () => void
+  onInsertDocument?: () => void
   table: string
   schema: string
 }) => {
@@ -165,6 +167,7 @@ export const TableToolbar = ({
         {isTable && (
           <ActionsAdd
             onAddColumn={onAddColumn}
+            onInsertDocument={onInsertDocument}
             onSeed={() => setSeedOpen(true)}
           />
         )}

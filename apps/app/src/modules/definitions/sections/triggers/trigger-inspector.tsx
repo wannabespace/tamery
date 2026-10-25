@@ -1,4 +1,4 @@
-import { languageIds } from '@tamery/monaco/sql-language'
+import { languageIds } from '@tamery/monaco/query-language'
 import { sameShape } from '@tamery/shared/utils'
 import { useAppForm } from '@tamery/ui/components/tanstack-form'
 import { useSelector } from '@tanstack/react-form'

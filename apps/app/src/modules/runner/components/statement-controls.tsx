@@ -8,7 +8,10 @@ import {
   Tick02Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { acceptGhostText, dismissGhostText } from '@tamery/monaco/sql-language'
+import {
+  acceptGhostText,
+  dismissGhostText,
+} from '@tamery/monaco/query-language'
 import { Button } from '@tamery/ui/components/button'
 import { Group } from '@tamery/ui/components/group'
 import {

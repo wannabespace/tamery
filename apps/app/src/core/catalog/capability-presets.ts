@@ -108,6 +108,7 @@ export type CapabilityFlag =
   | 'copyDatabase'
   | 'ddlRollback'
   | 'declaredColumns'
+  | 'documentIndexes'
   | 'explain'
   | 'foreignKeyOnUpdate'
   | 'ilike'

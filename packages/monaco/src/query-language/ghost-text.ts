@@ -1,6 +1,6 @@
-import { AI_SQL_LIMITS } from '@tamery/ai/limits'
+import { AI_QUERY_LIMITS } from '@tamery/ai/limits'
 import { noop, sleep } from '@tamery/shared/utils'
-import type { DialectSpec, Statement } from '@tamery/sql'
+import type { DialectSpec } from '@tamery/sql'
 import { splitStatements, statementAt, tokenize } from '@tamery/sql'
 import { Result } from 'better-result'
 import type { CancellationToken, editor, Position } from 'monaco-editor'
@@ -12,7 +12,7 @@ import {
   typedAlong,
   withinStatement,
 } from './ghost-text-offer'
-import type { SqlSource } from './source'
+import type { QuerySource } from './source'
 import { boundSources, catalogSummaryFor } from './source'
 
 const GHOST_TEXT_DELAY = 150
@@ -30,7 +30,7 @@ const lastGhostText = new WeakMap<editor.ITextModel, GhostTextOffer>()
 
 const requestCurrent = (
   model: editor.ITextModel,
-  source: SqlSource,
+  source: QuerySource,
   token: CancellationToken
 ) => !token.isCancellationRequested && boundSources.get(model) === source
 
@@ -78,7 +78,10 @@ const drawnGhostText = {
   },
 }
 
-export const bindSqlModel = (model: editor.ITextModel, source: SqlSource) => {
+export const bindQueryModel = (
+  model: editor.ITextModel,
+  source: QuerySource
+) => {
   drawnGhostText.clear(model)
   offeredGhostText.delete(model)
   lastGhostText.delete(model)
@@ -134,9 +137,9 @@ const cachedOffer = (
   askedWithList.set(model, versionId)
 }
 
-const neighbourhood = (
-  statements: Statement[],
-  statement: Statement | undefined,
+export const neighbourhood = <T extends { terminatorEnd: number }>(
+  statements: T[],
+  statement: T | undefined,
   length: number
 ) => {
   const index = statement ? statements.indexOf(statement) : -1
@@ -149,6 +152,42 @@ const neighbourhood = (
     start: statements[index - 2]?.terminatorEnd ?? 0,
   }
 }
+
+/** What differs per query language in the shared ghost-text flow: the statement window, string detection, and judging the model's reply. */
+export interface GhostTextLanguage {
+  window: (text: string, offset: number) => { end: number; start: number }
+  inString: (before: string) => boolean
+  trimToStatement: (before: string, reply: string) => string
+  looksInvalid: (suggestion: string) => boolean
+  needsLeadingSpace: (
+    before: string,
+    reply: string,
+    explicit: boolean
+  ) => boolean
+}
+
+// `?` stays out: it is Postgres's jsonb key-exists operator.
+const NOT_SQL = /[.!:…]\s|[.!:…]$|```|^\(empty response\b/iu
+
+export const sqlGhostLanguage = (dialect: DialectSpec): GhostTextLanguage => ({
+  inString: (before) => {
+    const { state } = tokenize(before, dialect)
+    // A `$$` body is code, not a string value.
+    return state.kind === 'string' && !state.close.startsWith('$')
+  },
+  looksInvalid: (suggestion) => NOT_SQL.test(suggestion),
+  needsLeadingSpace: (before, reply, explicit) =>
+    needsLeadingSpace(before, reply, explicit, dialect),
+  trimToStatement: (before, reply) => withinStatement(before, reply, dialect),
+  window: (text, offset) => {
+    const statements = splitStatements(text, dialect)
+    return neighbourhood(
+      statements,
+      statementAt(statements, offset, text),
+      text.length
+    )
+  },
+})
 
 const GHOST_TEXT_SELECTOR =
   '.ghost-text-decoration, .ghost-text-decoration-preview, .ghost-text'
@@ -238,12 +277,9 @@ export const attachGhostTextEscape = (
   }
 }
 
-// `?` stays out: it is Postgres's jsonb key-exists operator.
-const NOT_SQL = /[.!:…]\s|[.!:…]$|```|^\(empty response\b/iu
-
 const LEADING_BLANK_LINES = /^\s*\n/u
 
-export const registerGhostText = (id: string, dialect: DialectSpec) =>
+export const registerGhostText = (id: string, lang: GhostTextLanguage) =>
   languages.registerInlineCompletionsProvider(id, {
     disposeInlineCompletions: noop,
     provideInlineCompletions: async (model, position, context, token) => {
@@ -265,12 +301,8 @@ export const registerGhostText = (id: string, dialect: DialectSpec) =>
       const text = model.getValue()
       const versionId = model.getVersionId()
       const offset = model.getOffsetAt(position)
-      const statements = splitStatements(text, dialect)
-      const statement = statementAt(statements, offset, text)
-      const window = neighbourhood(statements, statement, text.length)
-      const { state } = tokenize(text.slice(0, offset), dialect)
-      // A `$$` body is code, not a string value.
-      if (state.kind === 'string' && !state.close.startsWith('$')) {
+      const window = lang.window(text, offset)
+      if (lang.inString(text.slice(0, offset))) {
         return { items: [] }
       }
       if (!text.slice(window.start, window.end).trim()) {
@@ -286,10 +318,10 @@ export const registerGhostText = (id: string, dialect: DialectSpec) =>
       // Sync with `needsLeadingSpace`'s explicit branch, which expects this space.
       const prefix = (
         explicit && /\w$/u.test(before) ? `${before} ` : before
-      ).slice(-AI_SQL_LIMITS.sql)
+      ).slice(-AI_QUERY_LIMITS.query)
       const suffix = text.slice(
         offset,
-        Math.min(window.end, offset + AI_SQL_LIMITS.sql)
+        Math.min(window.end, offset + AI_QUERY_LIMITS.query)
       )
       const schema = await catalogSummaryFor(model, prefix + suffix)
       if (!requestCurrent(model, source, token)) {
@@ -316,19 +348,17 @@ export const registerGhostText = (id: string, dialect: DialectSpec) =>
         .slice(0, position.column - 1)
         .trim()
       // Judged after the cut: what follows the statement (echoed schema comments) is never shown.
-      const suggestion = withinStatement(
+      const suggestion = lang.trimToStatement(
         text.slice(0, offset),
-        blankLine ? reply.replace(LEADING_BLANK_LINES, '') : reply,
-        dialect
+        blankLine ? reply.replace(LEADING_BLANK_LINES, '') : reply
       )
-      if (!suggestion.trim() || NOT_SQL.test(suggestion.trim())) {
+      if (!suggestion.trim() || lang.looksInvalid(suggestion.trim())) {
         return { items: [] }
       }
-      const insertText = needsLeadingSpace(
+      const insertText = lang.needsLeadingSpace(
         text.slice(0, offset),
         suggestion,
-        explicit,
-        dialect
+        explicit
       )
         ? ` ${suggestion}`
         : suggestion

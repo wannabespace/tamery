@@ -1,5 +1,5 @@
 import { SourceCodeIcon } from '@hugeicons/core-free-icons'
-import { languageIds } from '@tamery/monaco/sql-language'
+import { languageIds } from '@tamery/monaco/query-language'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
 import { matchesSearch, sameShape } from '@tamery/shared/utils'
 import { HighlightText } from '@tamery/ui/components/custom/highlight'

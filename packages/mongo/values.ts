@@ -68,3 +68,12 @@ export const toWire = (bsonType: string, value: unknown) =>
   value === null || value === undefined || !Object.hasOwn(STORED, bsonType)
     ? value
     : (STORED[bsonType]?.(value) ?? value)
+
+const hex = (bytes: Uint8Array) =>
+  Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+
+/** A fresh ObjectId's 24-hex id: a 4-byte seconds timestamp followed by 8 random bytes, enough to pre-fill an `_id` the user can keep or replace. */
+export const newObjectId = () =>
+  `${Math.floor(Date.now() / 1000)
+    .toString(16)
+    .padStart(8, '0')}${hex(crypto.getRandomValues(new Uint8Array(8)))}`

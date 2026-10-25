@@ -12,6 +12,10 @@ import {
   columnDialogRef,
   TableColumnDialog,
 } from './components/table/column-dialog'
+import {
+  InsertDocumentDialog,
+  insertDocumentRef,
+} from './components/table/insert-document-dialog'
 import { Table } from './components/table/table'
 import { TableToolbar } from './components/toolbar/toolbar'
 import { ColumnsContext, useTableColumnsQuery } from './lib/columns'
@@ -19,12 +23,14 @@ import { tablePageStore, TablePageStoreContext } from './lib/store'
 import type { TableParams } from './lib/tab'
 
 const addColumn = () => columnDialogRef.current?.add()
+const insertDocument = () => insertDocumentRef.current?.open()
 
 const TableContent = ({ table, schema }: { table: string; schema: string }) => {
   const { connectionResource, dialect } = useConnectionContext()
-  const onAddColumn = getCapabilities(dialect).flags.includes('declaredColumns')
-    ? addColumn
-    : undefined
+  const declaredColumns =
+    getCapabilities(dialect).flags.includes('declaredColumns')
+  const onAddColumn = declaredColumns ? addColumn : undefined
+  const onInsertDocument = declaredColumns ? undefined : insertDocument
   const { data = [], isPending } = useTableColumnsQuery({
     connectionResource,
     schema,
@@ -40,12 +46,20 @@ const TableContent = ({ table, schema }: { table: string; schema: string }) => {
           openTab(connectionResource.id, tableTabId(schema, table))
         }
       >
-        <TableToolbar table={table} schema={schema} onAddColumn={onAddColumn} />
+        <TableToolbar
+          table={table}
+          schema={schema}
+          onAddColumn={onAddColumn}
+          onInsertDocument={onInsertDocument}
+        />
         <div className="relative min-h-0 flex-1 border-t">
           <Table table={table} schema={schema} onAddColumn={onAddColumn} />
         </div>
       </div>
       <TableColumnDialog schema={schema} table={table} />
+      {onInsertDocument && (
+        <InsertDocumentDialog schema={schema} table={table} />
+      )}
       <DeleteRowsDialog schema={schema} table={table} />
     </ColumnsContext>
   )

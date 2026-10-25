@@ -237,7 +237,7 @@ export const Runner = () => {
 
   const actions: RunnerActions = {
     askAi: () => {
-      if (!checkOrUpgrade('ai.sql.use')) {
+      if (!checkOrUpgrade('ai.query.use')) {
         return
       }
       const { range } = current()
@@ -256,7 +256,7 @@ export const Runner = () => {
         )
       ),
     fixWithAi: ({ end, error, source, start }) => {
-      if (!checkOrUpgrade('ai.sql.use')) {
+      if (!checkOrUpgrade('ai.query.use')) {
         return
       }
       const model = editorRef.current?.getModel()

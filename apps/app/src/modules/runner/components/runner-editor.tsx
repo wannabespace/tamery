@@ -1,8 +1,8 @@
 import { Monaco } from '@tamery/monaco/editor'
 import {
-  SQL_COMPLETION_OPTIONS,
+  QUERY_COMPLETION_OPTIONS,
   languageIds,
-} from '@tamery/monaco/sql-language'
+} from '@tamery/monaco/query-language'
 import { useQuery } from '@tanstack/react-query'
 import type { editor } from 'monaco-editor'
 import type { RefObject } from 'react'
@@ -12,7 +12,7 @@ import { useSubscription } from 'seitu/react'
 import { useTabContext } from '~/core/connection/route'
 import { resourceEnumsQueryOptions } from '~/core/queries/enums/list'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
-import { attachSqlSource } from '~/core/sql-editor/sql-source'
+import { attachQuerySource } from '~/core/query-editor/query-source'
 import { chatOpen } from '~/modules/chat/stores'
 
 import { useRunnerActions } from '../lib/actions'
@@ -26,7 +26,7 @@ import { openMenuFromKeyboard, StatementControls } from './statement-controls'
 
 const MONACO_OPTIONS = {
   contextmenu: false,
-  ...SQL_COMPLETION_OPTIONS,
+  ...QUERY_COMPLETION_OPTIONS,
   folding: false,
   lineNumbersMinChars: 3,
   renderLineHighlight: 'none',
@@ -112,7 +112,7 @@ export const RunnerEditor = ({
   useEffect(() => {
     const codeEditor = editorRef.current
     return codeEditor
-      ? attachSqlSource(
+      ? attachQuerySource(
           codeEditor,
           connectionResource,
           connection.type,

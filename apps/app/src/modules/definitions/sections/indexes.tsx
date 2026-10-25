@@ -61,11 +61,12 @@ import { useDefinitionsState } from '../hooks/use-definitions-state'
 import { useFilter } from '../hooks/use-filter'
 import type { DefinitionsColumn } from '../lib/columns'
 import { labelColumn, nameColumn, textColumn } from '../lib/columns'
+import { MongoIndexInspector } from './mongo-index-inspector'
 
 type IndexItem = typeof indexesType.infer
 type IndexKind = 'primary' | 'unique' | 'regular'
 
-interface GroupedIndex extends Omit<
+export interface GroupedIndex extends Omit<
   IndexItem,
   'column' | 'customExpression' | 'isPrimary' | 'isUnique'
 > {
@@ -474,9 +475,17 @@ const indexColumns = (
 
 export const Indexes = () => {
   const state = useDefinitionsState({ section: 'indexes' })
-  const { connectionResource, getRelationNames, run, search, selectedSchema } =
-    state
+  const {
+    connectionResource,
+    dialect,
+    getRelationNames,
+    run,
+    search,
+    selectedSchema,
+  } = state
   const names = useObjectNames()
+  const documentIndexes =
+    getCapabilities(dialect).flags.includes('documentIndexes')
   const query = resourceIndexesQueryOptions({ connectionResource })
   const { data: indexes = [], isPending } = useQuery(query)
   const kindFilter = useFilter<IndexKind>('All types', [
@@ -487,11 +496,11 @@ export const Indexes = () => {
 
   return (
     <DefinitionsPage
-      canDropItem={(item) => !item.constraintOwned}
+      canDropItem={(item) => !item.constraintOwned && item.name !== '_id_'}
       columns={indexColumns(names)}
       createBlocked={
         getRelationNames(selectedSchema ?? '', 'table').length === 0
-          ? 'This schema has no tables to index.'
+          ? `This schema has no ${names.table}s to index.`
           : undefined
       }
       dropItem={(item) =>
@@ -503,7 +512,7 @@ export const Indexes = () => {
           })
         )
       }
-      Inspector={IndexInspector}
+      Inspector={documentIndexes ? MongoIndexInspector : IndexInspector}
       items={groupIndexes(indexes, selectedSchema)}
       getKey={definitionKey.index}
       loading={isPending}

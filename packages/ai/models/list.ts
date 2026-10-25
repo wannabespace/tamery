@@ -14,7 +14,7 @@ export const models = {
     model: openrouter('anthropic/claude-haiku-4.5'),
     retries: [openrouter('google/gemini-3.8-flash')],
   }),
-  sql: createRetryableModel({
+  query: createRetryableModel({
     model: openrouter('anthropic/claude-opus-5.5'),
     retries: [openrouter('x-ai/grok-4.7')],
   }),

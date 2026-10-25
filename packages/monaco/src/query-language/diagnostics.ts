@@ -3,7 +3,7 @@ import { noop, silently } from '@tamery/shared/utils'
 import { diagnose, dialects } from '@tamery/sql'
 import { editor, MarkerSeverity } from 'monaco-editor'
 
-import type { SqlSource } from './source'
+import type { QuerySource } from './source'
 import { getRange, tablesIn } from './source'
 
 const DIAGNOSTICS_DELAY = 250
@@ -11,7 +11,7 @@ const MARKER_OWNER = 'tamery-sql'
 
 export const attachSqlDiagnostics = (
   codeEditor: editor.IStandaloneCodeEditor,
-  source: SqlSource
+  source: QuerySource
 ) => {
   if (!isSqlDialect(source.dialect)) {
     return noop

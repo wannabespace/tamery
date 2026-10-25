@@ -19,7 +19,7 @@ const COMPLETION_KINDS: Record<CompletionKind, languages.CompletionItemKind> = {
   view: languages.CompletionItemKind.Interface,
 }
 
-export const SQL_COMPLETION_OPTIONS = {
+export const QUERY_COMPLETION_OPTIONS = {
   inlineSuggest: {
     enabled: true,
     showToolbar: 'never',

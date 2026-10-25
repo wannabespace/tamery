@@ -30,6 +30,18 @@ const fieldTypeOf = (types: FieldType[]) => {
     : 'mixed'
 }
 
+const idColumn = (schema: string, table: string) => ({
+  comment: null,
+  default: null,
+  editable: false,
+  id: ID_FIELD,
+  isIdentity: true,
+  nullable: false,
+  schema,
+  table,
+  type: 'objectId',
+})
+
 const collectionColumns = async (
   db: MongoDatabase,
   schema: string,
@@ -48,7 +60,7 @@ const collectionColumns = async (
     },
   ])
   const fields = Object.entries(Object.groupBy(types, ({ _id }) => _id.field))
-  return fields
+  const columns = fields
     .map(([field, fieldTypes = []]) => ({
       comment: null,
       default: null,
@@ -63,6 +75,11 @@ const collectionColumns = async (
     }))
     .toSorted((a, b) => a.position - b.position || a.id.localeCompare(b.id))
     .map(({ position: _position, ...column }) => column)
+  // An empty collection samples no documents, so _id never surfaces; without it
+  // the grid has no primary-key column and the first insert is unreachable.
+  return columns.some((column) => column.id === ID_FIELD)
+    ? columns
+    : [idColumn(schema, table), ...columns]
 }
 
 export const mongodbColumns = async (

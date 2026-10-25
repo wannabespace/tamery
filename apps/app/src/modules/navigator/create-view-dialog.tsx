@@ -1,8 +1,8 @@
 import { FIELD_EDITOR_OPTIONS, Monaco } from '@tamery/monaco/editor'
 import {
-  SQL_COMPLETION_OPTIONS,
+  QUERY_COMPLETION_OPTIONS,
   languageIds,
-} from '@tamery/monaco/sql-language'
+} from '@tamery/monaco/query-language'
 import type { SqlDialect } from '@tamery/shared/enums/connection-type'
 import { dialects, splitStatements } from '@tamery/sql'
 import { Field, FieldError, FieldLabel } from '@tamery/ui/components/field'
@@ -25,8 +25,8 @@ import { useConnectionContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { createViewQuery } from '~/core/queries/views/create'
+import { attachQuerySource } from '~/core/query-editor/query-source'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
-import { attachSqlSource } from '~/core/sql-editor/sql-source'
 import type { TableDialogRequest } from '~/core/table/table-dialog'
 import { TableDialog } from '~/core/table/table-dialog'
 import { openTab } from '~/core/tabs/actions'
@@ -34,7 +34,7 @@ import { tableTabId } from '~/core/tabs/ids'
 import { queryClient } from '~/lib/query-client'
 
 const QUERY_EDITOR_OPTIONS = {
-  ...SQL_COMPLETION_OPTIONS,
+  ...QUERY_COMPLETION_OPTIONS,
   ...FIELD_EDITOR_OPTIONS,
   ariaLabel: 'Query',
 }
@@ -59,7 +59,7 @@ const QueryField = ({
   useEffect(() => {
     const codeEditor = editorRef.current
     return codeEditor
-      ? attachSqlSource(
+      ? attachQuerySource(
           codeEditor,
           connectionResource,
           connection.type,

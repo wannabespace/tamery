@@ -7,7 +7,7 @@ export type Permissions = {
   ai: {
     chat: ['use']
     filter: ['use', 'unlimited']
-    sql: ['use']
+    query: ['use']
   }
   connection: [{ name: 'create'; type: { count: number } }]
   mcp: ['unlimited']
@@ -31,7 +31,7 @@ export const getPermissions = ({
     ai: {
       chat: { use: pro },
       filter: { unlimited: pro, use: member },
-      sql: { use: pro },
+      query: { use: pro },
     },
     connection: {
       create: member || ((connections) => connections?.count === 0),

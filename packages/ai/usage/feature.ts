@@ -1,19 +1,19 @@
 export enum AiFeature {
   Chat = 'chat',
   ChatTitle = 'chat_title',
-  CompleteSql = 'complete_sql',
+  CompleteQuery = 'complete_query',
   DiagnoseConnection = 'diagnose_connection',
   Filters = 'filters',
-  FixSql = 'fix_sql',
-  UpdateSql = 'update_sql',
+  FixQuery = 'fix_query',
+  UpdateQuery = 'update_query',
 }
 
 export const aiFeatureLabels: Record<AiFeature, string> = {
   [AiFeature.Chat]: 'Chat',
   [AiFeature.ChatTitle]: 'Chat title',
-  [AiFeature.CompleteSql]: 'Complete SQL',
+  [AiFeature.CompleteQuery]: 'Complete query',
   [AiFeature.DiagnoseConnection]: 'Diagnose connection',
   [AiFeature.Filters]: 'Filters',
-  [AiFeature.FixSql]: 'Fix SQL',
-  [AiFeature.UpdateSql]: 'Update SQL',
+  [AiFeature.FixQuery]: 'Fix query',
+  [AiFeature.UpdateQuery]: 'Update query',
 }

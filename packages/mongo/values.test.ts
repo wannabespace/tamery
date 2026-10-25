@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import { fromWire, toWire } from './values'
+import { fromWire, newObjectId, toWire } from './values'
 
 describe('grid values', () => {
   it.each([
@@ -29,5 +29,10 @@ describe('grid values', () => {
     expect(toWire('double', '1.5')).toBe(1.5)
     expect(toWire('bool', 'false')).toBe(false)
     expect(toWire('string', '1.5')).toBe('1.5')
+  })
+
+  it('generates a distinct 24-hex ObjectId', () => {
+    expect(newObjectId()).toMatch(/^[0-9a-f]{24}$/u)
+    expect(newObjectId()).not.toBe(newObjectId())
   })
 })
