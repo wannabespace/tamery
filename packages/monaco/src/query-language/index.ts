@@ -11,7 +11,8 @@ import {
 import { mongoGhostLanguage } from '../mongo-language/ghost-text'
 import { registerMongoTokens } from '../mongo-language/language'
 import { registerCompletion } from './completion'
-import { registerGhostText, sqlGhostLanguage } from './ghost-text'
+import { registerGhostText } from './ghost-text'
+import { sqlGhostLanguage } from './ghost-text-language'
 import { languageIds, registerLanguage } from './language'
 
 export { QUERY_COMPLETION_OPTIONS } from './completion'

@@ -1,8 +1,8 @@
 import { codeChars } from '@tamery/mongo/lexer'
 import { splitStatements, statementAt } from '@tamery/mongo/statements'
 
-import type { GhostTextLanguage } from '../query-language/ghost-text'
-import { neighbourhood } from '../query-language/ghost-text'
+import type { GhostTextLanguage } from '../query-language/ghost-text-language'
+import { neighbourhood } from '../query-language/ghost-text-language'
 
 // mongosh uses `.` and `:` as syntax, so the SQL punctuation check does not apply; only prose and fences are rejected.
 const NOT_MONGO = /```|^\(empty response\b/iu
