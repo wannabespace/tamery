@@ -80,15 +80,13 @@ export enum Provider {
 
 export const providers: Record<
   Provider,
-  { hidden?: boolean; label: string; type: ConnectionType }
+  { label: string; type: ConnectionType }
 > = {
   [Provider.CloudflareD1]: {
     label: 'Cloudflare D1',
     type: ConnectionType.SQLite,
   },
-  // Its form equals MongoDB's and a pasted mongodb+srv:// URL sets this provider on its own, so it is not offered as a separate engine — only resolved for connections that already use it.
   [Provider.MongoDBAtlas]: {
-    hidden: true,
     label: 'MongoDB Atlas',
     type: ConnectionType.MongoDB,
   },

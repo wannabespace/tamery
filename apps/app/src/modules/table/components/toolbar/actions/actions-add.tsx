@@ -51,6 +51,8 @@ export const ActionsAdd = ({
     posthog.capture('row_added')
   }
 
+  const onAddRow = onInsertDocument ?? (canAddRow ? addRow : undefined)
+
   return (
     <DropdownMenu>
       <Tooltip>
@@ -67,10 +69,7 @@ export const ActionsAdd = ({
         <TooltipContent side="bottom">Add</TooltipContent>
       </Tooltip>
       <DropdownMenuContent align="end" className="min-w-36">
-        <DropdownMenuItem
-          disabled={!onInsertDocument && !canAddRow}
-          onClick={onInsertDocument ?? addRow}
-        >
+        <DropdownMenuItem disabled={!onAddRow} onClick={onAddRow}>
           <HugeiconsIcon icon={LayoutThreeRowIcon} strokeWidth={2} />
           Add {names.row}
         </DropdownMenuItem>
