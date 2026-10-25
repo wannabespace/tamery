@@ -31,10 +31,17 @@ export const mongodbGuard = {
   },
 }
 
+// Fail an unreachable server in seconds instead of the driver's 30s default, which × reconnection retries left the app "connecting" for minutes before surfacing an error.
+const DEFAULT_SERVER_SELECTION_TIMEOUT_MS = 10_000
+
 export const getClient = memoize(async (connectionString: string) => {
   const forwarding = await sshForwarding.of(connectionString)
   const url = new SafeURL(connectionString)
   deleteSshParams(url.searchParams)
+  // Connection-string option names are case-insensitive, so a user override can carry any casing.
+  const hasTimeoutOverride = [...url.searchParams.keys()].some(
+    (key) => key.toLowerCase() === 'serverselectiontimeoutms'
+  )
   // The driver takes no stream and dials every member itself, so a tunnel or the guard reaches them as a SOCKS proxy.
   const open: OpenChannel | undefined = forwarding
     ? (target) => forwarding.socketTo(target)
@@ -42,6 +49,9 @@ export const getClient = memoize(async (connectionString: string) => {
   const proxy = open && (await socksProxy(open))
   const client = new mongodb.MongoClient(url.toString(), {
     appName: 'Tamery',
+    ...(hasTimeoutOverride
+      ? {}
+      : { serverSelectionTimeoutMS: DEFAULT_SERVER_SELECTION_TIMEOUT_MS }),
     ...proxy?.options,
   })
   const connected = await Result.tryPromise(() => client.connect())

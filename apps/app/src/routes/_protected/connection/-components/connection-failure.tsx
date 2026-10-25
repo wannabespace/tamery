@@ -30,8 +30,11 @@ export const ConnectionFailure = ({
         title={diagnosis?.title ?? "Couldn't connect"}
         description={
           <span data-mask className="flex flex-col gap-2 select-text">
-            {diagnosis && <span>{diagnosis.hint}</span>}
-            <span className="font-mono wrap-anywhere">{error.message}</span>
+            {diagnosis ? (
+              <span>{diagnosis.hint}</span>
+            ) : (
+              <span className="font-mono wrap-anywhere">{error.message}</span>
+            )}
           </span>
         }
       >

@@ -67,9 +67,11 @@ export const ErrorPage = ({ error: thrown }: ErrorComponentProps) => {
     description = 'Some data did not match the format the app expected.'
   }
 
-  const summary = isReadableMessage(error.message)
-    ? error.message.split('\n')[0]
-    : null
+  // A connection failure's message is a raw driver/OpenSSL dump; the description already explains it, and the full text stays under Show details.
+  const summary =
+    !isConnectionError && isReadableMessage(error.message)
+      ? error.message.split('\n')[0]
+      : null
 
   const details = arkErrors?.length
     ? arkErrors.map((err, index) => `${index + 1}. ${err.message}`).join('\n\n')

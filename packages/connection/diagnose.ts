@@ -199,6 +199,25 @@ const RULES: DiagnosisRule[] = [
     match:
       /self[- ]signed certificate|unable to verify the first certificate|unable to get (?:local )?issuer certificate|certificate has expired|hostname\/ip does not match|altnames|depth_zero_self_signed/iu,
   },
+  {
+    // Atlas aborts the TLS handshake with this alert when the IP is not on its access list, so SSL settings are not the fix.
+    engine: ConnectionType.MongoDB,
+    diagnose: () => ({
+      hint: 'MongoDB Atlas ends the handshake this way when your IP is not on its access list. Add your current IP under Network Access in Atlas, or allow it in the server’s firewall, then try again.',
+      title: 'Your IP may not be allowed in',
+    }),
+    match:
+      /tlsv1_alert|sslv3_alert|ssl alert number|alert (?:internal error|handshake failure)|handshake failure/iu,
+  },
+  {
+    diagnose: ({ parts }) => ({
+      fix: sslFix(parts, 'off', 'Turn off SSL'),
+      hint: 'The server ended the encrypted handshake with an alert. It may not expect SSL on this port, or its certificate or TLS settings may be off. Try turning SSL off, or check the server.',
+      title: 'The TLS handshake failed',
+    }),
+    match:
+      /tlsv1_alert|sslv3_alert|ssl alert number|alert (?:internal error|handshake failure)|handshake failure/iu,
+  },
   ...NETWORK_RULES,
   {
     diagnose: () => ({
