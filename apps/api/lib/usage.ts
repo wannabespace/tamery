@@ -6,6 +6,7 @@ import type { permix } from '~/orpc'
 import { redis } from './redis'
 
 const unlimitedPermission = {
+  complete: 'ai.query.completeUnlimited',
   filters: 'ai.filter.unlimited',
   mcp: 'mcp.unlimited',
 } as const satisfies Record<MeteredFeature, typeof permix.$inferPath>

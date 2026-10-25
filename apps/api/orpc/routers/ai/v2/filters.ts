@@ -16,7 +16,7 @@ export const filters = orpc
     })
   )
   .errors({
-    FORBIDDEN: {
+    TOO_MANY_REQUESTS: {
       message:
         'You have reached the free AI usage limit. Please subscribe to a Pro plan to continue using AI features.',
     },
@@ -29,7 +29,7 @@ export const filters = orpc
     const quota = await usage.get(context, 'filters')
 
     if (quota && quota.used >= quota.max) {
-      throw errors.FORBIDDEN()
+      throw errors.TOO_MANY_REQUESTS()
     }
 
     const result = await generateFilters({
