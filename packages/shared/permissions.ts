@@ -7,7 +7,7 @@ export type Permissions = {
   ai: {
     chat: ['use']
     filter: ['use', 'unlimited']
-    query: ['use']
+    query: ['complete', 'use']
   }
   connection: [{ name: 'create'; type: { count: number } }]
   mcp: ['unlimited']
@@ -31,7 +31,8 @@ export const getPermissions = ({
     ai: {
       chat: { use: pro },
       filter: { unlimited: pro, use: member },
-      query: { use: pro },
+      // Ghost-text autocomplete is free for members (weekly-limited server-side); edit/fix/update stay Pro.
+      query: { complete: member, use: pro },
     },
     connection: {
       create: member || ((connections) => connections?.count === 0),

@@ -1,15 +1,29 @@
+import { ORPCError } from '@orpc/server'
 import { completeQuery as runCompleteQuery } from '@tamery/ai/features'
-import { AI_QUERY_LIMITS } from '@tamery/ai/limits'
+import { AI_QUERY_LIMITS, COMPLETE_QUERY_WEEKLY_LIMIT } from '@tamery/ai/limits'
 import { AiFeature } from '@tamery/ai/usage'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
+import { aiUsage, weeklyUsageCount } from '~/lib/ai-usage'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 export const completeQuery = orpc
   .use(permissionsMiddleware)
-  .use(permix.checkMiddleware('ai.query.use'))
+  .use(permix.checkMiddleware('ai.query.complete'))
+  .use(async ({ context, next }) => {
+    if (
+      !context.subscription &&
+      (await weeklyUsageCount(context.user.id, AiFeature.CompleteQuery)) >=
+        COMPLETE_QUERY_WEEKLY_LIMIT
+    ) {
+      throw new ORPCError('TOO_MANY_REQUESTS', {
+        message:
+          'Weekly AI autocomplete limit reached. Upgrade to Pro for unlimited suggestions.',
+      })
+    }
+    return next()
+  })
   .input(
     type({
       context: `string <= ${AI_QUERY_LIMITS.context}`,

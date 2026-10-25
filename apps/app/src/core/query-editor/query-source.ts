@@ -119,7 +119,7 @@ const querySourceFor = (
       ),
     dialect,
     ghostTextEnabled: () =>
-      appStore.get().isOnline && permix.check('ai.query.use'),
+      appStore.get().isOnline && permix.check('ai.query.complete'),
     load: (refs) =>
       [tablesOptions, enumsOptions].every(
         (options) => queryClient.getQueryData(options.queryKey) !== undefined

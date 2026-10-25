@@ -6,3 +6,6 @@ export const AI_QUERY_LIMITS = {
   prompt: 2000,
   query: 30_000,
 } as const
+
+/** Ghost-text completions a non-Pro member may fetch per rolling 7 days; Pro is unlimited. */
+export const COMPLETE_QUERY_WEEKLY_LIMIT = 200
