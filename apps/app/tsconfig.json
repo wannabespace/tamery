@@ -16,5 +16,5 @@
       "path": "../proxy"
     }
   ],
-  "include": ["."]
+  "include": [".", "../../packages/monaco/src/monaco-grammars.d.ts"]
 }

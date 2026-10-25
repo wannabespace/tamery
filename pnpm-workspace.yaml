@@ -27,6 +27,7 @@ catalog:
   '@hugeicons/react': ^1.1.10
   '@mistralai/mistralai': ^3.1.0
   '@modelcontextprotocol/sdk': ^1.32.1
+  '@mongodb-js/mongodb-constants': ^0.34.3
   '@mongodb-js/shell-bson-parser': ^1.6.3
   '@mongodb-js/socksv5': ^0.0.11
   '@napi-rs/keyring': 2.1.2

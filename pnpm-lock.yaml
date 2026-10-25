@@ -230,6 +230,9 @@ catalogs:
     '@modelcontextprotocol/sdk':
       specifier: ^1.32.1
       version: 1.32.1
+    '@mongodb-js/mongodb-constants':
+      specifier: ^0.34.3
+      version: 0.34.12
     '@mongodb-js/shell-bson-parser':
       specifier: ^1.6.3
       version: 1.6.3
@@ -1502,6 +1505,9 @@ importers:
       '@tamery/connection':
         specifier: workspace:*
         version: link:../../packages/connection
+      '@tamery/mongo':
+        specifier: workspace:*
+        version: link:../../packages/mongo
       '@tamery/query-proxy':
         specifier: workspace:*
         version: link:../../packages/query-proxy
@@ -1839,6 +1845,9 @@ importers:
 
   packages/mongo:
     dependencies:
+      '@mongodb-js/mongodb-constants':
+        specifier: 'catalog:'
+        version: 0.34.12(bson@7.3.3)
       '@tamery/configs':
         specifier: workspace:*
         version: link:../configs
@@ -3320,6 +3329,11 @@ packages:
   '@modelcontextprotocol/server@2.3.1':
     resolution: {integrity: sha512-e59MfWuSssj6DoQ96JCTqdW1AXT5/XtnTl0WWd6MU1Ka434fFUGGosCLJbGNySDhHGvxQWoRWK137FXYFkYNWw==}
     engines: {node: '>=20'}
+
+  '@mongodb-js/mongodb-constants@0.34.12':
+    resolution: {integrity: sha512-Vz0IjBF2YqYVQvSxl9oKhrE5u2YLo8kkFbl0gQqW/a9kUxQRuxKwJIlQmuPPh50KeNaDQQLwXYCErHXXb0NVVA==}
+    peerDependencies:
+      bson: ^4.6.3 || ^5 || ^6.10.3 || ^7.3.2
 
   '@mongodb-js/saslprep@1.6.1':
     resolution: {integrity: sha512-D4CQtk9IwjCLAvCf1xvHEod3960q8XMUzfmdRU9qjUNlHnesGuTOvJcOTaPm9koZ1caUKA2aTbszZiAkcmSgmg==}
@@ -12150,6 +12164,11 @@ snapshots:
       '@modelcontextprotocol/core': 2.3.1
       zod: 4.6.7
     optional: true
+
+  '@mongodb-js/mongodb-constants@0.34.12(bson@7.3.3)':
+    dependencies:
+      bson: 7.3.3
+      semver: 7.8.5
 
   '@mongodb-js/saslprep@1.6.1':
     dependencies:

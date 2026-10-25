@@ -40,15 +40,7 @@ const registerSqlLanguage = (dialect: SqlDialect) => {
 
 const mongoGhost = mongoGhostLanguage()
 
-declare global {
-  // Monaco is page-wide: a hot reload must dispose the earlier evaluation's providers, or every suggestion repeats.
-  var tamerySqlLanguage: IDisposable[] | undefined
-}
-
-for (const disposable of globalThis.tamerySqlLanguage ?? []) {
-  disposable.dispose()
-}
-globalThis.tamerySqlLanguage = [
+const disposables: IDisposable[] = [
   ...Object.values(Dialect).filter(isSqlDialect).flatMap(registerSqlLanguage),
   ...registerMongoTokens(languageIds.mongodb),
   registerMongoCompletion(languageIds.mongodb),
@@ -57,3 +49,10 @@ globalThis.tamerySqlLanguage = [
   registerMongoDocumentCompletion(MONGO_DOCUMENT_LANGUAGE),
   registerGhostText(MONGO_DOCUMENT_LANGUAGE, mongoGhost),
 ]
+
+// Monaco is page-wide: without this a hot reload re-registers every provider and each suggestion repeats.
+import.meta.hot?.dispose(() => {
+  for (const disposable of disposables) {
+    disposable.dispose()
+  }
+})

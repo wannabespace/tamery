@@ -13,6 +13,7 @@
     "@orpc/server": "catalog:",
     "@tamery/api": "workspace:*",
     "@tamery/connection": "workspace:*",
+    "@tamery/mongo": "workspace:*",
     "@tamery/query-proxy": "workspace:*",
     "@tamery/shared": "workspace:*",
     "arktype": "catalog:",

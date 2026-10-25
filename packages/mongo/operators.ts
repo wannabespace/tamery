@@ -1,28 +1,25 @@
-export const QUERY_OPERATORS = [
-  '$all',
-  '$and',
-  '$elemMatch',
-  '$eq',
-  '$exists',
-  '$expr',
-  '$gt',
-  '$gte',
-  '$in',
-  '$lt',
-  '$lte',
-  '$mod',
-  '$ne',
-  '$nin',
-  '$nor',
-  '$not',
-  '$options',
-  '$or',
-  '$regex',
-  '$size',
-  '$text',
-  '$type',
+import {
+  ACCUMULATORS,
+  CONVERSION_OPERATORS,
+  EXPRESSION_OPERATORS as EXPRESSIONS,
+  QUERY_OPERATORS as QUERIES,
+  STAGE_OPERATORS,
+} from '@mongodb-js/mongodb-constants'
+
+const values = (operators: readonly { value: string }[]) =>
+  operators.map(({ value }) => value)
+
+export const QUERY_OPERATORS = values(QUERIES)
+
+export const PIPELINE_STAGES = values(STAGE_OPERATORS)
+
+export const EXPRESSION_OPERATORS = [
+  ...new Set(
+    values([...EXPRESSIONS, ...ACCUMULATORS, ...CONVERSION_OPERATORS])
+  ),
 ]
 
+// mongodb-constants ships no update-operator set, so this stays the source for them.
 export const UPDATE_OPERATORS = [
   '$addToSet',
   '$currentDate',
@@ -38,53 +35,6 @@ export const UPDATE_OPERATORS = [
   '$set',
   '$setOnInsert',
   '$unset',
-]
-
-export const PIPELINE_STAGES = [
-  '$addFields',
-  '$bucket',
-  '$count',
-  '$facet',
-  '$graphLookup',
-  '$group',
-  '$limit',
-  '$lookup',
-  '$match',
-  '$merge',
-  '$out',
-  '$project',
-  '$replaceRoot',
-  '$sample',
-  '$set',
-  '$skip',
-  '$sort',
-  '$sortByCount',
-  '$unionWith',
-  '$unset',
-  '$unwind',
-]
-
-export const EXPRESSION_OPERATORS = [
-  '$addToSet',
-  '$arrayElemAt',
-  '$avg',
-  '$concat',
-  '$cond',
-  '$dateToString',
-  '$filter',
-  '$first',
-  '$ifNull',
-  '$last',
-  '$map',
-  '$max',
-  '$min',
-  '$push',
-  '$size',
-  '$substr',
-  '$sum',
-  '$toLower',
-  '$toString',
-  '$toUpper',
 ]
 
 export const BSON_CONSTRUCTORS = {

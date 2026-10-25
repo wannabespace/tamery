@@ -1,4 +1,4 @@
-import { selectPage } from '@tamery/connection/queries/select-page'
+import { mongoPage, selectPage } from '@tamery/connection/queries/select-page'
 import type { ColumnTypes } from '@tamery/connection/queries/value-binding'
 import { filterValueBindings } from '@tamery/connection/queries/value-binding'
 import type { ActiveFilter } from '@tamery/shared/filters'
@@ -14,7 +14,7 @@ import {
   createQuery,
 } from '~/core/runtime/query'
 
-import { fromMongodbDocument, mongodbMatch } from './shape'
+import { fromMongodbDocument } from './shape'
 
 const rowType = type('Record<string, unknown>')
 
@@ -53,31 +53,9 @@ export const resourceRowsQuery = memoize(
             filterValueBindings.clickhouse?.(columns)
           ).execute(),
         mongodb: async (db) => {
-          const { orderBy = {}, filters, filtersConcatOperator, offset } = page
-          // `_id` last keeps rows that tie on the sort in one order across pages.
-          const sort = { ...orderBy, _id: orderBy._id ?? 'ASC' }
-          const documents = await db.collection(page.table).aggregate([
-            ...mongodbMatch(columns, filters, filtersConcatOperator),
-            {
-              $sort: Object.fromEntries(
-                Object.entries(sort).map(([column, direction]) => [
-                  column,
-                  direction === 'ASC' ? 1 : -1,
-                ])
-              ),
-            },
-            { $skip: offset },
-            { $limit: limit },
-            ...(page.select
-              ? [
-                  {
-                    $project: Object.fromEntries(
-                      page.select.map((column) => [column, 1])
-                    ),
-                  },
-                ]
-              : []),
-          ])
+          const documents = await db
+            .collection(page.table)
+            .aggregate(mongoPage({ ...page, columnTypes: columns }))
           return documents.map(fromMongodbDocument)
         },
         mssql: (db) => selectPage(db, page).execute(),
