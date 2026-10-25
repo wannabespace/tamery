@@ -1,3 +1,4 @@
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { createRef, useImperativeHandle, useState } from 'react'
@@ -80,9 +81,12 @@ export const CreateTableDialog = () => {
     },
   }))
 
+  const { names } = getCapabilities(dialect)
+
   return (
     <TableDialog
-      noun={getCapabilities(dialect).names.table}
+      noun={names.table}
+      description={`The ${names.table} is created with an ${isSqlDialect(dialect) ? 'id' : '_id'} primary key.`}
       error={error}
       request={request}
       schemas={schemas.map(({ name }) => name)}
