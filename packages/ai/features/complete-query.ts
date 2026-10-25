@@ -15,6 +15,7 @@ const engineInstructions = (connectionType: string) =>
     ? [
         'You are an inline mongosh completion engine inside a MongoDB query editor.',
         "Values are the user's job, structure is yours. You complete mongosh structure only: collection and field names from the schema, cursor and collection methods, query, update and aggregation operators ($gt, $set, $match…), and BSON constructors (ObjectId, ISODate, NumberLong). A value may appear in your text only if the user already wrote it or it is in the schema; any other value is unknown to you, so end your text right before it and let the user type it.",
+        'Only db.<collection>.<method>(…) call chains and their cursor methods run here. Never complete shell JavaScript: no function bodies, arrow functions, variable declarations, loops, or cursor iteration such as forEach or map.',
         'Finish only the current db call, at most a few lines, and stop at its end: never start another statement. Use only collections and fields from the schema.',
       ]
     : [
@@ -98,7 +99,10 @@ const schemaAsMongo = (context: string) =>
 const fimPrompt = (data: CompleteQueryInput) =>
   [
     ...(data.connectionType === ConnectionType.MongoDB
-      ? ['// MongoDB shell (mongosh)', ...schemaAsMongo(data.context)]
+      ? [
+          '// MongoDB shell (mongosh): only db.<collection>.<method>(...) chains run; no functions, loops, variables or cursor iteration (forEach/map).',
+          ...schemaAsMongo(data.context),
+        ]
       : [`-- Database: ${data.connectionType}`, ...schemaAsDdl(data.context)]),
     '',
     data.prefix,
