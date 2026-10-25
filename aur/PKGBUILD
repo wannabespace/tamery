@@ -1,5 +1,5 @@
 pkgname=tamery-bin
-pkgver=0.99.2
+pkgver=0.99.3
 pkgrel=1
 pkgdesc="AI-powered tool for working with Postgres, MySQL, MSSQL, ClickHouse and SQLite."
 arch=('x86_64')
