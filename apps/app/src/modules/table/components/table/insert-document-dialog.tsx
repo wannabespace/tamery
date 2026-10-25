@@ -3,7 +3,6 @@ import {
   MONGO_DOCUMENT_LANGUAGE,
   QUERY_COMPLETION_OPTIONS,
 } from '@tamery/monaco/query-language'
-import { parseScript } from '@tamery/mongo/parse'
 import { newObjectId } from '@tamery/mongo/values'
 import { uppercaseFirst } from '@tamery/shared/utils'
 import { Button } from '@tamery/ui/components/button'
@@ -46,9 +45,6 @@ const EDITOR_OPTIONS = {
   ...QUERY_COMPLETION_OPTIONS,
 } satisfies editor.IStandaloneEditorConstructionOptions
 
-const statementOf = (table: string, document: string) =>
-  `db.getCollection(${JSON.stringify(table)}).insertOne(${document})`
-
 export const insertDocumentRef = createRef<{ open: () => void }>()
 
 export const InsertDocumentDialog = ({
@@ -89,7 +85,6 @@ export const InsertDocumentDialog = ({
   const { mutate, isPending } = useMutation({
     meta: { event: 'document_inserted' },
     mutationFn: async () => {
-      parseScript(statementOf(table, document))
       await insertDocumentQuery({ document, table }).run(
         await connectionResourceToQueryParams(connectionResource)
       )

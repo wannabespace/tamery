@@ -1,3 +1,4 @@
+import { parseInsertOne } from '@tamery/mongo/parse'
 import { unsupported } from '@tamery/shared/unsupported'
 
 import { createQuery } from '~/core/runtime/query'
@@ -11,14 +12,16 @@ export const insertDocumentQuery = ({
 }: {
   document: string
   table: string
-}) =>
-  createQuery({
+}) => {
+  const statement = `db.getCollection(${JSON.stringify(table)}).insertOne(${document})`
+  return createQuery({
     query: {
       clickhouse: unsupported(DOCUMENT),
-      mongodb: (db) =>
-        db.run(
-          `db.getCollection(${JSON.stringify(table)}).insertOne(${document})`
-        ),
+      // The statement runs as a script, so a crafted document could chain extra calls; parseInsertOne refuses anything but this one insertOne.
+      mongodb: (db) => {
+        parseInsertOne(statement, table)
+        return db.run(statement)
+      },
       mssql: unsupported(DOCUMENT),
       mysql: unsupported(DOCUMENT),
       oracle: unsupported(DOCUMENT),
@@ -26,3 +29,4 @@ export const insertDocumentQuery = ({
       sqlite: unsupported(DOCUMENT),
     },
   })
+}

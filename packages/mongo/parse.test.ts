@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import { parseScript } from './parse'
+import { parseInsertOne, parseScript } from './parse'
 
 const shape = (text: string): Record<string, unknown>[] =>
   parseScript(text).map(({ collection, cursor, database, method }) => ({
@@ -57,5 +57,25 @@ describe('parseScript', () => {
     'db.users.find(...args)',
   ])('refuses %j', (text) => {
     expect(() => parseScript(text)).toThrow()
+  })
+})
+
+const insert = (document: string, collection = 'users') =>
+  `db.getCollection(${JSON.stringify(collection)}).insertOne(${document})`
+
+describe('parseInsertOne', () => {
+  it('accepts one insertOne on the collection', () => {
+    expect(() =>
+      parseInsertOne(insert('{ _id: ObjectId("…") }'), 'users')
+    ).not.toThrow()
+  })
+
+  it.each([
+    // A document that closes insertOne and chains more statements.
+    '{}); db.dropDatabase(); db.getCollection("users").insertOne({',
+    '{}); db.getCollection("secret").deleteMany({',
+    '{}); db.runCommand({ dropDatabase: 1 }); db.getCollection("users").insertOne({',
+  ])('refuses a document that chains more calls (%j)', (document) => {
+    expect(() => parseInsertOne(insert(document), 'users')).toThrow()
   })
 })

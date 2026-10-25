@@ -205,6 +205,28 @@ export const parseScript = (text: string) => {
   })
 }
 
+/**
+ * Insert document assembles the user's text into one `insertOne(<text>)` and runs it as a script, so a crafted document
+ * can close the call and chain more statements (`dropDatabase()`, another collection's write). This rejects anything that
+ * parses into more than that single `insertOne` on the collection — extra calls, a cursor chain or `getSiblingDB`.
+ */
+export const parseInsertOne = (text: string, collection: string): MongoCall => {
+  const [call, ...rest] = parseScript(text)
+  if (
+    !call ||
+    rest.length > 0 ||
+    call.collection !== collection ||
+    call.method !== 'insertOne' ||
+    call.database !== null ||
+    call.cursor.length > 0
+  ) {
+    throw new Error(
+      'Insert document runs one insertOne on this collection. Remove anything else.'
+    )
+  }
+  return call
+}
+
 const WRITING_STAGES = new Set(['$merge', '$out'])
 
 const READ_COMMANDS = new Set([
