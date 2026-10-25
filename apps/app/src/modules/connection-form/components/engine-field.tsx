@@ -1,4 +1,4 @@
-import { engines } from '@tamery/shared/enums/connection-type'
+import { engines, providers } from '@tamery/shared/enums/connection-type'
 import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 import {
   Select,
@@ -23,7 +23,9 @@ const engineGroups = [
   },
   {
     label: 'Providers',
-    engines: engines.filter(({ provider }) => provider),
+    engines: engines.filter(
+      ({ provider }) => provider && !providers[provider].hidden
+    ),
   },
 ]
 
