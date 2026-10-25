@@ -18,7 +18,7 @@ export const Faq = () => (
     className="mx-auto grid max-w-6xl scroll-mt-24 gap-10 px-4 py-20 sm:px-6 md:grid-cols-[1fr_2fr]"
   >
     <Reveal>
-      <SectionHeading id="faq-heading" title="Questions.">
+      <SectionHeading id="faq-heading" eyebrow="FAQ" title="Questions.">
         Anything else? Ask us on{' '}
         <a
           href={SOCIAL_LINKS.DISCORD}

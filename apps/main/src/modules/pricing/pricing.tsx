@@ -32,7 +32,11 @@ export const Pricing = () => {
       className="mx-auto max-w-6xl scroll-mt-24 px-4 py-20 sm:px-6"
     >
       <Reveal className="flex flex-col items-start gap-6">
-        <SectionHeading id="pricing-heading" title="Start free.">
+        <SectionHeading
+          id="pricing-heading"
+          eyebrow="Pricing"
+          title="Start free."
+        >
           Upgrade when you outgrow it.
         </SectionHeading>
         <Tabs value={period} onValueChange={setPeriod}>
