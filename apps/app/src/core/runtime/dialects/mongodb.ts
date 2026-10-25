@@ -44,9 +44,8 @@ const reader = (execute: Execute) => ({
 
 const mongoCollection = (execute: Execute, name: string) => {
   const { affected, documents, value } = reader(execute)
-  const target = `db.getCollection(${toShell(name)})`
   const on = (method: string, ...args: unknown[]) =>
-    `${target}.${call(method, ...args)}`
+    `db.getCollection(${toShell(name)}).${call(method, ...args)}`
   return {
     aggregate: <T = MongoDocument>(pipeline: MongoDocument[]) =>
       documents<T>(on('aggregate', pipeline)),
@@ -131,26 +130,21 @@ const createMongoDatabase = (
     }
   }
 
+  const { documents } = reader(execute)
+
   return {
     adminCommand: (name, fields) =>
-      reader(execute).documents(
-        `db.${call('adminCommand', { [name]: 1, ...fields })}`
-      ),
+      documents(`db.${call('adminCommand', { [name]: 1, ...fields })}`),
     collection: (name) => mongoCollection(execute, name),
     // The server's own collections are dropped here, not through a `$not` regex filter a strict server (DocumentDB, FerretDB) refuses.
     collections: async () => {
-      const infos = await reader(execute).documents<{
-        name: string
-        type: string
-      }>(
+      const infos = await documents<{ name: string; type: string }>(
         `db.${call('getCollectionInfos', {}, { authorizedCollections: true, nameOnly: true })}`
       )
       return infos.filter(({ name }) => !name.startsWith('system.'))
     },
     command: (name, fields) =>
-      reader(execute).documents(
-        `db.${call('runCommand', { [name]: 1, ...fields })}`
-      ),
+      documents(`db.${call('runCommand', { [name]: 1, ...fields })}`),
     createCollection: (name) => execute(`db.${call('createCollection', name)}`),
     createView: (name, source, pipeline) =>
       execute(`db.${call('createView', name, source, pipeline)}`),
