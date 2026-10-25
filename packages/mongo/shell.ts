@@ -1,66 +1,73 @@
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/u
 
-const quote = (text: string) => JSON.stringify(text)
-
-type Wrapper = (value: unknown) => string | null
-
-const text = (value: unknown) => (typeof value === 'string' ? value : null)
-
-const record = (value: unknown) =>
+const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
-    ? (value as Record<string, unknown>)
-    : null
 
-const ctor = (name: string, value: unknown) =>
-  text(value) === null ? null : `${name}(${quote(String(value))})`
+/** Extended JSON keys whose string payload becomes `Constructor("payload")`. */
+const STRING_CONSTRUCTORS: Record<string, string> = {
+  $numberDecimal: 'NumberDecimal',
+  $numberDouble: 'Double',
+  $numberInt: 'NumberInt',
+  $numberLong: 'NumberLong',
+  $oid: 'ObjectId',
+  $uuid: 'UUID',
+}
 
-const WRAPPERS: Record<string, Wrapper> = {
-  $binary: (value) => {
-    const binary = record(value)
-    const base64 = text(binary?.base64)
-    const subType = text(binary?.subType)
-    return base64 === null || subType === null
-      ? null
-      : `BinData(${Number.parseInt(subType, 16)}, ${quote(base64)})`
-  },
-  $date: (value) => {
-    const iso = text(value)
-    if (iso !== null) {
-      return `ISODate(${quote(iso)})`
+/**
+ * Extended JSON keys whose payload is shaped before it becomes a constructor call. Each returns `null` when the payload
+ * is not the shape it needs, so the value falls back to rendering as a plain object.
+ */
+const SHAPED_CONSTRUCTORS: Record<string, (inner: unknown) => string | null> = {
+  $binary: (inner) => {
+    if (!isRecord(inner)) {
+      return null
     }
-    const millis = text(record(value)?.$numberLong)
-    return millis === null ? null : `new Date(${millis})`
+    const { base64, subType } = inner
+    return typeof base64 === 'string' && typeof subType === 'string'
+      ? `BinData(${Number.parseInt(subType, 16)}, ${JSON.stringify(base64)})`
+      : null
+  },
+  $date: (inner) => {
+    if (typeof inner === 'string') {
+      return `ISODate(${JSON.stringify(inner)})`
+    }
+    const millis = isRecord(inner) ? inner.$numberLong : null
+    return typeof millis === 'string' ? `new Date(${millis})` : null
   },
   $maxKey: () => 'MaxKey()',
   $minKey: () => 'MinKey()',
-  $numberDecimal: (value) => ctor('NumberDecimal', value),
-  $numberDouble: (value) => ctor('Double', value),
-  $numberInt: (value) => ctor('NumberInt', value),
-  $numberLong: (value) => ctor('NumberLong', value),
-  $oid: (value) => ctor('ObjectId', value),
-  $regularExpression: (value) => {
-    const regex = record(value)
-    const pattern = text(regex?.pattern)
-    return pattern === null
-      ? null
-      : `RegExp(${quote(pattern)}, ${quote(text(regex?.options) ?? '')})`
+  $regularExpression: (inner) => {
+    if (!isRecord(inner) || typeof inner.pattern !== 'string') {
+      return null
+    }
+    const options = typeof inner.options === 'string' ? inner.options : ''
+    return `RegExp(${JSON.stringify(inner.pattern)}, ${JSON.stringify(options)})`
   },
-  $timestamp: (value) => {
-    const timestamp = record(value)
-    return typeof timestamp?.t === 'number' && typeof timestamp.i === 'number'
-      ? `Timestamp({ t: ${timestamp.t}, i: ${timestamp.i} })`
-      : null
-  },
-  $uuid: (value) => ctor('UUID', value),
+  $timestamp: (inner) =>
+    isRecord(inner) &&
+    typeof inner.t === 'number' &&
+    typeof inner.i === 'number'
+      ? `Timestamp({ t: ${inner.t}, i: ${inner.i} })`
+      : null,
 }
 
-const wrapped = (value: Record<string, unknown>) => {
-  const [entry, ...rest] = Object.entries(value)
+const asWrapper = (object: Record<string, unknown>): string | null => {
+  const [entry, ...rest] = Object.entries(object)
   if (!entry || rest.length > 0) {
     return null
   }
   const [key, inner] = entry
-  return Object.hasOwn(WRAPPERS, key) ? (WRAPPERS[key]?.(inner) ?? null) : null
+  const ctor = Object.hasOwn(STRING_CONSTRUCTORS, key)
+    ? STRING_CONSTRUCTORS[key]
+    : null
+  if (ctor) {
+    return typeof inner === 'string'
+      ? `${ctor}(${JSON.stringify(inner)})`
+      : null
+  }
+  return Object.hasOwn(SHAPED_CONSTRUCTORS, key)
+    ? (SHAPED_CONSTRUCTORS[key]?.(inner) ?? null)
+    : null
 }
 
 /**
@@ -72,34 +79,36 @@ export const toShell = (value: unknown): string => {
     return 'null'
   }
   if (typeof value === 'string') {
-    return quote(value)
+    return JSON.stringify(value)
   }
   if (typeof value === 'number' || typeof value === 'boolean') {
     return String(value)
   }
   if (typeof value === 'bigint') {
-    return `NumberLong(${quote(String(value))})`
+    return `NumberLong(${JSON.stringify(String(value))})`
   }
   if (value instanceof Date) {
-    return `ISODate(${quote(value.toISOString())})`
+    return `ISODate(${JSON.stringify(value.toISOString())})`
   }
   if (value instanceof RegExp) {
     // Mongo regex options are i, m, s and x; a JS-only flag like `u` reaches a strict server (DocumentDB, FerretDB) as a regex it refuses.
-    return `RegExp(${quote(value.source)}, ${quote(value.flags.replaceAll(/[^imsx]/gu, ''))})`
+    return `RegExp(${JSON.stringify(value.source)}, ${JSON.stringify(value.flags.replaceAll(/[^imsx]/gu, ''))})`
   }
   if (Array.isArray(value)) {
     return `[${value.map(toShell).join(', ')}]`
   }
-  const object = value as Record<string, unknown>
-  const constructor = wrapped(object)
-  if (constructor !== null) {
-    return constructor
+  if (!isRecord(value)) {
+    return 'null'
   }
-  const fields = Object.entries(object)
+  const wrapper = asWrapper(value)
+  if (wrapper !== null) {
+    return wrapper
+  }
+  const fields = Object.entries(value)
     .filter(([, field]) => field !== undefined)
     .map(
       ([key, field]) =>
-        `${IDENTIFIER.test(key) ? key : quote(key)}: ${toShell(field)}`
+        `${IDENTIFIER.test(key) ? key : JSON.stringify(key)}: ${toShell(field)}`
     )
   return fields.length === 0 ? '{}' : `{ ${fields.join(', ')} }`
 }
