@@ -44,7 +44,7 @@ A collection has no fixed columns, so Tamery infers them: a random sample of 100
 
 In the [table browser](/features/table-browser) you can filter, sort, edit cells, and add or delete documents. **Add document** opens an editor where you paste or type a whole document in mongosh or Extended JSON syntax; BSON types like `ObjectId("…")` and `ISODate("…")` are kept as themselves. An edited cell is stored with its field's type too: an ObjectId stays an ObjectId and a date stays a date. Nested documents and arrays open in the JSON editor, where typed values read as Extended JSON, like `{ "$oid": "…" }`.
 
-**Schema** lists each collection's indexes. They are read-only in Tamery.
+**Schema** lists each collection's indexes, where you can add and drop them. MongoDB can't alter an index in place, so an existing one opens read-only — change it by dropping and recreating it.
 
 ## Queries
 
