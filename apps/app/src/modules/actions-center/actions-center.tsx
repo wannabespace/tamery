@@ -40,6 +40,7 @@ import {
 import { ResourceLabel } from '~/core/connection/resource-label'
 import type { Connection, ConnectionResource } from '~/core/connection/sync'
 import { useConnectionResourceLinkParams } from '~/core/connection/use-connection-resource-link-params'
+import { workspaceConnections } from '~/core/connection/workspace-scope'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import type { ShortcutId } from '~/core/keyboard/shortcuts'
 import { isShortcutAvailable } from '~/core/keyboard/shortcuts'
@@ -146,6 +147,16 @@ const ConnectionItem = ({
   )
 }
 
+const openResourceTab = (
+  router: RegisteredRouter,
+  resourceId: string,
+  tabId: string
+) =>
+  router.navigate({
+    params: { resourceId, tabId },
+    to: '/connection/$resourceId/$tabId',
+  })
+
 const tableEntries = (
   router: RegisteredRouter,
   resourceId: string,
@@ -166,16 +177,11 @@ const tableEntries = (
             key={value}
             value={value}
             onSelect={run(() =>
-              router.navigate({
-                params: {
-                  resourceId,
-                  tabId: openTab(
-                    resourceId,
-                    tableTabId(schema.name, table.name)
-                  ),
-                },
-                to: '/connection/$resourceId/$tabId',
-              })
+              openResourceTab(
+                router,
+                resourceId,
+                openTab(resourceId, tableTabId(schema.name, table.name))
+              )
             )}
           >
             <HugeiconsIcon icon={Icon} strokeWidth={2} />
@@ -196,27 +202,18 @@ export const ActionsCenter = () => {
   const { resourceId, tabId } = useParams({ strict: false })
   const { data: activeWorkspace } = useActiveWorkspace()
   const { data } = useLiveQuery({
-    query: (q) => {
-      const query = activeWorkspace
-        ? q
-            .from({ connections: connectionsCollection })
-            .where(({ connections }) =>
-              eq(connections.workspaceId, activeWorkspace.id)
-            )
-        : q.from({ connections: connectionsCollection })
-
-      return query
+    query: (q) =>
+      workspaceConnections(q, connectionsCollection, activeWorkspace)
         .innerJoin(
           { connectionResources: connectionsResourcesCollection },
-          ({ connectionResources, connections }) =>
-            eq(connectionResources.connectionId, connections.id)
+          ({ connectionResources, connection }) =>
+            eq(connectionResources.connectionId, connection.id)
         )
-        .select(({ connections, connectionResources }) => ({
-          connection: connections,
+        .select(({ connection, connectionResources }) => ({
+          connection,
           connectionResource: connectionResources,
         }))
-        .orderBy(({ connections }) => connections.createdAt, 'desc')
-    },
+        .orderBy(({ connection }) => connection.createdAt, 'desc'),
   })
 
   const isOpen = useSubscription(actionCenterOpen)
@@ -310,13 +307,11 @@ export const ActionsCenter = () => {
                 ],
                 newQueryAction.icon,
                 () =>
-                  router.navigate({
-                    params: {
-                      resourceId: current.connectionResource.id,
-                      tabId: newQueryAction.open(current.connectionResource.id),
-                    },
-                    to: '/connection/$resourceId/$tabId',
-                  })
+                  openResourceTab(
+                    router,
+                    current.connectionResource.id,
+                    newQueryAction.open(current.connectionResource.id)
+                  )
               ),
               ...schemaGroups(getDialect(current.connection.type)).flatMap(
                 (group) =>
@@ -326,16 +321,11 @@ export const ActionsCenter = () => {
                       ['open', 'go to', group.label, 'definitions'],
                       item.icon,
                       () =>
-                        router.navigate({
-                          params: {
-                            resourceId: current.connectionResource.id,
-                            tabId: openTab(
-                              current.connectionResource.id,
-                              item.tabId
-                            ),
-                          },
-                          to: '/connection/$resourceId/$tabId',
-                        })
+                        openResourceTab(
+                          router,
+                          current.connectionResource.id,
+                          openTab(current.connectionResource.id, item.tabId)
+                        )
                     )
                   )
               ),

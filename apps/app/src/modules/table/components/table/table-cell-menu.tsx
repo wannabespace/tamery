@@ -24,7 +24,7 @@ import { posthog } from '~/lib/posthog'
 import type { ColumnActions } from '../../lib/column-menu'
 import { columnMenuItems } from '../../lib/column-menu'
 import { rowSelection } from '../../lib/row-selection'
-import type { useStagedEdits } from '../../lib/staged-edits'
+import type { StagedEditing } from '../../lib/staged-edits'
 import type { TablePageStore } from '../../lib/store'
 import { cellHop } from '../references/hops'
 import type { OpenPeek } from '../references/reference-buttons'
@@ -50,7 +50,7 @@ export const tableCellMenu = ({
   onPeek: OpenPeek
   saving: boolean
   sessionStore: TableSessionStore
-  staged: ReturnType<typeof useStagedEdits>
+  staged: StagedEditing
   store: TablePageStore
 }): CellMenuExtra => {
   const { column } = cell

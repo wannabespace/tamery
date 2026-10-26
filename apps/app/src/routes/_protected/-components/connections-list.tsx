@@ -25,6 +25,7 @@ import { Link } from '~/components/link'
 import { useCollections } from '~/core/collections'
 import { lastOpenedResourcesStorageValue } from '~/core/connection/last-opened-resources'
 import type { Connection } from '~/core/connection/sync'
+import { workspaceConnections } from '~/core/connection/workspace-scope'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { isShortcutAvailable } from '~/core/keyboard/shortcuts'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
@@ -60,21 +61,22 @@ export const ConnectionsList = () => {
   const { data: activeWorkspace } = useActiveWorkspace()
   const { data } = useLiveQuery({
     query: (q) => {
-      let query = activeWorkspace
-        ? q
-            .from({ c: connectionsCollection })
-            .where(({ c }) => eq(c.workspaceId, activeWorkspace.id))
-        : q.from({ c: connectionsCollection })
+      let query = workspaceConnections(
+        q,
+        connectionsCollection,
+        activeWorkspace
+      )
 
       if (grouping === 'label') {
         query = query.orderBy(
-          ({ c }) => caseWhen(eq(c.label, ''), null, c.label),
+          ({ connection }) =>
+            caseWhen(eq(connection.label, ''), null, connection.label),
           {
             nulls: 'last',
           }
         )
       } else if (grouping === 'type') {
-        query = query.orderBy(({ c }) => c.type)
+        query = query.orderBy(({ connection }) => connection.type)
       }
 
       const [sortField, sortDirection] = sort.split('-') as [
@@ -82,7 +84,8 @@ export const ConnectionsList = () => {
         'asc' | 'desc',
       ]
       return query.orderBy(
-        ({ c }) => (sortField === 'date' ? c.createdAt : c.name),
+        ({ connection }) =>
+          sortField === 'date' ? connection.createdAt : connection.name,
         sortDirection
       )
     },

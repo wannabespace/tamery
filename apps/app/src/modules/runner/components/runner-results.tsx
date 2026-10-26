@@ -41,12 +41,12 @@ import { useTabContext } from '~/core/connection/route'
 import type { ExportDataProps } from '~/core/export/export-data'
 import { ExportData } from '~/core/export/export-data'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
-import type { ResultSet } from '~/core/queries/connection/custom'
 import { getQueryLanguage } from '~/core/runtime/language'
 import { useIsAnonymous } from '~/lib/auth'
 import { plural } from '~/utils/plural'
 
 import { useRunnerActions } from '../lib/actions'
+import { resultGrid } from '../lib/result-grid'
 import type { FailedRunnerResult, RunnerResult } from '../lib/run'
 import { runnerResultsOptions } from '../lib/run'
 import { useRunnerTab } from '../lib/store'
@@ -58,15 +58,6 @@ const running = (
     <span className="text-muted-foreground text-xs">Running…</span>
   </div>
 )
-
-const uniqueColumns = (columns: string[]) => {
-  const seen = new Map<string, number>()
-  return columns.map((name) => {
-    const count = (seen.get(name) ?? 0) + 1
-    seen.set(name, count)
-    return count === 1 ? name : `${name} (${count})`
-  })
-}
 
 const ERROR_TITLES = {
   block: 'The block was rolled back',
@@ -104,21 +95,6 @@ const ResultError = ({ result }: { result: FailedRunnerResult }) => {
       )}
     </IconEmpty>
   )
-}
-
-const getGrid = (set: ResultSet | null, needle: string) => {
-  const columns = uniqueColumns(set?.columns ?? [])
-  const records = (set?.rows ?? []).map((row) =>
-    Object.fromEntries(columns.map((column, index) => [column, row[index]]))
-  )
-  return {
-    columns,
-    rows: needle
-      ? records.filter((row) =>
-          JSON.stringify(Object.values(row)).toLowerCase().includes(needle)
-        )
-      : records,
-  }
 }
 
 const ResultBody = ({
@@ -223,7 +199,7 @@ export const RunnerResults = () => {
   const active = String(activeIndex)
   const result = results[activeIndex]
   const needle = useDeferredValue(search).trim().toLowerCase()
-  const { columns, rows } = getGrid(result?.set ?? null, needle)
+  const { columns, rows } = resultGrid(result?.set ?? null, needle)
 
   if (!result) {
     return (

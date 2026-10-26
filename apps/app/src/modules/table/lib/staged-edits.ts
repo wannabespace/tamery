@@ -107,3 +107,8 @@ export const useStagedEdits = ({
     getValue,
   }
 }
+
+export type StagedEditing = Pick<
+  ReturnType<typeof useStagedEdits>,
+  'canEdit' | 'duplicate' | 'edit' | 'getValue' | 'rowAt'
+>

@@ -18,6 +18,7 @@ import { getCapabilities } from '~/core/catalog/capabilities'
 import { useCollections } from '~/core/collections'
 import { canQueryConnection } from '~/core/connection/fetching'
 import { ResourceLabel } from '~/core/connection/resource-label'
+import { workspaceConnections } from '~/core/connection/workspace-scope'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
 
 import type { CopyEnd } from './copy-end-label'
@@ -41,20 +42,18 @@ export const TargetSelect = ({
   const { data: activeWorkspace } = useActiveWorkspace()
   const { data: candidates } = useLiveQuery({
     query: (q) =>
-      q
-        .from({ c: connectionsCollection })
-        .innerJoin({ r: connectionsResourcesCollection }, ({ c, r }) =>
-          eq(r.connectionId, c.id)
+      workspaceConnections(q, connectionsCollection, activeWorkspace)
+        .innerJoin({ r: connectionsResourcesCollection }, ({ connection, r }) =>
+          eq(r.connectionId, connection.id)
         )
-        .where(({ c, r }) =>
+        .where(({ connection, r }) =>
           and(
-            inArray(c.type, COPYABLE_TYPES),
-            not(eq(r.id, source.resource.id)),
-            activeWorkspace ? eq(c.workspaceId, activeWorkspace.id) : true
+            inArray(connection.type, COPYABLE_TYPES),
+            not(eq(r.id, source.resource.id))
           )
         )
-        .select(({ c, r }) => ({ connection: c, resource: r }))
-        .orderBy(({ c }) => c.name)
+        .select(({ connection, r }) => ({ connection, resource: r }))
+        .orderBy(({ connection }) => connection.name)
         .orderBy(({ r }) => r.name),
   })
   const targets = candidates.filter(({ connection }) =>

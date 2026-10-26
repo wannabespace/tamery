@@ -8,10 +8,11 @@ import {
   ComboboxTrigger,
   ComboboxValue,
 } from '@tamery/ui/components/combobox'
-import { eq, useLiveQuery } from '@tanstack/react-db'
+import { useLiveQuery } from '@tanstack/react-db'
 import { useState } from 'react'
 
 import { useCollections } from '~/core/collections'
+import { workspaceConnections } from '~/core/connection/workspace-scope'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
 
 import type { ConnectionForm } from '../lib/connection-form'
@@ -23,11 +24,7 @@ export const LabelField = ({ form }: { form: ConnectionForm }) => {
   const { data: activeWorkspace } = useActiveWorkspace()
   const { data: connections } = useLiveQuery({
     query: (q) =>
-      q
-        .from({ connections: connectionsCollection })
-        .where(({ connections: row }) =>
-          eq(row.workspaceId, activeWorkspace?.id ?? '')
-        ),
+      workspaceConnections(q, connectionsCollection, activeWorkspace),
   })
   const [query, setQuery] = useState('')
   const labels = [
