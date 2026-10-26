@@ -234,8 +234,8 @@ catalogs:
       specifier: ^0.34.3
       version: 0.34.12
     '@mongodb-js/shell-bson-parser':
-      specifier: ^2.0.0
-      version: 2.0.0
+      specifier: ^1.6.3
+      version: 1.6.3
     '@mongodb-js/socksv5':
       specifier: ^0.0.11
       version: 0.0.11
@@ -1092,7 +1092,7 @@ importers:
         version: 0.18.0
       '@mongodb-js/shell-bson-parser':
         specifier: 'catalog:'
-        version: 2.0.0(bson@7.3.3)
+        version: 1.6.3(bson@7.3.3)
       '@orpc/client':
         specifier: 'catalog:'
         version: 2.0.0-beta.45
@@ -1177,7 +1177,7 @@ importers:
         version: 1.32.1(supports-color@7.2.0)(zod@4.6.7)
       '@mongodb-js/shell-bson-parser':
         specifier: 'catalog:'
-        version: 2.0.0(bson@7.3.3)
+        version: 1.6.3(bson@7.3.3)
       '@mongodb-js/socksv5':
         specifier: 'catalog:'
         version: 0.0.11
@@ -1685,7 +1685,7 @@ importers:
         version: 1.24.1
       '@mongodb-js/shell-bson-parser':
         specifier: 'catalog:'
-        version: 2.0.0(bson@7.3.3)
+        version: 1.6.3(bson@7.3.3)
       '@tamery/mongo':
         specifier: workspace:*
         version: link:../mongo
@@ -3338,10 +3338,10 @@ packages:
   '@mongodb-js/saslprep@1.6.1':
     resolution: {integrity: sha512-D4CQtk9IwjCLAvCf1xvHEod3960q8XMUzfmdRU9qjUNlHnesGuTOvJcOTaPm9koZ1caUKA2aTbszZiAkcmSgmg==}
 
-  '@mongodb-js/shell-bson-parser@2.0.0':
-    resolution: {integrity: sha512-6EJU3w916q8+6T41R0Q3DKsicgH8DDe7EHuDK+gX1ORIAER/LlO+5zTnkAqdlQ0iyZk6ptl3I67CE/EXTN2Bfg==}
+  '@mongodb-js/shell-bson-parser@1.6.3':
+    resolution: {integrity: sha512-pRUbMY/ME9LjvdLJOAkpEVDjjTPBt3ebFQK7jxCErFym/6H9+MaaU8h1NvELGoWa0Qxn3vGyQOFxWfOKSEQRSQ==}
     peerDependencies:
-      bson: ^4.6.3 || ^5 || ^6.10.3 || ^7.3.2
+      bson: ^4.6.3 || ^5 || ^6.10.3 || ^7.0.0
 
   '@mongodb-js/socksv5@0.0.11':
     resolution: {integrity: sha512-vA4OvtpE/A4dWBlnrkVN1HqwQSJeTdC16AyJ2Gd0jmUbqYDUkEogjkXDRZM0flM6ZD8PErlD4QHhXKC1c2uPNw==}
@@ -10733,9 +10733,6 @@ packages:
   web-vitals@6.2.1:
     resolution: {integrity: sha512-rLcLXA2sx6+9dE88NHFubwTtGxpK4yYBLj6qHPdFoCaLr0cXGb4efOqtKLlm4loGA4OEKHIQKMKzZkKyOh5ctw==}
 
-  web-worker@1.5.0:
-    resolution: {integrity: sha512-RiMReJrTAiA+mBjGONMnjVDP2u3p9R1vkcGz6gDIrOMT3oGuYwX2WRMYI9ipkphSuE5XKEhydbhNEJh4NY9mlw==}
-
   webidl-conversions@7.0.0:
     resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
     engines: {node: '>=12'}
@@ -12292,12 +12289,11 @@ snapshots:
     dependencies:
       sparse-bitfield: 3.0.3
 
-  '@mongodb-js/shell-bson-parser@2.0.0(bson@7.3.3)':
+  '@mongodb-js/shell-bson-parser@1.6.3(bson@7.3.3)':
     dependencies:
       acorn: 8.19.0
       bson: 7.3.3
       javascript-stringify: 2.1.0
-      web-worker: 1.5.0
 
   '@mongodb-js/socksv5@0.0.11':
     dependencies:
@@ -19650,8 +19646,6 @@ snapshots:
   web-vitals@4.2.4: {}
 
   web-vitals@6.2.1: {}
-
-  web-worker@1.5.0: {}
 
   webidl-conversions@7.0.0: {}
 

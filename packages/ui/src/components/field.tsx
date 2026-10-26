@@ -106,6 +106,7 @@ const FieldLabel = ({
   className,
   ...props
 }: React.ComponentProps<typeof Label>) => (
+  // oxlint-disable-next-line jsx-a11y/label-has-associated-control -- generic wrapper; consumers associate via htmlFor
   <Label
     data-slot="field-label"
     className={cn(
