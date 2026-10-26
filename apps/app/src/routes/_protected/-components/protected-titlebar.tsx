@@ -34,7 +34,6 @@ import { lastOpenedResourcesStorageValue } from '~/core/connection/last-opened-r
 import { ResourceLabel } from '~/core/connection/resource-label'
 import type { Connection, ConnectionResource } from '~/core/connection/sync'
 import { useConnectionResourceLinkParams } from '~/core/connection/use-connection-resource-link-params'
-import { workspaceConnections } from '~/core/connection/workspace-scope'
 import { connectionResourcesQueryOptions } from '~/core/queries/connection/resources'
 import { checkOrUpgrade, usePermissions } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
@@ -334,13 +333,20 @@ const ConnectionsBreadcrumb = ({
   const { resourceId } = useParams({ strict: false })
   const { data: activeWorkspace } = useActiveWorkspace()
   const { data } = useLiveQuery({
-    query: (q) =>
-      workspaceConnections(q, connectionsCollection, activeWorkspace)
-        .innerJoin({ r: connectionsResourcesCollection }, ({ connection, r }) =>
-          eq(r.connectionId, connection.id)
+    query: (q) => {
+      const query = activeWorkspace
+        ? q
+            .from({ c: connectionsCollection })
+            .where(({ c }) => eq(c.workspaceId, activeWorkspace.id))
+        : q.from({ c: connectionsCollection })
+
+      return query
+        .innerJoin({ r: connectionsResourcesCollection }, ({ c, r }) =>
+          eq(r.connectionId, c.id)
         )
-        .select(({ connection, r }) => ({ connection, resource: r }))
-        .orderBy(({ connection }) => connection.createdAt, 'desc'),
+        .select(({ c, r }) => ({ connection: c, resource: r }))
+        .orderBy(({ c }) => c.createdAt, 'desc')
+    },
   })
 
   const groups: ConnectionGroup[] = []

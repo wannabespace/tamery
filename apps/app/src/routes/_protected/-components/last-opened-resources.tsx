@@ -12,7 +12,6 @@ import {
 } from '~/core/connection/last-opened-resources'
 import type { Connection, ConnectionResource } from '~/core/connection/sync'
 import { useConnectionResourceLinkParams } from '~/core/connection/use-connection-resource-link-params'
-import { workspaceConnections } from '~/core/connection/workspace-scope'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
 
 const LastOpenedResource = ({
@@ -74,17 +73,26 @@ export const LastOpenedResources = () => {
   const { data: activeWorkspace } = useActiveWorkspace()
 
   const { data } = useLiveQuery({
-    query: (q) =>
-      workspaceConnections(q, connectionsCollection, activeWorkspace)
+    query: (q) => {
+      const query = q
+        .from({ connectionsResources: connectionsResourcesCollection })
         .innerJoin(
-          { connectionsResources: connectionsResourcesCollection },
-          ({ connection, connectionsResources }) =>
-            eq(connectionsResources.connectionId, connection.id)
+          { connections: connectionsCollection },
+          ({ connectionsResources, connections }) =>
+            eq(connectionsResources.connectionId, connections.id)
         )
-        .select(({ connectionsResources, connection }) => ({
-          connectionResource: connectionsResources,
-          connection,
-        })),
+
+      return (
+        activeWorkspace
+          ? query.where(({ connections }) =>
+              eq(connections.workspaceId, activeWorkspace.id)
+            )
+          : query
+      ).select(({ connectionsResources, connections }) => ({
+        connectionResource: connectionsResources,
+        connection: connections,
+      }))
+    },
   })
   const toShow = data
     .filter(({ connectionResource }) =>
