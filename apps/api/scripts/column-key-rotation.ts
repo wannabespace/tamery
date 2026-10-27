@@ -4,24 +4,46 @@ import process from 'node:process'
 import { db } from '@tamery/db'
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
 import { toError } from '@tamery/shared/utils'
-import { sql } from 'drizzle-orm'
+import { getColumnTable, getTableName, sql } from 'drizzle-orm'
+import type { PgColumn } from 'drizzle-orm/pg-core'
 
-// Rotates a secret that wraps encrypted columns at rest (ENCRYPTION_SECRET,
-// USER_KEY_SECRET). The column types in `@tamery/db` bind the current secret at
-// module load, so this reads and writes the raw ciphertext through `sql` rather
-// than the ORM, decrypting with the old secret and re-encrypting with the new one.
-// Because the key lives in env, not a store this process writes, the swap is a
-// separate step: the whole DB flips atomically here, then the operator sets the env
-// value and redeploys. Until that redeploy the running app cannot decrypt the
-// columns, so run it in a maintenance window. IMPROVEMENTS.md tracks the key-version
-// format that would make this zero-downtime.
+type Identifier = ReturnType<typeof sql.identifier>
+
+// Shared engine reused by rotate-encryption-secret.ts and rotate-user-key-secret.ts
+// to rotate a secret that wraps encrypted columns at rest. The column types in
+// `@tamery/db` bind the current secret at module load, so this reads and writes the
+// raw ciphertext through `sql` rather than the ORM, decrypting with the old secret
+// and re-encrypting with the new one. Because the key lives in env, not a store this
+// process writes, the swap is a separate step: the whole DB flips atomically here,
+// then the operator sets the env value and redeploys. Until that redeploy the running
+// app cannot decrypt the columns, so run it in a maintenance window. Tagging the
+// ciphertext with a key version would make the swap zero-downtime.
 
 const SECRET_BYTES = 32
 
-interface EncryptedColumn {
-  column: string
-  key: string
-  table: string
+// A real schema column pair, so a wrong name is a compile error, not a silent runtime
+// no-op: `cipher` is the encrypted column to rotate, `id` its table's primary key.
+export interface EncryptedColumn {
+  cipher: PgColumn
+  id: PgColumn
+}
+
+interface ColumnTarget {
+  cipher: Identifier
+  id: Identifier
+  label: string
+  table: Identifier
+}
+
+const toTarget = ({ cipher, id }: EncryptedColumn): ColumnTarget => {
+  const table = getTableName(getColumnTable(cipher))
+
+  return {
+    cipher: sql.identifier(cipher.name),
+    id: sql.identifier(id.name),
+    label: `${table}.${cipher.name}`,
+    table: sql.identifier(table),
+  }
 }
 
 const reencrypt = async ({
@@ -35,28 +57,33 @@ const reencrypt = async ({
   newSecret: string
   oldSecret: string
 }) => {
-  const migrations: { cipher: string; column: EncryptedColumn; id: string }[] =
-    []
+  const migrations: {
+    newCipher: string
+    rowId: string
+    target: ColumnTarget
+  }[] = []
 
   for (const column of columns) {
+    const target = toTarget(column)
+
     // oxlint-disable-next-line no-await-in-loop -- read every column before any write, so a decrypt failure aborts untouched
     const { rows } = await db.execute<{ cipher: string; id: string }>(
-      sql`select ${sql.identifier(column.key)} as id, ${sql.identifier(column.column)} as cipher from ${sql.identifier(column.table)} where ${sql.identifier(column.column)} is not null`
+      sql`select ${target.id} as id, ${target.cipher} as cipher from ${target.table} where ${target.cipher} is not null`
     )
 
     for (const row of rows) {
       try {
         migrations.push({
-          cipher: encrypt({
+          newCipher: encrypt({
             secret: newSecret,
             text: decrypt({ encryptedText: row.cipher, secret: oldSecret }),
           }),
-          column,
-          id: row.id,
+          rowId: row.id,
+          target,
         })
       } catch {
         return {
-          error: `${column.table}.${column.column} ${row.id} does not decrypt with the current secret`,
+          error: `${target.label} ${row.id} does not decrypt with the current secret`,
         }
       }
     }
@@ -68,10 +95,10 @@ const reencrypt = async ({
 
   try {
     await db.transaction(async (tx) => {
-      for (const { cipher, column, id } of migrations) {
+      for (const { newCipher, rowId, target } of migrations) {
         // oxlint-disable-next-line no-await-in-loop -- one statement per row, each a distinct ciphertext on one tx connection
         await tx.execute(
-          sql`update ${sql.identifier(column.table)} set ${sql.identifier(column.column)} = ${cipher} where ${sql.identifier(column.key)} = ${id}`
+          sql`update ${target.table} set ${target.cipher} = ${newCipher} where ${target.id} = ${rowId}`
         )
       }
     })
