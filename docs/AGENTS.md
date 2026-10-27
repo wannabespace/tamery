@@ -3,6 +3,7 @@
 ## About this project
 
 - Docs site is `apps/docs` (Fumadocs). Pages = MDX with YAML frontmatter in this folder; nav in `docs.json`
+- Optional `keywords: [...]` frontmatter feeds search only — list off-page synonyms a user might type (`duplicate` for Copy database, `erd` for the visualizer), never words already in the title or description. They match the page without showing as a result row; skip the field when nothing fits.
 
 ## Terminology
 

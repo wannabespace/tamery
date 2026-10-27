@@ -17,6 +17,7 @@ export const docs = defineDocs({
       },
     }),
     schema: pageSchema.extend({
+      keywords: z.array(z.string()).optional(),
       sidebarTitle: z.string().optional(),
     }),
   },
