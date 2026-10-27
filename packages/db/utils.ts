@@ -8,7 +8,7 @@ import { env } from './env'
 // key is tried on decrypt (AES-GCM's tag rejects the wrong ones), so a new key is rotated in
 // while old rows still open under a retiring key, then dropped once the rows are re-encrypted.
 // Never collapse the decrypt loop to the current key — rows written before a rotation stop opening.
-const resolveKeyring = (secrets: string) => {
+export const resolveKeyring = (secrets: string) => {
   const keyring = secrets
     .split(',')
     .map((secret) => secret.trim())
