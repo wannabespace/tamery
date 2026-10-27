@@ -3,23 +3,71 @@ import type { PostHog } from 'posthog-js'
 let instance: Promise<PostHog> | null = null
 let identity: Parameters<PostHog['identify']> | null = null
 
+const UUID = /[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}/giu
+// A tab id carries schema and table names after its kind (`table:public:users`).
+const TAB_ID_NAMES = /\/(?<kind>[a-z-]+):[^/]*/giu
+const EXPECTED_ERROR = /ResizeObserver loop|failed to fetch|network ?error/iu
+
+export const getAppProperties = () => ({
+  app_version: import.meta.env.VITE_APP_VERSION,
+  channel: import.meta.env.DEV ? 'development' : 'production',
+  platform: window.electron ? 'desktop' : 'web',
+})
+
 const init = async () => {
-  const { default: posthogJs } = await import('posthog-js')
+  const [{ default: posthogJs }, { isConnectionFailure }, { history }] =
+    await Promise.all([
+      import('posthog-js'),
+      import('@tamery/connection/diagnose'),
+      import('./last-location'),
+    ])
+
+  const getAppPath = () =>
+    history.location.pathname
+      .replaceAll(UUID, ':id')
+      .replaceAll(TAB_ID_NAMES, '/$<kind>')
+
+  // The window URL is a local file path in Electron, so replay URL triggers and events match this logical URL instead.
+  const getAppUrl = () =>
+    `${window.electron ? 'tamery://app' : location.origin}${getAppPath()}`
 
   const client = posthogJs.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
-    api_host: 'https://eu.i.posthog.com',
+    api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+    before_send: (event) => {
+      const isExpectedException =
+        event?.event === '$exception' &&
+        event.properties.$exception_list.some(
+          ({ value }: { value: string }) =>
+            EXPECTED_ERROR.test(value) || isConnectionFailure(value)
+        )
+      if (!event || isExpectedException) {
+        return null
+      }
+      event.properties.$current_url = getAppUrl()
+      event.properties.$pathname = getAppPath()
+      return event
+    },
+    capture_dead_clicks: true,
+    capture_pageview: false,
+    // Later defaults stream network bodies into replays, and API responses carry decrypted connection strings.
     defaults: '2026-01-30',
+    disable_session_recording: false,
+    get_current_url: getAppUrl,
     session_recording: {
       maskAllInputs: true,
       maskTextSelector: '[data-mask]',
     },
+    ui_host: 'https://eu.posthog.com',
   })
-  client.register({ app: 'app' })
+  client.register({ app: 'app', ...getAppProperties() })
   // PostHog stores an opt-out on its own. Without this, the removed Settings switch stays in effect.
   client.opt_in_capturing({ captureEventName: false })
   if (identity) {
     client.identify(...identity)
   }
+  client.capture('app_opened', {
+    app_version: import.meta.env.VITE_APP_VERSION,
+  })
   return client
 }
 

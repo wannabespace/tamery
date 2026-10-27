@@ -81,7 +81,7 @@ const AuthPage = () => {
         }
 
         await router.navigate({ href: lastLocationStorageValue.get() ?? '/' })
-        posthog.capture(exchangeData.newUser ? 'signed_up' : 'signed_in')
+        posthog.capture('signed_in')
         successAuthToast(!!exchangeData.newUser)
       },
     })

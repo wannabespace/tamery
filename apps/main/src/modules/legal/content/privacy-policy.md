@@ -20,7 +20,7 @@ AI conversation history is stored both locally on your device and synced to our 
 
 ### Analytics
 
-Anonymized usage events collected via PostHog (EU servers). In the app, session recording is enabled with all database inputs and data masked. Our website sends page views and account actions (such as sign-in, downloads and plan changes) to PostHog without cookies or device storage and without session recording, and additionally uses DataFast for aggregated traffic analytics (page views, referrers, campaign sources).
+Usage events collected via PostHog (EU servers), linked to your account's ID, email and name. Events carry counts and categories only, never passwords, connection strings, query text or database contents. In the app, session recording is enabled with all database inputs and data masked. Our website sends page views and account actions (such as sign-in, downloads and plan changes) to PostHog without cookies or device storage and without session recording, and additionally uses DataFast for aggregated traffic analytics (page views, referrers, campaign sources).
 
 ## 3. What We Never Store
 

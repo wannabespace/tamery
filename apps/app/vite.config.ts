@@ -1,3 +1,4 @@
+import posthog from '@posthog/rollup-plugin'
 import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
 import { setupPortlessEnvs } from '@tamery/shared/portless-env'
@@ -16,6 +17,7 @@ setupPortlessEnvs({
   VITE_PUBLIC_SHARE_URL: 'share.local.tamery',
   VITE_PUBLIC_WEB_URL: 'app.local.tamery',
 })
+process.env.VITE_PUBLIC_POSTHOG_HOST ||= 'https://eu.i.posthog.com'
 
 export default defineConfig(({ mode }) => ({
   base: mode === 'desktop' ? './' : '/',
@@ -60,6 +62,17 @@ export default defineConfig(({ mode }) => ({
     babel({
       presets: [reactCompilerPreset()],
     }),
+    process.env.POSTHOG_PERSONAL_API_KEY
+      ? posthog({
+          host: 'https://eu.posthog.com',
+          personalApiKey: process.env.POSTHOG_PERSONAL_API_KEY,
+          projectId: '44940',
+          sourcemaps: {
+            releaseName: 'tamery-app',
+            releaseVersion: packageJson.version,
+          },
+        })
+      : null,
   ],
   resolve: {
     tsconfigPaths: true,

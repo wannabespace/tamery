@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { toast } from 'sonner'
 
 import { history, lastLocationStorageValue } from './lib/last-location'
+import { posthog } from './lib/posthog'
 import { transparentBackgroundValue } from './lib/transparent-background'
 import { routeTree } from './routeTree.gen'
 
@@ -53,7 +54,11 @@ declare module '@tanstack/react-router' {
   }
 }
 
-router.subscribe('onResolved', ({ toLocation }) => {
+router.subscribe('onResolved', ({ fromLocation, toLocation }) => {
+  if (fromLocation?.pathname !== toLocation.pathname) {
+    posthog.capture('$pageview')
+  }
+
   for (const shell of document.querySelectorAll('[data-shell]')) {
     requestAnimationFrame(() => shell.remove())
   }

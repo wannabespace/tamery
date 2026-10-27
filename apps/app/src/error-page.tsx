@@ -15,7 +15,6 @@ import { TraversalError } from 'arktype'
 import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 
-import { EventsProvider } from '~/components/events-provider'
 import { fullSignOut } from '~/lib/auth'
 import { restartToUnlock } from '~/lib/device-encryption'
 import { posthog } from '~/lib/posthog'
@@ -78,7 +77,7 @@ export const ErrorPage = ({ error: thrown }: ErrorComponentProps) => {
     : [error.message, cause, stack].filter(Boolean).join('\n\n')
 
   return (
-    <EventsProvider>
+    <>
       <ThemeObserver />
       <Toaster />
       <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-6">
@@ -172,6 +171,6 @@ export const ErrorPage = ({ error: thrown }: ErrorComponentProps) => {
           </div>
         </motion.div>
       </div>
-    </EventsProvider>
+    </>
   )
 }
