@@ -1,14 +1,8 @@
 import type { Dialect } from '@tamery/shared/enums/connection-type'
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { silently, toError } from '@tamery/shared/utils'
 import type { Statement } from '@tamery/sql'
-import {
-  dialects,
-  endsTransaction,
-  leavesTransactionOpen,
-  splitStatements,
-  statementsFromTokens,
-  unwrapTransaction,
-} from '@tamery/sql'
+import { dialects, statementsFromTokens, unwrapTransaction } from '@tamery/sql'
 import { type } from 'arktype'
 import { Result } from 'better-result'
 import { memoize } from 'memoza'
@@ -22,6 +16,7 @@ import type { ResultSet } from '~/core/queries/connection/custom'
 import { customQuery } from '~/core/queries/connection/custom'
 import { statementQuery } from '~/core/queries/connection/statement'
 import { createDialectProvider } from '~/core/runtime/dialects/driver'
+import { getQueryLanguage } from '~/core/runtime/language'
 import type { QueryParams } from '~/core/runtime/query'
 import { posthog } from '~/lib/posthog'
 import { plural } from '~/utils/plural'
@@ -143,7 +138,7 @@ const sync = async (
       toast.warning('Transaction ended', {
         description: 'The database ended it when the statement failed',
       })
-    } else if (!endsTransaction(last.text, dialects[current.dialect])) {
+    } else if (!getQueryLanguage(current.dialect).endsTransaction(last.text)) {
       toast.info('Transaction committed', {
         description: 'The database committed it implicitly',
       })
@@ -173,10 +168,10 @@ const run = async ({
   statement: RunnerStatement
   tab: RunnerTab
 }): Promise<ResultSet[]> => {
-  const spec = dialects[params.dialect]
+  const language = getQueryLanguage(params.dialect)
   const txId =
     state(tab).get()?.txId ??
-    (spec.transactions && leavesTransactionOpen(statement.text, spec)
+    (language.transactions && language.leavesTransactionOpen(statement.text)
       ? await open(tab, connectionResource, params)
       : null)
   if (!txId) {
@@ -186,7 +181,7 @@ const run = async ({
   const last = { failed: true, text: statement.text }
   try {
     // A `BEGIN … COMMIT` group goes one statement at a time: MySQL rejects several in one string.
-    for (const part of splitStatements(statement.text, spec, {
+    for (const part of language.split(statement.text, {
       groupTransactions: false,
     })) {
       last.text = part.text
@@ -227,13 +222,20 @@ const step = ({
   tab: RunnerTab
   text: string
 }) => {
-  const spec = dialects[dialect]
-  if (!unwrapTransaction(statement.text, spec)) {
+  if (
+    !isSqlDialect(dialect) ||
+    !unwrapTransaction(statement.text, dialects[dialect])
+  ) {
     return statement
   }
-  const steps = statementsFromTokens(text, statement.tokens, spec, {
-    groupTransactions: false,
-  })
+  const steps = statementsFromTokens(
+    text,
+    statement.tokens,
+    dialects[dialect],
+    {
+      groupTransactions: false,
+    }
+  )
   const ran = new Set(
     state(tab)
       .get()

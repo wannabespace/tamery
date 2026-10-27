@@ -1,9 +1,11 @@
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { getRouteApi, useRouter } from '@tanstack/react-router'
+import { useRouter } from '@tanstack/react-router'
 import { createRef, useImperativeHandle, useState } from 'react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { engineName } from '~/core/catalog/engine-name'
+import { useConnectionContext } from '~/core/connection/route'
 import { createTableQuery } from '~/core/queries/tables/create'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
@@ -13,14 +15,12 @@ import { openTab } from '~/core/tabs/actions'
 import { tableTabId } from '~/core/tabs/ids'
 import { queryClient } from '~/lib/query-client'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const createTableDialogRef = createRef<{
   create: (schema?: string) => void
 }>()
 
 export const CreateTableDialog = () => {
-  const { connectionResource, defaultSchema, dialect } = useRouteContext()
+  const { connectionResource, defaultSchema, dialect } = useConnectionContext()
   const router = useRouter()
   const [request, setRequest] = useState<TableDialogRequest | null>(null)
   const { data: tablesAndSchemas } = useQuery(
@@ -81,8 +81,12 @@ export const CreateTableDialog = () => {
     },
   }))
 
+  const { names } = getCapabilities(dialect)
+
   return (
     <TableDialog
+      noun={names.table}
+      description={`The ${names.table} is created with an ${isSqlDialect(dialect) ? 'id' : '_id'} primary key.`}
       error={error}
       request={request}
       schemas={schemas.map(({ name }) => name)}

@@ -19,6 +19,7 @@ export const Features = () => (
     <Reveal>
       <SectionHeading
         id="features-heading"
+        eyebrow="Features"
         title="Less clicking, more answers."
       >
         Everything you expect from a database client, with AI wherever it saves

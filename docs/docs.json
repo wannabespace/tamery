@@ -13,6 +13,7 @@
           "connections/mysql",
           "connections/mssql",
           "connections/oracle",
+          "connections/mongodb",
           "connections/clickhouse",
           "connections/sqlite",
           "connections/security"
@@ -23,7 +24,7 @@
         "pages": [
           "features/navigator",
           "features/table-browser",
-          "features/sql-editor",
+          "features/query-editor",
           "features/export",
           "features/copy-database",
           "features/ai-assistant",

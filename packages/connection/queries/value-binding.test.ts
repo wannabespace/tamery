@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test'
 
+import type { SqlDialect } from '@tamery/shared/enums/connection-type'
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import type { ActiveFilter } from '@tamery/shared/filters'
 import { EQUAL_FILTER, toKyselyFilter } from '@tamery/shared/filters'
@@ -9,7 +10,7 @@ import { coldDialect } from './kysely'
 import { filterValueBindings } from './value-binding'
 
 const filtered = (
-  dialect: Dialect,
+  dialect: SqlDialect,
   filters: ActiveFilter[],
   columns: { id: string; type: string }[]
 ) =>

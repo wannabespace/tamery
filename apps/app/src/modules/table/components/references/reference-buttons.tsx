@@ -5,8 +5,8 @@ import {
 import type { IconSvgElement } from '@hugeicons/react'
 import { silently } from '@tamery/shared/utils'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
-import { getRouteApi } from '@tanstack/react-router'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { matchingRowsQueryOptions } from '~/core/queries/rows/list'
 import type { Column } from '~/core/table/cell/utils'
 import { queryClient } from '~/lib/query-client'
@@ -14,8 +14,6 @@ import { plural } from '~/utils/plural'
 
 import type { Hop } from './hops'
 import { followReference } from './hops'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export type OpenPeek = (anchor: Element, hop: Hop) => void
 
@@ -30,7 +28,7 @@ const ReferenceTrigger = ({
   label: string
   onPeek: OpenPeek
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
 
   return (
     <IconButton

@@ -13,15 +13,13 @@ import { EditableList } from '@tamery/ui/components/custom/editable-list'
 import { Field, FieldError, FieldLabel } from '@tamery/ui/components/field'
 import { InputGroupAddon } from '@tamery/ui/components/input-group'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceEnumsQueryOptions } from '~/core/queries/enums/list'
 
 import type { useColumnType } from './use-column-type'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 interface ColumnTypeGroup {
   items: readonly string[]
@@ -31,7 +29,7 @@ interface ColumnTypeGroup {
 const bareIdentifierRegex = /^[a-z_][a-z0-9_]*$/u
 
 const useColumnTypes = () => {
-  const { connectionResource, defaultSchema, dialect } = useRouteContext()
+  const { connectionResource, defaultSchema, dialect } = useConnectionContext()
   const { data: enums = [] } = useQuery({
     ...resourceEnumsQueryOptions({ connectionResource }),
     throwOnError: false,

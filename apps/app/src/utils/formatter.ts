@@ -1,9 +1,13 @@
-import { Dialect } from '@tamery/shared/enums/connection-type'
+import type { SqlDialect } from '@tamery/shared/enums/connection-type'
+import { Dialect, isSqlDialect } from '@tamery/shared/enums/connection-type'
 import type { SqlLanguage } from 'sql-formatter'
 import { format } from 'sql-formatter'
 
 export const formatSql = (sql: string, dialect: Dialect) => {
-  const langMap: Record<Dialect, SqlLanguage> = {
+  if (!isSqlDialect(dialect)) {
+    return sql
+  }
+  const langMap: Record<SqlDialect, SqlLanguage> = {
     [Dialect.Postgres]: 'postgresql',
     [Dialect.MySQL]: 'mysql',
     [Dialect.MSSQL]: 'tsql',

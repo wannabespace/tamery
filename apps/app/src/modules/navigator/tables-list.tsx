@@ -13,6 +13,8 @@ import { motion } from 'motion/react'
 import type { CSSProperties, ComponentRef } from 'react'
 import { useDeferredValue, useEffect, useEffectEvent, useRef } from 'react'
 
+import { useObjectNames } from '~/core/catalog/names'
+
 import { DropSchemaDialog } from './drop-schema-dialog'
 import { DropTableDialog } from './drop-table-dialog'
 import { RenameSchemaDialog } from './rename-schema-dialog'
@@ -51,6 +53,7 @@ export const TablesList = ({
   rows: TreeRow[]
   search?: string
 }) => {
+  const names = useObjectNames()
   const dropSchema = useRef<ComponentRef<typeof DropSchemaDialog>>(null)
   const dropTable = useRef<ComponentRef<typeof DropTableDialog>>(null)
   const renameSchema = useRef<ComponentRef<typeof RenameSchemaDialog>>(null)
@@ -130,7 +133,7 @@ export const TablesList = ({
           className="text-muted-foreground/50 mb-2 size-8"
         />
         <p className="text-muted-foreground text-sm">
-          {search ? 'No tables found' : 'No tables yet'}
+          {search ? `No ${names.table}s found` : `No ${names.table}s yet`}
         </p>
         {!search && (
           <Button
@@ -140,7 +143,7 @@ export const TablesList = ({
             onClick={() => onCreateTable()}
           >
             <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
-            New table
+            New {names.table}
           </Button>
         )}
       </SidebarContent>

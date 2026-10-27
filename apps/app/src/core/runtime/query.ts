@@ -2,7 +2,7 @@ import { resourceConnectionString } from '@tamery/connection/utils'
 import { isConnectionError } from '@tamery/shared/connections'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
 import { getDialect } from '@tamery/shared/enums/connection-type'
-import { noop } from '@tamery/shared/utils'
+import { noop, toError } from '@tamery/shared/utils'
 import type { Type } from 'arktype'
 import { Result } from 'better-result'
 import type { Transaction } from 'kysely'
@@ -15,6 +15,7 @@ import { getConnectionStringToShow } from '~/core/connection/utils'
 
 import { dialects } from './dialects'
 import type { DialectOptions } from './dialects/driver'
+import type { MongoDatabase } from './dialects/mongodb'
 import { logQuery } from './log'
 import { watchForSlowQuery } from './slow-queries'
 
@@ -102,6 +103,15 @@ export const reconnectingPromises = createStore<
   >
 >({})
 
+// A query runs across a process boundary (IPC or the proxy), so its error arrives with only a message and no stack; point it back at the call site captured before the query ran.
+const withCallStack = (error: unknown, callSite: Error) => {
+  const wrapped = toError(error)
+  if (!wrapped.stack?.includes('\n    at ')) {
+    wrapped.stack = `${wrapped.name}: ${wrapped.message}\n${(callSite.stack ?? '').split('\n').slice(1).join('\n')}`
+  }
+  return wrapped
+}
+
 export const createQuery = <T extends Type = Type<unknown>>(options: {
   type?: T
   query: {
@@ -113,8 +123,10 @@ export const createQuery = <T extends Type = Type<unknown>>(options: {
   const run = async (
     queryParams: QueryParams,
     // oxlint-disable-next-line ts/no-explicit-any
-    tx?: Transaction<any>
+    tx?: Transaction<any> | MongoDatabase
   ): Promise<T extends Type ? T['inferOut'] : unknown> => {
+    // Captured before awaiting, so the stack still holds the caller the async boundary would otherwise drop.
+    const callSite = new Error('query failed')
     const instance = tx ?? getDatabase(queryParams)
     const queryFn = options.query[queryParams.dialect]
 
@@ -233,7 +245,7 @@ export const createQuery = <T extends Type = Type<unknown>>(options: {
       return remaining
     })
 
-    throw result.error
+    throw withCallStack(result.error, callSite)
   }
 
   return {

@@ -205,7 +205,9 @@ const getChange = (
 
   return {
     recreates:
-      reshaped || (renameOnly && !getCapabilities(dialect).renameConstraints),
+      reshaped ||
+      (renameOnly &&
+        !getCapabilities(dialect).flags.includes('renameConstraints')),
     renameOnly,
     reshaped,
   }
@@ -550,7 +552,7 @@ const ConstraintInspector = ({
                 />
               )}
             </form.AppField>
-            {getCapabilities(dialect).foreignKeyOnUpdate && (
+            {getCapabilities(dialect).flags.includes('foreignKeyOnUpdate') && (
               <form.AppField name="onUpdate">
                 {() => (
                   <SelectField

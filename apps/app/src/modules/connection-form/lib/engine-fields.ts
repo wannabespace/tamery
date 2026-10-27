@@ -80,6 +80,11 @@ const ENGINE_FIELDS: Record<ConnectionType | Provider, EngineFields> = {
     user: 'default',
   }),
   [ConnectionType.MariaDB]: MYSQL_FIELDS,
+  [ConnectionType.MongoDB]: serverFields({
+    database: 'test',
+    options: 'e.g. authSource=admin&tls=true',
+    user: 'e.g. admin',
+  }),
   [ConnectionType.MSSQL]: serverFields({
     database: 'master',
     options: 'e.g. encrypt=true',
@@ -131,6 +136,37 @@ const ENGINE_FIELDS: Record<ConnectionType | Provider, EngineFields> = {
         secret: true,
       },
     ],
+  },
+  [Provider.MongoDBAtlas]: {
+    field: 'host',
+    message: 'Enter the cluster address',
+    rows: [
+      {
+        label: 'Host',
+        name: 'host',
+        placeholder: 'cluster0.abcde.mongodb.net or its mongodb+srv:// string',
+      },
+      { label: 'User', name: 'user', placeholder: 'Database user' },
+      {
+        label: 'Password',
+        name: 'password',
+        placeholder: 'None',
+        secret: true,
+      },
+      {
+        label: 'Database',
+        name: 'database',
+        optional: true,
+        placeholder: 'test',
+      },
+      {
+        label: 'Options',
+        name: 'options',
+        optional: true,
+        placeholder: 'e.g. appName=Cluster0',
+      },
+    ],
+    sshTunnel: true,
   },
   [Provider.Turso]: {
     field: 'host',

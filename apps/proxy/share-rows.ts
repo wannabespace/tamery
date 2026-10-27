@@ -2,9 +2,11 @@ import { MemoryRateLimiter } from '@orpc/ratelimit/memory'
 import { ORPCError } from '@orpc/server'
 import { executors } from '@tamery/connection/queries/executors'
 import { coldDialect, toQueryPayload } from '@tamery/connection/queries/kysely'
-import { selectPage } from '@tamery/connection/queries/select-page'
+import { mongoPage, selectPage } from '@tamery/connection/queries/select-page'
 import { filterValueBindings } from '@tamery/connection/queries/value-binding'
-import type { Dialect } from '@tamery/shared/enums/connection-type'
+import { toShell } from '@tamery/mongo/shell'
+import { fromWire } from '@tamery/mongo/values'
+import { Dialect, isSqlDialect } from '@tamery/shared/enums/connection-type'
 import type { ShareRefresh } from '@tamery/shared/enums/share-refresh'
 import { SHARE_REFRESH_MS } from '@tamery/shared/enums/share-refresh'
 import type { ShareView } from '@tamery/shared/share'
@@ -23,8 +25,37 @@ interface ShareRead {
   view: ShareView
 }
 
+// The executor orders columns by the documents' own keys, so each row is realigned to the shown columns a viewer reads positionally.
+const readMongoRows = async (read: ShareRead) => {
+  await assertReachable(read.connectionString)
+  const pipeline = mongoPage({
+    columnTypes: read.view.columnTypes,
+    filters: read.view.filters,
+    limit: read.limit,
+    offset: read.offset,
+    orderBy: read.view.orderBy,
+    select: read.view.columns.map(({ id }) => id),
+  })
+  const { result } = await executors[Dialect.MongoDB].execute({
+    connectionString: read.connectionString,
+    query: `db.getCollection(${toShell(read.view.table)}).aggregate(${toShell(pipeline)})`,
+  })
+  const [set] = result
+  const indexOf = new Map(set?.columns.map((column, index) => [column, index]))
+  const rows = (set?.rows ?? []).map((row) =>
+    read.view.columns.map(({ id }) => {
+      const index = indexOf.get(id)
+      return index === undefined ? null : fromWire(row[index])
+    })
+  )
+  return { fetchedAt: new Date(), rows }
+}
+
 export const readShareRows = async (read: ShareRead) => {
   const { dialect, view } = read
+  if (!isSqlDialect(dialect)) {
+    return readMongoRows(read)
+  }
   await assertReachable(read.connectionString)
   const compiled = selectPage(
     coldDialect(dialect),

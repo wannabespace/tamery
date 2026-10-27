@@ -8,6 +8,7 @@ import {
 } from '~/core/runtime/query'
 
 import { clickhouseIndexes } from './clickhouse'
+import { mongodbIndexes } from './mongodb'
 import { mssqlIndexes } from './mssql'
 import { mysqlIndexes } from './mysql'
 import { oracleIndexes } from './oracle'
@@ -58,6 +59,7 @@ export const structureQueryKey = (connectionResource: ConnectionResource) => [
 const resourceIndexesQuery = createQuery({
   query: {
     clickhouse: clickhouseIndexes,
+    mongodb: mongodbIndexes,
     mssql: mssqlIndexes,
     mysql: mysqlIndexes,
     oracle: oracleIndexes,

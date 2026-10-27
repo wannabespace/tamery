@@ -4,7 +4,7 @@ import type { Column } from '~/core/table/cell/utils'
 
 import type { GeneratorDef, GeneratorMap } from './types'
 import {
-  CUSTOM_GENERATOR,
+  SQL_EXPRESSION_GENERATOR,
   ENUM_GENERATOR,
   NULL_GENERATOR,
   REFERENCE_GENERATOR,
@@ -109,7 +109,7 @@ export const inCategory = <
   ) as Record<keyof T, GeneratorDef>
 
 const SPECIAL_GENERATORS = inCategory('Special', {
-  [CUSTOM_GENERATOR]: ['SQL expression', () => null],
+  [SQL_EXPRESSION_GENERATOR]: ['SQL expression', () => null],
   [ENUM_GENERATOR]: ['Enum value', () => null],
   [NULL_GENERATOR]: ['NULL', () => null],
   [REFERENCE_GENERATOR]: ['Existing row', () => null],

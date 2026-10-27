@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { coldDialect } from '@tamery/connection/queries/kysely'
+import type { SqlDialect } from '@tamery/shared/enums/connection-type'
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import type { RawBuilder } from 'kysely'
 
@@ -31,7 +32,7 @@ import {
 
 const compiled = (
   statement: RawBuilder<unknown>,
-  dialect: Dialect = Dialect.Postgres
+  dialect: SqlDialect = Dialect.Postgres
 ) => statement.compile(coldDialect(dialect)).sql.replaceAll(/\s+/gu, ' ').trim()
 
 const routine = (

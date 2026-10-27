@@ -41,6 +41,7 @@ ignoredOptionalDependencies:
   - cpu-features
 allowBuilds:
   electron: true
+  oracledb: false
   ssh2: false
 `
   )

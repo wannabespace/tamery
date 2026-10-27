@@ -6,7 +6,7 @@ export const SKIP_GENERATOR = 'skip-generator'
 export const NULL_GENERATOR = 'null'
 export const REFERENCE_GENERATOR = 'reference-generator'
 export const ENUM_GENERATOR = 'enum-generator'
-export const CUSTOM_GENERATOR = 'custom-generator'
+export const SQL_EXPRESSION_GENERATOR = 'sql-expression'
 
 export interface GeneratorDef {
   label: string

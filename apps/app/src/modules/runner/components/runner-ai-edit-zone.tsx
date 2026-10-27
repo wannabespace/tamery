@@ -1,6 +1,6 @@
 import { AiIdeaIcon, SparklesIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { AI_SQL_LIMITS } from '@tamery/ai/limits'
+import { AI_QUERY_LIMITS } from '@tamery/ai/limits'
 import { AttachmentGroup } from '@tamery/ui/components/attachment'
 import { Button } from '@tamery/ui/components/button'
 import { EnterIcon } from '@tamery/ui/components/custom/shortcuts'
@@ -156,7 +156,7 @@ export const AiEditZone = ({
               }
               event.preventDefault()
               const fitting = pasted.filter(
-                (file) => file.size <= AI_SQL_LIMITS.imageBytes
+                (file) => file.size <= AI_QUERY_LIMITS.imageBytes
               )
               if (fitting.length < pasted.length) {
                 toast.error('Images over 5 MB are left out')
@@ -165,7 +165,7 @@ export const AiEditZone = ({
                 [
                   ...current,
                   ...fitting.map((file) => ({ file, id: crypto.randomUUID() })),
-                ].slice(0, AI_SQL_LIMITS.images)
+                ].slice(0, AI_QUERY_LIMITS.images)
               )
             }}
           />

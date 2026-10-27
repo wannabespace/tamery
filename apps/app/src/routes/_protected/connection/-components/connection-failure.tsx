@@ -4,20 +4,19 @@ import { Button } from '@tamery/ui/components/button'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { useQueryErrorResetBoundary } from '@tanstack/react-query'
 import type { ErrorComponentProps } from '@tanstack/react-router'
-import { getRouteApi, useNavigate } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 
 import { useDiagnosis } from '~/core/connection/diagnosis'
+import { useConnectionContext } from '~/core/connection/route'
 import { useGoBack } from '~/hooks/use-go-back'
 import { posthog } from '~/lib/posthog'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export const ConnectionFailure = ({
   error: thrown,
   reset,
 }: ErrorComponentProps) => {
   const error = toError(thrown)
-  const { connection } = useRouteContext()
+  const { connection } = useConnectionContext()
   const queryErrors = useQueryErrorResetBoundary()
   const goBack = useGoBack()
   const navigate = useNavigate()
@@ -31,8 +30,11 @@ export const ConnectionFailure = ({
         title={diagnosis?.title ?? "Couldn't connect"}
         description={
           <span data-mask className="flex flex-col gap-2 select-text">
-            {diagnosis && <span>{diagnosis.hint}</span>}
-            <span className="font-mono wrap-anywhere">{error.message}</span>
+            {diagnosis ? (
+              <span>{diagnosis.hint}</span>
+            ) : (
+              <span className="font-mono wrap-anywhere">{error.message}</span>
+            )}
           </span>
         }
       >

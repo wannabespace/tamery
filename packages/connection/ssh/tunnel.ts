@@ -103,5 +103,8 @@ export const tunnelForwarding = async (
   const session = () =>
     sessions.get(key) ?? openSession(key, tunnel, confirmHostKey)
   await session().connect()
-  return { socket: () => tunnelSocket(session().channel(target)) }
+  return {
+    socket: () => tunnelSocket(session().channel(target)),
+    socketTo: (to) => tunnelSocket(session().channel(to)),
+  }
 }

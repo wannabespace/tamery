@@ -1,5 +1,5 @@
-import { getRouteApi } from '@tanstack/react-router'
-
+import { getCapabilities } from '~/core/catalog/capabilities'
+import { useConnectionContext } from '~/core/connection/route'
 import {
   tableSessionStore,
   TableSessionStoreContext,
@@ -12,18 +12,25 @@ import {
   columnDialogRef,
   TableColumnDialog,
 } from './components/table/column-dialog'
+import {
+  InsertDocumentDialog,
+  insertDocumentRef,
+} from './components/table/insert-document-dialog'
 import { Table } from './components/table/table'
 import { TableToolbar } from './components/toolbar/toolbar'
 import { ColumnsContext, useTableColumnsQuery } from './lib/columns'
 import { tablePageStore, TablePageStoreContext } from './lib/store'
 import type { TableParams } from './lib/tab'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 const addColumn = () => columnDialogRef.current?.add()
+const insertDocument = () => insertDocumentRef.current?.open()
 
 const TableContent = ({ table, schema }: { table: string; schema: string }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
+  const declaredColumns =
+    getCapabilities(dialect).flags.includes('declaredColumns')
+  const onAddColumn = declaredColumns ? addColumn : undefined
+  const onInsertDocument = declaredColumns ? undefined : insertDocument
   const { data = [], isPending } = useTableColumnsQuery({
     connectionResource,
     schema,
@@ -39,12 +46,20 @@ const TableContent = ({ table, schema }: { table: string; schema: string }) => {
           openTab(connectionResource.id, tableTabId(schema, table))
         }
       >
-        <TableToolbar table={table} schema={schema} onAddColumn={addColumn} />
+        <TableToolbar
+          table={table}
+          schema={schema}
+          onAddColumn={onAddColumn}
+          onInsertDocument={onInsertDocument}
+        />
         <div className="relative min-h-0 flex-1 border-t">
-          <Table table={table} schema={schema} onAddColumn={addColumn} />
+          <Table table={table} schema={schema} onAddColumn={onAddColumn} />
         </div>
       </div>
       <TableColumnDialog schema={schema} table={table} />
+      {onInsertDocument && (
+        <InsertDocumentDialog schema={schema} table={table} />
+      )}
       <DeleteRowsDialog schema={schema} table={table} />
     </ColumnsContext>
   )
@@ -55,7 +70,7 @@ export const TableTab = ({
 }: {
   params: TableParams
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const storeKey = { id: connectionResource.id, schema, table }
 
   return (

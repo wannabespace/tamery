@@ -1,14 +1,10 @@
-import { getRouteApi } from '@tanstack/react-router'
+import { useTabContext } from '~/core/connection/route'
 
 import { Runner } from './components/runner'
 import { RunnerTabContext } from './lib/store'
 
-const { useRouteContext } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
-
 const RunnerTab = ({ id: tabId }: { id: string }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useTabContext()
 
   return (
     <RunnerTabContext value={{ resourceId: connectionResource.id, tabId }}>

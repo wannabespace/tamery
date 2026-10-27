@@ -7,7 +7,7 @@ export {
   FILTERS_GROUPED,
   FILTERS_LIST,
 } from './list'
-export { toMongoPipeline } from './mongo'
+export { likeToRegex, toMongoPipeline } from './mongo'
 export type { FilterValueBinding } from './kysely'
 export { SQL_OPERATORS, toKyselyFilter } from './kysely'
 export { cellToFilterValues } from './transformers'

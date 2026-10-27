@@ -4,7 +4,6 @@ import type { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { getDialect } from '@tamery/shared/enums/connection-type'
 import type { McpAccess, McpSource } from '@tamery/shared/mcp'
 import { MCP_MAX_ROWS } from '@tamery/shared/mcp'
-import { dialects, readsOnly, splitStatements } from '@tamery/sql'
 import { Result } from 'better-result'
 
 import { getCollections } from '~/core/collections'
@@ -16,6 +15,7 @@ import { statementQuery } from '~/core/queries/connection/statement'
 import { testConnectionQuery } from '~/core/queries/connection/test'
 import { transactionQuery } from '~/core/queries/connection/transaction'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
+import { getQueryLanguage } from '~/core/runtime/language'
 import {
   connectionResourceToQueryParams,
   connectionToQueryParams,
@@ -126,7 +126,7 @@ export const mcpSource: McpSource = {
   execute: async ({ approve, sql, ...target }, onAbort) => {
     const { connection, resource } = resolveTarget(target)
     const dialect = getDialect(connection.type)
-    if (splitStatements(sql, dialects[dialect]).length !== 1) {
+    if (getQueryLanguage(dialect).split(sql).length !== 1) {
       throw new Error(
         'Run one statement at a time, or wrap several in BEGIN … COMMIT to run them together (on Oracle, in one BEGIN … END; block; not on ClickHouse, which has no transactions).'
       )
@@ -160,9 +160,9 @@ export const mcpSource: McpSource = {
   },
   query: async ({ sql, ...target }, onAbort) => {
     const { connection, resource } = resolveTarget(target)
-    if (!readsOnly(sql, dialects[getDialect(connection.type)])) {
+    if (!getQueryLanguage(getDialect(connection.type)).readsOnly(sql)) {
       throw new Error(
-        'Only one read-only statement (SELECT, WITH, SHOW, DESCRIBE, EXPLAIN) runs at a time.'
+        'Only one read-only statement (SELECT, WITH, SHOW, DESCRIBE, EXPLAIN, or a MongoDB find, aggregate, count or distinct) runs at a time.'
       )
     }
     await assertQuota()

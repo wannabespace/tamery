@@ -4,13 +4,13 @@ import { CommandItem, CommandShortcut } from '@tamery/ui/components/command'
 import { cn } from '@tamery/ui/lib/utils'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { motion } from 'motion/react'
 import type { RefObject } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceEnumsQueryOptions } from '~/core/queries/enums/list'
 import { checkOrUpgrade, usePermissions } from '~/core/user/permissions'
 import { usageQueryOptions } from '~/core/user/usage'
@@ -23,8 +23,6 @@ import { plural } from '~/utils/plural'
 import { useTableColumnsContext } from '../../lib/columns'
 import { useTablePageStore } from '../../lib/store'
 import { offeredFilters } from './filter-composer'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const SUMMARY_VISIBLE_MS = 6000
 
@@ -60,7 +58,7 @@ export const useFilterAi = ({
   table: string
 }) => {
   const isOnline = useIsOnline()
-  const { connection, connectionResource, dialect } = useRouteContext()
+  const { connection, connectionResource, dialect } = useConnectionContext()
   const store = useTablePageStore()
   const { columns } = useTableColumnsContext()
   const { data: enums } = useQuery(
@@ -115,8 +113,8 @@ export const useFilterAi = ({
       if (filters.length === 0 && Object.keys(orderBy).length === 0) {
         toast.info(
           data.ignored.length > 0
-            ? `Couldn't filter this table by ${data.ignored.join(', ')}`
-            : "Couldn't turn that into filters for this table",
+            ? `Couldn't filter this ${getCapabilities(dialect).names.table} by ${data.ignored.join(', ')}`
+            : `Couldn't turn that into filters for this ${getCapabilities(dialect).names.table}`,
           { id: 'no-filters-or-ordering' }
         )
         return
@@ -153,7 +151,7 @@ export const useFilterAi = ({
         const current = store.get()
         const context = `
           Filters working with AND operator.
-          Database engine: ${connection.type}${getCapabilities(dialect).ilike ? '' : ' (no ilike operator: use like)'}
+          Database engine: ${connection.type}${getCapabilities(dialect).flags.includes('ilike') ? '' : ' (no ilike operator: use like)'}
           Current filters: ${JSON.stringify(
             current.filters.map(({ column, ref, values }) => ({
               column,

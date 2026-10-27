@@ -1,6 +1,7 @@
 import { getDialect, Dialect } from '@tamery/shared/enums/connection-type'
 
 import type { ConnectionParts } from '../connection-parts'
+import { TLS_PARAMS as MONGODB_TLS_PARAMS } from './mongodb'
 import { TLS_PARAMS as MYSQL_TLS_PARAMS } from './mysql'
 import { TLS_PARAMS as PG_TLS_PARAMS } from './pg'
 
@@ -15,6 +16,11 @@ const SSL_OPTIONS: Partial<
     on: 'encrypt=true',
     unverified: 'trustservercertificate=true',
   },
+  [Dialect.MongoDB]: {
+    off: 'tls=false',
+    on: 'tls=true',
+    unverified: 'tls=true&tlsallowinvalidcertificates=true',
+  },
   [Dialect.MySQL]: { off: 'ssl=false', on: 'ssl=true' },
   [Dialect.Oracle]: { off: 'ssl=false', on: 'ssl=true' },
   [Dialect.Postgres]: {
@@ -25,6 +31,7 @@ const SSL_OPTIONS: Partial<
 }
 
 const TLS_PARAMS: Partial<Record<Dialect, string[]>> = {
+  [Dialect.MongoDB]: MONGODB_TLS_PARAMS,
   [Dialect.MySQL]: MYSQL_TLS_PARAMS,
   [Dialect.Postgres]: PG_TLS_PARAMS,
 }

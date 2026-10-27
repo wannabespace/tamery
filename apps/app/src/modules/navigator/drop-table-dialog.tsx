@@ -19,14 +19,15 @@ import { Input } from '@tamery/ui/components/input'
 import { Label } from '@tamery/ui/components/label'
 import { Switch } from '@tamery/ui/components/switch'
 import { useMutation } from '@tanstack/react-query'
-import { getRouteApi, useParams, useRouter } from '@tanstack/react-router'
+import { useParams, useRouter } from '@tanstack/react-router'
 import { useImperativeHandle, useState } from 'react'
 import { toast } from 'sonner'
 
 import { OptionField } from '~/components/option-field'
 import { getCapabilities } from '~/core/catalog/capabilities'
 import type { TableType } from '~/core/catalog/table-type'
-import { tableTypeLabel } from '~/core/catalog/table-type'
+import { getTableTypeLabel } from '~/core/catalog/table-type'
+import { useConnectionContext } from '~/core/connection/route'
 import { dropTableQuery } from '~/core/queries/tables/drop'
 import { dropViewQuery } from '~/core/queries/views/drop'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
@@ -35,15 +36,14 @@ import { queryClient } from '~/lib/query-client'
 
 import { pinnedTable } from './pinned-tables'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 const dropConsequence = {
-  'materialized view':
+  'materialized view': () =>
     'This will permanently delete the materialized view and the rows it stores. The tables it reads stay as they are.',
-  table:
-    'This will permanently delete the table and all its data from the database.',
-  view: 'This will permanently delete the view. The tables it reads stay as they are.',
-} satisfies Record<TableType, string>
+  table: (noun: string) =>
+    `This will permanently delete the ${noun} and all its data from the database.`,
+  view: () =>
+    'This will permanently delete the view. The tables it reads stay as they are.',
+} satisfies Record<TableType, (noun: string) => string>
 
 interface DropTableDialogProps {
   ref: React.RefObject<{
@@ -52,7 +52,7 @@ interface DropTableDialogProps {
 }
 
 export const DropTableDialog = ({ ref }: DropTableDialogProps) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { tabId: activeTabId } = useParams({ strict: false })
   const router = useRouter()
   const [confirmationText, setConfirmationText] = useState('')
@@ -62,7 +62,7 @@ export const DropTableDialog = ({ ref }: DropTableDialogProps) => {
   const [open, setOpen] = useState(false)
   const [cascade, setCascade] = useState(false)
   const isCurrentTable = activeTabId === tableTabId(schema, table)
-  const label = tableTypeLabel[type]
+  const label = getTableTypeLabel(dialect, type)
   const noun = label.toLowerCase()
 
   useImperativeHandle(ref, () => ({
@@ -128,7 +128,7 @@ export const DropTableDialog = ({ ref }: DropTableDialogProps) => {
               className="text-destructive size-5"
             />
             <AlertTitle>This action cannot be undone.</AlertTitle>
-            <AlertDescription>{dropConsequence[type]}</AlertDescription>
+            <AlertDescription>{dropConsequence[type](noun)}</AlertDescription>
           </Alert>
           <div className="space-y-2">
             <Label htmlFor="confirmation">
@@ -149,7 +149,7 @@ export const DropTableDialog = ({ ref }: DropTableDialogProps) => {
               autoComplete="off"
             />
           </div>
-          {getCapabilities(dialect).cascade && (
+          {getCapabilities(dialect).flags.includes('cascade') && (
             <OptionField
               htmlFor="drop-table-cascade"
               title="Cascade"

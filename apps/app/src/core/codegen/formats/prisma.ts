@@ -174,6 +174,7 @@ const SIZED_STRING_TYPES: Record<string, string> = {
 
 const NATIVE_TYPES: Record<Dialect, Record<string, string>> = {
   clickhouse: {},
+  mongodb: {},
   mssql: { date: '@db.Date' },
   mysql: { date: '@db.Date' },
   oracle: {},

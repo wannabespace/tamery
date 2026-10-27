@@ -23,7 +23,7 @@ The design system is the `tamery-ui` skill (`.agents/skills/tamery-ui/`). Record
 
 ## Always applies
 
-- **Improvement ideas go in [`IMPROVEMENTS.md`](IMPROVEMENTS.md).** Any product or UX/DX improvement proposed or discovered during a task is appended there, never left only in chat or a PR.
+- **Improvement ideas go in GitHub Issues.** Any product or UX/DX improvement proposed or discovered during a task is filed as an issue (`label:enhancement`, or `needs-triage` when unsure), never left only in chat or a PR; a rejected idea is closed as `wontfix` with the reason in its body. See `docs/agents/issue-tracker.md`.
 - **A comment is a warning or it does not exist** (repo-wide). A comment stays only when the code does not show the constraint and an innocent-looking edit (reordering, simplifying, dropping an odd line, changing a value) would break something: a dialect or platform trap, a hidden race or ordering constraint, a lint/type escape hatch's justification, a sync-with-that-file pointer, a security invariant, a prop's or export's non-obvious contract. Naming one of those is not enough: when the code already enforces it in plain sight (a `??=` guard, an `await` before the next step, a type that rejects the wrong value), the comment only explains the code and goes. Everything else (design rationale, why a value was picked, what the next line or function does, what changed, section headers) goes in the code's names or nowhere. Self-explaining code: clear names, small extracted functions, named constants.
 - **Write as little code as possible.** The smallest change that fully solves the task wins. Reuse before adding, extend a file before creating one, delete more than you add. No speculative abstractions, options, wrappers or config; no defensive branches for impossible states. Solve the given task, not the generalized version.
 - **Simplest mechanism that works.** A library's built-in option beats a hand-rolled effect; an iterator or one-liner beats reimplementing a primitive a dependency already provides. When a fix grows guards to defend its own complexity, step back and pick the plainer mechanism — accept a documented edge over machinery.
@@ -32,3 +32,17 @@ The design system is the `tamery-ui` skill (`.agents/skills/tamery-ui/`). Record
 - **Docs stay true to the app.** Any change a user can see or do updates the `docs/` pages that describe it in the same task, and a new feature gets its home there. What counts and how to write it: `documentation.md`.
 - **Every new user action is tracked.** A feature that adds or changes something a user does (a mutation, a command, a toggle, an AI request) ships its PostHog event in the same task — convention and privacy limits in `architecture.md` → Analytics.
 - **Every review ask runs the `thermo-nuclear-code-quality-review` skill.** "Review", "review this", a PR/branch/diff review or a quality audit — load it first and hold the work to its approval bar.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in GitHub Issues for `wannabespace/tamery`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles, each label string unchanged (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.

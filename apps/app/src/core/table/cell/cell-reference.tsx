@@ -9,9 +9,9 @@ import {
 import { Skeleton } from '@tamery/ui/components/skeleton'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useDeferredValue, useRef, useState } from 'react'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { useShortcuts } from '~/core/keyboard/use-shortcuts'
 import { matchingRowsQueryOptions } from '~/core/queries/rows/list'
 import { searchRowsQueryOptions } from '~/core/queries/rows/search'
@@ -21,8 +21,6 @@ import { getDisplayValue } from '~/core/transformers/value-transformer'
 import type { CellEdit, GridCursor } from '../cursor'
 import { labelCandidates, useReferencedColumns } from '../referenced-columns'
 import type { Column } from './utils'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const PREVIEW_CHARS = 40
 const DATE_LIKE = /^\d{4}-\d{2}-\d{2}/u
@@ -117,7 +115,7 @@ export const CellReference = ({
   transformer: ValueTransformer
   value: unknown
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const ref = useRef<HTMLInputElement>(null)
   const [highlighted, setHighlighted] = useState('')
   const raw = (rowValue: unknown) =>

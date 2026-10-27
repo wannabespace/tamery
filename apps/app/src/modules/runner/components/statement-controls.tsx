@@ -8,7 +8,10 @@ import {
   Tick02Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { acceptGhostText, dismissGhostText } from '@tamery/monaco/sql-language'
+import {
+  acceptGhostText,
+  dismissGhostText,
+} from '@tamery/monaco/query-language'
 import { Button } from '@tamery/ui/components/button'
 import { Group } from '@tamery/ui/components/group'
 import {
@@ -16,13 +19,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
-import { getRouteApi } from '@tanstack/react-router'
 import type { editor } from 'monaco-editor'
 import type { CSSProperties, RefObject } from 'react'
 
 import { AppMenuButton } from '~/components/app-context-menu'
 import type { AppMenuNode } from '~/components/app-menu'
 import { getCapabilities } from '~/core/catalog/capabilities'
+import { useTabContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useIsAnonymous } from '~/lib/auth'
 
@@ -31,10 +34,6 @@ import { useRunnerActions } from '../lib/actions'
 import type { FailedRunnerResult } from '../lib/run'
 import type { RunAnchor } from '../lib/statement-band'
 import { RUN_SLOT_GAP, sameSpot } from '../lib/statement-band'
-
-const { useRouteContext } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
 
 const statementMenuItems = (
   actions: RunnerActions,
@@ -139,7 +138,7 @@ export const StatementControls = ({
   failed: FailedRunnerResult | undefined
   menuRef: RefObject<HTMLButtonElement | null>
 }) => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useTabContext()
   const actions = useRunnerActions()
   const isAnonymous = useIsAnonymous()
   const suggestionHere = sameSpot(anchor.suggestion, anchor)
@@ -223,7 +222,10 @@ export const StatementControls = ({
                 finalFocus: () => editorRef.current?.focus(),
               }}
               items={() =>
-                statementMenuItems(actions, getCapabilities(dialect).explain)
+                statementMenuItems(
+                  actions,
+                  getCapabilities(dialect).flags.includes('explain')
+                )
               }
             />
             <TooltipContent>More actions</TooltipContent>

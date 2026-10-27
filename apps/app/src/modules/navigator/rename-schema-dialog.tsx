@@ -1,8 +1,9 @@
 import { Dialog, DialogContent } from '@tamery/ui/components/dialog'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { getRouteApi, useParams, useRouter } from '@tanstack/react-router'
+import { useParams, useRouter } from '@tanstack/react-router'
 import { useImperativeHandle, useState } from 'react'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { getConnectionResourceStore } from '~/core/connection/stores'
 import { renameSchemaQuery } from '~/core/queries/schemas/rename'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
@@ -13,14 +14,12 @@ import { queryClient } from '~/lib/query-client'
 
 import { SchemaForm } from './create-schema-dialog'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const RenameSchemaDialog = ({
   ref,
 }: {
   ref: React.RefObject<{ rename: (schema: string) => void } | null>
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const { tabId } = useParams({ strict: false })
   const router = useRouter()
   const [schema, setSchema] = useState('')

@@ -1,5 +1,5 @@
-import { AI_SQL_LIMITS } from '@tamery/ai/limits'
-import { catalogSummaryFor } from '@tamery/monaco/sql-language'
+import { AI_QUERY_LIMITS } from '@tamery/ai/limits'
+import { catalogSummaryFor } from '@tamery/monaco/query-language'
 import type { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { renderWithRoot } from '@tamery/ui/lib/render'
 import { editor as monacoEditor, Range } from 'monaco-editor'
@@ -47,7 +47,7 @@ export const useAiEdit = ({
     targetRef.current.set([
       {
         options: {
-          className: reviewing ? 'sql-ai-band' : undefined,
+          className: reviewing ? 'ai-edit-band' : undefined,
           isWholeLine: true,
           stickiness:
             monacoEditor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
@@ -90,7 +90,7 @@ export const useAiEdit = ({
   }
 
   const reject = () => {
-    posthog.capture('ai_sql_edit_rejected')
+    posthog.capture('ai_query_edit_rejected')
     revert()
     closeAndFocus()
   }
@@ -133,7 +133,7 @@ export const useAiEdit = ({
       input: {
         context: string
         editor: string
-        sql: string
+        query: string
         type: ConnectionType
       },
       signal: AbortSignal
@@ -154,8 +154,8 @@ export const useAiEdit = ({
       const text = await call(
         {
           context,
-          editor: model.getValue().slice(0, AI_SQL_LIMITS.sql),
-          sql: original,
+          editor: model.getValue().slice(0, AI_QUERY_LIMITS.query),
+          query: original,
           type: connectionType,
         },
         controller.signal
@@ -178,28 +178,28 @@ export const useAiEdit = ({
   }
 
   const fix = (range: Range, error: string) => {
-    posthog.capture('ai_sql_fix_requested')
+    posthog.capture('ai_query_fix_requested')
     close()
     // Fixing has no input to hold focus, so Esc reaches the editor's reject binding instead.
     editorRef.current?.focus()
     return request(range, { error, kind: 'fixing' }, (input, signal) =>
-      orpc.ai.fixSQL.call({ ...input, error }, { signal })
+      orpc.ai.fixQuery.call({ ...input, error }, { signal })
     )
   }
 
   const accept = () => {
-    posthog.capture('ai_sql_edit_accepted')
+    posthog.capture('ai_query_edit_accepted')
     if (phase?.kind === 'review') {
       closeAndFocus()
     }
   }
 
   const submit = (prompt: string, images: File[]) => {
-    posthog.capture('ai_sql_edit_requested', { images: images.length })
+    posthog.capture('ai_query_edit_requested', { images: images.length })
     const range = target()
     if (range) {
       request(range, { busy: true, kind: 'prompt' }, (input, signal) =>
-        orpc.ai.updateSQL.call({ ...input, images, prompt }, { signal })
+        orpc.ai.updateQuery.call({ ...input, images, prompt }, { signal })
       )
     }
   }

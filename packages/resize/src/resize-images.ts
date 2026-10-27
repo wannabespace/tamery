@@ -60,7 +60,8 @@ const resize = (
   ])
 }
 
-const toPng = (image: Sharp) => image.png({ compressionLevel: 9 }).toBuffer()
+const toPng = (image: Sharp) =>
+  image.png({ compressionLevel: 9, palette: true }).toBuffer()
 
 const encode = async (
   source: Source,

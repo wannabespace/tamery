@@ -1,4 +1,3 @@
-/* oxlint-disable jsx-a11y/prefer-tag-over-role -- a virtualized flex grid cannot be built from table elements */
 import { ArrowTurnBackwardIcon } from '@hugeicons/core-free-icons'
 import type { GridRow } from '@tamery/table'
 import { Checkbox } from '@tamery/ui/components/checkbox'
@@ -6,6 +5,8 @@ import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import type { CSSProperties } from 'react'
 import { useSubscription } from 'seitu/react'
 
+/* oxlint-disable jsx-a11y/prefer-tag-over-role -- a virtualized flex grid cannot be built from table elements */
+import { useObjectNames } from '~/core/catalog/names'
 import { rowSelectId } from '~/core/table/cell/utils'
 import type { GridEntry, PrimaryKeys } from '~/core/table/session'
 import {
@@ -29,6 +30,7 @@ export const keysInRange =
   ]
 
 const SelectAll = ({ keys, rows }: { keys: string[]; rows: GridRow[] }) => {
+  const names = useObjectNames()
   const store = useTableSessionStore()
   const selected = useSubscription(store, {
     selector: (state) => state.selected,
@@ -38,7 +40,7 @@ const SelectAll = ({ keys, rows }: { keys: string[]; rows: GridRow[] }) => {
 
   return (
     <Checkbox
-      aria-label="Select all rows"
+      aria-label={`Select all ${names.row}s`}
       tabIndex={-1}
       disabled={rows.length === 0}
       checked={checked}
@@ -84,6 +86,7 @@ const SelectRow = ({
   rowKey: PrimaryKeys
   rows: GridRow[]
 }) => {
+  const names = useObjectNames()
   const store = useTableSessionStore()
   const isSelected = useSubscription(store, {
     selector: (state) => rowSelection.has(state, rowKey),
@@ -92,7 +95,7 @@ const SelectRow = ({
   return (
     <Checkbox
       id={id}
-      aria-label="Select row"
+      aria-label={`Select ${names.row}`}
       tabIndex={-1}
       checked={isSelected}
       onCheckedChange={(_, { event }) =>
@@ -110,6 +113,7 @@ const SelectRow = ({
 }
 
 const DiscardRow = ({ id }: { id: string }) => {
+  const names = useObjectNames()
   const store = useTableSessionStore()
   const saving = useSubscription(store, { selector: isSaving })
 
@@ -119,7 +123,7 @@ const DiscardRow = ({ id }: { id: string }) => {
       size="icon-xs"
       className="-mr-1"
       icon={ArrowTurnBackwardIcon}
-      label="Discard row"
+      label={`Discard ${names.row}`}
       tabIndex={-1}
       disabled={saving}
       onClick={() => newRowsActions(store).discard(id)}

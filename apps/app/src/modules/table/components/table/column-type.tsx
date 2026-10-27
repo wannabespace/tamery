@@ -6,12 +6,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
-import { getRouteApi } from '@tanstack/react-router'
 
+import { useConnectionContext } from '~/core/connection/route'
 import type { Column } from '~/core/table/cell/utils'
 import { getColumnKind } from '~/core/table/cell/utils'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const columnClauses = (column: Column) =>
   [
@@ -43,7 +41,7 @@ const ColumnClauses = ({ column }: { column: Column }) => (
 )
 
 export const ColumnHeading = ({ column }: { column: Column }) => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   return (
     <Tooltip>
       <TooltipTrigger

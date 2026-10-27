@@ -13,10 +13,12 @@ import {
   ViewOffSlashIcon,
 } from '@hugeicons/core-free-icons'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
+import { uppercaseFirst } from '@tamery/shared/utils'
 import { copy } from '@tamery/ui/lib/copy'
 
 import type { AppMenuNode } from '~/components/app-menu'
 import { getCapabilities } from '~/core/catalog/capabilities'
+import type { ObjectNames } from '~/core/catalog/capability-presets'
 import type { Column } from '~/core/table/cell/utils'
 import { posthog } from '~/lib/posthog'
 
@@ -29,6 +31,7 @@ export const isSortable = (dialect: Dialect, column: Column) =>
   !getCapabilities(dialect).columnTypes.incomparable?.test(column.type ?? '')
 
 export interface ColumnActions {
+  names: ObjectNames
   onEdit?: () => void
   onDistinctValues?: (anchor: Element) => void
   sortable?: boolean
@@ -39,6 +42,7 @@ export const columnMenuItems = ({
   anchor,
   column,
   labels,
+  names,
   onDistinctValues,
   onEdit,
   sortable,
@@ -50,6 +54,7 @@ export const columnMenuItems = ({
   store: TablePageStore
 }): AppMenuNode[] => {
   const state = store.get()
+  const Column = uppercaseFirst(names.column)
   const order = state.orderBy[column.id] ?? null
   const isPinned = state.pinnedColumns.includes(column.id)
   const hasCustomSize = column.id in state.columnSizes
@@ -90,7 +95,7 @@ export const columnMenuItems = ({
         ] satisfies AppMenuNode[])
       : []),
     ...(onEdit
-      ? [{ icon: PencilEdit02Icon, label: 'Edit Column', onSelect: onEdit }]
+      ? [{ icon: PencilEdit02Icon, label: `Edit ${Column}`, onSelect: onEdit }]
       : []),
     {
       icon: Copy01Icon,
@@ -137,7 +142,7 @@ export const columnMenuItems = ({
     { type: 'separator' },
     {
       icon: isPinned ? PinOffIcon : PinIcon,
-      label: isPinned ? 'Unpin Column' : 'Pin Column',
+      label: isPinned ? `Unpin ${Column}` : `Pin ${Column}`,
       onSelect: () => {
         posthog.capture('column_pin_toggled', { pinned: !isPinned })
         layout.togglePin(column.id)
@@ -145,7 +150,7 @@ export const columnMenuItems = ({
     },
     {
       icon: ViewOffSlashIcon,
-      label: 'Hide Column',
+      label: `Hide ${Column}`,
       onSelect: () => layout.hide(column.id),
     },
     ...(hasCustomSize
@@ -161,7 +166,7 @@ export const columnMenuItems = ({
       ? [
           {
             icon: LayoutThreeColumnIcon,
-            label: 'Reset Column Order',
+            label: `Reset ${Column} Order`,
             onSelect: layout.resetOrder,
           },
         ]

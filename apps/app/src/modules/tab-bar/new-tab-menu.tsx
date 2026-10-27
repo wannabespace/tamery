@@ -1,6 +1,7 @@
 import { LayoutTable02Icon, PlusSignIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
+import { uppercaseFirst } from '@tamery/shared/utils'
 import { Button } from '@tamery/ui/components/button'
 import {
   DropdownMenu,
@@ -19,6 +20,7 @@ import {
 import { useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { getCapabilities } from '~/core/catalog/capabilities'
 import type { ConnectionResource } from '~/core/connection/sync'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
@@ -100,7 +102,9 @@ export const NewTabMenu = ({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuLabel>Tables</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                {uppercaseFirst(getCapabilities(dialect).names.table)}s
+              </DropdownMenuLabel>
               {schemas.flatMap((schema) =>
                 schema.tables.map((table) => (
                   <DropdownMenuItem

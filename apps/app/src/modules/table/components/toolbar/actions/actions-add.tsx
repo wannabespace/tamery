@@ -2,6 +2,7 @@ import {
   LayoutThreeColumnIcon,
   LayoutThreeRowIcon,
   PlusSignIcon,
+  SproutIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
@@ -17,6 +18,7 @@ import {
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
 
+import { useObjectNames } from '~/core/catalog/names'
 import { useTableSessionStore } from '~/core/table/session'
 import { posthog } from '~/lib/posthog'
 
@@ -24,9 +26,18 @@ import { useTableColumnsContext } from '../../../lib/columns'
 import { stageRow } from '../../../lib/staged-edits'
 import { columnView, useTablePageStore } from '../../../lib/store'
 
-export const ActionsAdd = ({ onAddColumn }: { onAddColumn: () => void }) => {
+export const ActionsAdd = ({
+  onAddColumn,
+  onInsertDocument,
+  onSeed,
+}: {
+  onAddColumn?: () => void
+  onInsertDocument?: () => void
+  onSeed: () => void
+}) => {
   const store = useTablePageStore()
   const sessionStore = useTableSessionStore()
+  const names = useObjectNames()
   const { columns } = useTableColumnsContext()
   const canAddRow = columns.some((column) => column.primaryKey)
 
@@ -39,6 +50,8 @@ export const ActionsAdd = ({ onAddColumn }: { onAddColumn: () => void }) => {
     )
     posthog.capture('row_added')
   }
+
+  const onAddRow = onInsertDocument ?? (canAddRow ? addRow : undefined)
 
   return (
     <DropdownMenu>
@@ -56,13 +69,19 @@ export const ActionsAdd = ({ onAddColumn }: { onAddColumn: () => void }) => {
         <TooltipContent side="bottom">Add</TooltipContent>
       </Tooltip>
       <DropdownMenuContent align="end" className="min-w-36">
-        <DropdownMenuItem disabled={!canAddRow} onClick={addRow}>
+        <DropdownMenuItem disabled={!onAddRow} onClick={onAddRow}>
           <HugeiconsIcon icon={LayoutThreeRowIcon} strokeWidth={2} />
-          Add row
+          Add {names.row}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onAddColumn}>
-          <HugeiconsIcon icon={LayoutThreeColumnIcon} strokeWidth={2} />
-          Add column
+        {onAddColumn && (
+          <DropdownMenuItem onClick={onAddColumn}>
+            <HugeiconsIcon icon={LayoutThreeColumnIcon} strokeWidth={2} />
+            Add column
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem disabled={columns.length === 0} onClick={onSeed}>
+          <HugeiconsIcon icon={SproutIcon} strokeWidth={2} />
+          Seed data
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

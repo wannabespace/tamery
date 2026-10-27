@@ -111,9 +111,7 @@ export const ConnectionPage = ({
         flushSync(() => setStage('form'))
       }
       const [missing] = getMissing(form.state.values)
-      if (missing) {
-        focusField(missing)
-      }
+      focusField(missing ?? 'name')
     },
     pitchShown: stage === 'form',
   })

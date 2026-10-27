@@ -7,6 +7,7 @@ const quoteWithDoubleQuotes = (name: string) =>
 
 const QUOTE_IDENTIFIER_MAP: Record<Dialect, (name: string) => string> = {
   clickhouse: quoteWithBackticks,
+  mongodb: quoteWithDoubleQuotes,
   mssql: (name) => `[${name.replaceAll(']', ']]')}]`,
   mysql: quoteWithBackticks,
   oracle: quoteWithDoubleQuotes,

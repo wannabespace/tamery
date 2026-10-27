@@ -1,4 +1,4 @@
-import { selectPage } from '@tamery/connection/queries/select-page'
+import { mongoPage, selectPage } from '@tamery/connection/queries/select-page'
 import type { ColumnTypes } from '@tamery/connection/queries/value-binding'
 import { filterValueBindings } from '@tamery/connection/queries/value-binding'
 import type { ActiveFilter } from '@tamery/shared/filters'
@@ -13,6 +13,8 @@ import {
   connectionResourceToQueryParams,
   createQuery,
 } from '~/core/runtime/query'
+
+import { fromMongodbDocument } from './shape'
 
 const rowType = type('Record<string, unknown>')
 
@@ -50,6 +52,14 @@ export const resourceRowsQuery = memoize(
             page,
             filterValueBindings.clickhouse?.(columns)
           ).execute(),
+        mongodb: async (db) => {
+          const documents = await db
+            .collection(page.table)
+            .aggregate(mongoPage({ ...page, columnTypes: columns }))
+          return documents.map((document) =>
+            fromMongodbDocument(document, columns)
+          )
+        },
         mssql: (db) => selectPage(db, page).execute(),
         mysql: (db) => selectPage(db, page).execute(),
         oracle: (db) => selectPage(db, page).execute(),

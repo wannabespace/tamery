@@ -1,9 +1,10 @@
 import { pick } from '@tamery/shared/utils'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useRef } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 import { DiscardButton } from '~/core/drafts/discard-button'
 import { ChangeGroup, StagedReviewDrawer } from '~/core/drafts/review-drawer'
 import { resourceRowsQueryInfiniteOptions } from '~/core/queries/rows/list'
@@ -29,8 +30,6 @@ import {
   RowError,
 } from './draft-changes'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const DraftsReviewDrawer = ({
   open,
   onOpenChange,
@@ -48,7 +47,8 @@ export const DraftsReviewDrawer = ({
   onSave: () => void
   onDiscardAll: () => void
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const names = useObjectNames()
+  const { connectionResource, dialect } = useConnectionContext()
   const { columns } = useTableColumnsContext()
   const columnsById = new Map(columns.map((column) => [column.id, column]))
   const identityColumns = rowIdentity(columns, dialect).columns
@@ -120,7 +120,7 @@ export const DraftsReviewDrawer = ({
           </span>
         </>
       }
-      emptyDescription="Edit cells in the table and the changes will show up here."
+      emptyDescription={`Edit cells in the ${names.table} and the changes will show up here.`}
       onDiscardAll={onDiscardAll}
       onSubmit={onSave}
       submit={{
@@ -149,10 +149,10 @@ export const DraftsReviewDrawer = ({
         {newRows.map((newRow) => (
           <ChangeGroup
             key={newRow.id}
-            title="New row"
+            title={`New ${names.row}`}
             action={
               <DiscardButton
-                label="Discard row"
+                label={`Discard ${names.row}`}
                 onClick={() => newRowsActions(sessionStore).discard(newRow.id)}
                 disabled={isSaving}
               />
@@ -186,7 +186,7 @@ export const DraftsReviewDrawer = ({
               }
               action={
                 <DiscardButton
-                  label="Discard row"
+                  label={`Discard ${names.row}`}
                   onClick={() => discardRow(primaryKeys)}
                   disabled={isSaving}
                 />

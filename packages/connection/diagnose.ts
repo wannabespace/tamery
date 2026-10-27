@@ -18,6 +18,9 @@ const sslFix = (
   return options ? { label, patch: { options } } : undefined
 }
 
+const TLS_HANDSHAKE_ALERT =
+  /tlsv1_alert|sslv3_alert|ssl alert number|alert (?:internal error|handshake failure)|handshake failure/iu
+
 const RULES: DiagnosisRule[] = [
   ...SSH_RULES,
   ...SQLITE_RULES,
@@ -77,6 +80,14 @@ const RULES: DiagnosisRule[] = [
     match: /host '[^']*' is not allowed to connect/iu,
   },
   {
+    diagnose: () => ({
+      hint: "Azure SQL blocks your IP at the server firewall. Add it under the server's Networking → firewall rules in the Azure portal, then try again.",
+      title: "Azure SQL won't accept connections from here",
+    }),
+    engine: ConnectionType.MSSQL,
+    match: /is not allowed to access the server/iu,
+  },
+  {
     diagnose: ({ message }) => {
       const service = /service "(?<name>[^"]+)"/iu.exec(message)?.groups?.name
       return {
@@ -92,11 +103,61 @@ const RULES: DiagnosisRule[] = [
   },
   {
     diagnose: () => ({
+      hint: 'Oracle is reachable but its listener refused the connection. Check that the database and its listener are running, and that the port is right.',
+      title: "Oracle's listener isn't answering",
+    }),
+    engine: ConnectionType.Oracle,
+    match: /ora-12541|tns:no listener/iu,
+  },
+  {
+    diagnose: ({ parts }) =>
+      new URLSearchParams(parts.options.toLowerCase()).has('authsource')
+        ? {
+            focus: 'password',
+            hint: 'Check the user and password, and the authSource option: it names the database the user was created in.',
+            title: 'Wrong user or password',
+          }
+        : {
+            fix: {
+              label: 'Sign in through admin',
+              patch: {
+                options: [parts.options, 'authSource=admin']
+                  .filter(Boolean)
+                  .join('&'),
+              },
+            },
+            focus: 'password',
+            hint: 'MongoDB checks a user against the database in the string unless authSource names another; a root user lives in admin.',
+            title: 'Wrong user or password',
+          },
+    engine: ConnectionType.MongoDB,
+    match: /authentication failed/iu,
+  },
+  {
+    diagnose: () => ({
       focus: 'user',
       hint: "Supabase's pooler doesn't know this project: check the project ref in the user (postgres.<project-ref>), and that the project isn't paused.",
       title: "Supabase can't find this project",
     }),
     match: /tenant or user not found/iu,
+  },
+  {
+    diagnose: () => ({
+      focus: 'user',
+      hint: 'The server locked this account, after too many failed sign-ins or by an administrator. Unlock it on the server, or wait for the lockout to clear.',
+      title: 'This account is locked',
+    }),
+    // Before the password rule: the lockout message also carries "access denied"/"login failed".
+    match:
+      /account is locked|account has been locked|account is currently locked|ora-28000/iu,
+  },
+  {
+    diagnose: () => ({
+      focus: 'password',
+      hint: 'The server still knows this user, but the password has expired and must be changed on the server before it will let a client in.',
+      title: 'The password has expired',
+    }),
+    match: /password has expired|password .+ must be changed|ora-28001/iu,
   },
   {
     diagnose: ({ parts }) => {
@@ -174,6 +235,23 @@ const RULES: DiagnosisRule[] = [
     }),
     match:
       /self[- ]signed certificate|unable to verify the first certificate|unable to get (?:local )?issuer certificate|certificate has expired|hostname\/ip does not match|altnames|depth_zero_self_signed/iu,
+  },
+  {
+    // Atlas aborts the TLS handshake with this alert when the IP is not on its access list, so SSL settings are not the fix.
+    engine: ConnectionType.MongoDB,
+    diagnose: () => ({
+      hint: 'MongoDB Atlas ends the handshake this way when your IP is not on its access list. Add your current IP under Network Access in Atlas, or allow it in the server’s firewall, then try again.',
+      title: 'Your IP may not be allowed in',
+    }),
+    match: TLS_HANDSHAKE_ALERT,
+  },
+  {
+    diagnose: ({ parts }) => ({
+      fix: sslFix(parts, 'off', 'Turn off SSL'),
+      hint: 'The server ended the encrypted handshake with an alert. It may not expect SSL on this port, or its certificate or TLS settings may be off. Try turning SSL off, or check the server.',
+      title: 'The TLS handshake failed',
+    }),
+    match: TLS_HANDSHAKE_ALERT,
   },
   ...NETWORK_RULES,
   {

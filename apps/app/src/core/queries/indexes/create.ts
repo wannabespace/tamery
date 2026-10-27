@@ -18,6 +18,20 @@ export const createIndexQuery = (shape: IndexShape) => {
         await addSkipIndexStatement(shape).execute(db)
         await materializeIndexStatement(shape).execute(db)
       },
+      mongodb: (db) =>
+        db
+          .collection(shape.table)
+          .createIndex(
+            Object.fromEntries(shape.columns.map((column) => [column, 1])),
+            {
+              ...(shape.name && { name: shape.name }),
+              ...(shape.unique && { unique: true }),
+              ...(shape.sparse && { sparse: true }),
+              ...(shape.expireAfterSeconds !== undefined && {
+                expireAfterSeconds: shape.expireAfterSeconds,
+              }),
+            }
+          ),
       mssql: (db) => create.execute(db),
       mysql: (db) => create.execute(db),
       oracle: (db) => oracleCreateIndexStatement(shape).execute(db),

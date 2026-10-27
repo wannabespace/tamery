@@ -1,4 +1,5 @@
 import { Dialect } from '@tamery/shared/enums/connection-type'
+import { unsupported } from '@tamery/shared/unsupported'
 
 import { createQuery } from '~/core/runtime/query'
 
@@ -13,6 +14,7 @@ export const dropColumnQuery = (target: {
     query: {
       clickhouse: (db) =>
         db.executeQuery(dropColumnStatement(Dialect.ClickHouse, db, target)),
+      mongodb: unsupported('Column changes'),
       mssql: (db) =>
         db.executeQuery(dropColumnStatement(Dialect.MSSQL, db, target)),
       mysql: (db) =>

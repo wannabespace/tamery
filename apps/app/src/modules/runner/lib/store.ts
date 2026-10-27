@@ -1,18 +1,15 @@
 import type { Dialect } from '@tamery/shared/enums/connection-type'
-import { dialects, splitStatements } from '@tamery/sql'
-import { getRouteApi } from '@tanstack/react-router'
 import { type } from 'arktype'
 import { memoize } from 'memoza'
 import { createContext, use } from 'react'
 import { createComputed } from 'seitu'
 import { createWebStorageValue } from 'seitu/web'
 
+import { useTabContext } from '~/core/connection/route'
+import { getQueryLanguage } from '~/core/runtime/language'
+
 import { starterQuery } from './starter'
 import { runnerStoreKey } from './tab'
-
-const { useRouteContext } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
 
 export const RUNNER_RESULTS_MIN_HEIGHT = 160
 export const RUNNER_RESULTS_MAX_HEIGHT = 720
@@ -52,7 +49,7 @@ export type RunnerPageStore = ReturnType<typeof runnerPageStore>
 export const runnerStatements = memoize(
   ({ dialect, resourceId, tabId }: RunnerTab & { dialect: Dialect }) =>
     createComputed(runnerPageStore({ dialect, resourceId, tabId }), (state) =>
-      splitStatements(state.query, dialects[dialect])
+      getQueryLanguage(dialect).split(state.query)
     )
 )
 
@@ -67,7 +64,7 @@ export const useRunnerTab = () => {
 }
 
 export const useRunnerPageStore = () => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useTabContext()
   return runnerPageStore({ dialect, ...useRunnerTab() })
 }
 

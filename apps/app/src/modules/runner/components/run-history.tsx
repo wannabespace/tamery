@@ -17,22 +17,19 @@ import {
   PopoverTrigger,
 } from '@tamery/ui/components/popover'
 import { cn } from '@tamery/ui/lib/utils'
-import { getRouteApi } from '@tanstack/react-router'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { useState } from 'react'
 import { useSubscription } from 'seitu/react'
+
+import { useTabContext } from '~/core/connection/route'
 
 import { useRunnerActions } from '../lib/actions'
 import { runHistory } from '../lib/history'
 import { appendQuery, useRunnerPageStore } from '../lib/store'
 import { ActionItem, ListEmpty, PopoverCommand } from './popover-list'
 
-const { useRouteContext } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
-
 export const RunHistoryButton = () => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useTabContext()
   const store = useRunnerPageStore()
   const { focus } = useRunnerActions()
   const history = useSubscription(runHistory.get(connectionResource.id))

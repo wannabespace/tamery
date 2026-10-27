@@ -16,6 +16,7 @@ export const renamePolicyQuery = ({
         sql`ALTER ROW POLICY ${policyOn(target)} RENAME TO ${sql.id(newName)}`.execute(
           db
         ),
+      mongodb: unsupported('Row policies'),
       mssql: unsupported('Row policies'),
       mysql: unsupported('Row policies'),
       oracle: unsupported('Row policies'),

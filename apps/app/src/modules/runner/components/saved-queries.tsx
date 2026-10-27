@@ -6,11 +6,12 @@ import {
 } from '@hugeicons/core-free-icons'
 import { CommandGroup, CommandList } from '@tamery/ui/components/command'
 import { eq, useLiveQuery } from '@tanstack/react-db'
-import { getRouteApi, useRouter } from '@tanstack/react-router'
+import { useRouter } from '@tanstack/react-router'
 import type { ComponentRef } from 'react'
 import { useRef } from 'react'
 
 import { useCollections } from '~/core/collections'
+import { useTabContext } from '~/core/connection/route'
 
 import { useRunnerActions } from '../lib/actions'
 import { openRunnerTab } from '../lib/new-query'
@@ -24,12 +25,8 @@ import type { Query } from '../sync'
 import { ActionItem, ListEmpty, PopoverCommand } from './popover-list'
 import { RemoveQueryDialog } from './remove-query-dialog'
 
-const { useRouteContext } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
-
 export const SavedQueries = ({ onPicked }: { onPicked: () => void }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useTabContext()
   const { queriesCollection } = useCollections()
   const router = useRouter()
   const store = useRunnerPageStore()

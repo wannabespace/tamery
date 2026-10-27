@@ -9,18 +9,17 @@ import {
   CommandShortcut,
   CommandList,
 } from '@tamery/ui/components/command'
-import { getRouteApi } from '@tanstack/react-router'
+
+import { useConnectionContext } from '~/core/connection/route'
 
 import { offeredFilters } from '../filter-composer'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export const FiltersOperatorSelector = ({
   onSelect,
 }: {
   onSelect: (filter: Filter) => void
 }) => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
 
   return (
     <Command>

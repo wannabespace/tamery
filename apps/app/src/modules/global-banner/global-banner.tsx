@@ -18,6 +18,7 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { useDelay } from '@tamery/ui/hooks/use-delay'
 import { cn } from '@tamery/ui/lib/utils'
+import { useLiveQuery } from '@tanstack/react-db'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from '@tanstack/react-router'
 import { type } from 'arktype'
@@ -33,6 +34,7 @@ import { useSubscription } from 'seitu/react'
 import { createWebStorageValue } from 'seitu/web'
 
 import { Link } from '~/components/link'
+import { useCollections } from '~/core/collections'
 import {
   MAX_RECONNECTION_ATTEMPTS,
   reconnectingPromises,
@@ -197,8 +199,33 @@ const GuestBannerContent = ({
   )
 }
 
+const EditConnectionAction = ({ connectionId }: { connectionId: string }) => (
+  <Button
+    variant="ghost-tint"
+    size="xs"
+    render={<Link to="/edit/$connectionId" params={{ connectionId }} />}
+  >
+    Edit connection
+    <HugeiconsIcon
+      icon={ArrowRight01Icon}
+      strokeWidth={2}
+      data-icon="inline-end"
+    />
+  </Button>
+)
+
 export const GlobalBanner = () => {
   const { resourceId } = useParams({ strict: false })
+  const { connectionsResourcesCollection } = useCollections()
+  const { data: resourceRows } = useLiveQuery({
+    query: (q) =>
+      q
+        .from({ r: connectionsResourcesCollection })
+        .select(({ r }) => ({ connectionId: r.connectionId, id: r.id })),
+  })
+  const connectionId = resourceRows.find(
+    (row) => row.id === resourceId
+  )?.connectionId
   const reconnectingData = useSubscription(reconnectingPromises, {
     selector: (state) =>
       (resourceId &&
@@ -275,6 +302,7 @@ export const GlobalBanner = () => {
             <ElapsedSeconds className="opacity-70" since={waitingSince} />
             <Spinner className="size-3.5" />
           </span>
+          {connectionId && <EditConnectionAction connectionId={connectionId} />}
         </Banner>
       )}
       {reconnectingData && (
@@ -290,6 +318,7 @@ export const GlobalBanner = () => {
             </span>
             <Spinner className="size-3.5" />
           </span>
+          {connectionId && <EditConnectionAction connectionId={connectionId} />}
         </Banner>
       )}
     </AnimatePresence>

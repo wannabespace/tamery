@@ -10,7 +10,7 @@ We built Tamery because we wanted a database client that is fast, simple and nic
 
 And one that actually helps instead of getting in the way.
 
-It works with **PostgreSQL**, **TimescaleDB**, **MySQL**, **MariaDB**, **SQL Server**, **Oracle**, **ClickHouse** and **SQLite** (Turso and Cloudflare D1 too).
+It works with **PostgreSQL**, **TimescaleDB**, **MySQL**, **MariaDB**, **SQL Server**, **Oracle**, **ClickHouse**, **MongoDB** and **SQLite** (Turso and Cloudflare D1 too).
 
 ## Get started
 

@@ -13,6 +13,7 @@ export const setTriggerEnabledQuery = (
   return createQuery({
     query: {
       clickhouse: unsupported('Disabling triggers'),
+      mongodb: unsupported('Triggers'),
       mssql: (db) => setEnabled.mssql.execute(db),
       mysql: unsupported('Disabling triggers'),
       oracle: (db) => setEnabled.oracle.execute(db),

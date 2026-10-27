@@ -34,8 +34,10 @@ import { lastOpenedResourcesStorageValue } from '~/core/connection/last-opened-r
 import { ResourceLabel } from '~/core/connection/resource-label'
 import type { Connection, ConnectionResource } from '~/core/connection/sync'
 import { useConnectionResourceLinkParams } from '~/core/connection/use-connection-resource-link-params'
+import { connectionResourcesQueryOptions } from '~/core/queries/connection/resources'
 import { checkOrUpgrade, usePermissions } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
+import { queryClient } from '~/lib/query-client'
 import { CommandPaletteButton } from '~/modules/actions-center/command-palette-button'
 import { OpenInWeb } from '~/modules/open-in-web/open-in-web'
 import { UpdateButton, VersionButton } from '~/modules/updates/update-button'
@@ -266,7 +268,17 @@ const ResourcesDropdown = ({
   resources: ConnectionResource[]
   current: ConnectionResource
 }) => (
-  <DropdownMenu>
+  <DropdownMenu
+    onOpenChange={(open) => {
+      // Pick up databases created since the catalog last synced, so the list is current when opened — no refresh button needed.
+      if (open) {
+        void queryClient.fetchQuery({
+          ...connectionResourcesQueryOptions(connection),
+          staleTime: 0,
+        })
+      }
+    }}
+  >
     <DropdownMenuTrigger
       render={
         <Button

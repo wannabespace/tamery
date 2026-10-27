@@ -14,6 +14,7 @@ export const createTriggerQuery = (
   return createQuery({
     query: {
       clickhouse: unsupported('Triggers'),
+      mongodb: unsupported('Triggers'),
       mssql: (db) => create.mssql.execute(db),
       mysql: (db) => create.mysql.execute(db),
       oracle: (db) =>

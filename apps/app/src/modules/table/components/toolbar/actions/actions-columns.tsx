@@ -29,12 +29,14 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { useSubscription } from 'seitu/react'
 
+import { useObjectNames } from '~/core/catalog/names'
 import { plural } from '~/utils/plural'
 
 import { useTableColumnsContext } from '../../../lib/columns'
 import { orderColumns, useTablePageStore } from '../../../lib/store'
 
 export const ActionsColumns = () => {
+  const names = useObjectNames()
   const store = useTablePageStore()
   const { columnOrder, hiddenColumns } = useSubscription(store, {
     selector: (state) => pick(state, ['columnOrder', 'hiddenColumns']),
@@ -49,7 +51,7 @@ export const ActionsColumns = () => {
     store.set(
       (state) => ({ ...state, hiddenColumns: ids }) satisfies typeof state
     )
-  let label = plural(columns.length, 'column')
+  let label = plural(columns.length, names.column)
   if (isPending) {
     label = 'Loading columns…'
   } else if (hiddenCount > 0) {
@@ -96,9 +98,9 @@ export const ActionsColumns = () => {
         align="end"
       >
         <Command>
-          <CommandInput placeholder="Search columns..." />
+          <CommandInput placeholder={`Search ${names.column}s...`} />
           <CommandList className="h-fit max-h-[70vh]">
-            <CommandEmpty>No columns found.</CommandEmpty>
+            <CommandEmpty>No {names.column}s found.</CommandEmpty>
             <CommandGroup>
               <CommandItem
                 value="toggle-columns"

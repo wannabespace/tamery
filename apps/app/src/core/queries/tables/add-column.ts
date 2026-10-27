@@ -25,6 +25,7 @@ export const addColumnQuery = ({
     query: {
       clickhouse: (db) =>
         db.executeQuery(addColumnStatement(Dialect.ClickHouse, db, target)),
+      mongodb: unsupported('Column changes'),
       mssql: async (db) => {
         await db.executeQuery(addColumnStatement(Dialect.MSSQL, db, target))
         if (reference) {

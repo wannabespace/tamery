@@ -9,10 +9,10 @@ import {
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
 import { useMutation } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { toast } from 'sonner'
 
 import type { AppMenuNode } from '~/components/app-menu'
+import { useConnectionContext } from '~/core/connection/route'
 import { resourcePoliciesQueryOptions } from '~/core/queries/policies/list'
 import { setRowLevelSecurityQuery } from '~/core/queries/policies/set-row-level-security'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
@@ -21,13 +21,11 @@ import { queryClient } from '~/lib/query-client'
 
 import type { TreeRow } from './tree-row'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const useRowLevelSecurityItems = ({
   schema,
   table,
 }: Extract<TreeRow, { kind: 'table' }>): AppMenuNode[] => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const mutation = useMutation({
     meta: { event: 'row_level_security_toggled' },
     mutationFn: async (enabled: boolean) =>

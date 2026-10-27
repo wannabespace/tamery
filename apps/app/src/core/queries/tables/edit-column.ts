@@ -147,6 +147,7 @@ export const editColumnQuery = (target: EditColumnTarget) =>
           )
         }
       },
+      mongodb: unsupported('Column changes'),
       mssql: async (db) => {
         const { newName, original, schema, table } = target
         await editInSteps(Dialect.MSSQL, db, target)

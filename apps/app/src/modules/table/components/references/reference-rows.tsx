@@ -12,17 +12,15 @@ import {
 } from '@tamery/ui/components/table'
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useRef } from 'react'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { matchingRowsQueryOptions } from '~/core/queries/rows/list'
 import { TableError } from '~/core/table/table-error'
 
 import { useTableColumnsQuery } from '../../lib/columns'
 import type { Hop, RowsHop } from './hops'
 import { Display, RecordView } from './reference-views'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const SKELETON_ROWS = 5
 
@@ -44,7 +42,7 @@ export const RowsView = ({
   hop: RowsHop
   onFollow: (hop: Hop) => void
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const {
     data: rows = [],
     error,

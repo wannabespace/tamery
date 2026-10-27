@@ -1,14 +1,15 @@
 import { LayoutThreeColumnIcon } from '@hugeicons/core-free-icons'
 import { enabledFilters } from '@tamery/shared/filters'
-import { pick } from '@tamery/shared/utils'
+import { uppercaseFirst, pick } from '@tamery/shared/utils'
 import { TableSkeleton } from '@tamery/table'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { useMountedEffect } from '@tamery/ui/hookas/use-mounted-effect'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useRef } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { getCapabilities } from '~/core/catalog/capabilities'
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceRowsQueryInfiniteOptions } from '~/core/queries/rows/list'
 import { rowIdentity } from '~/core/queries/rows/shape'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
@@ -18,7 +19,7 @@ import { TableError } from '~/core/table/table-error'
 import { tableTabId } from '~/core/tabs/ids'
 import { posthog } from '~/lib/posthog'
 
-import { useTableColumnsContext } from '../../lib/columns'
+import { useTableColumnsContext, withRowFieldColumns } from '../../lib/columns'
 import { tableGridRef } from '../../lib/grid-ref'
 import { stagedHistory, useStagedHistoryHotkeys } from '../../lib/history'
 import { useFlashChangedCells, useSyncSelectionWithRows } from '../../lib/hooks'
@@ -43,18 +44,17 @@ import { TableFieldLabel, TableHeaderCell } from './table-header-cell'
 import { keysInRange } from './table-selection'
 import { DocumentsSkeleton } from './table-skeleton'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const Table = ({
   onAddColumn,
   schema,
   table,
 }: {
-  onAddColumn: () => void
+  onAddColumn?: () => void
   schema: string
   table: string
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
+  const { names } = getCapabilities(dialect)
   const { columns, isPending: isColumnsPending } = useTableColumnsContext()
   const store = useTablePageStore()
   const sessionStore = useTableSessionStore()
@@ -118,16 +118,17 @@ export const Table = ({
     target: peekTarget,
   } = useReferencePeek(scrollRef)
 
+  const displayColumns = withRowFieldColumns(dialect, columns, rows)
   const { pinned, reordered, visible } = columnView(
-    columns,
+    displayColumns,
     { columnOrder, hiddenColumns, pinnedColumns },
     view === 'grid'
   )
-  const identityColumns = rowIdentity(columns, dialect).columns
+  const identityColumns = rowIdentity(displayColumns, dialect).columns
   const isEditable = identityColumns.length > 0
   const canWriteRows = isEditable && !!isBaseTable
   const staged = useStagedEdits({
-    columns,
+    columns: displayColumns,
     dialect,
     rows,
     visible,
@@ -152,7 +153,7 @@ export const Table = ({
 
   const { getActions, dialogs } = useColumnActions({
     dialect,
-    editable: !!isBaseTable,
+    editable: !!isBaseTable && !!onAddColumn,
     schema,
     table,
   })
@@ -171,8 +172,8 @@ export const Table = ({
     return (
       <IconEmpty
         icon={LayoutThreeColumnIcon}
-        title="No columns to show"
-        description="Every column is hidden. Show some from the Columns menu."
+        title={`No ${names.column}s to show`}
+        description={`Every ${names.column} is hidden. Show some from the ${uppercaseFirst(names.column)}s menu.`}
       />
     )
   }

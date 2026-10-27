@@ -44,6 +44,7 @@ export const alterPolicyQuery = ({
           ${using === '' ? sql`USING NONE` : expression('USING', using)}
           ${roles ? sql`TO ${clickhouseRoleList(roles)}` : sql``}
         `.execute(db),
+      mongodb: unsupported('Row policies'),
       mssql: (db) =>
         db.transaction().execute(async (tx) => {
           const policyName = sql.id(target.schema, target.name)

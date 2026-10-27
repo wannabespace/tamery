@@ -8,11 +8,13 @@ import {
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi, useParams } from '@tanstack/react-router'
+import { useParams } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
+import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { tableTabId } from '~/core/tabs/ids'
 
@@ -22,14 +24,13 @@ import { navigatorStore } from './stores'
 import { TablesList } from './tables-list'
 import { buildTreeRows } from './tree-row'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const TablesPanel = ({
   onCreateTable,
 }: {
   onCreateTable: (schema?: string) => void
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
+  const names = useObjectNames()
   const { tabId: activeTabId } = useParams({ strict: false })
   const store = navigatorStore(connectionResource.id)
   const search = useSubscription(store, {
@@ -75,7 +76,7 @@ export const TablesPanel = ({
     pinnedTables,
     schemas: tablesAndSchemas?.schemas ?? [],
     search,
-    showSchemaRows: getCapabilities(dialect).schemas,
+    showSchemaRows: getCapabilities(dialect).flags.includes('schemas'),
   })
 
   const toggleSchema = (name: string) => {
@@ -114,7 +115,7 @@ export const TablesPanel = ({
           size="sm"
           data-mask
           placeholder="Search"
-          aria-label="Search tables"
+          aria-label={`Search ${names.table}s`}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onClear={() => setSearch('')}
@@ -131,7 +132,7 @@ export const TablesPanel = ({
           <TooltipTrigger
             render={
               <RefreshButton
-                aria-label="Refresh tables"
+                aria-label={`Refresh ${names.table}s`}
                 variant="outline-muted"
                 size="icon-sm"
                 onClick={() => refetch()}
@@ -141,7 +142,11 @@ export const TablesPanel = ({
           />
           <TooltipContent side="bottom">
             <div className="flex flex-col gap-0.5">
-              <span>Refresh tables and schemas</span>
+              <span>
+                Refresh {names.table}s
+                {getCapabilities(dialect).flags.includes('schemas') &&
+                  ' and schemas'}
+              </span>
               <span className="opacity-70">
                 Last updated:{' '}
                 {dataUpdatedAt

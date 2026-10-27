@@ -24,6 +24,7 @@ export const privilegeType = type({
 const query = createQuery({
   query: {
     clickhouse: unsupported('Privileges'),
+    mongodb: unsupported('Privileges'),
     mssql: unsupported('Privileges'),
     mysql: async (db) => {
       const [onSchemas, onTables] = await Promise.all([

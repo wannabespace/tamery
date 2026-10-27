@@ -1,0 +1,15 @@
+{
+  "name": "@tamery/mongo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check-types": "tsc",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@mongodb-js/mongodb-constants": "catalog:",
+    "@tamery/configs": "workspace:*",
+    "acorn": "catalog:",
+    "better-result": "catalog:"
+  }
+}

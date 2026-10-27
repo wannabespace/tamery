@@ -1,5 +1,4 @@
 import { getDialect } from '@tamery/shared/enums/connection-type'
-import { destructiveKeywords, dialects } from '@tamery/sql'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +13,7 @@ import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 import { useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { getQueryLanguage } from '~/core/runtime/language'
 import { plural } from '~/utils/plural'
 
 import { approval } from './approval'
@@ -69,7 +69,9 @@ export const ApprovalDialog = () => {
           </AlertDialogHeader>
           <CodeBlock
             code={item.sql}
-            language="sql"
+            language={
+              getQueryLanguage(getDialect(item.connection.type)).highlight
+            }
             size="xs"
             variant="field"
             wrap
@@ -85,9 +87,8 @@ export const ApprovalDialog = () => {
             <AlertDialogCancel ref={declineRef}>Decline</AlertDialogCancel>
             <AlertDialogAction
               variant={
-                destructiveKeywords(
-                  item.sql,
-                  dialects[getDialect(item.connection.type)]
+                getQueryLanguage(getDialect(item.connection.type)).destructive(
+                  item.sql
                 ).length > 0
                   ? 'destructive'
                   : 'warning'

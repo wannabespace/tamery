@@ -10,6 +10,7 @@ export const grantPrivilegeQuery = (target: PrivilegeTarget) =>
   createQuery({
     query: {
       clickhouse: unsupported('Privileges'),
+      mongodb: unsupported('Privileges'),
       mssql: unsupported('Privileges'),
       // A database-wide grant takes a LIKE pattern: unescaped, `my_db` also
       // covers `myXdb`.

@@ -1,15 +1,20 @@
 import { engines } from '@tamery/shared/enums/connection-type'
-import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@tamery/ui/components/select'
+  Combobox,
+  ComboboxCollection,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxLabel,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxValue,
+} from '@tamery/ui/components/combobox'
+import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 import { useSelector } from '@tanstack/react-form'
+import { useState } from 'react'
 
 import type { ConnectionForm } from '../lib/connection-form'
 import { switchEngine } from '../lib/connection-form'
@@ -17,14 +22,8 @@ import { switchEngine } from '../lib/connection-form'
 type Engine = (typeof engines)[number]
 
 const engineGroups = [
-  {
-    label: 'Databases',
-    engines: engines.filter(({ provider }) => !provider),
-  },
-  {
-    label: 'Providers',
-    engines: engines.filter(({ provider }) => provider),
-  },
+  { items: engines.filter(({ provider }) => !provider), label: 'Databases' },
+  { items: engines.filter(({ provider }) => provider), label: 'Providers' },
 ]
 
 const EngineLabel = ({ label, provider, type }: Engine) => (
@@ -47,41 +46,57 @@ export const EngineField = ({
         type === values.type && provider === values.provider
     )
   )
+  const [query, setQuery] = useState('')
 
   return (
     <form.AppField name="type">
       {(field) => (
         <field.Field orientation="row">
           <field.Label>Engine</field.Label>
-          <Select<Engine>
-            disabled={locked(field.name)}
+          <Combobox<Engine>
+            items={engineGroups}
             value={engine}
             onValueChange={(next) => next && switchEngine(form, next)}
+            itemToStringLabel={(item) => item.label}
+            isItemEqualToValue={(item, value) =>
+              item.type === value.type && item.provider === value.provider
+            }
+            inputValue={query}
+            onInputValueChange={setQuery}
+            onOpenChange={(open) => !open && setQuery('')}
+            disabled={locked(field.name)}
+            autoHighlight
           >
-            <SelectTrigger
-              id={field.name}
-              // The trigger is a div, which `<label for>` cannot name.
-              aria-labelledby={`${field.name}-label`}
-              variant="flat"
-              onBlur={field.handleBlur}
-            >
-              <SelectValue>
-                {(value: Engine) => <EngineLabel {...value} />}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {engineGroups.map((group) => (
-                <SelectGroup key={group.label}>
-                  <SelectLabel>{group.label}</SelectLabel>
-                  {group.engines.map((item) => (
-                    <SelectItem key={item.label} value={item}>
-                      <EngineLabel {...item} />
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ))}
-            </SelectContent>
-          </Select>
+            <ComboboxTrigger id={field.name} variant="flat" className="flex-1">
+              <span className="flex flex-1 items-center gap-2">
+                <ComboboxValue>
+                  {(value: Engine) => <EngineLabel {...value} />}
+                </ComboboxValue>
+              </span>
+            </ComboboxTrigger>
+            <ComboboxContent>
+              <ComboboxInput
+                showTrigger={false}
+                placeholder="Search engines…"
+                autoComplete="off"
+              />
+              <ComboboxList>
+                {(group: (typeof engineGroups)[number]) => (
+                  <ComboboxGroup key={group.label} items={group.items}>
+                    <ComboboxLabel>{group.label}</ComboboxLabel>
+                    <ComboboxCollection>
+                      {(item: Engine) => (
+                        <ComboboxItem key={item.label} value={item}>
+                          <EngineLabel {...item} />
+                        </ComboboxItem>
+                      )}
+                    </ComboboxCollection>
+                  </ComboboxGroup>
+                )}
+              </ComboboxList>
+              <ComboboxEmpty>No engines found.</ComboboxEmpty>
+            </ComboboxContent>
+          </Combobox>
         </field.Field>
       )}
     </form.AppField>

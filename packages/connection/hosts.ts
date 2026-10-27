@@ -1,4 +1,4 @@
-import { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
 
 import {
   CLICKHOUSE_HTTP_PORT_OF_NATIVE,
@@ -12,6 +12,7 @@ interface HostHint {
   label: string
   port?: string
   projectInUser?: RegExp
+  provider?: Provider
   suffixes: string[]
   /** The engine's default port skips this provider's transaction pooler. */
   transactionPoolerPort?: string
@@ -121,6 +122,12 @@ const HOST_HINTS: HostHint[] = [
     suffixes: ['.oraclecloud.com'],
     type: ConnectionType.Oracle,
   },
+  {
+    label: 'MongoDB Atlas',
+    provider: Provider.MongoDBAtlas,
+    suffixes: ['.mongodb.net'],
+    type: ConnectionType.MongoDB,
+  },
   { label: 'Aiven', suffixes: ['.aivencloud.com'] },
   {
     label: 'DigitalOcean',
@@ -191,3 +198,14 @@ export const getHostKind = (host: string): HostKind => {
   }
   return getHostHint(host)?.ipv6Only?.test(host) ? 'ipv6-only' : 'public'
 }
+
+/** A pasted scheme or port already says how to reach the host, so only a bare one takes its provider from the hint. */
+export const getBareHostProvider = ({
+  host = '',
+  port,
+  type,
+}: {
+  host?: string
+  port?: string
+  type?: ConnectionType | null
+}) => (type || port ? undefined : getHostHint(host)?.provider)

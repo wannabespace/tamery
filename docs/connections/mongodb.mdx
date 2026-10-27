@@ -1,0 +1,90 @@
+---
+title: 'MongoDB'
+sidebarTitle: 'MongoDB'
+description: 'Connect to MongoDB 5.0 or later, including MongoDB Atlas, and query it in mongosh syntax.'
+---
+
+Choose **MongoDB** under **Engine**, or paste:
+
+```text
+mongodb://user:password@localhost:27017/shop?authSource=admin
+```
+
+The default port is **27017**. The path is the database Tamery opens first.
+
+For MongoDB Atlas, paste the `mongodb+srv://` string from **Connect** in Atlas — Tamery recognizes the cluster address on its own:
+
+```text
+mongodb+srv://user:password@cluster0.abcde.mongodb.net/shop
+```
+
+A string that lists several servers keeps the first one. Add `replicaSet=` with the set's name and the driver finds the other members from it.
+
+Atlas only accepts connections from allowed IPs. If connecting ends with a TLS handshake error, add your current IP under **Network Access** in Atlas, then try again.
+
+## Signing in
+
+MongoDB checks a user against the database in the string unless `authSource` names another one. A root user, like the one the `mongo` Docker image creates, lives in `admin`. When the sign-in fails for that reason, Tamery offers to add `authSource=admin`.
+
+Opening another database of the same connection keeps signing in where the string did.
+
+## Encryption
+
+Add `tls=true` to connect over TLS. A `mongodb+srv://` string uses TLS without it. Without either, Tamery connects in plain text.
+
+## SSH tunnels
+
+On desktop, turn on **SSH tunnel** to reach MongoDB behind a bastion, as for any engine. Every server of a replica set connects through the tunnel, by the names the SSH host resolves, so members listed under internal hostnames work.
+
+## Databases and collections
+
+Each database is a resource of the connection. `admin`, `config`, and `local` stay hidden. The Navigator lists the database's collections and views.
+
+A collection has no fixed columns, so Tamery infers them: a random sample of 100 documents, plus the fields the documents you have loaded carry, so more columns can appear as you scroll. Each field becomes a column with the type its values have, and `_id` is the key — shown even on an empty collection so you can add the first document.
+
+In the [table browser](/features/table-browser) you can filter, sort, edit cells, and add or delete documents. **Add document** opens an editor where you paste or type a whole document in mongosh or Extended JSON syntax; BSON types like `ObjectId("…")` and `ISODate("…")` are kept as themselves. An edited cell is stored with its field's type too: an ObjectId stays an ObjectId and a date stays a date. Nested documents and arrays open in the JSON editor, where typed values read as Extended JSON, like `{ "$oid": "…" }`.
+
+**Schema** lists each collection's indexes, where you can add and drop them. MongoDB can't alter an index in place, so an existing one opens read-only — change it by dropping and recreating it.
+
+## Queries
+
+A Query tab runs mongosh calls instead of SQL:
+
+```js
+db.orders
+  .find({ status: 'paid', total: { $gt: 100 } })
+  .sort({ total: -1 })
+  .limit(20)
+
+db.getCollection('order-items').aggregate([
+  { $group: { _id: '$sku', sold: { $sum: '$qty' } } },
+])
+
+db.runCommand({ collStats: 'orders' })
+```
+
+Completion knows your collections, their fields, the methods, and the query, update, and pipeline operators. Each call is one statement: put calls on separate lines or between `;`. Values can use `ObjectId()`, `ISODate()`, `NumberLong()`, `NumberDecimal()`, `UUID()`, and the other BSON constructors.
+
+The Query tab's [AI help](/features/query-editor#get-ai-help) works here too: Edit with AI, Fix with AI, and the grey inline suggestion that completes your mongosh call as you type.
+
+Tamery runs `db` calls only, not other JavaScript: no variables, loops, or functions. Use `db.getSiblingDB('name')` to reach another database instead of `use`.
+
+Before a call that changes or removes documents or collections runs, Tamery asks, as it does for `UPDATE` and `DROP` in SQL. That covers the update, replace, and delete methods, `drop`, `renameCollection`, an `aggregate` ending in `$out` or `$merge`, and `runCommand`. Inserts and new collections or indexes run right away.
+
+## Transactions
+
+On a replica set or a sharded cluster, the changes you save from the table browser run in one transaction. A standalone server has no transactions, so each change is saved on its own.
+
+## Limits
+
+- The schema visualizer is not available for MongoDB.
+- Collections cannot be [shared](/features/sharing) yet.
+- Columns cannot be added, changed, or dropped. A field exists once a document has it.
+
+## Local MongoDB in Docker
+
+```bash
+docker run -d -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=password mongo
+```
+
+Connect as `root` with `authSource=admin`. On desktop, Tamery lists the running container under detected databases.

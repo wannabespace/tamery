@@ -1,13 +1,14 @@
 import { FIELD_EDITOR_OPTIONS, Monaco } from '@tamery/monaco/editor'
 import {
-  SQL_COMPLETION_OPTIONS,
-  sqlLanguageIds,
-} from '@tamery/monaco/sql-language'
+  QUERY_COMPLETION_OPTIONS,
+  languageIds,
+} from '@tamery/monaco/query-language'
+import type { SqlDialect } from '@tamery/shared/enums/connection-type'
 import { dialects, splitStatements } from '@tamery/sql'
 import { Field, FieldError, FieldLabel } from '@tamery/ui/components/field'
 import { Switch } from '@tamery/ui/components/switch'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { getRouteApi, useRouter } from '@tanstack/react-router'
+import { useRouter } from '@tanstack/react-router'
 import type { editor } from 'monaco-editor'
 import type { RefObject } from 'react'
 import {
@@ -20,21 +21,20 @@ import {
 
 import { OptionField } from '~/components/option-field'
 import { getCapabilities } from '~/core/catalog/capabilities'
+import { useConnectionContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { createViewQuery } from '~/core/queries/views/create'
+import { attachQuerySource } from '~/core/query-editor/query-source'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
-import { attachSqlSource } from '~/core/sql-editor/sql-source'
 import type { TableDialogRequest } from '~/core/table/table-dialog'
 import { TableDialog } from '~/core/table/table-dialog'
 import { openTab } from '~/core/tabs/actions'
 import { tableTabId } from '~/core/tabs/ids'
 import { queryClient } from '~/lib/query-client'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 const QUERY_EDITOR_OPTIONS = {
-  ...SQL_COMPLETION_OPTIONS,
+  ...QUERY_COMPLETION_OPTIONS,
   ...FIELD_EDITOR_OPTIONS,
   ariaLabel: 'Query',
 }
@@ -54,12 +54,12 @@ const QueryField = ({
   onChange: (value: string) => void
   value: string
 }) => {
-  const { connection, connectionResource, dialect } = useRouteContext()
+  const { connection, connectionResource, dialect } = useConnectionContext()
 
   useEffect(() => {
     const codeEditor = editorRef.current
     return codeEditor
-      ? attachSqlSource(
+      ? attachQuerySource(
           codeEditor,
           connectionResource,
           connection.type,
@@ -78,7 +78,7 @@ const QueryField = ({
         ref={editorRef}
         data-mask
         className="ring-foreground/4 h-40 rounded-xl ring"
-        language={sqlLanguageIds[dialect]}
+        language={languageIds[dialect]}
         value={value}
         options={QUERY_EDITOR_OPTIONS}
         onChange={onChange}
@@ -94,8 +94,8 @@ const QueryField = ({
   )
 }
 
-export const CreateViewDialog = () => {
-  const { connectionResource, defaultSchema, dialect } = useRouteContext()
+export const CreateViewDialog = ({ dialect }: { dialect: SqlDialect }) => {
+  const { connectionResource, defaultSchema } = useConnectionContext()
   const router = useRouter()
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null)
   const [request, setRequest] = useState<TableDialogRequest | null>(null)
@@ -193,7 +193,7 @@ export const CreateViewDialog = () => {
         value={query}
         onChange={setQuery}
       />
-      {getCapabilities(dialect).materializedViews && (
+      {getCapabilities(dialect).flags.includes('materializedViews') && (
         <OptionField
           htmlFor="view-dialog-materialized"
           title="Materialized"

@@ -28,6 +28,10 @@ const readVersion =
 const connectionVersionQuery = createQuery({
   query: {
     clickhouse: readVersion(sql`version()`),
+    mongodb: async (db) => {
+      const [info] = await db.command<{ version: string }>('buildInfo')
+      return { version: info?.version ?? '' }
+    },
     mssql: readVersion(sql`SERVERPROPERTY('ProductVersion')`),
     mysql: readVersion(sql`VERSION()`),
     oracle: (db) =>

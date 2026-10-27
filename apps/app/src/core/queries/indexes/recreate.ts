@@ -1,3 +1,4 @@
+import { unsupported } from '@tamery/shared/unsupported'
 import { sql } from 'kysely'
 
 import { replaceWithSavedDdl } from '~/core/queries/shared/definition'
@@ -30,6 +31,7 @@ export const recreateIndexQuery = ({
         await addSkipIndexStatement(replacement).execute(db)
         await materializeIndexStatement(replacement).execute(db)
       },
+      mongodb: unsupported('Indexes'),
       mssql: (db) =>
         db.transaction().execute(async (tx) => {
           await sql`DROP INDEX ${sql.id(name)} ON ${sql.id(schema, table)}`.execute(

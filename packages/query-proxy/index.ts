@@ -114,6 +114,7 @@ export const createQueryRouter = <T extends AnyBuilder>(
 ) =>
   ({
     clickhouse: createQueryDialect(executors.clickhouse, orpc, resolve),
+    mongodb: createQueryDialect(executors.mongodb, orpc, resolve),
     mssql: createQueryDialect(executors.mssql, orpc, resolve),
     mysql: createQueryDialect(executors.mysql, orpc, resolve),
     oracle: createQueryDialect(executors.oracle, orpc, resolve),

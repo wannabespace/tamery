@@ -1,9 +1,10 @@
 import { useMutation } from '@tanstack/react-query'
-import { getRouteApi, useParams, useRouter } from '@tanstack/react-router'
+import { useParams, useRouter } from '@tanstack/react-router'
 import { useImperativeHandle, useState } from 'react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { DropDialog } from '~/core/catalog/drop-dialog'
+import { useConnectionContext } from '~/core/connection/route'
 import { getConnectionResourceStore } from '~/core/connection/stores'
 import { dropSchemaQuery } from '~/core/queries/schemas/drop'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
@@ -11,14 +12,12 @@ import { removeTabs } from '~/core/tabs/actions'
 import { parseTableTabId } from '~/core/tabs/ids'
 import { queryClient } from '~/lib/query-client'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const DropSchemaDialog = ({
   ref,
 }: {
   ref: React.RefObject<{ drop: (schema: string) => void } | null>
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { tabId } = useParams({ strict: false })
   const router = useRouter()
   const [schema, setSchema] = useState('')
@@ -65,7 +64,7 @@ export const DropSchemaDialog = ({
 
   return (
     <DropDialog
-      cascadable={getCapabilities(dialect).cascade}
+      cascadable={getCapabilities(dialect).flags.includes('cascade')}
       cascade={cascade}
       error={error}
       name={schema}

@@ -1,3 +1,4 @@
+import type { ORPCError } from '@orpc/server'
 import type { MeteredFeature } from '@tamery/shared/usage'
 import { FREE_WEEKLY_LIMITS, usageResetsAt } from '@tamery/shared/usage'
 
@@ -6,6 +7,7 @@ import type { permix } from '~/orpc'
 import { redis } from './redis'
 
 const unlimitedPermission = {
+  complete: 'ai.query.completeUnlimited',
   filters: 'ai.filter.unlimited',
   mcp: 'mcp.unlimited',
 } as const satisfies Record<MeteredFeature, typeof permix.$inferPath>
@@ -24,6 +26,16 @@ const getQuota = (feature: MeteredFeature, used: number) => ({
 })
 
 export const usage = {
+  enforce: async (
+    context: UsageContext,
+    feature: MeteredFeature,
+    limitReached: () => ORPCError<string, unknown>
+  ) => {
+    const quota = await usage.get(context, feature)
+    if (quota && quota.used >= quota.max) {
+      throw limitReached()
+    }
+  },
   get: async ({ permissions, user }: UsageContext, feature: MeteredFeature) =>
     permissions.check(unlimitedPermission[feature])
       ? null

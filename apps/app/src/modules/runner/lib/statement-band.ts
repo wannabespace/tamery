@@ -1,16 +1,13 @@
-import { drawnGhostTextElement } from '@tamery/monaco/sql-language'
+import { drawnGhostTextElement } from '@tamery/monaco/query-language'
 import { statementAt } from '@tamery/sql'
-import { getRouteApi } from '@tanstack/react-router'
 import { editor } from 'monaco-editor'
 import type { RefObject } from 'react'
 import { useEffect, useEffectEvent } from 'react'
 
+import { useTabContext } from '~/core/connection/route'
+
 import { runnerStatements, useRunnerTab } from './store'
 import { runnerTransaction } from './transaction'
-
-const { useRouteContext } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
 
 const RUN_SLOT = '\u00A0'.repeat(8)
 export const RUN_SLOT_GAP = 12
@@ -36,7 +33,7 @@ export const useStatementBand = (
   onMove: (anchor: RunAnchor | null) => void
 ) => {
   const move = useEffectEvent(onMove)
-  const { dialect } = useRouteContext()
+  const { dialect } = useTabContext()
   const tab = useRunnerTab()
   const statements = runnerStatements({ ...tab, dialect })
 

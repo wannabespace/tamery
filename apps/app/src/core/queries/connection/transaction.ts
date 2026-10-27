@@ -50,6 +50,16 @@ export const transactionQuery = ({
   return createQuery<Type<ResultSet[]>>({
     query: {
       clickhouse: run,
+      mongodb: (db) =>
+        db.transaction(options).execute(async (tx) => {
+          const sets: ResultSet[] = []
+          for (const statement of statements) {
+            // Sequential by design: the statements run in order inside one transaction.
+            // oxlint-disable-next-line no-await-in-loop
+            sets.push(...(await tx.run(statement)))
+          }
+          return sets
+        }),
       mssql: run,
       mysql: run,
       oracle: run,

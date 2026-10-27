@@ -33,6 +33,7 @@ export const customQuery = ({
   return createQuery<Type<ResultSet[]>>({
     query: {
       clickhouse: run,
+      mongodb: (db) => db.run(query),
       mssql: run,
       mysql: run,
       oracle: run,

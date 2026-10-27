@@ -12,6 +12,10 @@ const connectionCurrentDatabaseQuery = createQuery({
       db
         .selectNoFrom(sql<string>`currentDatabase()`.as('name'))
         .executeTakeFirstOrThrow(),
+    mongodb: async (db) => {
+      const [stats] = await db.command<{ db: string }>('dbStats')
+      return { name: stats?.db ?? null }
+    },
     mssql: (db) =>
       db
         .selectNoFrom(sql<string>`DB_NAME()`.as('name'))

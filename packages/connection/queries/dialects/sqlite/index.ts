@@ -18,7 +18,7 @@ import { libsqlTransport } from './libsql'
 import type { RunStatements, SqliteTransaction, SqliteTransport } from './run'
 import { runTimed, SQLITE, statementTexts } from './run'
 
-const SERVER_TRANSPORTS: Record<Provider, SqliteTransport> = {
+const SERVER_TRANSPORTS: Partial<Record<Provider, SqliteTransport>> = {
   [Provider.CloudflareD1]: d1Transport,
   [Provider.Turso]: libsqlTransport,
 }
@@ -30,12 +30,13 @@ const getTransport = (connectionString: string) => {
     return fileTransport
   }
   const provider = getProviderOfScheme(scheme)
-  if (!provider) {
+  const transport = provider && SERVER_TRANSPORTS[provider]
+  if (!transport) {
     throw new Error(
       `Tamery cannot tell which provider serves this SQLite server: its string starts with ${scheme}://, not libsql:// or d1://.`
     )
   }
-  return SERVER_TRANSPORTS[provider]
+  return transport
 }
 
 /** Turso and D1 let a read-only transaction write, so every transport refuses a write before sending it. */

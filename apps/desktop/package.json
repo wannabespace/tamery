@@ -1,6 +1,6 @@
 {
   "name": "@tamery/desktop",
-  "version": "0.99.2",
+  "version": "0.99.3",
   "description": "AI-powered tool for working with Postgres, MySQL, MSSQL, Oracle, ClickHouse and SQLite.",
   "homepage": "https://tamery.app",
   "author": {
@@ -22,6 +22,8 @@
     "@clickhouse/client": "catalog:",
     "@libsql/client": "catalog:",
     "@modelcontextprotocol/sdk": "catalog:",
+    "@mongodb-js/shell-bson-parser": "catalog:",
+    "@mongodb-js/socksv5": "catalog:",
     "@napi-rs/keyring": "catalog:",
     "@todesktop/runtime": "catalog:",
     "arktype": "catalog:",
@@ -29,10 +31,12 @@
     "electron-store": "catalog:",
     "fast-xml-parser": "catalog:",
     "ini": "catalog:",
+    "mongodb": "catalog:",
     "mssql": "catalog:",
     "mysql2": "catalog:",
     "oracledb": "catalog:",
     "pg": "catalog:",
+    "socks": "catalog:",
     "ssh-config": "catalog:",
     "ssh2": "catalog:",
     "zod": "catalog:"

@@ -8,6 +8,7 @@ export enum ConnectionType {
   ClickHouse = 'clickhouse',
   SQLite = 'sqlite',
   Oracle = 'oracle',
+  MongoDB = 'mongodb',
 }
 
 /** Never build a query from a `ConnectionType`: every query runs on the dialect it speaks through. */
@@ -18,11 +19,39 @@ export enum Dialect {
   ClickHouse = 'clickhouse',
   SQLite = 'sqlite',
   Oracle = 'oracle',
+  MongoDB = 'mongodb',
 }
+
+export enum QueryLanguage {
+  SQL = 'sql',
+  Mongosh = 'mongosh',
+}
+
+// `satisfies`, never `: Record<…>`: the annotation would widen each value to
+// `QueryLanguage` and collapse `SqlDialect` to every dialect.
+export const dialectLanguage = {
+  [Dialect.Postgres]: QueryLanguage.SQL,
+  [Dialect.MySQL]: QueryLanguage.SQL,
+  [Dialect.MSSQL]: QueryLanguage.SQL,
+  [Dialect.ClickHouse]: QueryLanguage.SQL,
+  [Dialect.SQLite]: QueryLanguage.SQL,
+  [Dialect.Oracle]: QueryLanguage.SQL,
+  [Dialect.MongoDB]: QueryLanguage.Mongosh,
+} satisfies Record<Dialect, QueryLanguage>
+
+export type SqlDialect = {
+  [K in Dialect]: (typeof dialectLanguage)[K] extends QueryLanguage.SQL
+    ? K
+    : never
+}[Dialect]
+
+export const isSqlDialect = (dialect: Dialect): dialect is SqlDialect =>
+  dialectLanguage[dialect] === QueryLanguage.SQL
 
 const DIALECT_OF_TYPE: Record<ConnectionType, Dialect> = {
   [ConnectionType.ClickHouse]: Dialect.ClickHouse,
   [ConnectionType.MariaDB]: Dialect.MySQL,
+  [ConnectionType.MongoDB]: Dialect.MongoDB,
   [ConnectionType.MSSQL]: Dialect.MSSQL,
   [ConnectionType.MySQL]: Dialect.MySQL,
   [ConnectionType.Oracle]: Dialect.Oracle,
@@ -35,6 +64,7 @@ export const getDialect = (type: ConnectionType) => DIALECT_OF_TYPE[type]
 export const connectionTypeLabels: Record<ConnectionType, string> = {
   [ConnectionType.ClickHouse]: 'ClickHouse',
   [ConnectionType.MariaDB]: 'MariaDB',
+  [ConnectionType.MongoDB]: 'MongoDB',
   [ConnectionType.MSSQL]: 'Microsoft SQL Server',
   [ConnectionType.MySQL]: 'MySQL',
   [ConnectionType.Oracle]: 'Oracle',
@@ -44,6 +74,7 @@ export const connectionTypeLabels: Record<ConnectionType, string> = {
 
 export enum Provider {
   CloudflareD1 = 'cloudflare_d1',
+  MongoDBAtlas = 'mongodb_atlas',
   Turso = 'turso',
 }
 
@@ -54,6 +85,10 @@ export const providers: Record<
   [Provider.CloudflareD1]: {
     label: 'Cloudflare D1',
     type: ConnectionType.SQLite,
+  },
+  [Provider.MongoDBAtlas]: {
+    label: 'MongoDB Atlas',
+    type: ConnectionType.MongoDB,
   },
   [Provider.Turso]: { label: 'Turso', type: ConnectionType.SQLite },
 }

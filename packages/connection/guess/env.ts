@@ -47,6 +47,10 @@ const GROUPS: VariableGroup[] = [
   { prefix: 'MSSQL_SA_', type: ConnectionType.MSSQL, user: 'sa' },
   { prefix: 'SA_', type: ConnectionType.MSSQL, user: 'sa' },
   { prefix: 'ORACLE_', type: ConnectionType.Oracle },
+  // The official image's root user lives in admin, which a string without a database authenticates against; its MONGO_INITDB_DATABASE only names the init scripts' database.
+  { prefix: 'MONGO_INITDB_ROOT_', type: ConnectionType.MongoDB },
+  { prefix: 'MONGODB_', type: ConnectionType.MongoDB },
+  { prefix: 'MONGODB_ROOT_', type: ConnectionType.MongoDB, user: 'root' },
   { prefix: 'TURSO_' },
   { prefix: 'LIBSQL_' },
   { prefix: 'SPRING.DATASOURCE.' },

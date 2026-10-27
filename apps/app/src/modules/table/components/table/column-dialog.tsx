@@ -1,8 +1,8 @@
 import { useMutation } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { createRef, useImperativeHandle, useState } from 'react'
 import { toast } from 'sonner'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceConstraintsQueryOptions } from '~/core/queries/constraints/list'
 import type { ConstraintShape } from '~/core/queries/constraints/shape'
 import { foreignKeyName } from '~/core/queries/constraints/shape'
@@ -30,8 +30,6 @@ import { queryClient } from '~/lib/query-client'
 
 import { useTableColumnsContext } from '../../lib/columns'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 export const columnDialogRef = createRef<{
   add: () => void
   edit: (column: Column) => void
@@ -53,7 +51,7 @@ export const TableColumnDialog = ({
   schema: string
   table: string
 }) => {
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { columns } = useTableColumnsContext()
   const [request, setRequest] = useState<Request | null>(null)
   const open = (column: TableColumn | null) =>

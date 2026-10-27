@@ -1,16 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { getSectionCapabilities } from '~/core/catalog/section-capabilities'
 import type { DefinitionsSection } from '~/core/catalog/sections'
+import { useConnectionContext, useTabSearch } from '~/core/connection/route'
 import type { RelationKind } from '~/core/queries/tables/list'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import type { QueryParams } from '~/core/runtime/query'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
-
-const resourceRoute = getRouteApi('/_protected/connection/$resourceId')
-const tabRoute = getRouteApi('/_protected/connection/$resourceId/$tabId')
 
 const noTables: string[] = []
 
@@ -23,13 +20,12 @@ export const useDefinitionsState = ({
 }: {
   section: DefinitionsSection
 }) => {
-  const { connectionResource, defaultSchema, dialect } =
-    resourceRoute.useRouteContext()
+  const { connectionResource, defaultSchema, dialect } = useConnectionContext()
   const { data, isPending: structurePending } = useQuery(
     resourceTablesAndSchemasQueryOptions({ connectionResource })
   )
   const schemas = data?.schemas.map(({ name }) => name) ?? []
-  const linkedSchema = tabRoute.useSearch({ select: (search) => search.schema })
+  const linkedSchema = useTabSearch({ select: (search) => search.schema })
   const [pickedSchema, setPickedSchema] = useState<string>()
   const [search, setSearch] = useState('')
   const selectedSchema =

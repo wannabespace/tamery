@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker/locale/en'
-import { Dialect } from '@tamery/shared/enums/connection-type'
+import { Dialect, isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { sql } from 'kysely'
 import { memoize } from 'memoza'
 
@@ -18,7 +18,7 @@ import type { DialectSeedConfig, Generator, GeneratorId } from './registry'
 import { sqliteSeedConfig } from './sqlite'
 import type { GeneratorDef } from './types'
 import {
-  CUSTOM_GENERATOR,
+  SQL_EXPRESSION_GENERATOR,
   ENUM_GENERATOR,
   NULL_GENERATOR,
   REFERENCE_GENERATOR,
@@ -27,6 +27,7 @@ import {
 
 const DIALECT_CONFIGS: Record<Dialect, DialectSeedConfig> = {
   clickhouse: clickhouseSeedConfig,
+  mongodb: { generators: {}, types: { objectId: SKIP_GENERATOR } },
   mssql: mssqlSeedConfig,
   mysql: mysqlSeedConfig,
   oracle: oracleSeedConfig,
@@ -68,6 +69,7 @@ const canSkipColumn = (column: Column, dialect: Dialect) =>
 const AVAILABILITY: Partial<
   Record<GeneratorId, (column: Column, dialect: Dialect) => boolean>
 > = {
+  [SQL_EXPRESSION_GENERATOR]: (_column, dialect) => isSqlDialect(dialect),
   [ENUM_GENERATOR]: (column) => !!column.availableValues?.length,
   [NULL_GENERATOR]: (column) => !!column.isNullable,
   [REFERENCE_GENERATOR]: (column) => !!column.foreign,
@@ -128,7 +130,7 @@ const valueProducer = ({
     return produceNull
   }
 
-  if (generatorId === CUSTOM_GENERATOR) {
+  if (generatorId === SQL_EXPRESSION_GENERATOR) {
     const expression = customExpression?.trim()
     const raw = expression && sql.raw(`(${expression})`)
     return raw ? () => raw : undefined
@@ -240,7 +242,7 @@ export const generateRows = ({
 
     const next =
       (column.unique || column.primaryKey) &&
-      generator.generatorId !== CUSTOM_GENERATOR
+      generator.generatorId !== SQL_EXPRESSION_GENERATOR
         ? distinctProducer(produce, column)
         : produce
     const nullable = generator.isNullable && column.isNullable

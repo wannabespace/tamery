@@ -1,4 +1,3 @@
-/* oxlint-disable jsx-a11y/prefer-tag-over-role -- a virtualized flex grid cannot be built from table elements */
 import { ArrowDown02Icon, ArrowUp02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { GridHeaderProps } from '@tamery/table'
@@ -11,6 +10,8 @@ import { useRef } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { AppContextMenu, AppMenuButton } from '~/components/app-context-menu'
+/* oxlint-disable jsx-a11y/prefer-tag-over-role -- a virtualized flex grid cannot be built from table elements */
+import { useObjectNames } from '~/core/catalog/names'
 import type { Column } from '~/core/table/cell/utils'
 import { useGridCursorContext } from '~/core/table/cursor'
 import {
@@ -81,6 +82,7 @@ export const TableHeaderCell = ({
   header: { column: gridColumn, dragHandle, isDragging, setWidth, style },
   ...actions
 }: ColumnActions & { column: Column; header: GridHeaderProps }) => {
+  const names = useObjectNames()
   const ref = useRef<HTMLDivElement>(null)
   const width = useRef(0)
   const pressClosedEditor = useRef(false)
@@ -100,7 +102,7 @@ export const TableHeaderCell = ({
         <div
           ref={ref}
           role="columnheader"
-          aria-label={`${column.id} column`}
+          aria-label={`${column.id} ${names.column}`}
           aria-sort={order ? ARIA_SORT[order] : undefined}
           // oxlint-disable-next-line shadcn/no-inline-styles -- column geometry comes from the grid's per-column variables
           style={style}
@@ -134,7 +136,7 @@ export const TableHeaderCell = ({
         render={<Button variant="ghost" size="icon-xs" tabIndex={-1} />}
       />
       <ResizeHandle
-        aria-label={`Resize ${column.id} column`}
+        aria-label={`Resize ${column.id} ${names.column}`}
         min={MIN_WIDTH}
         className={cn(
           'absolute inset-y-0 right-0 z-10 flex w-3 justify-end',

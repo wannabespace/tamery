@@ -5,7 +5,7 @@
   "exports": {
     "./editor": "./src/editor.tsx",
     "./monaco.css": "./src/monaco.css",
-    "./sql-language": "./src/sql-language/index.ts"
+    "./query-language": "./src/query-language/index.ts"
   },
   "scripts": {
     "check-types": "tsc",
@@ -14,6 +14,7 @@
   "dependencies": {
     "@tamery/ai": "workspace:*",
     "@tamery/configs": "workspace:*",
+    "@tamery/mongo": "workspace:*",
     "@tamery/shared": "workspace:*",
     "@tamery/sql": "workspace:*",
     "@tamery/ui": "workspace:*",

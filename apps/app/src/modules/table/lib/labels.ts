@@ -1,8 +1,8 @@
 import { IN_FILTER } from '@tamery/shared/filters'
 import type { GridRow } from '@tamery/table'
 import { useQueries } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 
+import { useConnectionContext } from '~/core/connection/route'
 import type { ConnectionResource } from '~/core/connection/sync'
 import { DEFAULT_PAGE_LIMIT } from '~/core/connection/utils'
 import { resourceConstraintsQueryOptions } from '~/core/queries/constraints/list'
@@ -20,8 +20,6 @@ import {
 } from '~/core/table/referenced-columns'
 import { getDisplayValue } from '~/core/transformers/value-transformer'
 import { queryClient } from '~/lib/query-client'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const keysIn = (rows: GridRow[], column: string) =>
   [
@@ -157,7 +155,7 @@ export const useReferenceLabels = (
   rows: GridRow[],
   stored: Record<string, string>
 ) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const referenced = useReferencedColumns(columns)
   const labeled = columns.flatMap(({ foreign, id }) => {
     if (!foreign) {

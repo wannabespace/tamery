@@ -12,6 +12,7 @@ export const revokePrivilegeQuery = (target: PrivilegeTarget) =>
   createQuery({
     query: {
       clickhouse: unsupported('Privileges'),
+      mongodb: unsupported('Privileges'),
       mssql: unsupported('Privileges'),
       // MySQL keeps GRANT OPTION per database or table, not per privilege:
       // revoking the last privilege leaves it behind as a USAGE row.

@@ -55,6 +55,8 @@ With **Read and write**, you get a notification after each change instead.
 | `query` | Run one read-only statement, like `SELECT` or `EXPLAIN`, and return up to 200 rows. Nothing it does is kept. |
 | `execute` | Change data or schema, within the connection's access. Several statements need a `BEGIN … COMMIT` block. |
 
+On a MongoDB connection, agents send mongosh calls such as `db.orders.find({ status: 'paid' })` instead of SQL, one call at a time.
+
 Connections an agent creates start at **Ask before writing**. No tool can edit or remove a connection.
 
 Try “Describe the orders table” or “Find duplicate customer emails.” Whatever the agent reads becomes part of its AI context, so share only what you would paste into that chat yourself.

@@ -10,6 +10,8 @@ import {
   CommandList,
 } from '@tamery/ui/components/command'
 
+import { useObjectNames } from '~/core/catalog/names'
+
 import { useTableColumnsContext } from '../../../lib/columns'
 
 export const FiltersColumnSelector = ({
@@ -17,13 +19,14 @@ export const FiltersColumnSelector = ({
 }: {
   onSelect: (column: string) => void
 }) => {
+  const names = useObjectNames()
   const { columns } = useTableColumnsContext()
 
   return (
     <Command>
-      <CommandInput placeholder="Select column to filter..." />
+      <CommandInput placeholder={`Select ${names.column} to filter...`} />
       <CommandList data-mask className="h-fit max-h-[45vh]">
-        <CommandEmpty>No columns found.</CommandEmpty>
+        <CommandEmpty>No {names.column}s found.</CommandEmpty>
         <CommandGroup>
           {columns.map((column) => (
             <CommandItem

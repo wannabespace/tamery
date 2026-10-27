@@ -1,4 +1,5 @@
 import { FIELD_EDITOR_OPTIONS, Monaco } from '@tamery/monaco/editor'
+import { QUERY_COMPLETION_OPTIONS } from '@tamery/monaco/query-language'
 import {
   Combobox,
   ComboboxChip,
@@ -33,8 +34,11 @@ import { cn } from '@tamery/ui/lib/utils'
 import type { AnyFormApi } from '@tanstack/react-form'
 import type * as monaco from 'monaco-editor'
 import type { ComponentProps, ReactNode } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { OptionField } from '~/components/option-field'
+import { useConnectionContext } from '~/core/connection/route'
+import { attachQuerySource } from '~/core/query-editor/query-source'
 
 export const readOnlyEditorOptions = {
   ...FIELD_EDITOR_OPTIONS,
@@ -152,6 +156,24 @@ export const BodyField = ({
 }: LabelledProps & { disabled?: boolean; language: string }) => {
   const field = useFieldContext<string>()
   const form = useFormContext()
+  const { connection, connectionResource, dialect } = useConnectionContext()
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
+
+  // Schema and AI ghost text, but no SQL diagnostics: a routine body is not a top-level statement.
+  useEffect(() => {
+    const codeEditor = disabled ? null : editorRef.current
+    return codeEditor
+      ? attachQuerySource(
+          codeEditor,
+          connectionResource,
+          connection.type,
+          dialect,
+          {
+            diagnostics: false,
+          }
+        )
+      : undefined
+  }, [disabled, connectionResource, connection.type, dialect])
 
   return (
     <Labelled description={description} label={label}>
@@ -159,9 +181,11 @@ export const BodyField = ({
         data-mask
         className="ring-foreground/4 h-56 rounded-xl ring"
         language={language}
+        ref={editorRef}
         value={field.state.value}
         options={{
           ...(disabled ? readOnlyEditorOptions : FIELD_EDITOR_OPTIONS),
+          ...(disabled ? {} : QUERY_COMPLETION_OPTIONS),
           ariaLabel: label,
         }}
         onSubmit={disabled ? undefined : () => form.handleSubmit()}

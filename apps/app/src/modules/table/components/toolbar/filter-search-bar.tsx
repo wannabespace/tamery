@@ -8,6 +8,7 @@ import { cn } from '@tamery/ui/lib/utils'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 
+import { useObjectNames } from '~/core/catalog/names'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 
@@ -44,6 +45,7 @@ export const FilterSearchBar = ({
   table: string
   schema: string
 }) => {
+  const names = useObjectNames()
   const inputRef = useRef<HTMLInputElement>(null)
   const chipsRef = useRef<HTMLDivElement>(null)
   const [isFocused, setIsFocused] = useState(false)
@@ -136,7 +138,7 @@ export const FilterSearchBar = ({
           )}
           <CommandPrimitive.Input
             ref={inputRef}
-            aria-label="Filter rows"
+            aria-label={`Filter ${names.row}s`}
             value={query}
             onValueChange={setQuery}
             placeholder={getFilterPlaceholder({ isOnline: ai.isOnline, stage })}

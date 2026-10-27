@@ -6,6 +6,7 @@ import {
 import { HugeiconsIcon } from '@hugeicons/react'
 
 import { Reveal } from '~/components/reveal'
+import { SectionEyebrow } from '~/components/section-eyebrow'
 
 import { AgentDemo } from './agent-demo/agent-demo'
 
@@ -37,12 +38,15 @@ export const Agents = () => (
     className="mx-auto max-w-6xl scroll-mt-24 px-4 py-24 sm:px-6"
   >
     <Reveal className="grid gap-6 md:grid-cols-2 md:items-end">
-      <h2
-        id="agents-heading"
-        className="max-w-lg text-3xl font-semibold tracking-tight text-balance sm:text-4xl lg:text-5xl"
-      >
-        Your agents query. You approve the writes.
-      </h2>
+      <div className="flex flex-col gap-3">
+        <SectionEyebrow>Built for agents</SectionEyebrow>
+        <h2
+          id="agents-heading"
+          className="max-w-lg text-3xl font-semibold tracking-tight text-balance sm:text-4xl lg:text-5xl"
+        >
+          Your agents query. You approve the writes.
+        </h2>
+      </div>
       <p className="text-muted-foreground max-w-md text-lg text-pretty md:justify-self-end">
         Claude Code, Cursor and other MCP clients reach your databases through
         the desktop app. By default, every write waits for your approval.

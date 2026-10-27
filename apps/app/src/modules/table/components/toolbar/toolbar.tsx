@@ -1,9 +1,6 @@
-import {
-  MoreHorizontalIcon,
-  SourceCodeIcon,
-  SproutIcon,
-} from '@hugeicons/core-free-icons'
+import { MoreHorizontalIcon, SourceCodeIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import type { ActiveFilter } from '@tamery/shared/filters'
 import { enabledFilters } from '@tamery/shared/filters'
 import { Button } from '@tamery/ui/components/button'
@@ -20,10 +17,10 @@ import {
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { ExportDataMenu } from '~/core/export/export-data'
 import {
   resourceRowsQuery,
@@ -46,20 +43,20 @@ import { ActionsView } from './actions/actions-view'
 import { FilterSearchBar } from './filter-search-bar'
 import { TableStats } from './table-stats'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 const EXPORT_PAGE_SIZE = 1000
 
 export const TableToolbar = ({
   onAddColumn,
+  onInsertDocument,
   table,
   schema,
 }: {
-  onAddColumn: () => void
+  onAddColumn?: () => void
+  onInsertDocument?: () => void
   table: string
   schema: string
 }) => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { columns } = useTableColumnsContext()
   const store = useTablePageStore()
   const sessionStore = useTableSessionStore()
@@ -167,7 +164,13 @@ export const TableToolbar = ({
         <ActionsColumns />
         <ActionsOrder />
         <ActionsView />
-        {isTable && <ActionsAdd onAddColumn={onAddColumn} />}
+        {isTable && (
+          <ActionsAdd
+            onAddColumn={onAddColumn}
+            onInsertDocument={onInsertDocument}
+            onSeed={() => setSeedOpen(true)}
+          />
+        )}
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger
@@ -183,12 +186,6 @@ export const TableToolbar = ({
             <TooltipContent side="bottom">More actions</TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="end" className="min-w-44">
-            {isTable && (
-              <DropdownMenuItem onClick={() => setSeedOpen(true)}>
-                <HugeiconsIcon icon={SproutIcon} strokeWidth={2} />
-                Seed data
-              </DropdownMenuItem>
-            )}
             <ExportDataMenu
               selected={selected}
               filename={`${schema}_${table}`}
@@ -201,11 +198,13 @@ export const TableToolbar = ({
                 Code
               </DropdownMenuItem>
             )}
-            <ShareMenuItem
-              schema={schema}
-              table={table}
-              onOpen={() => setShareOpen(true)}
-            />
+            {isSqlDialect(dialect) && (
+              <ShareMenuItem
+                schema={schema}
+                table={table}
+                onOpen={() => setShareOpen(true)}
+              />
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
         <Dialog open={shareOpen} onOpenChange={setShareOpen}>

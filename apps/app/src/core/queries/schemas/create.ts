@@ -17,6 +17,7 @@ export const createSchemaQuery = (schema: string) =>
   createQuery({
     query: {
       clickhouse: unsupported('Schemas'),
+      mongodb: unsupported('Schemas'),
       mssql: (db) => db.schema.createSchema(schema).execute(),
       mysql: (db) => db.schema.createSchema(schema).execute(),
       // NO AUTHENTICATION is 18c and up, so a schema-only user is a locked account with a

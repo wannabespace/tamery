@@ -35,6 +35,7 @@ import { useMutation } from '@tanstack/react-query'
 import { formatDate } from 'date-fns'
 import { toast } from 'sonner'
 
+import { useObjectNames } from '~/core/catalog/names'
 import { handleError } from '~/utils/error'
 
 const EXPORT_LIMITS = [50, 100, 500, 1000, 5000] as const
@@ -100,6 +101,7 @@ const ExportDataDropdownMenuSubContent = ({
   onExport: (props: ExportProps) => void
   selected?: Record<string, unknown>[]
 }) => {
+  const names = useObjectNames()
   const filters = selected?.flatMap((row) =>
     Object.entries(row).map(
       ([column, value]) =>
@@ -107,11 +109,11 @@ const ExportDataDropdownMenuSubContent = ({
     )
   )
 
-  let selectedLabel = 'Selected rows'
+  let selectedLabel = `Selected ${names.row}s`
   if (selected && selected.length === 1) {
-    selectedLabel = '1 selected row'
+    selectedLabel = `1 selected ${names.row}`
   } else if (selected && selected.length > 1) {
-    selectedLabel = `${selected.length} selected rows`
+    selectedLabel = `${selected.length} selected ${names.row}s`
   }
 
   return (

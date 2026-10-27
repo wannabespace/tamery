@@ -1,13 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { resourceConstraintsQueryOptions } from '~/core/queries/constraints/list'
 import {
   getColumnDefinition,
   resourceColumnsQueryOptions,
 } from '~/core/queries/tables/columns'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 export interface ColumnReference {
   column: string
@@ -21,7 +19,7 @@ export interface ReferenceTarget extends ColumnReference {
 }
 
 export const useReferenceTargets = (enabled: boolean) => {
-  const { connectionResource, defaultSchema } = useRouteContext()
+  const { connectionResource, defaultSchema } = useConnectionContext()
   const { data: constraints = [], isLoading: constraintsLoading } = useQuery({
     ...resourceConstraintsQueryOptions({ connectionResource }),
     enabled,

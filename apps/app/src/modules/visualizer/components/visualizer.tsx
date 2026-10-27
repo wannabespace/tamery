@@ -1,11 +1,11 @@
 import { useHotkey, useHotkeys } from '@tanstack/react-hotkeys'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useReactFlow } from '@xyflow/react'
 import { useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import type { TableType } from '~/core/catalog/table-type'
+import { useConnectionContext } from '~/core/connection/route'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import type { constraintsType } from '~/core/queries/constraints/list'
 import { resourceIndexesQueryOptions } from '~/core/queries/indexes/list'
@@ -31,8 +31,6 @@ import { InspectorPane } from './inspector'
 import { ReviewDrawer } from './review-drawer'
 import { Toolbar } from './toolbar'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
-
 const noRows: never[] = []
 
 export const Visualizer = ({
@@ -44,7 +42,7 @@ export const Visualizer = ({
   constraints: (typeof constraintsType.infer)[]
   tables: { schema: string; table: string; type: TableType }[]
 }) => {
-  const { connectionResource, defaultSchema, dialect } = useRouteContext()
+  const { connectionResource, defaultSchema, dialect } = useConnectionContext()
   const flow = useReactFlow()
   const draftsStore = diagramDraftsStore(connectionResource.id)
   const drafts = useSubscription(draftsStore, {

@@ -28,6 +28,7 @@ export interface ConnectionParts {
 export const DEFAULT_PORTS: Record<ConnectionType, number | null> = {
   [ConnectionType.ClickHouse]: 8123,
   [ConnectionType.MariaDB]: 3306,
+  [ConnectionType.MongoDB]: 27_017,
   [ConnectionType.MSSQL]: 1433,
   [ConnectionType.MySQL]: 3306,
   [ConnectionType.Oracle]: 1521,
@@ -54,8 +55,13 @@ export const CLICKHOUSE_HTTP_PORT_OF_NATIVE: Record<string, string> = {
 const getPort = ({
   https,
   port,
+  provider,
   type,
-}: Partial<Pick<ConnectionParts, 'https' | 'port' | 'type'>>) => {
+}: Partial<Pick<ConnectionParts, 'https' | 'port' | 'provider' | 'type'>>) => {
+  // SRV resolves the servers and their ports from DNS, and the driver refuses a port beside it.
+  if (provider === Provider.MongoDBAtlas) {
+    return ''
+  }
   if (port) {
     return port
   }
@@ -75,6 +81,8 @@ const TYPE_OF_NAME: Record<string, ConnectionType> = {
   libsql: ConnectionType.SQLite,
   mariadb: ConnectionType.MariaDB,
   'microsoft sql server': ConnectionType.MSSQL,
+  mongo: ConnectionType.MongoDB,
+  mongodb: ConnectionType.MongoDB,
   mssql: ConnectionType.MSSQL,
   mysql: ConnectionType.MySQL,
   mysql2: ConnectionType.MySQL,
@@ -105,6 +113,7 @@ export const D1_HOST = 'api.cloudflare.com'
 const PROVIDER_OF_SCHEME: Partial<Record<string, Provider>> = {
   d1: Provider.CloudflareD1,
   libsql: Provider.Turso,
+  'mongodb+srv': Provider.MongoDBAtlas,
 }
 
 /** `null` for a scheme Tamery does not know: a SQLite server is never guessed to be one it does. */
@@ -122,13 +131,15 @@ const withCredentials = (
   return url
 }
 
-const SQLITE_SERVER_FORMATS: Record<
-  Provider,
-  (parts: ConnectionParts) => string
-> = {
+const PROVIDER_FORMATS: Record<Provider, (parts: ConnectionParts) => string> = {
   [Provider.CloudflareD1]: (parts) =>
     withCredentials(
       `d1://${D1_HOST}/${encodeURIComponent(parts.database)}`,
+      parts
+    ).toString(),
+  [Provider.MongoDBAtlas]: (parts) =>
+    withCredentials(
+      `mongodb+srv://${parts.host}/${encodeURIComponent(parts.database)}`,
       parts
     ).toString(),
   [Provider.Turso]: (parts) =>
@@ -139,19 +150,18 @@ const SQLITE_SERVER_FORMATS: Record<
 }
 
 /** A host without a provider formats to nothing, never to a file string. */
-const formatSqlite = (parts: ConnectionParts) => {
-  if (parts.provider) {
-    return SQLITE_SERVER_FORMATS[parts.provider](parts)
-  }
-  return parts.host || !parts.database
+const formatSqlite = (parts: ConnectionParts) =>
+  parts.host || !parts.database
     ? ''
     : sqliteFile.connectionString(parts.database)
-}
 
 const format = (
   parts: ConnectionParts,
   missingSecrets: readonly string[] = []
 ): string => {
+  if (parts.provider) {
+    return PROVIDER_FORMATS[parts.provider](parts)
+  }
   if (parts.type === ConnectionType.SQLite) {
     return formatSqlite(parts)
   }
@@ -202,10 +212,7 @@ const parse = (connectionString: string): ConnectionParts => {
     ...parts,
     https: HTTPS_OF_SCHEME[scheme] ?? null,
     options: searchParams.toString(),
-    provider:
-      type === ConnectionType.SQLite && parts.host
-        ? getProviderOfScheme(scheme)
-        : null,
+    provider: parts.host ? getProviderOfScheme(scheme) : null,
     ssh,
     type,
   }

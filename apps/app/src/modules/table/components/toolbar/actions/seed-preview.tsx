@@ -16,7 +16,7 @@ import type { Column } from '~/core/table/cell/utils'
 import { generateRows } from '../../../seeds'
 import type { Generator, GeneratorId } from '../../../seeds/registry'
 import {
-  CUSTOM_GENERATOR,
+  SQL_EXPRESSION_GENERATOR,
   REFERENCE_GENERATOR,
   SKIP_GENERATOR,
 } from '../../../seeds/types'
@@ -40,7 +40,7 @@ const previewNote = (column: Column, generatorId: GeneratorId) => {
   if (generatorId === REFERENCE_GENERATOR && column.foreign) {
     return `A random ${column.foreign.column} from ${column.foreign.schema}.${column.foreign.table}`
   }
-  if (generatorId === CUSTOM_GENERATOR) {
+  if (generatorId === SQL_EXPRESSION_GENERATOR) {
     return 'Inserted verbatim as SQL, once per row.'
   }
 }

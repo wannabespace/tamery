@@ -122,6 +122,11 @@ describe('diagnoseConnectionError', () => {
       'ssl=false',
     ],
     [ConnectionType.Oracle, 'ssl=true', 'ssl=false'],
+    [
+      ConnectionType.MongoDB,
+      'tls=true&tlsCAFile=/ca.pem&replicaSet=rs0',
+      'replicaSet=rs0&tls=false',
+    ],
   ])(
     'turns off SSL on %s without the TLS options the driver refuses beside it',
     (type, options, fixed) => {
@@ -141,6 +146,15 @@ describe('diagnoseConnectionError', () => {
         type: ConnectionType.MSSQL,
       })?.fix?.patch
     ).toStrictEqual({ options: 'encrypt=true&trustservercertificate=true' })
+  })
+
+  it('signs a MongoDB user in through admin when the string names no authSource', () => {
+    expect(
+      diagnose('Authentication failed.', {
+        options: 'retryWrites=true',
+        type: ConnectionType.MongoDB,
+      })?.fix?.patch
+    ).toStrictEqual({ options: 'retryWrites=true&authSource=admin' })
   })
 
   it('switches the engine when the port belongs to another one', () => {
@@ -228,6 +242,11 @@ describe('diagnoseConnectionError', () => {
       'Failed to connect to db.acme.io:1433 - Could not connect (sequence)',
       'Connection refused',
     ],
+    ['ORA-28001: the password has expired', 'The password has expired'],
+    [
+      "Access denied for user 'me'@'%'. Account is locked.",
+      'This account is locked',
+    ],
   ])('names %p', (message, title) => {
     expect(diagnose(message)?.title).toBe(title)
   })
@@ -242,6 +261,22 @@ describe('diagnoseConnectionError', () => {
       focus: 'database',
       title: 'Service "NOPE" isn\'t on this server',
     })
+  })
+
+  it('names the Oracle listener when it refuses the connection', () => {
+    expect(
+      diagnose('ORA-12541: TNS:no listener', { type: ConnectionType.Oracle })
+        ?.title
+    ).toBe("Oracle's listener isn't answering")
+  })
+
+  it("blames Azure SQL's firewall when the server refuses the IP", () => {
+    expect(
+      diagnose(
+        "Cannot open server 'acme' requested by the login. Client with IP address '203.0.113.7' is not allowed to access the server.",
+        { type: ConnectionType.MSSQL }
+      )?.title
+    ).toBe("Azure SQL won't accept connections from here")
   })
 
   it('reads a missing SQLite file without asking for a password', () => {

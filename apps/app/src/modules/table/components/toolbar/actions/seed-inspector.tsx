@@ -19,7 +19,7 @@ import type { GeneratorGroup, Generators } from '../../../seeds'
 import { isGeneratorAvailable } from '../../../seeds'
 import type { Generator, GeneratorId } from '../../../seeds/registry'
 import {
-  CUSTOM_GENERATOR,
+  SQL_EXPRESSION_GENERATOR,
   NULL_GENERATOR,
   SKIP_GENERATOR,
 } from '../../../seeds/types'
@@ -184,7 +184,7 @@ export const SeedInspector = ({
         onLeave={onLeave}
       />
       <div className="flex shrink-0 flex-col gap-3 border-t p-3">
-        {generator.generatorId === CUSTOM_GENERATOR && (
+        {generator.generatorId === SQL_EXPRESSION_GENERATOR && (
           <Input
             data-mask
             aria-label="SQL expression"

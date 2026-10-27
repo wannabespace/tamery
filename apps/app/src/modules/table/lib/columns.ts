@@ -1,7 +1,9 @@
+import type { Dialect } from '@tamery/shared/enums/connection-type'
 import { useQueries } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { createContext, use } from 'react'
 
+import { getCapabilities } from '~/core/catalog/capabilities'
+import { useConnectionContext } from '~/core/connection/route'
 import type { ConnectionResource } from '~/core/connection/sync'
 import { resourceConstraintsQueryOptions } from '~/core/queries/constraints/list'
 import { findEnum, resourceEnumsQueryOptions } from '~/core/queries/enums/list'
@@ -9,7 +11,36 @@ import { resourceTableColumnsQueryOptions } from '~/core/queries/tables/columns'
 import type { Column } from '~/core/table/cell/utils'
 import { getColumnUiType } from '~/core/table/cell/utils'
 
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
+const rowFieldColumn = (id: string, value: unknown): Column => {
+  const isBoolean = typeof value === 'boolean'
+  return {
+    id,
+    isEditable: true,
+    isNullable: true,
+    type: isBoolean ? 'bool' : '',
+    uiType: isBoolean ? 'boolean' : 'raw',
+  }
+}
+
+export const withRowFieldColumns = (
+  dialect: Dialect,
+  columns: Column[],
+  rows: readonly Record<string, unknown>[]
+): Column[] => {
+  if (getCapabilities(dialect).flags.includes('declaredColumns')) {
+    return columns
+  }
+  const known = new Set(columns.map((column) => column.id))
+  const extra = new Map<string, Column>()
+  for (const row of rows) {
+    for (const [id, value] of Object.entries(row)) {
+      if (!known.has(id) && !extra.has(id)) {
+        extra.set(id, rowFieldColumn(id, value))
+      }
+    }
+  }
+  return extra.size === 0 ? columns : [...columns, ...extra.values()]
+}
 
 export const useTableColumnsQuery = ({
   connectionResource,
@@ -20,7 +51,7 @@ export const useTableColumnsQuery = ({
   table: string
   schema: string
 }) => {
-  const { dialect } = useRouteContext()
+  const { dialect } = useConnectionContext()
   return useQueries({
     combine: ([columns, constraints, enums]): {
       data?: Column[]

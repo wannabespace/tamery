@@ -14,6 +14,7 @@ export const dropViewQuery = ({
   createQuery({
     query: {
       clickhouse: (db) => db.withSchema(schema).schema.dropView(view).execute(),
+      mongodb: (db) => db.collection(view).drop(),
       mssql: (db) => db.withSchema(schema).schema.dropView(view).execute(),
       mysql: (db) => db.withSchema(schema).schema.dropView(view).execute(),
       oracle: (db) => {

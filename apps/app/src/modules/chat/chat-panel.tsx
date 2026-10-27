@@ -5,12 +5,12 @@ import {
   mergeMessages,
 } from '@tamery/ai/message'
 import { eq, useLiveSuspenseQuery } from '@tanstack/react-db'
-import { getRouteApi } from '@tanstack/react-router'
 import { Suspense, useEffect, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 import { v7 } from 'uuid'
 
 import { useCollections } from '~/core/collections'
+import { useConnectionContext } from '~/core/connection/route'
 import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { resourcePanelClassName } from '~/shell'
@@ -22,8 +22,6 @@ import { getChatInstance } from './chat-instance'
 import { ChatMessages } from './chat-messages'
 import { ChatSkeleton } from './chat-skeleton'
 import { chatOpen, getChatStore } from './stores'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const Chat = ({
   chatId,
@@ -146,7 +144,7 @@ const Chat = ({
 }
 
 export const ChatPanel = () => {
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useConnectionContext()
   const chatStore = getChatStore(connectionResource.id)
   const chatId = useSubscription(chatStore)
   const [draftId, setDraftId] = useState(() => v7())

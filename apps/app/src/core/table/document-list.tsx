@@ -1,4 +1,5 @@
 /* oxlint-disable jsx-a11y/prefer-tag-over-role -- a virtualized grid cannot be built from table elements */
+import { uppercaseFirst } from '@tamery/shared/utils'
 import type { GridRow, GridScrollerProps, ScrollToCell } from '@tamery/table'
 import { GridScroller } from '@tamery/table'
 import { DEFAULT_ROW_HEIGHT } from '@tamery/table/constants'
@@ -6,6 +7,7 @@ import { useVirtualizer } from '@tamery/ui/hooks/use-virtualizer'
 import type { ReactNode, Ref } from 'react'
 import { memo, useImperativeHandle } from 'react'
 
+import { useObjectNames } from '~/core/catalog/names'
 import { getDisplayValue } from '~/core/transformers/value-transformer'
 
 import type { Column } from './cell/utils'
@@ -51,6 +53,7 @@ const DocumentBase = ({
   renderLabel,
   row,
 }: DocumentProps) => {
+  const { row: rowNoun } = useObjectNames()
   const label = identity
     .filter((column) => row[column.id] !== undefined)
     .map((column) => getDisplayValue(row[column.id], Number.MAX_SAFE_INTEGER))
@@ -74,7 +77,7 @@ const DocumentBase = ({
           htmlFor={rowSelectId(index)}
           className="flex min-w-0 flex-1 items-center gap-1"
         >
-          Row {index + 1}
+          {uppercaseFirst(rowNoun)} {index + 1}
           {label && (
             <span
               data-mask

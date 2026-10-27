@@ -14,6 +14,7 @@ export const dropEnumQuery = ({
   createQuery({
     query: {
       clickhouse: unsupported('Editing enums'),
+      mongodb: unsupported('Enums'),
       mssql: unsupported('Editing enums'),
       mysql: unsupported('Editing enums'),
       oracle: unsupported('Editing enums'),

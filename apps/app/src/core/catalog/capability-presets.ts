@@ -79,43 +79,66 @@ export interface ColumnTypeCapabilities {
   zoned: RegExp | null
 }
 
+/** What the UI calls a table, a column and a row: MongoDB's collections, fields and documents. */
+export interface ObjectNames {
+  column: string
+  row: string
+  table: string
+}
+
+export const SQL_NAMES: ObjectNames = {
+  column: 'column',
+  row: 'row',
+  table: 'table',
+}
+
+/**
+ * A yes/no capability, listed in `flags` only by the engines that have it:
+ * - `copyDatabase` — desktop only: the copy runs the engine's own dump tool.
+ * - `declaredColumns` — columns are declared, not sampled from documents, so they can be added, edited and dropped.
+ * - `replacesInPlace` — a routine or trigger save overwrites the object instead of dropping it first.
+ * - `retypeKeyColumns` — a primary key column's type and nullability; SQL Server and ClickHouse refuse the ALTER.
+ * - `setDefault` — `UPDATE … SET column = DEFAULT`; ClickHouse's ALTER UPDATE takes expressions only.
+ * - `uniqueKeys` — a write by key reaches exactly the rows the user picked; off where the key repeats (ClickHouse's sorting key).
+ */
+export type CapabilityFlag =
+  | 'alterColumns'
+  | 'cascade'
+  | 'comments'
+  | 'copyDatabase'
+  | 'ddlRollback'
+  | 'declaredColumns'
+  | 'documentIndexes'
+  | 'explain'
+  | 'foreignKeyOnUpdate'
+  | 'ilike'
+  | 'materializedViews'
+  | 'renameColumns'
+  | 'renameConstraints'
+  | 'renameSchema'
+  | 'renameViews'
+  | 'replacesInPlace'
+  | 'retypeKeyColumns'
+  | 'rowLevelSecurity'
+  | 'schemas'
+  | 'setDefault'
+  | 'uniqueKeys'
+
 export interface ConnectionCapabilities {
-  alterColumns: boolean
-  cascade: boolean
   columnTypes: ColumnTypeCapabilities
-  comments: boolean
   constraintKinds: readonly ConstraintKind[]
-  /** Desktop only: the copy runs the engine's own dump tool. */
-  copyDatabase: boolean
-  ddlRollback: boolean
   // null: the login's schema or the resource, resolved by getDefaultSchema
   defaultSchema: string | null
-  explain: boolean
   fixedConstraintNames: Partial<Record<ConstraintKind, string>>
-  foreignKeyOnUpdate: boolean
+  flags: readonly CapabilityFlag[]
   functions: FunctionCapabilities
-  ilike: boolean
   indexes: IndexCapabilities
-  materializedViews: boolean
+  names: ObjectNames
   policies: PolicyCapabilities
   referentialActions: readonly ReferentialAction[]
-  renameColumns: boolean
-  renameConstraints: boolean
-  renameSchema: boolean
-  renameViews: boolean
-  // A routine or trigger save overwrites the object instead of dropping it first.
-  replacesInPlace: boolean
-  // A primary key column's type and nullability; SQL Server and ClickHouse refuse the ALTER.
-  retypeKeyColumns: boolean
-  rowLevelSecurity: boolean
-  schemas: boolean
   sections: Record<DefinitionsSection, SectionCapabilities | false>
-  // `UPDATE … SET column = DEFAULT`; ClickHouse's ALTER UPDATE takes expressions only.
-  setDefault: boolean
   systemSchemas: readonly string[]
   triggers: TriggerCapabilities
-  // ClickHouse's primary key is its sorting key and repeats, so a write by key would reach rows the user never picked; rows are found by their values instead.
-  uniqueKeys: boolean
 }
 
 export const ROW_EVENTS = TRIGGER_EVENTS.filter((event) => event !== 'TRUNCATE')

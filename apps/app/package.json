@@ -26,6 +26,7 @@
     "@tailwindcss/vite": "catalog:",
     "@tamery/ai": "workspace:*",
     "@tamery/monaco": "workspace:*",
+    "@tamery/mongo": "workspace:*",
     "@tamery/shared": "workspace:*",
     "@tamery/sql": "workspace:*",
     "@tamery/table": "workspace:*",

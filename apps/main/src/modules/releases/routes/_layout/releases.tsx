@@ -81,7 +81,7 @@ const ReleasesPage = () => {
             </div>
             <article className="flex max-w-3xl min-w-0 flex-col gap-4">
               <h2 className="text-2xl font-semibold tracking-tight">
-                {release.tagName}
+                {release.name || release.tagName}
               </h2>
               {release.body && (
                 <Response variant="document" mode="static">

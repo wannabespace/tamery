@@ -10,6 +10,7 @@ export const dropIndexQuery = ({ name, schema, table }: IndexTarget) =>
     query: {
       clickhouse: (db) =>
         dropSkipIndexStatement({ name, schema, table }).execute(db),
+      mongodb: (db) => db.collection(table).dropIndex(name),
       mssql: (db) =>
         sql`DROP INDEX ${sql.id(name)} ON ${sql.id(schema, table)}`.execute(db),
       mysql: (db) =>

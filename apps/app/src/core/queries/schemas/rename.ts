@@ -13,6 +13,7 @@ export const renameSchemaQuery = ({
   createQuery({
     query: {
       clickhouse: unsupported('Renaming schemas'),
+      mongodb: unsupported('Schemas'),
       mssql: unsupported('Renaming schemas'),
       mysql: unsupported('Renaming schemas'),
       oracle: unsupported('Renaming schemas'),

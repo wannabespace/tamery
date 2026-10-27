@@ -10,6 +10,7 @@ export const dropPolicyQuery = (target: PolicyTarget) =>
   createQuery({
     query: {
       clickhouse: (db) => sql`DROP ROW POLICY ${policyOn(target)}`.execute(db),
+      mongodb: unsupported('Row policies'),
       mssql: (db) =>
         sql`DROP SECURITY POLICY ${sql.id(target.schema, target.name)}`.execute(
           db

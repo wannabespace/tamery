@@ -19,11 +19,12 @@ import { Popover, PopoverContent } from '@tamery/ui/components/popover'
 import { Skeleton } from '@tamery/ui/components/skeleton'
 import { cn } from '@tamery/ui/lib/utils'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import type { CSSProperties } from 'react'
 import { useDeferredValue, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 import { columnStatsQuery } from '~/core/queries/rows/column-stats'
 import { resourceRowsQueryKey } from '~/core/queries/rows/list'
 import { valueCountsQuery } from '~/core/queries/rows/value-counts'
@@ -35,8 +36,6 @@ import { createTransformer } from '~/core/transformers/create-transformer'
 import { useTableColumnsContext } from '../../lib/columns'
 import { useReferenceLabels } from '../../lib/labels'
 import { useTablePageStore } from '../../lib/store'
-
-const { useRouteContext } = getRouteApi('/_protected/connection/$resourceId')
 
 const TOP_VALUES = 50
 const VALUE_CHARS = 60
@@ -84,8 +83,9 @@ const StatsBody = ({
   schema: string
   table: string
 }) => {
+  const names = useObjectNames()
   const { columns } = useTableColumnsContext()
-  const { connectionResource, dialect } = useRouteContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const [search, setSearch] = useState('')
   const term = useDeferredValue(search)
   const transformer = createTransformer(dialect, column)
@@ -137,7 +137,11 @@ const StatsBody = ({
             <span className="whitespace-nowrap">
               <Count label="unique of" value={number.format(stats.unique)} />{' '}
               <Count
-                label={filters.length > 0 ? 'filtered rows' : 'rows'}
+                label={
+                  filters.length > 0
+                    ? `filtered ${names.row}s`
+                    : `${names.row}s`
+                }
                 value={number.format(stats.total)}
               />
             </span>

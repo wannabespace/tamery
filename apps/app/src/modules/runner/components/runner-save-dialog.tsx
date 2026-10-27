@@ -14,19 +14,15 @@ import {
   FieldLabel,
 } from '@tamery/ui/components/field'
 import { Input } from '@tamery/ui/components/input'
-import { getRouteApi } from '@tanstack/react-router'
 import { useImperativeHandle, useState } from 'react'
 import { toast } from 'sonner'
 import { v7 } from 'uuid'
 
 import { mutateOffline, useCollections } from '~/core/collections'
+import { useTabContext } from '~/core/connection/route'
 import { posthog } from '~/lib/posthog'
 
 import type { Query } from '../sync'
-
-const { useRouteContext } = getRouteApi(
-  '/_protected/connection/$resourceId/$tabId'
-)
 
 type SaveRequest =
   | { kind: 'statement'; sql: string }
@@ -52,7 +48,7 @@ export const RunnerSaveDialog = ({
   ref: React.RefObject<{ open: (request: SaveRequest) => void } | null>
 }) => {
   const { queriesCollection } = useCollections()
-  const { connectionResource } = useRouteContext()
+  const { connectionResource } = useTabContext()
   const [request, setRequest] = useState<SaveRequest | null>(null)
   const [name, setName] = useState('')
   const [open, setOpen] = useState(false)
