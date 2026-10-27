@@ -73,7 +73,7 @@ echo -n "$CURRENT_USER_KEY_SECRET"   | bun run apps/api/scripts/wrap-secret.ts
 
 ### 3.5 Railway variables
 
-Make these changes **in every API service** (both `Tamery - Hono` and `Tamery - Hono Copy`):
+Make these changes **in every API service**:
 
 1. Add:
    - `ENCRYPTION_SECRET_WRAPPED` and `USER_KEY_SECRET_WRAPPED`: the outputs from §3.4
@@ -102,7 +102,7 @@ Note that `/health` also fails when OpenRouter is unreachable.
 Run the scripts **inside the API service**, where the wrapped env, the Infisical credentials and the private network to the database are all available. Always start them with `bun run rotate:*` from `apps/api`. That runs the same unwrap preload as `start`, so no plaintext secret ever passes through your shell:
 
 ```bash
-railway ssh --service "Tamery - Hono"
+railway ssh --service <api-service>
 cd apps/api   # skip if the service already starts there
 NODE_ENV=production bun run rotate:encryption-secret              # dry run
 NODE_ENV=production bun run rotate:encryption-secret --execute    # apply
