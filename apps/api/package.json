@@ -3,7 +3,10 @@
   "type": "module",
   "scripts": {
     "dev": "portless run cross-env NODE_ENV=development bun --watch run ./index.ts",
-    "start": "cross-env NODE_ENV=production bun run ./index.ts",
+    "start": "cross-env NODE_ENV=production bun run --preload ./lib/unwrap-secrets.ts ./index.ts",
+    "rotate:connection-keys": "bun run --preload ./lib/unwrap-secrets.ts ./scripts/rotate/connection-keys.ts",
+    "rotate:encryption-secret": "bun run --preload ./lib/unwrap-secrets.ts ./scripts/rotate/encryption-secret.ts",
+    "rotate:user-key-secret": "bun run --preload ./lib/unwrap-secrets.ts ./scripts/rotate/user-key-secret.ts",
     "check-types": "tsc",
     "test:start": "cross-env NODE_ENV=test bun --env-file=.env.test drizzle-kit migrate && cross-env NODE_ENV=test bun --env-file=.env.test run ./index.ts",
     "better-auth:generate": "cross-env NODE_ENV=development pnpx auth generate --output ../../packages/db/schema/auth.ts"
@@ -29,6 +32,7 @@
     "arktype": "catalog:",
     "better-auth": "catalog:",
     "better-auth-harmony": "catalog:",
+    "better-result": "catalog:",
     "date-fns": "catalog:",
     "drizzle-orm": "catalog:",
     "hono": "catalog:",

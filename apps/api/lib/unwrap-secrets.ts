@@ -3,7 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 import { objectEntries } from '@tamery/shared/utils'
 
-import { kms } from './kms'
+import { kms, KmsConfigError } from './kms'
 
 const WRAPPED_SECRETS = {
   ENCRYPTION_SECRET: 'ENCRYPTION_SECRET_WRAPPED',
@@ -20,7 +20,7 @@ const unwrap = async (
   try {
     return await kms.unwrap(ciphertext)
   } catch (error) {
-    if (attempt >= RETRY_BACKOFF_MS.length) {
+    if (error instanceof KmsConfigError || attempt >= RETRY_BACKOFF_MS.length) {
       throw error
     }
 

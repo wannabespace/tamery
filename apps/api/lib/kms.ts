@@ -3,6 +3,10 @@ import process from 'node:process'
 
 import { InfisicalSDK } from '@infisical/sdk'
 
+export class KmsConfigError extends Error {
+  override name = 'KmsConfigError'
+}
+
 let connection: Promise<{ keyId: string; sdk: InfisicalSDK }> | null = null
 
 const login = async () => {
@@ -17,7 +21,7 @@ const login = async () => {
     } = process.env
 
     if (!(clientId && clientSecret && keyId)) {
-      throw new Error(
+      throw new KmsConfigError(
         'Set INFISICAL_CLIENT_ID, INFISICAL_CLIENT_SECRET and INFISICAL_KMS_KEY_ID'
       )
     }

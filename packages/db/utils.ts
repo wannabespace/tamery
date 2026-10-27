@@ -8,6 +8,7 @@ import { env } from './env'
 // key is tried on decrypt (AES-GCM's tag rejects the wrong ones), so a new key is rotated in
 // while old rows still open under a retiring key, then dropped once the rows are re-encrypted.
 // Never collapse the decrypt loop to the current key — rows written before a rotation stop opening.
+// A key itself must never contain a comma, or it splits into fragments that open nothing.
 export const resolveKeyring = (secrets: string) => {
   const keyring = secrets
     .split(',')
@@ -34,35 +35,36 @@ export const resolveKeyring = (secrets: string) => {
   }
 }
 
-export const encryptedColumn = (secrets: string) => {
+const encryptedType = <TData>(
+  secrets: string,
+  codec: {
+    parse: (text: string) => TData
+    stringify: (value: TData) => string
+  }
+) => {
   const keyring = resolveKeyring(secrets)
 
-  return customType<{ data: string; driverData: string }>({
+  return customType<{ data: TData; driverData: string }>({
     dataType() {
       return 'text'
     },
     fromDriver(driverData: string) {
-      return keyring.decrypt(driverData)
+      return codec.parse(keyring.decrypt(driverData))
     },
-    toDriver(value: string) {
-      return keyring.encrypt(value)
+    toDriver(value: TData) {
+      return keyring.encrypt(codec.stringify(value))
     },
   })
 }
 
-export const encryptedJson = <TData>(name?: string) => {
-  const keyring = resolveKeyring(env.ENCRYPTION_SECRET)
-  const column = customType<{ data: TData; driverData: string }>({
-    dataType() {
-      return 'text'
-    },
-    fromDriver(driverData: string): TData {
-      return JSON.parse(keyring.decrypt(driverData))
-    },
-    toDriver(value: TData) {
-      return keyring.encrypt(JSON.stringify(value))
-    },
+export const encryptedColumn = (secrets: string) =>
+  encryptedType<string>(secrets, {
+    parse: (text) => text,
+    stringify: (text) => text,
   })
+
+export const encryptedJson = <TData>(name?: string) => {
+  const column = encryptedType<TData>(env.ENCRYPTION_SECRET, JSON)
   return name === undefined ? column() : column(name)
 }
 

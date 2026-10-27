@@ -2,7 +2,7 @@ import type { AppMessagePart, AppUIMessage } from '@tamery/ai/message'
 import { db } from '@tamery/db'
 import { env } from '@tamery/db/env'
 import { chats, chatsMessages, chatsMessagesParts } from '@tamery/db/schema'
-import { decrypt } from '@tamery/shared/crypto-node'
+import { resolveKeyring } from '@tamery/db/utils'
 import { sql } from 'drizzle-orm'
 
 // Chat v2 runs without tools: replaying Conar's tool calls makes the provider reject the request.
@@ -29,11 +29,13 @@ const { rows: conarMessages } = await db.execute<{
   role: AppUIMessage['role']
 }>(sql`SELECT id, created_at, chat_id, parts, role FROM conar_chats_messages`)
 
+const keyring = resolveKeyring(env.ENCRYPTION_SECRET)
+
 const messagesByChat = Object.groupBy(
   conarMessages.flatMap((message) => {
     const parts = message.parts
       .map((encryptedText): AppMessagePart =>
-        JSON.parse(decrypt({ encryptedText, secret: env.ENCRYPTION_SECRET }))
+        JSON.parse(keyring.decrypt(encryptedText))
       )
       .filter((part) => IMPORTED_PART_TYPES.has(part.type))
 
