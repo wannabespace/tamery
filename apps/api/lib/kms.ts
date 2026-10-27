@@ -2,28 +2,31 @@ import { Buffer } from 'node:buffer'
 import process from 'node:process'
 
 import { InfisicalSDK } from '@infisical/sdk'
-import { type } from 'arktype'
-
-const configType = type({
-  INFISICAL_CLIENT_ID: 'string',
-  INFISICAL_CLIENT_SECRET: 'string',
-  INFISICAL_KMS_KEY_ID: 'string',
-  'INFISICAL_SITE_URL?': 'string',
-})
 
 let connection: Promise<{ keyId: string; sdk: InfisicalSDK }> | null = null
 
 const login = async () => {
   try {
-    const config = configType.assert(process.env)
-    const sdk = new InfisicalSDK({ siteUrl: config.INFISICAL_SITE_URL })
+    // Reads process.env, not ./env: this runs inside the boot unwrap, before ./env can
+    // load (./env asserts ENCRYPTION_SECRET, which is only in env once unwrap finishes).
+    const {
+      INFISICAL_CLIENT_ID: clientId,
+      INFISICAL_CLIENT_SECRET: clientSecret,
+      INFISICAL_KMS_KEY_ID: keyId,
+      INFISICAL_SITE_URL: siteUrl,
+    } = process.env
 
-    await sdk.auth().universalAuth.login({
-      clientId: config.INFISICAL_CLIENT_ID,
-      clientSecret: config.INFISICAL_CLIENT_SECRET,
-    })
+    if (!(clientId && clientSecret && keyId)) {
+      throw new Error(
+        'Set INFISICAL_CLIENT_ID, INFISICAL_CLIENT_SECRET and INFISICAL_KMS_KEY_ID'
+      )
+    }
 
-    return { keyId: config.INFISICAL_KMS_KEY_ID, sdk }
+    const sdk = new InfisicalSDK({ siteUrl })
+
+    await sdk.auth().universalAuth.login({ clientId, clientSecret })
+
+    return { keyId, sdk }
   } catch (error) {
     connection = null
     throw error
