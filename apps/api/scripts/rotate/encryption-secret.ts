@@ -7,7 +7,7 @@ import {
   shares,
 } from '@tamery/db/schema'
 
-import { runColumnKeyRotation } from './column-key-rotation'
+import { runColumnKeyRotation } from './column-key'
 
 // ENCRYPTION_SECRET is the at-rest key for every encryptedText/encryptedJson column.
 await runColumnKeyRotation({

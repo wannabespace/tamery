@@ -9,8 +9,8 @@ import type { PgColumn } from 'drizzle-orm/pg-core'
 
 type Identifier = ReturnType<typeof sql.identifier>
 
-// Shared engine reused by rotate-encryption-secret.ts and rotate-user-key-secret.ts
-// to rotate a secret that wraps encrypted columns at rest. The column types in
+// Shared engine reused by encryption-secret.ts and user-key-secret.ts to rotate a
+// secret that wraps encrypted columns at rest. The column types in
 // `@tamery/db` bind the current secret at module load, so this reads and writes the
 // raw ciphertext through `sql` rather than the ORM, decrypting with the old secret
 // and re-encrypting with the new one. Because the key lives in env, not a store this
