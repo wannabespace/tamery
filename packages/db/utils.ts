@@ -57,7 +57,7 @@ const encryptedType = <TData>(
   })
 }
 
-export const encryptedColumn = (secrets: string) =>
+export const encryptedTextColumn = (secrets: string) =>
   encryptedType<string>(secrets, {
     parse: (text) => text,
     stringify: (text) => text,
@@ -69,6 +69,6 @@ export const encryptedJson = <TData>(name?: string) => {
 }
 
 export const encryptedText = (name?: string) => {
-  const column = encryptedColumn(env.ENCRYPTION_SECRET)
+  const column = encryptedTextColumn(env.ENCRYPTION_SECRET)
   return name === undefined ? column() : column(name)
 }
