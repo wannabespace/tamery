@@ -10,6 +10,7 @@
   "dependencies": {
     "@tamery/shared": "workspace:*",
     "arktype": "catalog:",
+    "better-result": "catalog:",
     "drizzle-orm": "catalog:",
     "pg": "catalog:",
     "uuid": "catalog:"

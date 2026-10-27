@@ -12,6 +12,7 @@
     "@better-auth/core": "catalog:",
     "@better-auth/drizzle-adapter": "catalog:",
     "@exalabs/ai-sdk": "catalog:",
+    "@infisical/sdk": "catalog:",
     "@octokit/rest": "catalog:",
     "@openrouter/ai-sdk-provider": "catalog:",
     "@orpc/publisher": "catalog:",

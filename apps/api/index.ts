@@ -1,4 +1,6 @@
 import '@tamery/shared/arktype-config'
+// Unwraps KMS-wrapped secrets into process.env; must run before ./env and @tamery/db read them.
+import './lib/unwrap-secrets'
 import process from 'node:process'
 
 import { ORPCError, ValidationError } from '@orpc/server'
