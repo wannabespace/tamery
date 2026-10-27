@@ -49,19 +49,25 @@ const reencryptColumn = (
       return { ...row, newCipher: keyring.encrypt(plaintext.value) }
     })
 
-    if (execute) {
-      // Compare-and-swap on the old ciphertext: a row the app rewrote since the read is
-      // already under the current key, and overwriting it would restore a stale value.
-      await Promise.all(
-        reencrypted.map((row) =>
-          db.execute(
-            sql`update ${table} set ${cipherColumn} = ${row.newCipher} where ${idColumn} = ${row.id} and ${cipherColumn} = ${row.cipher}`
-          )
-        )
-      )
+    if (!execute) {
+      return rows.length + (await reencryptPage(last.id))
     }
 
-    return rows.length + (await reencryptPage(last.id))
+    // Compare-and-swap on the old ciphertext: a row the app rewrote since the read is
+    // already under the current key, and overwriting it would restore a stale value.
+    const updates = await Promise.all(
+      reencrypted.map((row) =>
+        db.execute(
+          sql`update ${table} set ${cipherColumn} = ${row.newCipher} where ${idColumn} = ${row.id} and ${cipherColumn} = ${row.cipher}`
+        )
+      )
+    )
+    const updated = updates.reduce(
+      (sum, { rowCount }) => sum + (rowCount ?? 0),
+      0
+    )
+
+    return updated + (await reencryptPage(last.id))
   }
 
   return reencryptPage(null)

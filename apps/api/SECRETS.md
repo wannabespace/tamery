@@ -75,14 +75,17 @@ echo -n "$CURRENT_USER_KEY_SECRET"   | bun run apps/api/scripts/wrap-secret.ts
 
 Make these changes **in every API service**:
 
-1. Add:
+1. Check that the service's start command is `apps/api`'s `start` script (`bun run start` there), not a custom command such as `bun index.ts`. The unwrap runs as a preload inside that script, so any other command boots without it and crashes once the plaintext is gone.
+2. Add:
    - `ENCRYPTION_SECRET_WRAPPED` and `USER_KEY_SECRET_WRAPPED`: the outputs from §3.4
    - `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, `INFISICAL_KMS_KEY_ID`
    - `INFISICAL_SITE_URL`: only for self-hosted Infisical
-2. Remove the plaintext `ENCRYPTION_SECRET` and `USER_KEY_SECRET`.
-3. Redeploy.
+3. Remove the plaintext `ENCRYPTION_SECRET` and `USER_KEY_SECRET`.
+4. Redeploy.
 
 If unwrapping fails, boot retries for about 30s and the process never starts listening, so the rolling deploy keeps the old instance serving. A missing `INFISICAL_*` variable fails immediately, without retries.
+
+From now on, never roll back to a build whose `start` script lacks the `--preload` of `lib/unwrap-secrets.ts`: it reads `ENCRYPTION_SECRET` before anything unwraps it and crashes at boot.
 
 ### 3.6 Healthcheck
 
@@ -127,8 +130,8 @@ This is zero-downtime. Every step must reach **every API service and instance** 
 2. **Set `<old>,<new>`.** Every instance can now read the new key, but still writes under the old one.
 3. **Set `<new>,<old>`.** Writes switch to the new key, and old rows still open.
 4. **Re-encrypt.** Run the matching script (§4.1): `rotate:encryption-secret` for `ENCRYPTION_SECRET`, `rotate:user-key-secret` for `USER_KEY_SECRET`. Do a dry run first, then `--execute`. It is safe to re-run if interrupted, and it skips rows the app rewrote in the meantime.
-5. **Set `<new>`.** The old key is retired.
-6. Remove `<old>` from the backup.
+5. **Set `<new>`.** The old key is retired from the live keyring.
+6. **Keep `<old>` in the backup** until every database backup and point-in-time recovery window that predates step 4 has expired. Re-encryption rewrites only the live database; those backups still hold rows under `<old>` (§5.4). Only then remove it.
 
 Do not skip step 2. If you go straight to `<new>,<old>`, an instance still on `<old>` will hit rows it cannot open.
 
@@ -168,3 +171,14 @@ A user's key exists only in their `user_encryption_keys` row, and there is no ba
 1. Mint a new key with a one-off call to `userEncryptionKey.create(userId)` (`apps/api/lib/encryption-key.ts`).
 2. Clear `connection_string` on those workspaces' connections. The old ciphertext can never be opened again.
 3. Have the user re-enter their connection strings.
+
+### 5.4 Restoring a database backup taken before a rotation
+
+The restored rows are under the key that was current when the backup was taken, which may since have been retired (§4.3). Bring it back from the backup kept in §4.3 step 6 and roll it through the keyring before the data returns:
+
+1. **Set `<current>,<retired>`** in every API service and redeploy. Writes stay on the current key, and the restored rows will open.
+2. Restore the backup.
+3. **Re-encrypt** (§4.1), dry run first, then `--execute`.
+4. **Set `<current>`.**
+
+Per-user keys need nothing extra: a backup holds each user's key row together with the connection strings it opens.
