@@ -29,22 +29,22 @@ export const stream = orpc
       throw errors.BAD_REQUEST()
     })
 
-    const { title } = await chatPersist.ensureChat({
+    const turn = messages.at(-1)
+    if (!turn) {
+      throw errors.BAD_REQUEST()
+    }
+
+    const { connection, title } = await chatPersist.ensureChat({
       chatId: input.chatId,
       connectionResourceId: input.connectionResourceId,
       userId: context.user.id,
     })
 
-    const lastUserMessage = messages.findLast(
-      (message) => message.role === 'user'
-    )
-    if (lastUserMessage) {
-      await chatPersist.persistMessage({
-        chatId: input.chatId,
-        message: lastUserMessage,
-        userId: context.user.id,
-      })
-    }
+    await chatPersist.persistMessage({
+      chatId: input.chatId,
+      message: turn,
+      userId: context.user.id,
+    })
 
     const history = await chatPersist.loadMessages({
       chatId: input.chatId,
@@ -52,7 +52,7 @@ export const stream = orpc
     })
 
     const previousAnswer = history.at(-1)
-    if (previousAnswer?.role === 'assistant') {
+    if (turn.role === 'user' && previousAnswer?.role === 'assistant') {
       await chatPersist.deleteMessage({
         chatId: input.chatId,
         messageId: previousAnswer.id,
@@ -71,6 +71,7 @@ export const stream = orpc
 
     const str = await chatStream.claim({
       chatId: input.chatId,
+      connection,
       messages: history,
       onFinish: (message) =>
         chatPersist.persistMessage({

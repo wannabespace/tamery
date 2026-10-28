@@ -4,6 +4,7 @@ import {
   Undo02Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import type { IconSvgElement } from '@hugeicons/react'
 import {
   Tooltip,
   TooltipContent,
@@ -30,6 +31,64 @@ const REORDER_TRANSITION = {
   duration: 0.2,
   ease: [0.32, 0.72, 0, 1],
 } as const
+
+export const tabClassName = (isActive: boolean) =>
+  cn(
+    `group text-muted-foreground hover:bg-background/50 font-row relative flex h-full cursor-default items-center gap-1.5 border-r border-b pr-8 pl-3 text-sm whitespace-nowrap transition-colors duration-40`,
+    isActive &&
+      `bg-background text-foreground hover:bg-background border-b-transparent`
+  )
+
+export const TabIcon = ({
+  icon,
+  isActive,
+}: {
+  icon: IconSvgElement
+  isActive: boolean
+}) => (
+  <HugeiconsIcon
+    icon={icon}
+    strokeWidth={2}
+    className={cn(
+      'text-muted-foreground/60 size-3.5 shrink-0 transition-colors duration-40',
+      isActive && 'text-primary'
+    )}
+  />
+)
+
+export const TabClose = ({
+  isActive,
+  onClose,
+}: {
+  isActive: boolean
+  onClose: () => void
+}) => (
+  <Tooltip
+    shortcut={
+      isActive && window.electron && <ShortcutKbd shortcut="closeTab" />
+    }
+  >
+    <TooltipTrigger
+      render={
+        // Nested button is invalid HTML (parent tab is already a button); the keyboard closes a tab from its ⌘. menu.
+        // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
+        <span
+          tabIndex={-1}
+          aria-label="Close tab"
+          className="text-muted-foreground hover:bg-foreground/10 hover:text-foreground absolute right-2 flex size-4 items-center justify-center rounded-sm opacity-0 transition-opacity duration-100 group-hover:opacity-60 hover:opacity-100! data-popup-open:opacity-100"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+            onClose()
+          }}
+        />
+      }
+    >
+      <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="size-3.5" />
+    </TooltipTrigger>
+    <TooltipContent side="bottom">Close tab</TooltipContent>
+  </Tooltip>
+)
 
 export const Tab = ({
   tab,
@@ -155,22 +214,10 @@ export const Tab = ({
       to: '/connection/$resourceId/$tabId',
     })
 
-  const tabClasses = cn(
-    `group text-muted-foreground hover:bg-background/50 font-row relative flex h-full cursor-default items-center gap-1.5 border-r border-b pr-8 pl-3 text-sm whitespace-nowrap transition-colors duration-40`,
-    isActive &&
-      `bg-background text-foreground hover:bg-background border-b-transparent`,
-    isPreview && 'italic'
-  )
+  const tabClasses = cn(tabClassName(isActive), isPreview && 'italic')
 
   const icon = resolved && (
-    <HugeiconsIcon
-      icon={resolved.kind.icon(resolved.params)}
-      strokeWidth={2}
-      className={cn(
-        'text-muted-foreground/60 size-3.5 shrink-0 transition-colors duration-40',
-        isActive && 'text-primary'
-      )}
-    />
+    <TabIcon icon={resolved.kind.icon(resolved.params)} isActive={isActive} />
   )
 
   if (isRenaming) {
@@ -242,35 +289,7 @@ export const Tab = ({
         >
           {icon}
           <span>{label}</span>
-          <Tooltip
-            shortcut={
-              isActive && window.electron && <ShortcutKbd shortcut="closeTab" />
-            }
-          >
-            <TooltipTrigger
-              render={
-                // Nested button is invalid HTML (parent tab is already a button); the keyboard closes a tab from its ⌘. menu.
-                // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
-                <span
-                  tabIndex={-1}
-                  aria-label="Close tab"
-                  className="text-muted-foreground hover:bg-foreground/10 hover:text-foreground absolute right-2 flex size-4 items-center justify-center rounded-sm opacity-0 transition-opacity duration-100 group-hover:opacity-60 hover:opacity-100! data-popup-open:opacity-100"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onClose()
-                  }}
-                />
-              }
-            >
-              <HugeiconsIcon
-                icon={Cancel01Icon}
-                strokeWidth={2}
-                className="size-3.5"
-              />
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Close tab</TooltipContent>
-          </Tooltip>
+          <TabClose isActive={isActive} onClose={onClose} />
         </button>
       </AppContextMenu>
     </Reorder.Item>

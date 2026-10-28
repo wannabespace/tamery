@@ -1,16 +1,25 @@
 import { Chat } from '@ai-sdk/react'
 import { asyncIteratorToStream } from '@orpc/client'
 import type { AppUIMessage } from '@tamery/ai/message'
+import { lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
 import { memoize } from 'memoza'
 import { v7 } from 'uuid'
 
 import { orpc } from '~/lib/orpc'
 
+import { chatToolRuns } from './chat-tools'
+
 export const getChatInstance = memoize(
-  (data: { chatId: string; connectionResourceId: string }) =>
-    new Chat<AppUIMessage>({
+  (data: { chatId: string; connectionResourceId: string }) => {
+    const chat: Chat<AppUIMessage> = new Chat<AppUIMessage>({
       generateId: v7,
       id: data.chatId,
+      onToolCall: ({ toolCall }) => {
+        if (!toolCall.dynamic && toolCall.toolName !== 'execute') {
+          void chatToolRuns.read(chat, toolCall)
+        }
+      },
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
       transport: {
         reconnectToStream: async ({ abortSignal }) => {
           const chunks = await orpc.ai.attachStream.call(
@@ -40,7 +49,9 @@ export const getChatInstance = memoize(
             )
           ),
       },
-    }),
+    })
+    return chat
+  },
   {
     cacheKey: ({ chatId }) => chatId,
   }

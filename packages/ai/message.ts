@@ -1,11 +1,17 @@
 import type { UIMessage } from 'ai'
 import { isTextUIPart } from 'ai'
 
+import type { ChatDataParts, ChatTools } from './tools'
+
 export interface AppMessageMetadata {
   stopped?: boolean
 }
 
-export type AppUIMessage = UIMessage<AppMessageMetadata>
+export type AppUIMessage = UIMessage<
+  AppMessageMetadata,
+  ChatDataParts,
+  ChatTools
+>
 export type AppMessagePart = AppUIMessage['parts'][number]
 
 export const textFromMessage = (message: Pick<AppUIMessage, 'parts'>) =>
@@ -41,13 +47,20 @@ export const messagesFromPartRows = (rows: MessagePartRow[]): AppUIMessage[] =>
     }
   )
 
+// A message only grows, so the longer copy is the newer one; on a tie the live copy carries tool outputs the row lacks.
 export const mergeMessages = (
   persisted: AppUIMessage[],
   live: AppUIMessage[]
 ): AppUIMessage[] => {
+  const liveById = new Map(live.map((message) => [message.id, message]))
   const persistedIds = new Set(persisted.map((message) => message.id))
   return [
-    ...persisted,
+    ...persisted.map((message) => {
+      const current = liveById.get(message.id)
+      return current && current.parts.length >= message.parts.length
+        ? current
+        : message
+    }),
     ...live.filter((message) => !persistedIds.has(message.id)),
   ]
 }

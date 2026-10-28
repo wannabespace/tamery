@@ -1,0 +1,70 @@
+import type { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { MCP_MAX_ROWS } from '@tamery/shared/mcp'
+import type { InferUITools } from 'ai'
+import { tool } from 'ai'
+import { type } from 'arktype'
+
+const target = type({
+  connectionId: type.string.describe(
+    'Connection id from list_connections or a mention'
+  ),
+  resource: type('string | null').describe(
+    "Resource (a database) of the connection; null for the connection's own database"
+  ),
+})
+
+const statement = type({ '...': target, sql: 'string' })
+
+export const resultSetsType = type({
+  affectedRows: 'number | null',
+  columns: 'string[]',
+  rows: 'unknown[][]',
+  truncated: 'boolean',
+}).array()
+
+export const chatTools = {
+  describe_table: tool({
+    description:
+      'Describe one table or view: its columns (type, nullability, default, enum values), constraints (primary key, foreign keys with what they reference, unique, check) and indexes.',
+    inputSchema: type({
+      '...': target,
+      schema: type.string.describe('Schema from list_tables'),
+      table: 'string',
+    }),
+    outputSchema: type.unknown,
+  }),
+  execute: tool({
+    description: `Run one SQL statement that changes data or schema, in the connection's own dialect. Nothing runs until the user approves it in the chat; a declined statement comes back as an error, so never retry it unchanged. Wrap several statements in BEGIN … COMMIT to run them as one transaction, except on ClickHouse. Use query for reads. At most ${MCP_MAX_ROWS} rows come back.`,
+    inputSchema: statement,
+    outputSchema: resultSetsType,
+  }),
+  list_connections: tool({
+    description:
+      "List the user's database connections: id, name, engine and the resources (databases) opened in each.",
+    inputSchema: type({}),
+    outputSchema: type.unknown,
+  }),
+  list_tables: tool({
+    description:
+      'List the schemas of a connection with their tables and views. In MySQL and ClickHouse a schema is a database. Pass a schema to list only that one on a large database, or null for all.',
+    inputSchema: type({ '...': target, schema: 'string | null' }),
+    outputSchema: type.unknown,
+  }),
+  query: tool({
+    description: `Run one read-only SQL statement in the connection's own dialect; statements that write are rejected. At most ${MCP_MAX_ROWS} rows come back and "truncated" says there were more, so filter or aggregate in SQL instead of reading whole tables. The user sees the rows as a table under your call, so never repeat them in your answer.`,
+    inputSchema: statement,
+    outputSchema: resultSetsType,
+  }),
+}
+
+export type ChatTools = InferUITools<typeof chatTools>
+
+// oxlint-disable-next-line typescript/consistent-type-definitions -- UIMessage needs an index-signature-compatible map, which an interface is not
+export type ChatDataParts = {
+  connection: typeof target.infer & { name: string; type: ConnectionType }
+  table: typeof target.infer & {
+    definition: unknown
+    schema: string
+    table: string
+  }
+}

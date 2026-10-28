@@ -14,7 +14,8 @@ import {
   Outlet,
   redirect,
 } from '@tanstack/react-router'
-import { useEffect } from 'react'
+import type { ReactNode } from 'react'
+import { useDeferredValue, useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { getDefaultSchema } from '~/core/catalog/capabilities'
@@ -32,8 +33,13 @@ import { workspaceSelection } from '~/core/workspace/utils'
 import { useGoBack } from '~/hooks/use-go-back'
 import type { Panel } from '~/lib/panels'
 import { panelSize, useShellLayout } from '~/lib/panels'
+import { AgentView } from '~/modules/chat/agent-view'
+import { ChatList } from '~/modules/chat/chat-list'
+import { ModeSwap } from '~/modules/chat/mode-swap'
 import { chatPanel } from '~/modules/chat/panel'
+import { agentModeValue } from '~/modules/chat/stores'
 import { useEscapeToNavigator } from '~/modules/navigator/keyboard'
+import { Navigator } from '~/modules/navigator/navigator'
 import { navigatorPanel } from '~/modules/navigator/panel'
 import { toggleNavigator } from '~/modules/navigator/stores'
 import { toggleLogger } from '~/modules/query-logger/logger-open'
@@ -64,9 +70,15 @@ const REGION_MOTION = {
 }
 
 const RegionPanel = ({
+  children,
+  hidden = false,
   panel,
   resourceId,
 }: {
+  /** Replaces the panel's own content. */
+  children?: ReactNode
+  /** Collapses the panel without forgetting whether the user had it open. */
+  hidden?: boolean
   panel: Panel
   resourceId: string
 }) => {
@@ -86,11 +98,11 @@ const RegionPanel = ({
       defaultSize={panel.defaultSize}
       minSize={panel.minSize}
       maxSize={panel.maxSize}
-      collapsed={!opened}
-      onCollapsedChange={(collapsed) => openValue.set(!collapsed)}
+      collapsed={!opened || hidden}
+      onCollapsedChange={(collapsed) => !hidden && openValue.set(!collapsed)}
       {...REGION_MOTION[panel.region]}
     >
-      <Component />
+      {children ?? <Component />}
     </ResizablePanel>
   )
 
@@ -115,6 +127,7 @@ const ResourcePage = () => {
     }
   }, [connectionResource.id])
 
+  const isAgentMode = useDeferredValue(useSubscription(agentModeValue))
   const fetching = useFetchingConfig(connection)
   const needsDetails = fetching.type === 'waiting-for-details'
   const locked = fetching.type === 'waiting-for-password' || needsDetails
@@ -147,13 +160,19 @@ const ResourcePage = () => {
 
   return (
     <ResizableGroup orientation="horizontal" className="p-2">
-      <RegionPanel panel={navigatorPanel} resourceId={connectionResource.id} />
+      <RegionPanel panel={navigatorPanel} resourceId={connectionResource.id}>
+        <ModeSwap isAgentMode={isAgentMode}>
+          {isAgentMode ? <ChatList /> : <Navigator />}
+        </ModeSwap>
+      </RegionPanel>
       <ResizablePanel className="flex flex-col">
         <ResizableGroup orientation="vertical">
           <ResizablePanel className="flex flex-col">
             <div className={resourcePanelClassName}>
-              <TabBar />
-              <Outlet />
+              <TabBar isAgentMode={isAgentMode} />
+              <ModeSwap isAgentMode={isAgentMode}>
+                {isAgentMode ? <AgentView /> : <Outlet />}
+              </ModeSwap>
               <TransactionTabGuard />
             </div>
           </ResizablePanel>
@@ -163,7 +182,11 @@ const ResourcePage = () => {
           />
         </ResizableGroup>
       </ResizablePanel>
-      <RegionPanel panel={chatPanel} resourceId={connectionResource.id} />
+      <RegionPanel
+        panel={chatPanel}
+        resourceId={connectionResource.id}
+        hidden={isAgentMode}
+      />
     </ResizableGroup>
   )
 }

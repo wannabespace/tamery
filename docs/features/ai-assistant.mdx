@@ -1,22 +1,39 @@
 ---
 title: 'AI assistant'
-description: 'Ask about a query or an error in chat. AI also filters rows and fixes queries in the editor.'
-keywords: ['copilot', 'llm', 'natural language', 'assistant']
+description: 'Ask the AI agent about your data. It reads your schema, runs queries, and changes data after you approve.'
+keywords: ['copilot', 'llm', 'natural language', 'assistant', 'agent mode']
 ---
 
-Open a connection and click the chat button in the tab bar, or press **Cmd+L** (**Ctrl+L**). Paste a query, an error, or a table definition and ask away.
+Open a connection and click the chat button in the tab bar, or press **Cmd+L** (**Ctrl+L**), then ask about your data in plain words.
 
 Try:
 
-- “Explain this query.”
+- “Which customers ordered the most last month?”
 - “Why does this SQL fail?”
-- “Write a monthly sales query using these tables.”
+- “Set the status of order 1042 to shipped.”
 
 Each database keeps its own chats. **New chat** starts fresh, and the chat history in the header brings back an older one, on any of your devices. You can stop an answer halfway, and an answer still being written survives a window reload.
 
-## Give it context
+## What the agent does
 
-The chat knows only what you send it. It does not read your schema, query your data, or change anything on its own. Include the table and column names that matter, then read the SQL it suggests and run it yourself.
+The agent reads your schema and runs read-only queries on its own. Each query shows its SQL and the rows it returned as a table under the answer; **Open as Query** opens that SQL in a new Query tab.
+
+A statement that changes data or schema never runs on its own. The chat shows it with **Run** and **Decline**, and the agent continues once you choose. **Run** turns red when the statement removes data.
+
+## Agent mode
+
+Click **Agent** in the title bar, or press **Cmd+Shift+L** (**Ctrl+Shift+L**), to turn the whole connection into the chat. The Navigator lists the connection's chats, the tabs become your open chats, and the chat takes the full width. Click **Agent** again to go back to your tables.
+
+## Mentions and commands
+
+Type **@** in the message box to mention:
+
+| Mention | What the agent gets |
+| --- | --- |
+| A table of this connection | Its columns, keys, and indexes, so it can write SQL right away |
+| Another connection | Access to it in this chat, for example to compare data across two databases |
+
+The agent queries each connection on its own and combines the results in its answer. Type **/new** to start a new chat.
 
 Chats are stored on our servers and processed by external AI providers. See [Security and privacy](/connections/security#ai-and-your-data).
 

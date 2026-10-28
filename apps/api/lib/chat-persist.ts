@@ -6,6 +6,7 @@ import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { chats, chatsMessages, chatsMessagesParts } from '@tamery/db/schema'
 import { silently } from '@tamery/shared/utils'
+import { isDeepEqualData } from 'ai'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 
 import { aiUsage } from '~/lib/ai-usage'
@@ -14,6 +15,25 @@ import { publisher as chatsMessagesPublisher } from '~/orpc/routers/chats-messag
 import { publisher as chatsPublisher } from '~/orpc/routers/chats/events'
 
 export const chatPersist = {
+  connection: async (data: {
+    connectionResourceId: string
+    userId: string
+  }) => {
+    const resource = await db.query.connectionsResources.findFirst({
+      columns: { name: true },
+      where: {
+        connection: { userId: { eq: data.userId } },
+        id: { eq: data.connectionResourceId },
+      },
+      with: { connection: { columns: { id: true, name: true, type: true } } },
+    })
+    if (!resource?.connection) {
+      throw new ORPCError('NOT_FOUND', {
+        message: 'Connection resource not found',
+      })
+    }
+    return { ...resource.connection, resource: resource.name }
+  },
   deleteMessage: async (data: {
     chatId: string
     messageId: string
@@ -41,6 +61,8 @@ export const chatPersist = {
     connectionResourceId: string
     userId: string
   }) => {
+    const connection = await chatPersist.connection(data)
+
     const existing = await db.query.chats.findFirst({
       columns: { title: true, userId: true },
       where: { id: { eq: data.chatId } },
@@ -50,20 +72,7 @@ export const chatPersist = {
       if (existing.userId !== data.userId) {
         throw new ORPCError('NOT_FOUND', { message: 'Chat not found' })
       }
-      return { title: existing.title }
-    }
-
-    const resource = await db.query.connectionsResources.findFirst({
-      columns: { id: true },
-      where: {
-        connection: { userId: { eq: data.userId } },
-        id: { eq: data.connectionResourceId },
-      },
-    })
-    if (!resource) {
-      throw new ORPCError('NOT_FOUND', {
-        message: 'Connection resource not found',
-      })
+      return { connection, title: existing.title }
     }
 
     const [inserted] = await db
@@ -80,7 +89,7 @@ export const chatPersist = {
       chatsPublisher.publish(data.userId, { type: 'insert', value: inserted })
     }
 
-    return { title: null }
+    return { connection, title: null }
   },
   loadMessages: async (data: { chatId: string; userId: string }) => {
     const rows = await db
@@ -131,6 +140,7 @@ export const chatPersist = {
       })
     }
   },
+  /** Inserts a new turn; an assistant turn that already exists grows in place, since tool outputs and the answer after them extend the same message. */
   persistMessage: async (data: {
     chatId: string
     message: AppUIMessage
@@ -152,37 +162,85 @@ export const chatPersist = {
         .onConflictDoNothing()
         .returning()
 
-      if (!insertedMessage) {
+      if (insertedMessage) {
+        const insertedParts = await tx
+          .insert(chatsMessagesParts)
+          .values(
+            data.message.parts.map((part, order) => ({
+              messageId: insertedMessage.id,
+              order,
+              part,
+            }))
+          )
+          .returning()
+        return {
+          inserted: insertedMessage,
+          parts: insertedParts.map((value) => ({
+            type: 'insert' as const,
+            value,
+          })),
+        }
+      }
+
+      if (data.message.role !== 'assistant') {
         return { inserted: null, parts: [] }
       }
 
-      const insertedParts = await tx
-        .insert(chatsMessagesParts)
-        .values(
-          data.message.parts.map((part, order) => ({
-            messageId: insertedMessage.id,
-            order,
-            part,
-          }))
+      const existingParts = await tx
+        .select({
+          id: chatsMessagesParts.id,
+          order: chatsMessagesParts.order,
+          part: chatsMessagesParts.part,
+        })
+        .from(chatsMessagesParts)
+        .innerJoin(
+          chatsMessages,
+          eq(chatsMessagesParts.messageId, chatsMessages.id)
         )
-        .returning()
+        .where(
+          and(
+            eq(chatsMessages.id, data.message.id),
+            eq(chatsMessages.chatId, data.chatId),
+            eq(chatsMessages.role, 'assistant')
+          )
+        )
+      if (existingParts.length === 0) {
+        return { inserted: null, parts: [] }
+      }
 
-      return { inserted: insertedMessage, parts: insertedParts }
+      const byOrder = new Map(existingParts.map((row) => [row.order, row]))
+      const changed = await Promise.all(
+        data.message.parts.map(async (part, order) => {
+          const existing = byOrder.get(order)
+          if (!existing) {
+            const [value] = await tx
+              .insert(chatsMessagesParts)
+              .values({ messageId: data.message.id, order, part })
+              .returning()
+            return value && { type: 'insert' as const, value }
+          }
+          if (isDeepEqualData(existing.part, part)) {
+            return null
+          }
+          const [value] = await tx
+            .update(chatsMessagesParts)
+            .set({ part })
+            .where(eq(chatsMessagesParts.id, existing.id))
+            .returning()
+          return value && { type: 'update' as const, value }
+        })
+      )
+      return { inserted: null, parts: changed.filter((item) => !!item) }
     })
 
-    if (!inserted) {
-      return
-    }
-
-    chatsMessagesPublisher.publish(data.userId, {
-      type: 'insert',
-      value: inserted,
-    })
-    for (const part of parts) {
-      chatsMessagesPartsPublisher.publish(data.userId, {
+    if (inserted) {
+      chatsMessagesPublisher.publish(data.userId, {
         type: 'insert',
-        value: part,
+        value: inserted,
       })
+    }
+    for (const part of parts) {
+      chatsMessagesPartsPublisher.publish(data.userId, part)
     }
   },
   persistTitle: async (data: {

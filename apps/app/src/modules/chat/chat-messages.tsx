@@ -13,21 +13,28 @@ import {
   MessageScrollerViewport,
 } from '@tamery/ui/components/message-scroller'
 import { Spinner } from '@tamery/ui/components/spinner'
+import { cn } from '@tamery/ui/lib/utils'
 
 import { MessagePart } from './chat-message-part'
+import type { ToolPartActions } from './chat-tool-part'
 
 const ChatEmpty = () => (
   <IconEmpty
     icon={AiChat01Icon}
     title="Ask Anything"
-    description="Questions about your schema, SQL help, or anything else."
+    description="Query your data, change it, or @ another connection to compare."
   />
 )
 
 export const ChatMessages = ({
+  className,
+  decideWrite,
   isPending,
   messages,
 }: {
+  /** Layout of the message column, e.g. a centered width on a full page. */
+  className?: string
+  decideWrite?: ToolPartActions['decideWrite']
   isPending: boolean
   messages: AppUIMessage[]
 }) => {
@@ -42,7 +49,7 @@ export const ChatMessages = ({
           <MessageScrollerContent
             role="log"
             aria-label="Chat messages"
-            className="gap-4 py-3"
+            className={cn('gap-4 py-3', className)}
           >
             {messages.map((message) => (
               <MessageScrollerItem key={message.id} messageId={message.id}>
@@ -60,7 +67,15 @@ export const ChatMessages = ({
                   <Message>
                     <MessageContent data-mask>
                       {message.parts.map((part, index) => (
-                        <MessagePart key={index} part={part} />
+                        <MessagePart
+                          key={index}
+                          part={part}
+                          actions={
+                            message === messages.at(-1)
+                              ? { decideWrite, isLast: true }
+                              : { isLast: false }
+                          }
+                        />
                       ))}
                     </MessageContent>
                   </Message>

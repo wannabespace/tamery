@@ -12,63 +12,76 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
+import { cn } from '@tamery/ui/lib/utils'
 import { useEffect, useRef, useState } from 'react'
-import { useSubscription } from 'seitu/react'
 
-import { useConnectionContext } from '~/core/connection/route'
 import { useIsOnline } from '~/store'
 
-import { chatOpen } from './stores'
+import type { PromptMention } from './prompt-mentions'
+import { usePromptMentions } from './prompt-mentions'
+import { PromptMenu } from './prompt-menu'
 
 export const ChatInput = ({
+  className,
+  isActive,
   isStreaming,
+  onCommand,
   onSend,
   onStop,
 }: {
+  className?: string
+  /** Focuses the composer whenever it turns true. */
+  isActive: boolean
   isStreaming: boolean
-  onSend: (text: string) => void
+  onCommand: (command: 'new') => void
+  onSend: (text: string, mentions: PromptMention[]) => void
   onStop: () => void
 }) => {
-  const { connectionResource } = useConnectionContext()
-  const isOpened = useSubscription(chatOpen(connectionResource.id))
   const isOnline = useIsOnline()
   const [value, setValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const menu = usePromptMentions({ onCommand, setValue, textareaRef, value })
 
   useEffect(() => {
-    if (isOpened) {
+    if (isActive) {
       textareaRef.current?.focus()
     }
-  }, [isOpened])
+  }, [isActive])
 
   const submit = () => {
     const text = value.trim()
     if (!text || isStreaming || !isOnline) {
       return
     }
-    onSend(text)
+    onSend(text, menu.sentMentions())
+    menu.reset()
     setValue('')
   }
 
   return (
     <form
-      className="shrink-0 p-2"
+      className={cn('relative shrink-0 p-2', className)}
       onSubmit={(event) => {
         event.preventDefault()
         submit()
       }}
     >
+      <PromptMenu menu={menu} />
       <InputGroup className="relative">
         <InputGroupTextarea
           ref={textareaRef}
           data-mask
           aria-label="Message"
-          placeholder="Ask about your database…"
+          placeholder="Ask about your data, @ to mention, / for commands"
           rows={1}
           className="field-sizing-content max-h-64 min-h-20 pb-9"
           value={value}
           onChange={(event) => setValue(event.target.value)}
+          onSelect={(event) => menu.onSelect(event)}
           onKeyDown={(event) => {
+            if (menu.onKeyDown(event)) {
+              return
+            }
             if (
               event.key === 'Enter' &&
               !event.shiftKey &&

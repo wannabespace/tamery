@@ -21,6 +21,12 @@ export const SHORTCUTS = {
     hotkeys: ['Mod+N'],
     title: 'Add',
   },
+  agentMode: {
+    description:
+      'Turn the connection into one big chat with the AI agent, or back.',
+    hotkeys: ['Mod+Shift+L'],
+    title: 'Agent mode',
+  },
   aiChat: {
     description: 'Open or close the AI assistant.',
     hotkeys: ['Mod+L'],

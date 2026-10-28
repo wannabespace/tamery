@@ -7,6 +7,7 @@ import { createWebStorageValue } from 'seitu/web'
 
 import { SHELL_LAYOUT_KEY } from '~/lib/constants'
 import { chatPanel } from '~/modules/chat/panel'
+import { agentModeValue } from '~/modules/chat/stores'
 import { navigatorPanel } from '~/modules/navigator/panel'
 import { queryLoggerPanel } from '~/modules/query-logger/panel'
 
@@ -42,16 +43,21 @@ export const useShellLayout = (resourceId: string) => {
         SHELL_LAYOUT_KEY,
         JSON.stringify(
           Object.fromEntries(
-            PANELS.filter((panel) => panel.open(resourceId).get()).map(
-              (panel) => [panel.region, panelSize(panel).get()]
-            )
+            PANELS.filter(
+              (panel) =>
+                panel.open(resourceId).get() &&
+                !(panel === chatPanel && agentModeValue.get())
+            ).map((panel) => [panel.region, panelSize(panel).get()])
           )
         )
       )
-    const unsubscribes = PANELS.flatMap((panel) => [
-      panel.open(resourceId).subscribe(write),
-      panelSize(panel).subscribe(write),
-    ])
+    const unsubscribes = [
+      agentModeValue.subscribe(write),
+      ...PANELS.flatMap((panel) => [
+        panel.open(resourceId).subscribe(write),
+        panelSize(panel).subscribe(write),
+      ]),
+    ]
 
     write()
 

@@ -42,15 +42,15 @@ import type { ExportDataProps } from '~/core/export/export-data'
 import { ExportData } from '~/core/export/export-data'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { getQueryLanguage } from '~/core/runtime/language'
+import { resultGrid } from '~/core/table/result-grid'
+import { ResultsTable } from '~/core/table/results-table'
 import { useIsAnonymous } from '~/lib/auth'
 import { plural } from '~/utils/plural'
 
 import { useRunnerActions } from '../lib/actions'
-import { resultGrid } from '../lib/result-grid'
 import type { FailedRunnerResult, RunnerResult } from '../lib/run'
 import { runnerResultsOptions } from '../lib/run'
 import { useRunnerTab } from '../lib/store'
-import { RunnerResultsTable } from './runner-results-table'
 
 const running = (
   <div className="flex h-full flex-col items-center justify-center gap-2">
@@ -156,7 +156,7 @@ const ResultBody = ({
       />
     )
   }
-  return <RunnerResultsTable columns={columns} rows={rows} dialect={dialect} />
+  return <ResultsTable columns={columns} rows={rows} dialect={dialect} />
 }
 
 const ResultMeta = ({

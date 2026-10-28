@@ -28,7 +28,7 @@ const columnWidth = (
   )
 }
 
-export const RunnerResultsTable = ({
+export const ResultsTable = ({
   columns,
   rows,
   dialect,

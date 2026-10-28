@@ -1,4 +1,5 @@
-import type { TelemetryOptions } from 'ai'
+import type { ConnectionType } from '@tamery/shared/enums/connection-type'
+import type { DataUIPart, TelemetryOptions } from 'ai'
 import { convertToModelMessages, streamText, toUIMessageStream } from 'ai'
 import { createRedisAdapter } from 'ai-resumable-stream/adapters/redis'
 import { createResumableUIMessageStream } from 'ai-resumable-stream/ai-sdk'
@@ -8,12 +9,34 @@ import { v7 } from 'uuid'
 import { env } from '../env'
 import type { AppUIMessage } from '../message'
 import { models } from '../models/list'
+import type { ChatDataParts } from '../tools'
+import { chatTools } from '../tools'
 
-const CHAT_INSTRUCTIONS = [
-  'You are Tamery AI, an assistant built into the Tamery database client.',
-  'Help the user with their databases: SQL, schema design, data questions, and anything else they ask.',
-  'Be concise. Use fenced code blocks with a language tag for SQL and code.',
-].join('\n')
+interface ChatConnection {
+  id: string
+  name: string
+  resource: string | null
+  type: ConnectionType
+}
+
+const inResource = (resource?: string | null) =>
+  resource ? `, resource "${resource}"` : ''
+
+const chatInstructions = (connection: ChatConnection) =>
+  [
+    "You are Tamery AI, an agent built into the Tamery database client. You work with the user's databases through your tools.",
+    `This chat belongs to the connection "${connection.name}" (id ${connection.id}, ${connection.type}${inResource(connection.resource)}). Use it unless the user mentions another connection.`,
+    'Read the schema with list_tables and describe_table before writing SQL, in the dialect of the connection you query.',
+    'When the user names a record or a value, it lives in the data: search the likely tables with case-insensitive partial matches, and ask which one when several rows could match.',
+    'A question spanning several connections runs one query per connection; combine the results yourself, matching rows on the keys they share.',
+    'Reads go through query. Changes go through execute, which waits for the user to approve the statement: say in one sentence what it changes before calling it.',
+    'Be concise. Use fenced code blocks with a language tag for SQL and code.',
+  ].join('\n')
+
+const mentionText = (part: DataUIPart<ChatDataParts>) =>
+  part.type === 'data-connection'
+    ? `The user mentioned the connection "${part.data.name}" (id ${part.data.connectionId}, ${part.data.type}${inResource(part.data.resource)}).`
+    : `The user mentioned the table "${part.data.schema}"."${part.data.table}" of connection ${part.data.connectionId}${inResource(part.data.resource)}. Its definition: ${JSON.stringify(part.data.definition)}`
 
 const redis = createClient({ url: env.REDIS_URL }).on('error', console.error)
 const subscriber = redis.duplicate().on('error', console.error)
@@ -40,6 +63,7 @@ const resumable = createResumableUIMessageStream({
 
 interface ChatStreamInput {
   chatId: string
+  connection: ChatConnection
   messages: AppUIMessage[]
   onFinish: (message: AppUIMessage) => Promise<void>
   telemetry?: TelemetryOptions
@@ -57,10 +81,17 @@ export const chatStream = {
 
       const result = streamText({
         abortSignal: abortController.signal,
-        instructions: CHAT_INSTRUCTIONS,
-        messages: await convertToModelMessages(data.messages),
+        instructions: chatInstructions(data.connection),
+        messages: await convertToModelMessages<AppUIMessage>(data.messages, {
+          convertDataPart: (part) => ({
+            text: mentionText(part),
+            type: 'text',
+          }),
+          ignoreIncompleteToolCalls: true,
+        }),
         model: models.chat,
         telemetry: data.telemetry,
+        tools: chatTools,
       })
 
       const uiStream = toUIMessageStream({

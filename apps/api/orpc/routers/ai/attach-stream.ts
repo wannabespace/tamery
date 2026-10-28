@@ -13,7 +13,7 @@ export const attachStream = orpc
   .input(type({ chatId: 'string.uuid.v7' }))
   .handler(async function* attachStream({ context, input }) {
     const owned = await db.query.chats.findFirst({
-      columns: { id: true },
+      columns: { connectionResourceId: true },
       where: { id: { eq: input.chatId }, userId: { eq: context.user.id } },
     })
 
@@ -38,6 +38,10 @@ export const attachStream = orpc
 
     const restarted = await chatStream.claim({
       chatId: input.chatId,
+      connection: await chatPersist.connection({
+        connectionResourceId: owned.connectionResourceId,
+        userId: context.user.id,
+      }),
       messages,
       onFinish: (message) =>
         chatPersist.persistMessage({

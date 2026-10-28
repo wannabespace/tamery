@@ -57,9 +57,9 @@ Query history and the query logger stay on the device that ran the queries. So d
 
 ## AI and your data
 
-AI requests go through our servers to external model providers. The chat sends your messages. Editor and filter features also send the schema context they need.
+AI requests go through our servers to external model providers. The chat sends your messages, the schema it reads, and the rows its queries return. Editor and filter features also send the schema context they need.
 
-The built-in chat does not execute SQL. Coding agents connected through [MCP](/mcp/overview#connection-access) can read data and make changes according to the access you grant; their results become part of the agent's context.
+The chat runs read-only queries itself and runs a statement that changes data only after you click **Run**. Its queries take the same path as your own. Coding agents connected through [MCP](/mcp/overview#connection-access) can read data and make changes according to the access you grant; their results become part of the agent's context.
 
 ### AI help with a failed test
 

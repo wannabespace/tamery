@@ -1,21 +1,19 @@
-import type { McpSource } from '@tamery/shared/mcp'
+import type { McpTarget } from '@tamery/shared/mcp'
 
 import { resourceConstraintsQueryOptions } from '~/core/queries/constraints/list'
 import { findEnum, resourceEnumsQueryOptions } from '~/core/queries/enums/list'
 import { resourceIndexesQueryOptions } from '~/core/queries/indexes/list'
 import { resourceTableColumnsQueryOptions } from '~/core/queries/tables/columns'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
-import { posthog } from '~/lib/posthog'
 
 import { fetchForAgent, resolveResource } from './target'
 
-export const describeTable: McpSource['describeTable'] = async ({
+export const describeTable = async ({
   schema,
   table,
   ...target
-}) => {
-  const { connection, resource: connectionResource } = resolveResource(target)
-  posthog.capture('mcp_table_described', { connection_type: connection.type })
+}: McpTarget & { schema: string; table: string }) => {
+  const { resource: connectionResource } = resolveResource(target)
   const inTable = (row: { schema: string; table: string }) =>
     row.schema === schema && row.table === table
   const [columns, constraints, indexes, enums, catalog] = await Promise.all([
