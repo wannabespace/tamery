@@ -1,4 +1,4 @@
-import { AGENT_LIMITS } from '@tamery/ai/limits'
+import { CHAT_LIMITS } from '@tamery/ai/limits'
 import { AiFeature, createAiUsage } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import {
@@ -7,8 +7,7 @@ import {
   connections,
   connectionsResources,
 } from '@tamery/db/schema'
-import type { Plan } from '@tamery/shared/permissions'
-import { and, count, eq, gt, sql, sum } from 'drizzle-orm'
+import { and, eq, gt, sum } from 'drizzle-orm'
 
 const getWorkspaceIdFromChat = async (chatId: string) => {
   const [row] = await db
@@ -36,31 +35,27 @@ export const aiUsage = createAiUsage(async (record) => {
   })
 })
 
-const DAY_MS = 24 * 60 * 60 * 1000
+const MONTH_MS = 30 * 24 * 60 * 60 * 1000
 
-/** Whether the chat agent spent its plan's rolling-day budget: one `ai_usage` row is one model call, so one step. */
-export const isAgentDayLimitReached = async ({
-  plan,
+/** Whether the chat's model calls cost the month's budget: since the paid period started, at most 30 days back, so a monthly plan renews with its payment and a yearly one rolls. A call whose model has no known price counts as free. */
+export const isChatBudgetSpent = async ({
+  periodStart,
   userId,
 }: {
-  plan: Plan
+  periodStart: Date | null
   userId: string
 }) => {
+  const monthAgo = Date.now() - MONTH_MS
+  const since = new Date(Math.max(periodStart?.getTime() ?? 0, monthAgo))
   const [spent] = await db
-    .select({
-      steps: count(),
-      tokens: sum(
-        sql`${aiUsageTable.inputTokens} + ${aiUsageTable.outputTokens}`
-      ).mapWith(Number),
-    })
+    .select({ cost: sum(aiUsageTable.cost).mapWith(Number) })
     .from(aiUsageTable)
     .where(
       and(
         eq(aiUsageTable.userId, userId),
         eq(aiUsageTable.feature, AiFeature.Chat),
-        gt(aiUsageTable.createdAt, new Date(Date.now() - DAY_MS))
+        gt(aiUsageTable.createdAt, since)
       )
     )
-  const { day } = AGENT_LIMITS[plan]
-  return (spent?.steps ?? 0) >= day.steps || (spent?.tokens ?? 0) >= day.tokens
+  return (spent?.cost ?? 0) >= CHAT_LIMITS.monthlyCostUsd
 }

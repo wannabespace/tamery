@@ -4,7 +4,7 @@ import { members } from '@tamery/db/schema'
 import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
 import { decrypt } from '@tamery/shared/crypto-node'
 import type { Permissions } from '@tamery/shared/permissions'
-import { getPermissions, getPlan } from '@tamery/shared/permissions'
+import { getPermissions } from '@tamery/shared/permissions'
 import { and, asc, eq } from 'drizzle-orm'
 import { memoize } from 'memoza'
 import { createPermix } from 'permix/orpc'
@@ -180,7 +180,7 @@ export const permissionsMiddleware = logMiddleware.use(
         ...permix.setupContext(
           getPermissions({ subscription, user: session.user })
         ),
-        plan: getPlan({ subscription, user: session.user }),
+        subscription,
       },
     })
   })

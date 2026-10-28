@@ -1,5 +1,3 @@
-import type { Plan } from '@tamery/shared/permissions'
-
 export const AI_QUERY_LIMITS = {
   context: 60_000,
   error: 4000,
@@ -14,21 +12,8 @@ export interface AgentBudget {
   tokens: number
 }
 
-/** What the chat agent may spend per user message and per rolling day. Guest and Free have no chat (`ai.chat.use`), so theirs only matter once that gate opens. */
-export const AGENT_LIMITS: Record<
-  Plan,
-  { day: AgentBudget; message: AgentBudget }
-> = {
-  free: {
-    day: { steps: 40, tokens: 400_000 },
-    message: { steps: 10, tokens: 150_000 },
-  },
-  guest: {
-    day: { steps: 0, tokens: 0 },
-    message: { steps: 0, tokens: 0 },
-  },
-  pro: {
-    day: { steps: 400, tokens: 4_000_000 },
-    message: { steps: 25, tokens: 500_000 },
-  },
-}
+/** The chat agent's budget, Pro only (`ai.chat.use`): what one user message may take before it pauses, and what its model calls may cost in a month, the price of the subscription. */
+export const CHAT_LIMITS = {
+  message: { steps: 25, tokens: 500_000 },
+  monthlyCostUsd: 15,
+} as const

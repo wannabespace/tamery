@@ -2,7 +2,7 @@ import { parseArgs } from 'node:util'
 
 // The features barrel opens Redis on import; the eval needs only one step.
 import { streamChatStep } from '@tamery/ai/features/chat-step'
-import { AGENT_LIMITS } from '@tamery/ai/limits'
+import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
 import { usageTelemetry } from '@tamery/ai/usage/record'
 import { lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
@@ -40,7 +40,7 @@ const runStep = async (
       resource: 'shop',
       type: evalCase.engine,
     },
-    limits: AGENT_LIMITS.pro.message,
+    limits: CHAT_LIMITS.message,
     messages,
     onEnd: (message) => ended.resolve(message),
     onError: (error) => {

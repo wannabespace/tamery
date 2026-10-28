@@ -1,11 +1,11 @@
 import { chatStream } from '@tamery/ai/features'
-import { AGENT_LIMITS } from '@tamery/ai/limits'
+import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
 import { AiFeature } from '@tamery/ai/usage'
 import { validateUIMessages } from 'ai'
 import { type } from 'arktype'
 
-import { aiUsage, isAgentDayLimitReached } from '~/lib/ai-usage'
+import { aiUsage, isChatBudgetSpent } from '~/lib/ai-usage'
 import { chatPersist } from '~/lib/chat-persist'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
@@ -24,7 +24,7 @@ export const stream = orpc
     CONFLICT: { message: 'This chat is already generating an answer.' },
     TOO_MANY_REQUESTS: {
       message:
-        "The agent has reached today's limit for your plan. It frees up over the next 24 hours.",
+        "You've used this month's AI chat budget. It renews with your next billing month.",
     },
   })
   .handler(async function* streamHandler({ context, errors, input }) {
@@ -40,8 +40,8 @@ export const stream = orpc
     }
 
     if (
-      await isAgentDayLimitReached({
-        plan: context.plan,
+      await isChatBudgetSpent({
+        periodStart: context.subscription?.periodStart ?? null,
         userId: context.user.id,
       })
     ) {
@@ -90,7 +90,7 @@ export const stream = orpc
     const str = await chatStream.claim({
       chatId: input.chatId,
       connection,
-      limits: AGENT_LIMITS[context.plan].message,
+      limits: CHAT_LIMITS.message,
       messages: history,
       onFinish: (message) =>
         chatPersist.persistMessage({
