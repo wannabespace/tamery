@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "portless run cross-env NODE_ENV=development BUN_CONFIG_MAX_HTTP_REQUESTS=4096 bun --watch run ./index.ts",
-    "start": "cross-env NODE_ENV=production BUN_CONFIG_MAX_HTTP_REQUESTS=4096 bun run ./index.ts",
+    "start": "cross-env NODE_ENV=production BUN_CONFIG_MAX_HTTP_REQUESTS=4096 bun run --preload ./lib/unwrap-secrets.ts ./index.ts",
     "check-types": "tsc",
     "test:start": "cross-env NODE_ENV=test bun --env-file=.env.test drizzle-kit migrate && cross-env NODE_ENV=test bun --env-file=.env.test run ./index.ts",
     "better-auth:generate": "cross-env NODE_ENV=development pnpx https://pkg.pr.new/auth@9489 generate --output ../../packages/db/schema/auth.ts"
@@ -17,6 +17,7 @@
     "@conar/db": "workspace:*",
     "@conar/shared": "workspace:*",
     "@exalabs/ai-sdk": "catalog:",
+    "@infisical/sdk": "catalog:",
     "@octokit/rest": "catalog:",
     "@openrouter/ai-sdk-provider": "catalog:",
     "@orpc/experimental-publisher": "catalog:",
