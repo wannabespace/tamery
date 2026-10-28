@@ -14,11 +14,7 @@ export const getChatInstance = memoize(
     const chat: Chat<AppUIMessage> = new Chat<AppUIMessage>({
       generateId: v7,
       id: data.chatId,
-      onToolCall: ({ toolCall }) => {
-        if (!toolCall.dynamic && toolCall.toolName !== 'execute') {
-          void chatToolRuns.read(chat, toolCall)
-        }
-      },
+      onToolCall: ({ toolCall }) => chatToolRuns.answer(chat, toolCall),
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
       transport: {
         reconnectToStream: async ({ abortSignal }) => {

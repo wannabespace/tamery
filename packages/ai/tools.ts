@@ -1,5 +1,5 @@
 import type { ConnectionType } from '@tamery/shared/enums/connection-type'
-import { MCP_RESULT_LIMITS } from '@tamery/shared/mcp'
+import { MCP_RESULT_LIMITS, UNTRUSTED_DATA_NOTE } from '@tamery/shared/mcp'
 import type { InferUITools } from 'ai'
 import { tool } from 'ai'
 import { type } from 'arktype'
@@ -14,6 +14,11 @@ const target = type({
 })
 
 const statement = type({ '...': target, sql: 'string' })
+
+const asDatabaseData = ({ output }: { output: unknown }) => ({
+  type: 'text' as const,
+  value: `${UNTRUSTED_DATA_NOTE}\n${JSON.stringify(output)}`,
+})
 
 export const resultSetsType = type({
   affectedRows: 'number | null',
@@ -32,11 +37,13 @@ export const chatTools = {
       table: 'string',
     }),
     outputSchema: type.unknown,
+    toModelOutput: asDatabaseData,
   }),
   execute: tool({
     description: `Run one SQL statement that changes data or schema, in the connection's own dialect. Nothing runs until the user approves it in the chat; a declined statement comes back as an error, so never retry it unchanged. Wrap several statements in BEGIN … COMMIT to run them as one transaction, except on ClickHouse. Use query for reads. ${MCP_RESULT_LIMITS}`,
     inputSchema: statement,
     outputSchema: resultSetsType,
+    toModelOutput: asDatabaseData,
   }),
   list_connections: tool({
     description:
@@ -49,11 +56,13 @@ export const chatTools = {
       'List the schemas of a connection with their tables and views. In MySQL and ClickHouse a schema is a database. Pass a schema to list only that one on a large database, or null for all.',
     inputSchema: type({ '...': target, schema: 'string | null' }),
     outputSchema: type.unknown,
+    toModelOutput: asDatabaseData,
   }),
   query: tool({
     description: `Run one read-only SQL statement in the connection's own dialect; statements that write are rejected. ${MCP_RESULT_LIMITS} The user sees the rows as a table under your call, so never repeat them in your answer.`,
     inputSchema: statement,
     outputSchema: resultSetsType,
+    toModelOutput: asDatabaseData,
   }),
 }
 

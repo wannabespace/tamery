@@ -72,6 +72,9 @@ export const usePromptMentions = ({
           ({ resources: resource, connections }) =>
             eq(resource.connectionId, connections.id)
         )
+        .where(({ connections }) =>
+          eq(connections.workspaceId, connection.workspaceId)
+        )
         .select(({ resources: resource, connections }) => ({
           connectionId: connections.id,
           id: resource.id,

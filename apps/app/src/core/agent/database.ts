@@ -14,6 +14,7 @@ import {
   connectionResourceToQueryParams,
   connectionToQueryParams,
 } from '~/core/runtime/query'
+import { workspaceSelection } from '~/core/workspace/utils'
 
 import { describeTable } from './describe-table'
 import type { AgentTarget } from './target'
@@ -41,16 +42,23 @@ const getQueryParams = async (
 
 /** What an agent (MCP or the chat) does to the user's databases. `prepare*` checks a statement and resolves its target without running anything, so a caller can count, approve or refuse it before `run`. */
 export const agentDatabase = {
-  connections: () =>
-    getCollections().connectionsCollection.toArray.map(
-      ({ id, label, name, type }) => ({
+  /** The chat sees the active workspace's connections; MCP sees every one and gates them by its own access. */
+  connections: (scope: 'active-workspace' | 'all') => {
+    const { connectionsCollection, workspacesCollection } = getCollections()
+    const workspace = workspaceSelection.current(workspacesCollection.toArray)
+    return connectionsCollection.toArray
+      .filter(
+        (connection) =>
+          scope === 'all' || connection.workspaceId === workspace?.id
+      )
+      .map(({ id, label, name, type }) => ({
         id,
         label,
         name,
         resources: getResources(id),
         type,
-      })
-    ),
+      }))
+  },
   describeTable,
   prepareRead: async ({ sql, ...target }: Statement) => {
     const { connection, resource } = resolveTarget(target)

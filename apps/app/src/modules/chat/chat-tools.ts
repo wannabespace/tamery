@@ -10,8 +10,11 @@ import { agentDatabase } from '~/core/agent/database'
 import { posthog } from '~/lib/posthog'
 
 type AppChat = Chat<AppUIMessage>
+type AnyToolCall = Parameters<
+  ChatOnToolCallCallback<AppUIMessage>
+>[0]['toolCall']
 type ToolCall = Exclude<
-  Parameters<ChatOnToolCallCallback<AppUIMessage>>[0]['toolCall'],
+  AnyToolCall,
   { dynamic: true } | { toolName: 'execute' }
 >
 
@@ -30,7 +33,7 @@ const getSignal = (chatId: string) => {
   return controller.signal
 }
 
-const answer = async (
+const addReadOutput = async (
   chat: AppChat,
   { toolCallId, ...toolCall }: ToolCall,
   signal: AbortSignal
@@ -41,7 +44,7 @@ const answer = async (
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
     case 'list_connections': {
-      const output = agentDatabase.connections()
+      const output = agentDatabase.connections('active-workspace')
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
     case 'list_tables': {
@@ -63,22 +66,29 @@ const answer = async (
   }
 }
 
-export const chatToolRuns = {
-  read: async (chat: AppChat, toolCall: ToolCall) => {
-    const result = await Result.tryPromise(() =>
-      answer(chat, toolCall, getSignal(chat.id))
-    )
-    posthog.capture('ai_chat_tool_run', {
-      success: result.isOk(),
+const read = async (chat: AppChat, toolCall: ToolCall) => {
+  const result = await Result.tryPromise(() =>
+    addReadOutput(chat, toolCall, getSignal(chat.id))
+  )
+  posthog.capture('ai_chat_tool_run', {
+    success: result.isOk(),
+    tool: toolCall.toolName,
+  })
+  if (result.isErr()) {
+    void chat.addToolOutput({
+      errorText: toError(result.error.cause).message,
+      state: 'output-error',
       tool: toolCall.toolName,
+      toolCallId: toolCall.toolCallId,
     })
-    if (result.isErr()) {
-      void chat.addToolOutput({
-        errorText: toError(result.error.cause).message,
-        state: 'output-error',
-        tool: toolCall.toolName,
-        toolCallId: toolCall.toolCallId,
-      })
+  }
+}
+
+export const chatToolRuns = {
+  /** Answers the model's tool calls in the window. Only reads run on their own: an `execute` waits for the user's Run on its card, whatever the transcript or the data it read says. */
+  answer: (chat: AppChat, toolCall: AnyToolCall) => {
+    if (!toolCall.dynamic && toolCall.toolName !== 'execute') {
+      void read(chat, toolCall)
     }
   },
   stop: (chatId: string) => runs.get(chatId)?.abort(),

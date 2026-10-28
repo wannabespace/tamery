@@ -39,7 +39,7 @@ const runForAgent = async (
 }
 
 export const mcpSource: McpSource = {
-  connections: agentDatabase.connections,
+  connections: () => agentDatabase.connections('all'),
   createConnection: async ({
     connectionString: given,
     name,
