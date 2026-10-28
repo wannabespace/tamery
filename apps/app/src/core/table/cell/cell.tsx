@@ -1,5 +1,6 @@
 /* oxlint-disable jsx-a11y/prefer-tag-over-role -- a virtualized flex grid cannot be built from table elements */
 import type { Dialect } from '@tamery/shared/enums/connection-type'
+import { Badge } from '@tamery/ui/components/badge'
 import { Checkbox } from '@tamery/ui/components/checkbox'
 import {
   Tooltip,
@@ -92,11 +93,13 @@ const CellValue = ({
     }
     if (label !== undefined) {
       return (
-        <span data-mask className="flex min-w-0 flex-1 items-baseline gap-1.5">
-          <span className="max-w-2/3 shrink-0 truncate">{label}</span>
-          <span className="text-muted-foreground min-w-0 truncate tabular-nums">
+        <span data-mask className="flex min-w-0 flex-1 items-center gap-1.5">
+          <span className="min-w-0 flex-1 truncate tabular-nums">
             {transformer.toDisplay(value, size)}
           </span>
+          <Badge variant="secondary" className="max-w-2/3 shrink-0">
+            <span className="truncate">{label}</span>
+          </Badge>
         </span>
       )
     }

@@ -17,7 +17,6 @@ const login = async () => {
       INFISICAL_CLIENT_ID: clientId,
       INFISICAL_CLIENT_SECRET: clientSecret,
       INFISICAL_KMS_KEY_ID: keyId,
-      INFISICAL_SITE_URL: siteUrl,
     } = process.env
 
     if (!(clientId && clientSecret && keyId)) {
@@ -26,7 +25,7 @@ const login = async () => {
       )
     }
 
-    const sdk = new InfisicalSDK({ siteUrl })
+    const sdk = new InfisicalSDK()
 
     await sdk.auth().universalAuth.login({ clientId, clientSecret })
 

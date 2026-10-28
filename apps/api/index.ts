@@ -17,10 +17,14 @@ import type { AppVariables } from './variables'
 
 const handler = new RPCHandler(router, {
   interceptors: [
-    async ({ next, context }) => {
+    async ({ next, context, request }) => {
       try {
         return await next()
       } catch (error) {
+        if (request.signal?.aborted) {
+          throw new ORPCError('CLIENT_CLOSED_REQUEST')
+        }
+
         context.addLogData({
           error: {
             cause: error instanceof Error ? error.cause : undefined,
@@ -133,7 +137,7 @@ const app = new Hono<{
 
     if (
       status >= 400 &&
-      ![401, 403, 404].includes(status) &&
+      ![401, 403, 404, 499].includes(status) &&
       (status >= 500 || !path.startsWith('/auth/')) &&
       env.ALERTS_EMAIL &&
       !c.req.url.includes('healthcheck.railway.app')
