@@ -14,6 +14,7 @@ import { agentDatabase } from '~/core/agent/database'
 import { WriteEstimate } from '~/core/agent/write-estimate'
 import type { Connection } from '~/core/connection/sync'
 import { getQueryLanguage } from '~/core/runtime/language'
+import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 
 import type { ToolPartActions } from './chat-tool-part'
@@ -29,9 +30,11 @@ export const WriteApproval = ({
   input: ChatTools['execute']['input']
   toolCallId: string
 }) => {
-  const destroys = connection
-    ? getQueryLanguage(getDialect(connection.type)).destructive(input.sql)
+  const dialect = connection ? getDialect(connection.type) : null
+  const destroys = dialect
+    ? getQueryLanguage(dialect).destructive(input.sql)
     : []
+  const decision = { destructive: destroys.length > 0, dialect }
   const estimateKey = ['agent-estimate', toolCallId]
   const estimate = useQuery({
     queryFn: async ({ signal }) => {
@@ -70,6 +73,7 @@ export const WriteApproval = ({
           variant="ghost-muted"
           disabled={isRunning}
           onClick={() => {
+            posthog.capture('ai_chat_write_declined', decision)
             void decideWrite({ approved: false, input, toolCallId })
           }}
         >
@@ -82,7 +86,10 @@ export const WriteApproval = ({
                 size="sm"
                 variant={destroys.length > 0 ? 'destructive' : 'default'}
                 disabled={isRunning}
-                onClick={() => run.mutate()}
+                onClick={() => {
+                  posthog.capture('ai_chat_write_approved', decision)
+                  run.mutate()
+                }}
               />
             }
           >

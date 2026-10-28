@@ -117,7 +117,6 @@ export const chatToolRuns = {
       chat.messages = transcript
     }
     if (!approved) {
-      posthog.capture('ai_chat_write_declined')
       void chat.addToolOutput({
         errorText: DECLINED,
         state: 'output-error',

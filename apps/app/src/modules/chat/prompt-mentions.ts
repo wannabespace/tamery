@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useCollections } from '~/core/collections'
 import { useConnectionContext } from '~/core/connection/route'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
+import { posthog } from '~/lib/posthog'
 
 export type PromptMention =
   | {
@@ -158,6 +159,7 @@ export const usePromptMentions = ({
       onCommand(suggestion.command)
       return
     }
+    posthog.capture('ai_chat_mention', { kind: suggestion.mention.kind })
     const { label } = suggestion.mention
     const next = `${value.slice(0, trigger.start)}${label} ${value.slice(caret)}`
     const nextCaret = trigger.start + label.length + 1
