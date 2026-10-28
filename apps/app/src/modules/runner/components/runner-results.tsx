@@ -42,7 +42,11 @@ import type { ExportDataProps } from '~/core/export/export-data'
 import { ExportData } from '~/core/export/export-data'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { getQueryLanguage } from '~/core/runtime/language'
+import { ChartToggle } from '~/core/table/chart-toggle'
+import type { ResultChart } from '~/core/table/result-chart'
+import { getResultChart } from '~/core/table/result-chart'
 import { resultGrid } from '~/core/table/result-grid'
+import { ResultsChart } from '~/core/table/results-chart'
 import { ResultsTable } from '~/core/table/results-table'
 import { useIsAnonymous } from '~/lib/auth'
 import { plural } from '~/utils/plural'
@@ -98,10 +102,12 @@ const ResultError = ({ result }: { result: FailedRunnerResult }) => {
 }
 
 const ResultBody = ({
+  chart,
   result,
   columns,
   rows,
 }: {
+  chart: ResultChart | null
   result: RunnerResult
   columns: string[]
   rows: Record<string, unknown>[]
@@ -156,7 +162,11 @@ const ResultBody = ({
       />
     )
   }
-  return <ResultsTable columns={columns} rows={rows} dialect={dialect} />
+  return chart ? (
+    <ResultsChart chart={chart} />
+  ) : (
+    <ResultsTable columns={columns} rows={rows} dialect={dialect} />
+  )
 }
 
 const ResultMeta = ({
@@ -200,6 +210,8 @@ export const RunnerResults = () => {
   const result = results[activeIndex]
   const needle = useDeferredValue(search).trim().toLowerCase()
   const { columns, rows } = resultGrid(result?.set ?? null, needle)
+  const [asChart, setAsChart] = useState(false)
+  const chart = getResultChart(columns, rows)
 
   if (!result) {
     return (
@@ -293,6 +305,7 @@ export const RunnerResults = () => {
               onClear={() => setSearch('')}
             />
           )}
+          {chart && <ChartToggle asChart={asChart} onChange={setAsChart} />}
           <ExportData
             getData={getData}
             filename="runner_results"
@@ -318,7 +331,12 @@ export const RunnerResults = () => {
         value={active}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <ResultBody result={result} columns={columns} rows={rows} />
+        <ResultBody
+          chart={asChart ? chart : null}
+          result={result}
+          columns={columns}
+          rows={rows}
+        />
       </TabsContent>
     </Tabs>
   )

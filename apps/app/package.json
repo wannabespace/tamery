@@ -61,6 +61,7 @@
     "posthog-js": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "recharts": "catalog:",
     "seitu": "catalog:",
     "sonner": "catalog:",
     "sql-formatter": "catalog:",

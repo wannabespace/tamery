@@ -2,13 +2,18 @@ import type { ChatTools } from '@tamery/ai/tools'
 import { getDialect } from '@tamery/shared/enums/connection-type'
 import { DEFAULT_ROW_HEIGHT } from '@tamery/table/constants'
 import { Button } from '@tamery/ui/components/button'
+import { cn } from '@tamery/ui/lib/utils'
 import { useRouter } from '@tanstack/react-router'
 import { Result } from 'better-result'
 import type { CSSProperties } from 'react'
+import { useState } from 'react'
 
 import { resolveTarget } from '~/core/agent/target'
 import type { Connection } from '~/core/connection/sync'
+import { ChartToggle } from '~/core/table/chart-toggle'
+import { getResultChart } from '~/core/table/result-chart'
 import { resultGrid } from '~/core/table/result-grid'
+import { ResultsChart } from '~/core/table/results-chart'
 import { ResultsTable } from '~/core/table/results-table'
 import { posthog } from '~/lib/posthog'
 import { openRunnerTab } from '~/modules/runner/lib/new-query'
@@ -29,6 +34,7 @@ export const ToolResult = ({
   target: ChatTools['query']['input']
 }) => {
   const router = useRouter()
+  const [asChart, setAsChart] = useState(false)
   const dialect = getDialect(connection.type)
   const resource = Result.try(() =>
     resolveTarget({
@@ -51,6 +57,7 @@ export const ToolResult = ({
   }
 
   const { columns, rows } = resultGrid(set, '')
+  const chart = getResultChart(columns, rows)
   const openAsQuery = () => {
     if (!resource) {
       return
@@ -72,14 +79,21 @@ export const ToolResult = ({
     <div className="bg-background ring-foreground/4 flex flex-col overflow-hidden rounded-xl ring">
       {rows.length > 0 && (
         <div
-          className="flex h-(--grid-height) flex-col"
+          className={cn(
+            'flex flex-col',
+            asChart && chart ? 'h-56' : 'h-(--grid-height)'
+          )}
           style={
             {
               '--grid-height': `${(Math.min(rows.length, MAX_VISIBLE_ROWS) + 1) * DEFAULT_ROW_HEIGHT}px`,
             } as CSSProperties
           }
         >
-          <ResultsTable columns={columns} rows={rows} dialect={dialect} />
+          {asChart && chart ? (
+            <ResultsChart chart={chart} />
+          ) : (
+            <ResultsTable columns={columns} rows={rows} dialect={dialect} />
+          )}
         </div>
       )}
       <div className="flex h-8 items-center gap-1 border-t pr-1 pl-3">
@@ -87,10 +101,15 @@ export const ToolResult = ({
           {plural(rows.length, 'row')}
           {set.truncated && ', more not shown'}
         </span>
+        {chart && (
+          <div className="ml-auto">
+            <ChartToggle asChart={asChart} onChange={setAsChart} />
+          </div>
+        )}
         <Button
           size="xs"
           variant="ghost-muted"
-          className="ml-auto"
+          className={cn(!chart && 'ml-auto')}
           disabled={!resource}
           onClick={openAsQuery}
         >
