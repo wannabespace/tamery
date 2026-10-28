@@ -22,6 +22,8 @@ On Pro, one message lets the agent take up to 25 steps, and a day up to 400. Whe
 
 To change rows or the schema, the agent drafts the change instead of running it. Row edits and new rows appear as drafts in the table, schema changes as drafts in the [Schema visualizer](/features/schema-visualizer), and a deletion opens the table's delete confirmation. **Review** under the agent's answer takes you there; nothing reaches the database until you save or apply it.
 
+When a query is slow, the agent reads its plan and can draft the index that would help in the visualizer, for you to apply.
+
 For anything a draft can't hold, the agent writes a statement instead. A statement that changes data or schema never runs on its own. The chat shows it with **Run** and **Decline**, and the agent continues once you choose. The card waits for you when you reload, switch chats or leave agent mode. On PostgreSQL and MySQL the card also says how many rows the database expects it to change. **Run** turns red when the statement removes data.
 
 ## Agent mode

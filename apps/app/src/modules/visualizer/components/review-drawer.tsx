@@ -48,6 +48,9 @@ const draftLabel = (draft: DiagramDraft) => {
     case 'dropForeignKey': {
       return `Drop foreign key ${draft.name}`
     }
+    case 'createIndex': {
+      return `Create ${draft.unique ? 'unique index' : 'index'} on ${draft.columns.join(', ')}`
+    }
     default: {
       return draft satisfies never
     }

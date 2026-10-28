@@ -5,6 +5,7 @@ import {
 import type { ConnectionType } from '@tamery/shared/enums/connection-type'
 import {
   COLUMN_VALUES_DESCRIPTION,
+  EXPLAIN_DESCRIPTION,
   MCP_RESULT_LIMITS,
   SEARCH_SAVED_QUERIES_DESCRIPTION,
   SEARCH_SCHEMA_DESCRIPTION,
@@ -63,6 +64,12 @@ export const chatTools = {
   execute: tool({
     description: `Run one SQL statement that changes data or schema, in the connection's own dialect. Nothing runs until the user approves it in the chat; a declined statement comes back as an error, so never retry it unchanged. Wrap several statements in BEGIN … COMMIT to run them as one transaction, except on ClickHouse. Use query for reads. ${MCP_RESULT_LIMITS}`,
     inputSchema: statement,
+    outputSchema: resultSetsType,
+    toModelOutput: asDatabaseData,
+  }),
+  explain: tool({
+    description: EXPLAIN_DESCRIPTION,
+    inputSchema: type({ '...': statement, analyze: 'boolean' }),
     outputSchema: resultSetsType,
     toModelOutput: asDatabaseData,
   }),

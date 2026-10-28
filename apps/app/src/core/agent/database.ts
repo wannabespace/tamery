@@ -1,12 +1,14 @@
-import { getDialect } from '@tamery/shared/enums/connection-type'
+import { getDialect, isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { MCP_MAX_ROWS } from '@tamery/shared/mcp'
 import { toToolOutput } from '@tamery/shared/tool-output'
+import { dialects, splitStatements } from '@tamery/sql'
 import { Result } from 'better-result'
 
 import { getCollections } from '~/core/collections'
 import { refreshAfterRun } from '~/core/connection/refresh-after-run'
 import type { Connection, ConnectionResource } from '~/core/connection/sync'
 import { estimateQuery } from '~/core/queries/connection/estimate'
+import { explainQuery } from '~/core/queries/connection/explain'
 import { statementQuery } from '~/core/queries/connection/statement'
 import { transactionQuery } from '~/core/queries/connection/transaction'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
@@ -33,6 +35,18 @@ import {
 type Statement = AgentTarget & { sql: string }
 
 const ESTIMATE_BUDGET_MS = 3000
+
+const EXPLAINED_COMMANDS = new Set([
+  'DELETE',
+  'INSERT',
+  'MERGE',
+  'REPLACE',
+  'SELECT',
+  'TABLE',
+  'UPDATE',
+  'VALUES',
+  'WITH',
+])
 
 const getQueryParams = async (
   connection: Connection,
@@ -127,6 +141,36 @@ export const agentDatabase = {
   proposeChange,
   searchSavedQueries,
   searchSchema,
+  /** The plan of one statement. Only a read may be analyzed, since that runs it; the text must open with a data verb, so nothing it holds can turn the EXPLAIN into something else. */
+  explain: async ({
+    analyze,
+    sql,
+    ...target
+  }: Statement & { analyze: boolean }) => {
+    const { connection, resource } = resolveTarget(target)
+    const dialect = getDialect(connection.type)
+    const [statement, ...rest] = isSqlDialect(dialect)
+      ? splitStatements(sql, dialects[dialect])
+      : []
+    if (
+      !statement ||
+      rest.length > 0 ||
+      !EXPLAINED_COMMANDS.has(statement.tokens[0]?.text.toUpperCase() ?? '')
+    ) {
+      throw new Error(
+        'Explain one SQL statement that starts with SELECT, WITH, INSERT, UPDATE, DELETE or MERGE.'
+      )
+    }
+    if (analyze && !getQueryLanguage(dialect).readsOnly(sql)) {
+      throw new Error(
+        'analyze runs the statement, so only a read takes it. Explain this one without analyze.'
+      )
+    }
+    const params = await getQueryParams(connection, resource)
+    return toToolOutput(
+      await explainQuery({ analyze, statement: sql }).run(params)
+    )
+  },
   tables: async ({
     schema,
     ...target

@@ -66,6 +66,10 @@ const addReadOutput = async (
       const output = await agentDatabase.describeTable(toolCall.input)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
+    case 'explain': {
+      const output = await agentDatabase.explain(toolCall.input)
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
     case 'list_connections': {
       const output = agentDatabase.connections('active-workspace')
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })

@@ -1,6 +1,8 @@
 import type { AgentChange } from '@tamery/shared/agent-change'
+import { getDialect } from '@tamery/shared/enums/connection-type'
 import { sameList } from '@tamery/shared/utils'
 
+import { suggestedName } from '~/core/catalog/engine-name'
 import { diagramDrafts, diagramDraftsStore } from '~/core/drafts/diagram'
 import {
   draftsActions,
@@ -102,7 +104,7 @@ const stageRows = async ({
 }
 
 const stageSchema = ({ change, schema, table, ...target }: ProposedChange) => {
-  const { resource } = resolveResource(target)
+  const { connection, resource } = resolveResource(target)
   const drafts = diagramDrafts(diagramDraftsStore(resource.id))
   const ref = { schema, table }
   switch (change.kind) {
@@ -128,6 +130,20 @@ const stageSchema = ({ change, schema, table, ...target }: ProposedChange) => {
     }
     case 'drop_table': {
       drafts.dropTable(ref, false)
+      return
+    }
+    case 'add_index': {
+      drafts.createIndex(ref, {
+        columns: change.columns,
+        name:
+          change.name ??
+          suggestedName(getDialect(connection.type), [
+            table,
+            ...change.columns,
+            'idx',
+          ]),
+        unique: change.unique,
+      })
       return
     }
     default: {

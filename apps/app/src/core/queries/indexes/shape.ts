@@ -1,3 +1,4 @@
+import { Dialect } from '@tamery/shared/enums/connection-type'
 import { sql } from 'kysely'
 
 import { identifiers } from '~/core/queries/shared/sql-fragments'
@@ -60,6 +61,24 @@ export const addSkipIndexStatement = ({
   table,
 }: IndexShape) =>
   sql`ALTER TABLE ${sql.id(schema, table)} ADD INDEX ${sql.id(name)} (${identifiers(columns)}) TYPE ${sql.raw(skipType)} GRANULARITY ${sql.lit(granularity)}`
+
+/** The statement a new index shows in a review before it runs: ClickHouse's is its skip index, whose materialize runs after it. */
+export const indexPreviewStatement = (dialect: Dialect, shape: IndexShape) => {
+  switch (dialect) {
+    case Dialect.ClickHouse: {
+      return addSkipIndexStatement(shape)
+    }
+    case Dialect.Oracle: {
+      return oracleCreateIndexStatement(shape)
+    }
+    case Dialect.SQLite: {
+      return sqliteCreateIndexStatement(shape)
+    }
+    default: {
+      return createIndexStatement(shape)
+    }
+  }
+}
 
 // ADD INDEX only covers parts written afterwards; this builds it for the rest.
 export const materializeIndexStatement = ({

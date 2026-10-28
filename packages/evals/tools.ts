@@ -214,6 +214,14 @@ const answer = (part: ToolPart): unknown => {
     case 'tool-search_saved_queries': {
       return { queries: [], truncated: false }
     }
+    case 'tool-explain': {
+      return read(
+        getEngine(part.input.connectionId),
+        part.input.connectionId === 'mongodb'
+          ? `${part.input.sql}`
+          : `EXPLAIN ${part.input.sql}`
+      )
+    }
     case 'tool-propose_change': {
       return { review: 'The user has not reviewed it yet.', where: 'table' }
     }

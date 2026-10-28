@@ -6,6 +6,7 @@ import {
   addConstraint,
   dropConstraintStatement,
 } from '~/core/queries/constraints/shape'
+import { indexPreviewStatement } from '~/core/queries/indexes/shape'
 import {
   addColumnStatement,
   createTableStatement,
@@ -24,6 +25,7 @@ const APPLY_ORDER: DiagramDraft['kind'][] = [
   'addColumn',
   'alterColumn',
   'addForeignKey',
+  'createIndex',
   'dropColumn',
   'renameColumn',
   'renameTable',
@@ -81,6 +83,9 @@ export const draftStatement = (
         cascade: false,
         kind: 'foreignKey',
       })
+    }
+    case 'createIndex': {
+      return indexPreviewStatement(dialect, draft).compile(db)
     }
     default: {
       return draft satisfies never

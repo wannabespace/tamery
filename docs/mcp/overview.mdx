@@ -57,7 +57,8 @@ With **Read and write**, you get a notification after each change instead.
 | `search_saved_queries` | Find your saved queries by name or SQL, so the agent builds on SQL you already trust. |
 | `column_values` | Show a column's most common values with their counts, and its range for numbers and dates. |
 | `query` | Run one read-only statement, like `SELECT` or `EXPLAIN`, and return up to 200 rows and about 60 KB. A value longer than 2 KB comes back cut short, marked as cut. Nothing it does is kept. |
-| `propose_change` | Draft row edits, inserts, deletes or schema changes in Tamery for you to review and apply. Nothing runs until you do. |
+| `explain` | Show a statement's query plan on PostgreSQL, MySQL, SQLite or ClickHouse. With `analyze`, a read also runs to report real timings, then rolls back. |
+| `propose_change` | Draft row edits, inserts, deletes, schema changes or a new index in Tamery for you to review and apply. Nothing runs until you do. |
 | `execute` | Change data or schema, within the connection's access. Several statements need a `BEGIN … COMMIT` block. |
 
 On a MongoDB connection, agents send mongosh calls such as `db.orders.find({ status: 'paid' })` instead of SQL, one call at a time.

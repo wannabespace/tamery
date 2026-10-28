@@ -34,6 +34,7 @@ export type DiagramDraft = { id: string } & TableRef &
         onUpdate: ReferentialAction
       }
     | { kind: 'dropForeignKey'; name: string }
+    | { columns: string[]; kind: 'createIndex'; name: string; unique: boolean }
   )
 
 type Unsaved<T> = T extends unknown ? Omit<T, 'id'> : never
@@ -167,6 +168,10 @@ export const diagramDrafts = (store: DiagramDraftsStore) => {
       })
     },
     clear: () => store.set({ drafts: [] }),
+    createIndex: (
+      ref: TableRef,
+      index: { columns: string[]; name: string; unique: boolean }
+    ) => add({ ...draftOn(ref), ...index, kind: 'createIndex' }),
     createTable: (ref: TableRef, columns: NewColumn[]) =>
       add({ ...draftOn(ref), columns, kind: 'createTable' }),
     dropColumn: (ref: TableRef, column: string) =>

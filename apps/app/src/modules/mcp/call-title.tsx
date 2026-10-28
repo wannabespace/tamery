@@ -10,6 +10,7 @@ const TOOL_LABELS: Record<McpTool, string> = {
   create_connection: 'created a connection',
   describe_table: 'described a table',
   execute: 'ran a change',
+  explain: 'read a query plan',
   list_connections: 'listed connections',
   list_tables: 'listed tables',
   propose_change: 'drafted a change',

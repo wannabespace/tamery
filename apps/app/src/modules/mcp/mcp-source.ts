@@ -6,7 +6,11 @@ import type { McpAccess, McpSource } from '@tamery/shared/mcp'
 import { Result } from 'better-result'
 
 import { agentDatabase } from '~/core/agent/database'
-import { getResources, resolveResource } from '~/core/agent/target'
+import {
+  getResources,
+  resolveResource,
+  resolveTarget,
+} from '~/core/agent/target'
 import { getCollections } from '~/core/collections'
 import { createConnection } from '~/core/connection/save'
 import type { ResultSet } from '~/core/queries/connection/custom'
@@ -93,6 +97,13 @@ export const mcpSource: McpSource = {
       connection_type: resolveResource(args).connection.type,
     })
     return agentDatabase.describeTable(args)
+  },
+  explain: (args) => {
+    posthog.capture('mcp_plan_explained', {
+      analyze: args.analyze,
+      connection_type: resolveTarget(args).connection.type,
+    })
+    return agentDatabase.explain(args)
   },
   execute: async ({ approve, ...statement }, onAbort) => {
     const { connection, estimate, resource, run } =

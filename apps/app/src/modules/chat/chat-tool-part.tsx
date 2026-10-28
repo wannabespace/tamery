@@ -46,43 +46,58 @@ const getStatus = (part: ChatToolPart, isLast: boolean) => {
   )
 }
 
+/** A call's line names its input's `detail` field when the model has sent it. */
+const LABELS: Partial<
+  Record<
+    ChatToolPart['type'],
+    { detail?: string; plain: string; with?: string }
+  >
+> = {
+  'tool-column_values': {
+    detail: 'column',
+    plain: 'Read column values',
+    with: 'Read values of',
+  },
+  'tool-describe_table': {
+    detail: 'table',
+    plain: 'Read a table',
+    with: 'Read',
+  },
+  'tool-explain': { plain: 'Read a query plan' },
+  'tool-list_connections': { plain: 'Listed connections' },
+  'tool-list_tables': {
+    detail: 'schema',
+    plain: 'Listed tables',
+    with: 'Listed tables in',
+  },
+  'tool-propose_change': {
+    detail: 'table',
+    plain: 'Drafting a change',
+    with: 'Drafting a change in',
+  },
+  'tool-search_saved_queries': {
+    detail: 'query',
+    plain: 'Searched saved queries',
+    with: 'Searched saved queries for',
+  },
+  'tool-search_schema': {
+    detail: 'query',
+    plain: 'Searched the schema',
+    with: 'Searched the schema for',
+  },
+}
+
 const getLabel = (part: ChatToolPart) => {
-  switch (part.type) {
-    case 'tool-column_values': {
-      return part.input?.column
-        ? `Read values of ${part.input.column}`
-        : 'Read column values'
-    }
-    case 'tool-describe_table': {
-      return part.input?.table ? `Read ${part.input.table}` : 'Read a table'
-    }
-    case 'tool-list_connections': {
-      return 'Listed connections'
-    }
-    case 'tool-list_tables': {
-      return part.input?.schema
-        ? `Listed tables in ${part.input.schema}`
-        : 'Listed tables'
-    }
-    case 'tool-propose_change': {
-      return part.input?.table
-        ? `Drafting a change in ${part.input.table}`
-        : 'Drafting a change'
-    }
-    case 'tool-search_saved_queries': {
-      return part.input?.query
-        ? `Searched saved queries for ${part.input.query}`
-        : 'Searched saved queries'
-    }
-    case 'tool-search_schema': {
-      return part.input?.query
-        ? `Searched the schema for ${part.input.query}`
-        : 'Searched the schema'
-    }
-    default: {
-      return null
-    }
+  const label = LABELS[part.type]
+  if (!label) {
+    return null
   }
+  const detail: unknown = Object.entries(part.input ?? {}).find(
+    ([key]) => key === label.detail
+  )?.[1]
+  return typeof detail === 'string' && detail
+    ? `${label.with} ${detail}`
+    : label.plain
 }
 
 const getIcon = (part: ChatToolPart) => {

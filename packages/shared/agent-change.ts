@@ -28,10 +28,16 @@ export const agentChangeType = type.or(
   { column: 'string', kind: "'rename_column'", newName: 'string' },
   { column: 'string', kind: "'drop_column'" },
   { kind: "'rename_table'", newName: 'string' },
-  { kind: "'drop_table'" }
+  { kind: "'drop_table'" },
+  {
+    columns: 'string[]',
+    kind: "'add_index'",
+    name: type('string | null').describe('null for a name Tamery picks'),
+    unique: 'boolean',
+  }
 )
 
 export type AgentChange = typeof agentChangeType.infer
 
 export const PROPOSE_CHANGE_DESCRIPTION =
-  "Propose a change for the user to review and apply in Tamery's own review, instead of running it: row updates, inserts and deletes go into the table's drafts, schema changes into the visualizer's drafts. Nothing reaches the database until the user applies it there. Prefer it over execute for anything it can express; update_rows and delete_rows name each row by its full primary key."
+  "Propose a change for the user to review and apply in Tamery's own review, instead of running it: row updates, inserts and deletes go into the table's drafts, schema changes into the visualizer's drafts. Nothing reaches the database until the user applies it there. Recommend an index with add_index after explain shows a scan it would fix. Prefer it over execute for anything it can express; update_rows and delete_rows name each row by its full primary key."
