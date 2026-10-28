@@ -11,9 +11,9 @@ import { useState } from 'react'
 import { resolveTarget } from '~/core/agent/target'
 import type { Connection } from '~/core/connection/sync'
 import { ChartToggle } from '~/core/table/chart-toggle'
+import { LazyResultsChart } from '~/core/table/lazy-results-chart'
 import { getResultChart } from '~/core/table/result-chart'
 import { resultGrid } from '~/core/table/result-grid'
-import { ResultsChart } from '~/core/table/results-chart'
 import { ResultsTable } from '~/core/table/results-table'
 import { posthog } from '~/lib/posthog'
 import { openRunnerTab } from '~/modules/runner/lib/new-query'
@@ -88,7 +88,7 @@ export const ToolResult = ({
           }
         >
           {asChart && chart ? (
-            <ResultsChart chart={chart} />
+            <LazyResultsChart chart={chart} />
           ) : (
             <ResultsTable columns={columns} rows={rows} dialect={dialect} />
           )}

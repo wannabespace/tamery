@@ -43,10 +43,10 @@ import { ExportData } from '~/core/export/export-data'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { getQueryLanguage } from '~/core/runtime/language'
 import { ChartToggle } from '~/core/table/chart-toggle'
+import { LazyResultsChart } from '~/core/table/lazy-results-chart'
 import type { ResultChart } from '~/core/table/result-chart'
 import { getResultChart } from '~/core/table/result-chart'
 import { resultGrid } from '~/core/table/result-grid'
-import { ResultsChart } from '~/core/table/results-chart'
 import { ResultsTable } from '~/core/table/results-table'
 import { useIsAnonymous } from '~/lib/auth'
 import { plural } from '~/utils/plural'
@@ -163,7 +163,7 @@ const ResultBody = ({
     )
   }
   return chart ? (
-    <ResultsChart chart={chart} />
+    <LazyResultsChart chart={chart} />
   ) : (
     <ResultsTable columns={columns} rows={rows} dialect={dialect} />
   )
