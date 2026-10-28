@@ -3,6 +3,7 @@ import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
 import * as schema from '@tamery/db/schema'
 import { AUTH_COOKIE_PREFIX } from '@tamery/shared/constants'
+import { formatDeviceLabel } from '@tamery/shared/device-label'
 import { getPermissions } from '@tamery/shared/permissions'
 import { betterAuth } from 'better-auth'
 import { emailHarmony } from 'better-auth-harmony'
@@ -19,6 +20,7 @@ import { eq } from 'drizzle-orm'
 
 import { env, nodeEnv } from '~/env'
 import { userEncryptionKey } from '~/lib/encryption-key'
+import { locateIp } from '~/lib/geo-ip'
 import { resend, sendEmail } from '~/lib/resend'
 
 import { requireEarlyAccess, requireUserEarlyAccess } from './early-access'
@@ -27,6 +29,25 @@ import { getSubscription } from './subscription'
 import { ensureDefaultWorkspace } from './workspace'
 
 const twoFactorPlugin = twoFactor({ allowPasswordless: true })
+
+const NEW_ACCOUNT_WINDOW_MS = 60_000
+
+const SOCIAL_PROVIDER_NAMES: Record<string, string> = {
+  github: 'GitHub',
+  google: 'Google',
+}
+
+const findEstablishedUser = async (userId: string, at: Date) => {
+  const user = await db.query.users.findFirst({
+    columns: { createdAt: true, email: true },
+    where: { id: { eq: userId } },
+  })
+
+  return user &&
+    at.getTime() - user.createdAt.getTime() >= NEW_ACCOUNT_WINDOW_MS
+    ? user
+    : null
+}
 
 const isOAuthCallback = ({ path }: { path?: string }) =>
   path?.startsWith('/callback/') === true
@@ -55,6 +76,29 @@ export const auth = betterAuth({
     usePlural: true,
   }) as ReturnType<typeof drizzleAdapter>,
   databaseHooks: {
+    account: {
+      create: {
+        after: async (account) => {
+          const user = await findEstablishedUser(
+            account.userId,
+            account.createdAt
+          )
+
+          if (!user) {
+            return
+          }
+
+          const provider =
+            SOCIAL_PROVIDER_NAMES[account.providerId] ?? account.providerId
+          await sendEmail({
+            props: { provider },
+            subject: `${provider} was connected to your Tamery account`,
+            template: 'SignInMethodLinked',
+            to: user.email,
+          })
+        },
+      },
+    },
     session: {
       create: {
         before: async (session) => {
@@ -69,6 +113,36 @@ export const auth = betterAuth({
           }
 
           return { data: session }
+        },
+        after: async (session) => {
+          const [user, sameDevice] = await Promise.all([
+            findEstablishedUser(session.userId, session.createdAt),
+            db.query.sessions.findFirst({
+              columns: { id: true },
+              where: {
+                id: { ne: session.id },
+                ipAddress: { eq: session.ipAddress ?? '' },
+                userAgent: { eq: session.userAgent ?? '' },
+                userId: { eq: session.userId },
+              },
+            }),
+          ])
+
+          if (!user || sameDevice) {
+            return
+          }
+
+          // A 2FA sign-in creates a session, deletes it for the challenge, then creates another: identical props let sendEmail's memo send one email for both.
+          await sendEmail({
+            props: {
+              device: formatDeviceLabel(session.userAgent ?? ''),
+              ipAddress: session.ipAddress ?? '',
+              location: locateIp(session.ipAddress ?? ''),
+            },
+            subject: 'New sign-in to your Tamery account',
+            template: 'NewSignIn',
+            to: user.email,
+          })
         },
       },
     },
@@ -110,7 +184,17 @@ export const auth = betterAuth({
         },
       },
       update: {
-        after: async (user) => {
+        after: async (user, context) => {
+          if (context?.path.startsWith('/two-factor/')) {
+            const enabled = user.twoFactorEnabled === true
+            await sendEmail({
+              props: { enabled },
+              subject: `Two-factor authentication turned ${enabled ? 'on' : 'off'}`,
+              template: 'TwoFactorChanged',
+              to: user.email,
+            })
+          }
+
           if (nodeEnv !== 'production' || !resend) {
             return
           }
@@ -297,6 +381,16 @@ export const auth = betterAuth({
       },
     },
     deleteUser: {
+      afterDelete: async (user) => {
+        await Promise.all([
+          sendEmail({
+            subject: 'Your Tamery account was deleted',
+            template: 'AccountDeleted',
+            to: user.email,
+          }),
+          resend?.contacts.remove({ email: user.email }),
+        ])
+      },
       enabled: true,
     },
   },

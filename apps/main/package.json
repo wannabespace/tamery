@@ -31,8 +31,7 @@
     "react-dom": "catalog:",
     "react-qr-code": "catalog:",
     "remark-gfm": "^4.0.0",
-    "sonner": "catalog:",
-    "ua-parser-js": "catalog:"
+    "sonner": "catalog:"
   },
   "devDependencies": {
     "@hugeicons/core-free-icons": "catalog:",
