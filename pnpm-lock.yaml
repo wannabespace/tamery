@@ -221,6 +221,9 @@ catalogs:
     '@infisical/sdk':
       specifier: ^5.0.2
       version: 5.0.2
+    '@journeyapps/wa-sqlite':
+      specifier: ^1.7.2
+      version: 1.7.2
     '@libsql/client':
       specifier: ^0.18.0
       version: 0.18.0
@@ -882,6 +885,9 @@ importers:
       '@hugeicons/react':
         specifier: 'catalog:'
         version: 1.1.10(react@19.3.1)
+      '@journeyapps/wa-sqlite':
+        specifier: 'catalog:'
+        version: 1.7.2
       '@orpc/client':
         specifier: 'catalog:'
         version: 2.0.0-beta.45

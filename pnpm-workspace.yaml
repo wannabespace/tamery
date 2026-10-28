@@ -6,6 +6,7 @@ packages:
   - packages/*
   - apps/*
 catalog:
+  '@journeyapps/wa-sqlite': ^1.7.2
   '@paper-design/shaders-react': ^0.0.82
   '@ai-sdk/react': ^4.0.154
   '@base-ui/react': ^1.9.0

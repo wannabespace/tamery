@@ -17,7 +17,7 @@ import { getQueryLanguage } from '~/core/runtime/language'
 import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 
-import type { ToolPartActions } from './chat-tool-part'
+import type { ToolPartActions } from './chat-tool-types'
 
 export const WriteApproval = ({
   connection,

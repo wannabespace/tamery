@@ -16,7 +16,7 @@ import { Spinner } from '@tamery/ui/components/spinner'
 import { cn } from '@tamery/ui/lib/utils'
 
 import { MessagePart } from './chat-message-part'
-import type { ToolPartActions } from './chat-tool-part'
+import type { ToolPartActions } from './chat-tool-types'
 
 const ChatEmpty = () => (
   <IconEmpty

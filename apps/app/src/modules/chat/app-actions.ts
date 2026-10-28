@@ -4,7 +4,6 @@ import { getDialect } from '@tamery/shared/enums/connection-type'
 import { downloadFile, toCSV } from '@tamery/shared/files'
 import { FILTERS_LIST } from '@tamery/shared/filters'
 import { valueToText } from '@tamery/shared/value-text'
-import { isToolUIPart } from 'ai'
 
 import { resolveResource } from '~/core/agent/target'
 import { openTab } from '~/core/tabs/actions'
@@ -19,6 +18,7 @@ import {
 } from '~/modules/share/share-requests'
 import { tablePageStore } from '~/modules/table/lib/store'
 
+import { findChatResult } from './chat-results'
 import { agentModeValue } from './stores'
 
 type Input<K extends keyof ChatTools> = ChatTools[K]['input']
@@ -42,33 +42,16 @@ export const appActions = {
     messages: AppUIMessage[],
     { format, toolCallId }: Input<'export_result'>
   ) => {
-    const part = messages
-      .flatMap(({ parts }) => parts)
-      .find(
-        (candidate) =>
-          isToolUIPart(candidate) && candidate.toolCallId === toolCallId
-      )
-    if (
-      !(
-        part &&
-        (part.type === 'tool-query' || part.type === 'tool-execute') &&
-        part.state === 'output-available'
-      )
-    ) {
-      throw new Error(
-        `No query result "${toolCallId}" in this chat. Run the query again and export that one.`
-      )
-    }
-    const [set] = part.output
-    const records = (set?.rows ?? []).map((row) =>
+    const set = findChatResult(messages, toolCallId)
+    const records = set.rows.map((row) =>
       Object.fromEntries(
-        (set?.columns ?? []).map((column, index) => [column, row[index]])
+        set.columns.map((column, index) => [column, row[index]])
       )
     )
     if (format === 'csv') {
       downloadFile(
         toCSV(
-          (set?.columns ?? []).map((key) => ({ key })),
+          set.columns.map((key) => ({ key })),
           records
         ),
         'result.csv',

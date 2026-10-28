@@ -7,7 +7,7 @@ import { resolveResource } from '~/core/agent/target'
 import { schemaNotes } from '~/core/schema-notes/notes'
 import { posthog } from '~/lib/posthog'
 
-import type { ToolPartActions } from './chat-tool-part'
+import type { ToolPartActions } from './chat-tool-types'
 
 export const NoteProposal = ({
   decideNote,

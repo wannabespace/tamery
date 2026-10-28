@@ -59,6 +59,16 @@ export const chatTools = {
     outputSchema: type.unknown,
     toModelOutput: asDatabaseData,
   }),
+  combine: tool({
+    description:
+      "Run SQLite over result sets this chat already fetched, to join, compare or aggregate rows across connections or queries without matching them by hand. Each input loads one result (its query or execute call's toolCallId) as a table under the name you give it; then sql runs in SQLite's dialect over those tables. Values keep the types they came with; dates are text.",
+    inputSchema: type({
+      inputs: type({ name: 'string', toolCallId: 'string' }).array(),
+      sql: 'string',
+    }),
+    outputSchema: resultSetsType,
+    toModelOutput: asDatabaseData,
+  }),
   create_share: tool({
     description:
       "Open the table's share dialog in Tamery for the user, showing the table as it is now (open it with open_table first to share a filtered view). The user picks the link's settings and saves it; nothing is shared until they do.",

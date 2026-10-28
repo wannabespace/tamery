@@ -4,8 +4,8 @@ import { Response } from '@tamery/ui/components/response'
 import { isStaticToolUIPart } from 'ai'
 
 import { ChatDisclosure } from './chat-disclosure'
-import type { ToolPartActions } from './chat-tool-part'
 import { ToolPart } from './chat-tool-part'
+import type { ToolPartActions } from './chat-tool-types'
 
 export const MessagePart = ({
   actions,

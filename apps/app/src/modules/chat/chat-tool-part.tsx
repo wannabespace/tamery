@@ -1,50 +1,21 @@
 import {
   DatabaseIcon,
-  NoteIcon,
   PencilEdit02Icon,
   Search01Icon,
   Wrench01Icon,
 } from '@hugeicons/core-free-icons'
-import type { AppUIMessage } from '@tamery/ai/message'
-import { Response, ResponseCodeBlock } from '@tamery/ui/components/response'
-import { Spinner } from '@tamery/ui/components/spinner'
-import type { ToolUIPart } from 'ai'
+import { ResponseCodeBlock } from '@tamery/ui/components/response'
 
 import { tableTypeIcon } from '~/core/catalog/table-type'
 import { useCollections } from '~/core/collections'
 
 import { ChangeReview } from './change-review'
 import { ChatDisclosure } from './chat-disclosure'
-import { NoteProposal } from './note-proposal'
+import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
+import { NotePart } from './note-part'
 import { ToolResult } from './tool-result'
-import type { ChatSession } from './use-chat-session'
+import { getStatus } from './tool-status'
 import { WriteApproval } from './write-approval'
-
-type ChatToolPart = Extract<AppUIMessage['parts'][number], ToolUIPart>
-
-export interface ToolPartActions {
-  /** Set only while a pending change or note may still be decided: on the last turn, with nothing streaming. */
-  decide?: ChatSession['decide']
-  /** On the last turn a pending call is still running; on an earlier one it never ran. */
-  isLast: boolean
-}
-
-const isSettled = (part: ChatToolPart) =>
-  part.state === 'output-available' || part.state === 'output-error'
-
-const getStatus = (part: ChatToolPart, isLast: boolean) => {
-  if (part.state === 'output-error') {
-    return <span className="text-destructive">Failed</span>
-  }
-  if (isSettled(part)) {
-    return null
-  }
-  return isLast ? (
-    <Spinner className="size-3" />
-  ) : (
-    <span className="text-muted-foreground">Not run</span>
-  )
-}
 
 /** A call's line names its input's `detail` field when the model has sent it. */
 const LABELS: Partial<
@@ -198,41 +169,6 @@ const StatementPart = ({
   )
 }
 
-const NotePart = ({
-  actions,
-  part,
-}: {
-  actions: ToolPartActions
-  part: Extract<ChatToolPart, { type: 'tool-propose_note' }>
-}) => {
-  const awaitsDecision = part.state === 'input-available' && !!actions.decide
-
-  return (
-    <div className="flex flex-col gap-2">
-      <ChatDisclosure
-        icon={NoteIcon}
-        label={part.output?.saved ? 'Saved a note' : 'Proposed a note'}
-        status={
-          awaitsDecision ? (
-            <span className="text-warning">Needs review</span>
-          ) : (
-            getStatus(part, actions.isLast)
-          )
-        }
-      >
-        <Response>{part.output?.note ?? part.input?.note ?? ''}</Response>
-      </ChatDisclosure>
-      {awaitsDecision && actions.decide && (
-        <NoteProposal
-          decideNote={actions.decide.note}
-          input={part.input}
-          toolCallId={part.toolCallId}
-        />
-      )}
-    </div>
-  )
-}
-
 export const ToolPart = ({
   actions,
   part,
@@ -242,6 +178,27 @@ export const ToolPart = ({
 }) => {
   if (part.type === 'tool-execute' || part.type === 'tool-query') {
     return <StatementPart actions={actions} part={part} />
+  }
+  if (part.type === 'tool-combine') {
+    return (
+      <div className="flex flex-col gap-2">
+        <ChatDisclosure
+          icon={DatabaseIcon}
+          label="Combined results"
+          status={getStatus(part, actions.isLast)}
+        >
+          {part.input?.sql && (
+            <ResponseCodeBlock code={part.input.sql} language="sql" />
+          )}
+          {part.state === 'output-error' && (
+            <ResponseCodeBlock code={part.errorText} language="text" />
+          )}
+        </ChatDisclosure>
+        {part.state === 'output-available' && (
+          <ToolResult connection={null} sets={part.output} target={null} />
+        )}
+      </div>
+    )
   }
   if (part.type === 'tool-propose_note') {
     return <NotePart actions={actions} part={part} />

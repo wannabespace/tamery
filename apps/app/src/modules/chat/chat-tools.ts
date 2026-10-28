@@ -62,6 +62,11 @@ const addReadOutput = async (
       const output = await agentDatabase.columnValues(toolCall.input)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
+    case 'combine': {
+      const { combineResults } = await import('./combine')
+      const output = await combineResults(chat.messages, toolCall.input)
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
     case 'create_share': {
       const { appActions } = await import('./app-actions')
       const output = appActions.createShare(toolCall.input)

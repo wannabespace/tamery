@@ -1,5 +1,5 @@
 import type { ChatTools } from '@tamery/ai/tools'
-import { getDialect } from '@tamery/shared/enums/connection-type'
+import { Dialect, getDialect } from '@tamery/shared/enums/connection-type'
 import { DEFAULT_ROW_HEIGHT } from '@tamery/table/constants'
 import { Button } from '@tamery/ui/components/button'
 import { cn } from '@tamery/ui/lib/utils'
@@ -29,19 +29,17 @@ export const ToolResult = ({
   sets,
   target,
 }: {
-  connection: Connection
+  /** Null for combined results, which run in the chat's own SQLite and have no connection to open them in. */
+  connection: Connection | null
   sets: ChatTools['query']['output']
-  target: ChatTools['query']['input']
+  target: ChatTools['query']['input'] | null
 }) => {
   const router = useRouter()
   const [asChart, setAsChart] = useState(false)
-  const dialect = getDialect(connection.type)
-  const resource = Result.try(() =>
-    resolveTarget({
-      connectionId: target.connectionId,
-      resource: target.resource ?? undefined,
-    })
-  ).unwrapOr(null)?.resource
+  const dialect = connection ? getDialect(connection.type) : Dialect.SQLite
+  const resource = target
+    ? Result.try(() => resolveTarget(target)).unwrapOr(null)?.resource
+    : null
   const set = sets.findLast(({ columns }) => columns.length > 0)
 
   if (!set) {
@@ -59,7 +57,7 @@ export const ToolResult = ({
   const { columns, rows } = resultGrid(set, '')
   const chart = getResultChart(columns, rows)
   const openAsQuery = () => {
-    if (!resource) {
+    if (!(resource && target)) {
       return
     }
     const tabId = openRunnerTab(resource.id)
@@ -106,15 +104,17 @@ export const ToolResult = ({
             <ChartToggle asChart={asChart} onChange={setAsChart} />
           </div>
         )}
-        <Button
-          size="xs"
-          variant="ghost-muted"
-          className={cn(!chart && 'ml-auto')}
-          disabled={!resource}
-          onClick={openAsQuery}
-        >
-          Open as Query
-        </Button>
+        {target && (
+          <Button
+            size="xs"
+            variant="ghost-muted"
+            className={cn(!chart && 'ml-auto')}
+            disabled={!resource}
+            onClick={openAsQuery}
+          >
+            Open as Query
+          </Button>
+        )}
       </div>
     </div>
   )
