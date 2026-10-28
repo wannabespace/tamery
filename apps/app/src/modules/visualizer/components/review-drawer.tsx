@@ -10,13 +10,13 @@ import {
 import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 
 import { inlineParameters } from '~/core/codegen/formats/sql'
+import type { DiagramDraft } from '~/core/drafts/diagram'
 import { DiscardButton } from '~/core/drafts/discard-button'
 import { ChangeGroup, StagedReviewDrawer } from '~/core/drafts/review-drawer'
 import { formatSql } from '~/utils/formatter'
 import { plural } from '~/utils/plural'
 
 import { applyConsequence } from '../lib/apply'
-import type { DiagramDraft } from '../lib/statements'
 import { draftStatement, inApplyOrder } from '../lib/statements'
 
 const draftLabel = (draft: DiagramDraft) => {

@@ -13,6 +13,7 @@ import type { ToolUIPart } from 'ai'
 import { tableTypeIcon } from '~/core/catalog/table-type'
 import { useCollections } from '~/core/collections'
 
+import { ChangeReview } from './change-review'
 import { ChatDisclosure } from './chat-disclosure'
 import { NoteProposal } from './note-proposal'
 import { ToolResult } from './tool-result'
@@ -63,6 +64,11 @@ const getLabel = (part: ChatToolPart) => {
         ? `Listed tables in ${part.input.schema}`
         : 'Listed tables'
     }
+    case 'tool-propose_change': {
+      return part.input?.table
+        ? `Drafting a change in ${part.input.table}`
+        : 'Drafting a change'
+    }
     case 'tool-search_saved_queries': {
       return part.input?.query
         ? `Searched saved queries for ${part.input.query}`
@@ -90,7 +96,8 @@ const getIcon = (part: ChatToolPart) => {
     case 'tool-search_schema': {
       return Search01Icon
     }
-    case 'tool-execute': {
+    case 'tool-execute':
+    case 'tool-propose_change': {
       return PencilEdit02Icon
     }
     case 'tool-query': {
@@ -212,6 +219,25 @@ export const ToolPart = ({
   }
   if (part.type === 'tool-propose_note') {
     return <NotePart actions={actions} part={part} />
+  }
+  if (
+    part.type === 'tool-propose_change' &&
+    part.state === 'output-available'
+  ) {
+    return (
+      <div className="flex flex-col gap-2">
+        <ChatDisclosure
+          icon={PencilEdit02Icon}
+          label={`Drafted a change in ${part.input.table}`}
+        >
+          <ResponseCodeBlock
+            code={JSON.stringify(part.input.change, null, 2)}
+            language="json"
+          />
+        </ChatDisclosure>
+        <ChangeReview input={part.input} output={part.output} />
+      </div>
+    )
   }
 
   return (

@@ -120,6 +120,18 @@ export const mcpSource: McpSource = {
     }
     return sets
   },
+  proposeChange: async (args) => {
+    const proposed = await agentDatabase.proposeChange(args)
+    posthog.capture('mcp_change_proposed', {
+      connection_type: resolveResource(args).connection.type,
+      kind: args.change.kind,
+    })
+    notifications.notify({
+      body: proposed.review,
+      title: 'An agent drafted a change for you to review',
+    })
+    return proposed
+  },
   query: async (statement, onAbort) => {
     const { connection, run } = await agentDatabase.prepareRead(statement)
     await assertQuota()

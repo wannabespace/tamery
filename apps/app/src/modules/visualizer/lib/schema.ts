@@ -1,5 +1,6 @@
 import { definitionKey } from '~/core/catalog/definition-keys'
 import type { TableType } from '~/core/catalog/table-type'
+import type { DiagramDraft } from '~/core/drafts/diagram'
 import type { constraintsType } from '~/core/queries/constraints/list'
 import type { indexesType } from '~/core/queries/indexes/list'
 import type { policyType } from '~/core/queries/policies/list'
@@ -11,8 +12,6 @@ import type {
   NewColumn,
 } from '~/core/queries/tables/shape'
 import type { triggersType } from '~/core/queries/triggers/list'
-
-import type { DiagramDraft } from './statements'
 
 export interface DiagramColumn {
   // Original name: the handle id and the key every draft on it carries.

@@ -12,6 +12,7 @@ const TOOL_LABELS: Record<McpTool, string> = {
   execute: 'ran a change',
   list_connections: 'listed connections',
   list_tables: 'listed tables',
+  propose_change: 'drafted a change',
   query: 'ran a query',
   search_saved_queries: 'searched saved queries',
   search_schema: 'searched the schema',

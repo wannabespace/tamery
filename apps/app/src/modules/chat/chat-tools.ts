@@ -86,6 +86,10 @@ const addReadOutput = async (
       const output = await agentDatabase.searchSchema(toolCall.input)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
+    case 'propose_change': {
+      const output = await agentDatabase.proposeChange(toolCall.input)
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
     case 'query': {
       const { run } = await agentDatabase.prepareRead(toolCall.input)
       const output = await run(signal)

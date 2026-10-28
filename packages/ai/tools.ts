@@ -1,3 +1,7 @@
+import {
+  PROPOSE_CHANGE_DESCRIPTION,
+  agentChangeType,
+} from '@tamery/shared/agent-change'
 import type { ConnectionType } from '@tamery/shared/enums/connection-type'
 import {
   COLUMN_VALUES_DESCRIPTION,
@@ -74,6 +78,16 @@ export const chatTools = {
     inputSchema: type({ '...': target, schema: 'string | null' }),
     outputSchema: type.unknown,
     toModelOutput: asDatabaseData,
+  }),
+  propose_change: tool({
+    description: PROPOSE_CHANGE_DESCRIPTION,
+    inputSchema: type({
+      '...': target,
+      change: agentChangeType,
+      schema: type.string.describe('Schema from list_tables'),
+      table: 'string',
+    }),
+    outputSchema: type({ review: 'string', where: "'table' | 'visualizer'" }),
   }),
   propose_note: tool({
     description:

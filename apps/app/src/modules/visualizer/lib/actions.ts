@@ -5,6 +5,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { engineName } from '~/core/catalog/engine-name'
 import { useConnectionContext } from '~/core/connection/route'
+import type { DiagramDraft, diagramDrafts } from '~/core/drafts/diagram'
 import type { constraintsType } from '~/core/queries/constraints/list'
 import { foreignKeyName } from '~/core/queries/constraints/shape'
 import type { NewColumn } from '~/core/queries/tables/shape'
@@ -17,12 +18,10 @@ import { checkOrUpgrade } from '~/core/user/permissions'
 import { openNewWindow } from '~/utils/new-window'
 
 import type { DiagramActions } from './context'
-import type { diagramDrafts } from './drafts'
 import { fitViewOptions, NODE_WIDTH } from './layout'
 import { visualizerLayout } from './positions'
 import type { Diagram, DiagramColumn, DiagramTable } from './schema'
 import { tableNodeId } from './schema'
-import type { DiagramDraft } from './statements'
 
 export const useDiagramActions = ({
   constraints,

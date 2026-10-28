@@ -1,3 +1,4 @@
+import type { AgentChange } from './agent-change'
 import type { ConnectionType } from './enums/connection-type'
 import type { SyncType } from './enums/sync-type'
 
@@ -65,6 +66,10 @@ export interface McpSource {
     args: McpTarget & { sql: string; approve: boolean },
     onAbort: OnAbort
   ) => Promise<unknown>
+  proposeChange: (
+    args: McpTarget & { change: AgentChange; schema: string; table: string },
+    onAbort: OnAbort
+  ) => Promise<unknown>
   query: (
     args: McpTarget & { sql: string },
     onAbort: OnAbort
@@ -98,6 +103,7 @@ export type McpTool =
   | 'search_saved_queries'
   | 'column_values'
   | 'query'
+  | 'propose_change'
   | 'execute'
 
 export interface McpCall {

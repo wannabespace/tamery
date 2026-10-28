@@ -23,13 +23,13 @@ import {
 import { AnimatePresence, motion } from 'motion/react'
 import type { RefObject } from 'react'
 
+import type { DiagramDraft } from '~/core/drafts/diagram'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { plural } from '~/utils/plural'
 
 import { applyConsequence } from '../lib/apply'
 import { tableMatches, useDiagram } from '../lib/context'
 import { isDrop } from '../lib/statements'
-import type { DiagramDraft } from '../lib/statements'
 
 export const Toolbar = ({
   applying,

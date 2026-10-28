@@ -1,3 +1,4 @@
+import type { DiagramDraft } from '~/core/drafts/diagram'
 import { createConstraintQuery } from '~/core/queries/constraints/create'
 import { dropConstraintQuery } from '~/core/queries/constraints/drop'
 import { addColumnQuery } from '~/core/queries/tables/add-column'
@@ -7,8 +8,6 @@ import { dropTableQuery } from '~/core/queries/tables/drop'
 import { dropColumnQuery } from '~/core/queries/tables/drop-column'
 import { renameTableQuery } from '~/core/queries/tables/rename'
 import { renameColumnQuery } from '~/core/queries/tables/rename-column'
-
-import type { DiagramDraft } from './statements'
 
 export const draftQuery = (draft: DiagramDraft) => {
   switch (draft.kind) {

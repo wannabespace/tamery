@@ -76,6 +76,17 @@ export const DeleteRowsDialog = ({
   const sessionStore = useTableSessionStore()
   const { columns } = useTableColumnsContext()
 
+  const deletions = useSubscription(sessionStore, {
+    selector: (state) => state.deletions,
+  })
+  const proposed = deletions.map(primaryKeysKey).join('\n')
+  const [shownProposal, setShownProposal] = useState('')
+  if (proposed && proposed !== shownProposal) {
+    setShownProposal(proposed)
+    setRows(deletions)
+    setOpen(true)
+  }
+
   useImperativeHandle(deleteRowsDialogRef, () => ({
     open: (next) => {
       setRows(next)
@@ -145,7 +156,15 @@ export const DeleteRowsDialog = ({
   })
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) {
+          sessionStore.set((state) => ({ ...state, deletions: [] }))
+        }
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete {noun}?</AlertDialogTitle>

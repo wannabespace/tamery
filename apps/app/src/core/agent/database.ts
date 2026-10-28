@@ -19,6 +19,7 @@ import { workspaceSelection } from '~/core/workspace/utils'
 
 import { columnValues } from './column-values'
 import { describeTable } from './describe-table'
+import { proposeChange } from './propose-change'
 import { searchSavedQueries } from './saved-queries'
 import { searchSchema } from './search-schema'
 import type { AgentTarget } from './target'
@@ -123,6 +124,7 @@ export const agentDatabase = {
       },
     }
   },
+  proposeChange,
   searchSavedQueries,
   searchSchema,
   tables: async ({

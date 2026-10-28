@@ -2,11 +2,12 @@ import { graphlib, layout } from '@dagrejs/dagre'
 import { useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import type { DiagramDraft } from '~/core/drafts/diagram'
+
 import type { Positions } from './positions'
 import { visualizerLayout, visualizerStore } from './positions'
 import type { Diagram, DiagramTable } from './schema'
 import { tableNodeId } from './schema'
-import type { DiagramDraft } from './statements'
 
 // Keep in sync with the card's w-64, h-8 header and h-7 rows in table-node.tsx.
 export const NODE_WIDTH = 256

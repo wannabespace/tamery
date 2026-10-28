@@ -2,9 +2,39 @@ import { memoize } from 'memoza'
 import { nanoid } from 'nanoid'
 import { createStore } from 'seitu'
 
-import type { ColumnDefinition, NewColumn } from '~/core/queries/tables/shape'
+import type { ReferentialAction } from '~/core/queries/constraints/shape'
+import type {
+  AlterColumnTarget,
+  ColumnDefinition,
+  NewColumn,
+} from '~/core/queries/tables/shape'
 
-import type { DiagramDraft, TableRef } from './statements'
+export interface TableRef {
+  schema: string
+  table: string
+}
+
+export type DiagramDraft = { id: string } & TableRef &
+  (
+    | { columns: NewColumn[]; kind: 'createTable' }
+    | { kind: 'renameTable'; newName: string }
+    | { cascade: boolean; kind: 'dropTable' }
+    | { column: NewColumn; kind: 'addColumn' }
+    | { column: string; kind: 'renameColumn'; newName: string }
+    | ({ kind: 'alterColumn' } & Omit<AlterColumnTarget, keyof TableRef>)
+    | { column: string; kind: 'dropColumn' }
+    | {
+        columns: string[]
+        foreignColumns: string[]
+        foreignSchema: string
+        foreignTable: string
+        kind: 'addForeignKey'
+        name: string
+        onDelete: ReferentialAction
+        onUpdate: ReferentialAction
+      }
+    | { kind: 'dropForeignKey'; name: string }
+  )
 
 type Unsaved<T> = T extends unknown ? Omit<T, 'id'> : never
 

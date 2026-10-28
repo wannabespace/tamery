@@ -4,13 +4,13 @@ import { useSubscription } from 'seitu/react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { useConnectionContext } from '~/core/connection/route'
+import { diagramDraftsStore } from '~/core/drafts/diagram'
 import { resourceConstraintsQueryOptions } from '~/core/queries/constraints/list'
 import { resourceColumnsQueryOptions } from '~/core/queries/tables/columns'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { TableError } from '~/core/table/table-error'
 
 import { Visualizer } from './components/visualizer'
-import { diagramDraftsStore } from './lib/drafts'
 import { VisualizerRefresh } from './visualizer-refresh'
 import { VisualizerSkeleton } from './visualizer-skeleton'
 
