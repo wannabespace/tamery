@@ -29,6 +29,7 @@ catalog:
   '@exalabs/ai-sdk': ^2.1.0
   '@faker-js/faker': ^10.5.0
   '@fluentui/react-context-selector': ^9.2.18
+  '@infisical/sdk': ^5.0.2
   '@hackylabs/deep-redact': ^4.0.2
   '@hono/node-server': ^2.0.8
   '@monaco-editor/loader': ^1.7.0
