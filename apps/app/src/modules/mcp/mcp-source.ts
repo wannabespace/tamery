@@ -39,6 +39,12 @@ const runForAgent = async (
 }
 
 export const mcpSource: McpSource = {
+  columnValues: (args) => {
+    posthog.capture('mcp_column_values_read', {
+      connection_type: resolveResource(args).connection.type,
+    })
+    return agentDatabase.columnValues(args)
+  },
   connections: () => agentDatabase.connections('all'),
   createConnection: async ({
     connectionString: given,
@@ -121,6 +127,12 @@ export const mcpSource: McpSource = {
       access: 'read',
       connection_type: connection.type,
     })
+  },
+  searchSchema: (args) => {
+    posthog.capture('mcp_schema_searched', {
+      connection_type: resolveResource(args).connection.type,
+    })
+    return agentDatabase.searchSchema(args)
   },
   tables: async (args) => {
     const { connection, schemas } = await agentDatabase.tables(args)

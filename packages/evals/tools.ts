@@ -114,6 +114,73 @@ const describeTable = async (engine: Engine, schema: string, table: string) => {
   }
 }
 
+const searchSchema = async (engine: Engine, query: string) => {
+  const terms = query.toLowerCase().split(/\s+/u).filter(Boolean)
+  const matches = (name: unknown) =>
+    terms.some((term) => String(name).toLowerCase().includes(term))
+  const { schemas } = await listTables(engine)
+  const tables = schemas.flatMap((schema) =>
+    schema.tables.map((table) => ({ schema: schema.name, table: table.name }))
+  )
+  const columns = await Promise.all(
+    tables.map(async ({ schema, table }) => {
+      const described = await describeTable(engine, schema, String(table))
+      return described.columns.map((column) => ({
+        column: typeof column === 'object' && column ? column.name : column,
+        schema,
+        table,
+      }))
+    })
+  )
+  return {
+    columns: columns.flat().filter(({ column }) => matches(column)),
+    tables: tables.filter(({ table }) => matches(table)),
+    truncated: false,
+  }
+}
+
+const quote = (engine: Engine, name: string) =>
+  engine === 'mysql' ? `\`${name}\`` : `"${name}"`
+
+const columnValues = async (
+  engine: Engine,
+  schema: string,
+  table: string,
+  column: string
+) => {
+  if (engine === 'mongodb') {
+    const field = `"$${column}"`
+    return {
+      stats: await rowsOf(
+        engine,
+        `db.${table}.aggregate([{ $group: { _id: null, rows: { $sum: 1 }, min: { $min: ${field} }, max: { $max: ${field} } } }])`
+      ),
+      values: await rowsOf(
+        engine,
+        `db.${table}.aggregate([{ $group: { _id: ${field}, count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 50 }])`
+      ),
+    }
+  }
+  const from = `${quote(engine, schema)}.${quote(engine, table)}`
+  const ref = quote(engine, column)
+  const [[rows, filled, distinct, min, max] = []] = await rowsOf(
+    engine,
+    `SELECT COUNT(*), COUNT(${ref}), COUNT(DISTINCT ${ref}), MIN(${ref}), MAX(${ref}) FROM ${from}`
+  )
+  const values = await rowsOf(
+    engine,
+    `SELECT ${ref} AS value, COUNT(*) AS count FROM ${from} GROUP BY ${ref} ORDER BY count DESC LIMIT 50`
+  )
+  return {
+    distinct,
+    max,
+    min,
+    nulls: Number(rows) - Number(filled),
+    rows,
+    values: values.map(([value, count]) => ({ count, value })),
+  }
+}
+
 type ToolPart = Extract<AppUIMessage['parts'][number], { toolCallId: string }>
 
 const answer = (part: ToolPart): unknown => {
@@ -136,6 +203,13 @@ const answer = (part: ToolPart): unknown => {
     case 'tool-describe_table': {
       const { connectionId, schema, table } = part.input
       return describeTable(getEngine(connectionId), schema, table)
+    }
+    case 'tool-search_schema': {
+      return searchSchema(getEngine(part.input.connectionId), part.input.query)
+    }
+    case 'tool-column_values': {
+      const { column, connectionId, schema, table } = part.input
+      return columnValues(getEngine(connectionId), schema, table, column)
     }
     case 'tool-query': {
       return read(getEngine(part.input.connectionId), part.input.sql)

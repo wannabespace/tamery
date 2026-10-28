@@ -1,5 +1,10 @@
 import type { ConnectionType } from '@tamery/shared/enums/connection-type'
-import { MCP_RESULT_LIMITS, UNTRUSTED_DATA_NOTE } from '@tamery/shared/mcp'
+import {
+  COLUMN_VALUES_DESCRIPTION,
+  MCP_RESULT_LIMITS,
+  SEARCH_SCHEMA_DESCRIPTION,
+  UNTRUSTED_DATA_NOTE,
+} from '@tamery/shared/mcp'
 import type { InferUITools } from 'ai'
 import { tool } from 'ai'
 import { type } from 'arktype'
@@ -28,6 +33,17 @@ export const resultSetsType = type({
 }).array()
 
 export const chatTools = {
+  column_values: tool({
+    description: COLUMN_VALUES_DESCRIPTION,
+    inputSchema: type({
+      '...': target,
+      column: 'string',
+      schema: type.string.describe('Schema from list_tables'),
+      table: 'string',
+    }),
+    outputSchema: type.unknown,
+    toModelOutput: asDatabaseData,
+  }),
   describe_table: tool({
     description:
       'Describe one table or view: its columns (type, nullability, default, enum values), constraints (primary key, foreign keys with what they reference, unique, check) and indexes.',
@@ -62,6 +78,12 @@ export const chatTools = {
     description: `Run one read-only SQL statement in the connection's own dialect; statements that write are rejected. ${MCP_RESULT_LIMITS} The user sees the rows as a table under your call, so never repeat them in your answer.`,
     inputSchema: statement,
     outputSchema: resultSetsType,
+    toModelOutput: asDatabaseData,
+  }),
+  search_schema: tool({
+    description: SEARCH_SCHEMA_DESCRIPTION,
+    inputSchema: type({ '...': target, query: 'string' }),
+    outputSchema: type.unknown,
     toModelOutput: asDatabaseData,
   }),
 }

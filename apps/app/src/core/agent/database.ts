@@ -17,7 +17,9 @@ import {
 } from '~/core/runtime/query'
 import { workspaceSelection } from '~/core/workspace/utils'
 
+import { columnValues } from './column-values'
 import { describeTable } from './describe-table'
+import { searchSchema } from './search-schema'
 import type { AgentTarget } from './target'
 import {
   fetchForAgent,
@@ -42,6 +44,7 @@ const getQueryParams = async (
 
 /** What an agent (MCP or the chat) does to the user's databases. `prepare*` checks a statement and resolves its target without running anything, so a caller can count, approve or refuse it before `run`. */
 export const agentDatabase = {
+  columnValues,
   /** The chat sees the active workspace's connections; MCP sees every one and gates them by its own access. */
   connections: (scope: 'active-workspace' | 'all') => {
     const { connectionsCollection, workspacesCollection } = getCollections()
@@ -119,6 +122,7 @@ export const agentDatabase = {
       },
     }
   },
+  searchSchema,
   tables: async ({
     schema,
     ...target

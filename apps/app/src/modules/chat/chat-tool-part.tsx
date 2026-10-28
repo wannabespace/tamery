@@ -1,6 +1,7 @@
 import {
   DatabaseIcon,
   PencilEdit02Icon,
+  Search01Icon,
   Wrench01Icon,
 } from '@hugeicons/core-free-icons'
 import type { AppUIMessage } from '@tamery/ai/message'
@@ -48,6 +49,11 @@ const getStatus = (part: ChatToolPart, isLast: boolean) => {
 
 const getLabel = (part: ChatToolPart) => {
   switch (part.type) {
+    case 'tool-column_values': {
+      return part.input?.column
+        ? `Read values of ${part.input.column}`
+        : 'Read column values'
+    }
     case 'tool-describe_table': {
       return part.input?.table ? `Read ${part.input.table}` : 'Read a table'
     }
@@ -59,6 +65,11 @@ const getLabel = (part: ChatToolPart) => {
         ? `Listed tables in ${part.input.schema}`
         : 'Listed tables'
     }
+    case 'tool-search_schema': {
+      return part.input?.query
+        ? `Searched the schema for ${part.input.query}`
+        : 'Searched the schema'
+    }
     default: {
       return null
     }
@@ -67,9 +78,13 @@ const getLabel = (part: ChatToolPart) => {
 
 const getIcon = (part: ChatToolPart) => {
   switch (part.type) {
+    case 'tool-column_values':
     case 'tool-describe_table':
     case 'tool-list_tables': {
       return tableTypeIcon.table
+    }
+    case 'tool-search_schema': {
+      return Search01Icon
     }
     case 'tool-execute': {
       return PencilEdit02Icon

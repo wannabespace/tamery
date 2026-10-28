@@ -39,6 +39,10 @@ const addReadOutput = async (
   signal: AbortSignal
 ) => {
   switch (toolCall.toolName) {
+    case 'column_values': {
+      const output = await agentDatabase.columnValues(toolCall.input)
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
     case 'describe_table': {
       const output = await agentDatabase.describeTable(toolCall.input)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
@@ -54,6 +58,10 @@ const addReadOutput = async (
         tool: toolCall.toolName,
         toolCallId,
       })
+    }
+    case 'search_schema': {
+      const output = await agentDatabase.searchSchema(toolCall.input)
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
     case 'query': {
       const { run } = await agentDatabase.prepareRead(toolCall.input)
