@@ -1,70 +1,30 @@
 import process from 'node:process'
 
 import { db } from '@tamery/db'
-import {
-  connections,
-  members,
-  userEncryptionKeys,
-  users,
-} from '@tamery/db/schema'
+import { connections, workspaceEncryptionKeys } from '@tamery/db/schema'
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
 import { toError } from '@tamery/shared/utils'
-import { and, asc, eq, inArray, isNotNull } from 'drizzle-orm'
+import { and, eq, isNotNull } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
-// Rotates the per-user connection key (user_encryption_keys.secret), the inner
-// layer of every connection string. Pure database work under one transaction per
-// user: the ORM column types handle the outer ENCRYPTION_SECRET layer, so this
-// decrypts the inner layer with the user's old key and re-encrypts it with a fresh
-// one, flipping the key row and its connections together. No env change, no redeploy.
-// Dry run by default; pass --execute. Positional user ids scope it (default: all).
 const execute = process.argv.includes('--execute')
-const onlyUserIds = new Set(
+const onlyWorkspaceIds = new Set(
   process.argv.slice(2).filter((arg) => !arg.startsWith('--'))
 )
 
-const ownerMembers = await db
-  .select({ userId: members.userId, workspaceId: members.workspaceId })
-  .from(members)
-  .where(eq(members.role, 'owner'))
-  .orderBy(asc(members.createdAt))
-
-const workspaceOwner = new Map<string, string>()
-for (const { userId, workspaceId } of ownerMembers) {
-  if (!workspaceOwner.has(workspaceId)) {
-    workspaceOwner.set(workspaceId, userId)
-  }
-}
-
-const ownedWorkspaces = new Map<string, string[]>()
-for (const [workspaceId, userId] of workspaceOwner) {
-  const owned = ownedWorkspaces.get(userId)
-  if (owned) {
-    owned.push(workspaceId)
-  } else {
-    ownedWorkspaces.set(userId, [workspaceId])
-  }
-}
-
-const rotateUser = async (
-  userId: string,
-  oldKey: string,
-  workspaceIds: string[]
-) => {
-  const rows = workspaceIds.length
-    ? await db
-        .select({
-          connectionString: connections.connectionString,
-          id: connections.id,
-        })
-        .from(connections)
-        .where(
-          and(
-            inArray(connections.workspaceId, workspaceIds),
-            isNotNull(connections.connectionString)
-          )
-        )
-    : []
+const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
+  const rows = await db
+    .select({
+      connectionString: connections.connectionString,
+      id: connections.id,
+    })
+    .from(connections)
+    .where(
+      and(
+        eq(connections.workspaceId, workspaceId),
+        isNotNull(connections.connectionString)
+      )
+    )
 
   const plaintexts: { id: string; text: string }[] = []
   for (const row of rows) {
@@ -80,7 +40,7 @@ const rotateUser = async (
       })
     } catch {
       return {
-        error: `connection ${row.id} does not decrypt with the user's current key`,
+        error: `connection ${row.id} does not decrypt with the workspace's current key`,
       }
     }
   }
@@ -102,9 +62,9 @@ const rotateUser = async (
       }
 
       await tx
-        .update(userEncryptionKeys)
+        .update(workspaceEncryptionKeys)
         .set({ secret: newKey })
-        .where(eq(userEncryptionKeys.userId, userId))
+        .where(eq(workspaceEncryptionKeys.workspaceId, workspaceId))
     })
   } catch (error) {
     return {
@@ -117,31 +77,26 @@ const rotateUser = async (
 
 const keyRows = await db
   .select({
-    secret: userEncryptionKeys.secret,
-    userId: userEncryptionKeys.userId,
+    secret: workspaceEncryptionKeys.secret,
+    workspaceId: workspaceEncryptionKeys.workspaceId,
   })
-  .from(userEncryptionKeys)
-  .innerJoin(users, eq(users.id, userEncryptionKeys.userId))
+  .from(workspaceEncryptionKeys)
 
 let rotated = 0
 let reEncrypted = 0
 const failures: string[] = []
 
-for (const { secret, userId } of keyRows) {
-  if (onlyUserIds.size && !onlyUserIds.has(userId)) {
+for (const { secret, workspaceId } of keyRows) {
+  if (onlyWorkspaceIds.size && !onlyWorkspaceIds.has(workspaceId)) {
     continue
   }
 
-  // oxlint-disable-next-line no-await-in-loop -- sequential by design: each user's transaction settles before the next
-  const result = await rotateUser(
-    userId,
-    secret,
-    ownedWorkspaces.get(userId) ?? []
-  )
+  // oxlint-disable-next-line no-await-in-loop -- sequential by design: each workspace's transaction settles before the next
+  const result = await rotateWorkspace(workspaceId, secret)
 
   if ('error' in result) {
-    failures.push(`${userId}: ${result.error}`)
-    console.error(`✗ ${userId}: ${result.error}`)
+    failures.push(`${workspaceId}: ${result.error}`)
+    console.error(`✗ ${workspaceId}: ${result.error}`)
     continue
   }
 
@@ -151,12 +106,14 @@ for (const { secret, userId } of keyRows) {
 
 console.log(
   execute
-    ? `Rotated ${rotated} user key(s); re-encrypted ${reEncrypted} connection string(s).`
-    : `Dry run: ${rotated} user key(s) ready to rotate, ${reEncrypted} connection string(s) verified decryptable. Re-run with --execute to apply.`
+    ? `Rotated ${rotated} workspace key(s); re-encrypted ${reEncrypted} connection string(s).`
+    : `Dry run: ${rotated} workspace key(s) ready to rotate, ${reEncrypted} connection string(s) verified decryptable. Re-run with --execute to apply.`
 )
 
 if (failures.length) {
-  console.error(`${failures.length} user(s) skipped; resolve before rerunning.`)
+  console.error(
+    `${failures.length} workspace(s) skipped; resolve before rerunning.`
+  )
   process.exit(1)
 }
 

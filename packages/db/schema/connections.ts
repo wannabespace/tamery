@@ -30,10 +30,7 @@ export const connections = d.snakeCase.table(
     provider: provider(),
     syncType: syncType().notNull(),
     type: connectionType().notNull(),
-    userId: d
-      .uuid()
-      .references(() => users.id, { onDelete: 'cascade' })
-      .notNull(),
+    userId: d.uuid().references(() => users.id, { onDelete: 'set null' }),
     workspaceId: d
       .uuid()
       .references(() => workspaces.id, { onDelete: 'cascade' })

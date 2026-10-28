@@ -1,4 +1,7 @@
-import { isDefaultWorkspaceMetadata } from '@tamery/shared/workspace'
+import {
+  EDITOR_ROLES,
+  isDefaultWorkspaceMetadata,
+} from '@tamery/shared/workspace'
 import { type } from 'arktype'
 import { createWebStorageValue } from 'seitu/web'
 
@@ -20,6 +23,16 @@ export const workspaceSelection = {
     ) ??
     workspaces.at(0) ??
     null,
+  /** Where a new connection lands: the active workspace, or Personal when the user only views it, since the server rejects a workspace the user cannot edit. */
+  target: (workspaces: Workspace[]) => {
+    const current = workspaceSelection.current(workspaces)
+
+    return current && EDITOR_ROLES.includes(current.role)
+      ? current
+      : (workspaces.find((workspace) =>
+          isDefaultWorkspaceMetadata(workspace.metadata)
+        ) ?? null)
+  },
   set: (workspaceId: string) => {
     workspaceSelection.id.set(workspaceId)
   },

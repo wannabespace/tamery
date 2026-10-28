@@ -49,12 +49,19 @@ User-facing names differ from internal ids in two places: **Query** is the user-
 
 Better Auth's `organization` plugin is remapped to `workspace`; the plugin's `activeOrganizationId` field points at the `activeWorkspaceId` column.
 
-- Every user gets a lazily-created **default personal workspace**; `connections.create` falls back to it.
-- Extra workspaces are gated by `workspace.create`. Deletion is **disabled** — connections cascade and there is no delete flow yet.
+- Every user gets a lazily-created **default personal workspace**; `connections.create` falls back to it when the client sends no `workspaceId`.
+- Extra workspaces are gated by `workspace.create` and made only through `workspaces.create` (Better Auth's own create endpoint is off). Deletion is **disabled** — connections cascade and there is no delete flow yet.
 - The client scopes connections to the active workspace **inside** each `useLiveQuery`, never a post-query `.filter()` (a new array every render).
 - Workspaces reach the client through `workspacesCollection`, **not** Better Auth's `useListOrganizations` — the list must survive offline.
 - Active workspace is per-device `localStorage`, **never** pushed to the session; callers pass the active id explicitly to Better Auth endpoints.
-- `connections.create` accepts the client's `workspaceId` (membership-checked) so offline-created connections land in the device-active workspace. Multi-member and invites are not built yet.
+- `connections.create` accepts the client's `workspaceId` so offline-created connections land in the device-active workspace, and refuses one the user cannot edit (`FORBIDDEN`); the client picks the target itself (`workspaceSelection.target`: Personal when the user only views the active workspace).
+- **Members have one role each: Owner, Admin, Editor or Viewer** (`WORKSPACE_ROLES`, `@tamery/shared/workspace`; Better Auth access control in `lib/auth.ts`). Editors add, change, move and remove connections and publish shares; admins do the same and also invite and manage admins, editors and viewers (`MEMBER_MANAGER_ROLES`); only owners touch owners (Better Auth's own `creatorRole` check); viewers only use connections. Every "can edit" check (`EDITOR_ROLES`) counts owners and admins as editors. A workspace may have several owners, and its last owner cannot leave. Personal is never shared, and only an existing non-guest account can be invited (`organizationHooks`).
+- **Connections belong to their workspace, not their author**: every read is scoped by membership (`inMemberWorkspace`), every change by editor role (`inEditableWorkspace`), and `connections.userId` only records the author (set null when that account is deleted; the plan's connection count still counts by it). Their resources follow the connection: any member adds one (opening a database does), only an editor changes or removes one, since a removed resource takes its shares with it.
+- **The workspace row carries the member's `role`**, and its `updatedAt` is the later of the workspace's and the membership's, so a role change reaches an offline device through the catch-up.
+- **Every change is published to every member** (`publishToWorkspace`). Membership changes go only through the `workspaces.*` oRPC procedures (Better Auth's membership endpoints are in `disabledPaths`), so `syncMembership` always pushes or withdraws the workspace and its connections and resources and revokes shares.
+- **A share never outlives its author's right to edit the workspace**: it reads the connection with the workspace key, so `revokeNonEditorShares` drops the shares on a workspace's connections whose author is no longer an editor there, after every membership change and every move into it.
+- **The last owner of a workspace with other members cannot delete their account** (`databaseHooks.user.delete.before`), as they cannot leave it: the workspace would be left with no one able to name an owner. Workspaces where they are the only member are deleted with the account.
+- **A deleted connection row deletes its local string** (`createConnectionsCollection`), so removing a member wipes what their devices kept. `connections.move` therefore sends a member of both workspaces only an upsert: a delete would wipe the secrets their device holds for a **No password** or **Metadata only** connection.
 
 ## Early access
 
@@ -62,7 +69,7 @@ Better Auth's `organization` plugin is remapped to `workspace`; the plugin's `ac
 
 ## Anonymous users
 
-Desktop-only "Continue without an account" signs in through Better Auth's `anonymous` plugin, so an anonymous user is a real server user with a default workspace and its own encryption key — every sync and encryption path stays shared.
+Desktop-only "Continue without an account" signs in through Better Auth's `anonymous` plugin, so an anonymous user is a real server user with a default workspace and that workspace's encryption key — every sync and encryption path stays shared.
 
 - **Getting in stays easy.** Anything that helps someone get their first connection working (the form, parsing, test, diagnosis, Explain with AI on a failed test) is free for guests and Free users, with no quota or sign-in gate; limits only gate what comes after.
 - Limits are the `guest` plan in `packages/shared/permissions.ts`: one connection (`connection.create` with the current count), no AI (`ai.*`) beyond connection diagnosis, no workspaces, one open tab per resource (`tab.multiple`, client-only: `openTab`/`ensureTab` close the other tabs first, so opening another replaces it silently). Guests can edit the database like any member. A locked control's press goes through `checkOrUpgrade` (`architecture.md` → Permissions), which for a guest is the banner prompt `promptSignIn` — it also sends the PostHog event `guest_feature_blocked { hint }`, the signal for which limits push guests to sign up. How a locked control looks is `tamery-ui` patterns. The server checks are the real gate; `handleError` shows a guest's `FORBIDDEN` message in the banner (toasts on `/auth`, which has no banner).

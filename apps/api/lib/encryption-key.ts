@@ -1,25 +1,23 @@
 import { db } from '@tamery/db'
-import { userEncryptionKeys } from '@tamery/db/schema'
+import { workspaceEncryptionKeys } from '@tamery/db/schema'
 import { eq } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
-export const userEncryptionKey = {
-  async create(userId: string) {
-    const secret = nanoid()
-
-    await db.insert(userEncryptionKeys).values({ secret, userId })
-
-    return secret
+export const workspaceEncryptionKey = {
+  async create(workspaceId: string, executor: Pick<typeof db, 'insert'>) {
+    await executor
+      .insert(workspaceEncryptionKeys)
+      .values({ secret: nanoid(), workspaceId })
   },
-  async get(userId: string) {
+  async get(workspaceId: string) {
     const [row] = await db
-      .select({ secret: userEncryptionKeys.secret })
-      .from(userEncryptionKeys)
-      .where(eq(userEncryptionKeys.userId, userId))
+      .select({ secret: workspaceEncryptionKeys.secret })
+      .from(workspaceEncryptionKeys)
+      .where(eq(workspaceEncryptionKeys.workspaceId, workspaceId))
       .limit(1)
 
     if (!row) {
-      throw new Error(`No encryption key for user ${userId}`)
+      throw new Error(`No encryption key for workspace ${workspaceId}`)
     }
 
     return row.secret

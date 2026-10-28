@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { toast } from 'sonner'
 
 import { history, lastLocationStorageValue } from './lib/last-location'
+import { posthog } from './lib/posthog'
 import { transparentBackgroundValue } from './lib/transparent-background'
 import { routeTree } from './routeTree.gen'
 
@@ -53,7 +54,52 @@ declare module '@tanstack/react-router' {
   }
 }
 
+const SLOW_NAVIGATION_MS = 1000
+
+let navigation: {
+  fromRouteId: string | undefined
+  loadedAt: number | null
+  startedAt: number
+} | null = null
+
+router.subscribe('onBeforeNavigate', ({ fromLocation }) => {
+  if (fromLocation) {
+    navigation ??= {
+      fromRouteId: router.state.matches.at(-1)?.routeId,
+      loadedAt: null,
+      startedAt: performance.now(),
+    }
+  }
+})
+
+router.subscribe('onLoad', () => {
+  if (navigation) {
+    navigation.loadedAt = performance.now()
+  }
+})
+
+const reportSlowNavigation = () => {
+  if (!navigation) {
+    return
+  }
+  const { fromRouteId, loadedAt, startedAt } = navigation
+  navigation = null
+  const resolvedAt = performance.now()
+  if (resolvedAt - startedAt < SLOW_NAVIGATION_MS) {
+    return
+  }
+  posthog.capture('navigation_slow', {
+    from: fromRouteId,
+    load_ms: Math.round((loadedAt ?? resolvedAt) - startedAt),
+    render_ms: Math.round(resolvedAt - (loadedAt ?? resolvedAt)),
+    to: router.state.matches.at(-1)?.routeId,
+    total_ms: Math.round(resolvedAt - startedAt),
+  })
+}
+
 router.subscribe('onResolved', ({ toLocation }) => {
+  reportSlowNavigation()
+
   for (const shell of document.querySelectorAll('[data-shell]')) {
     requestAnimationFrame(() => shell.remove())
   }

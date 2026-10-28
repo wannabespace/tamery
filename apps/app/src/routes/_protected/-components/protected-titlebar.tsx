@@ -2,12 +2,14 @@ import {
   ArrowRight01Icon,
   Delete02Icon,
   PlusSignIcon,
+  Settings02Icon,
   Tick02Icon,
   UnfoldMoreIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { AppLogo } from '@tamery/ui/components/brand/app-logo'
 import { Button } from '@tamery/ui/components/button'
+import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +36,7 @@ import { lastOpenedResourcesStorageValue } from '~/core/connection/last-opened-r
 import { ResourceLabel } from '~/core/connection/resource-label'
 import type { Connection, ConnectionResource } from '~/core/connection/sync'
 import { useConnectionResourceLinkParams } from '~/core/connection/use-connection-resource-link-params'
+import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { connectionResourcesQueryOptions } from '~/core/queries/connection/resources'
 import { checkOrUpgrade, usePermissions } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
@@ -435,6 +438,15 @@ export const ProtectedTitleBar = () => {
             <UpdateButton />
             <OpenInWeb />
             <CommandPaletteButton />
+            <IconButton
+              icon={Settings02Icon}
+              label="Settings"
+              shortcut={<ShortcutKbd shortcut="settings" />}
+              side="bottom"
+              size="icon-sm"
+              variant="ghost"
+              render={<Link to="/settings" />}
+            />
             <span className="bg-border mx-1 h-4 w-px shrink-0 self-center" />
             <UserButton side="bottom" align="end" />
           </div>

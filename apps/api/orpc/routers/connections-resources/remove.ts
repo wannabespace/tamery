@@ -3,6 +3,7 @@ import { connectionsResources } from '@tamery/db/schema'
 import { type } from 'arktype'
 import { eq } from 'drizzle-orm'
 
+import { inEditableWorkspace, publishToWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
@@ -16,22 +17,22 @@ export const remove = orpc
         id: true,
       },
       where: {
-        connection: {
-          userId: {
-            eq: context.user.id,
-          },
-        },
+        connection: { RAW: inEditableWorkspace(context.user.id) },
         id: {
           eq: id,
         },
       },
+      with: { connection: { columns: { workspaceId: true } } },
     })
 
-    if (!owned) {
+    if (!owned?.connection) {
       return
     }
 
     await db.delete(connectionsResources).where(eq(connectionsResources.id, id))
 
-    publisher.publish(context.user.id, { key: id, type: 'delete' })
+    await publishToWorkspace(publisher, owned.connection.workspaceId, {
+      key: id,
+      type: 'delete',
+    })
   })

@@ -1,16 +1,14 @@
 import { ORPCError, os } from '@orpc/server'
-import { db } from '@tamery/db'
-import { members } from '@tamery/db/schema'
 import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
 import { decrypt } from '@tamery/shared/crypto-node'
 import type { Permissions } from '@tamery/shared/permissions'
 import { getPermissions } from '@tamery/shared/permissions'
-import { and, asc, eq } from 'drizzle-orm'
+import { isAPIError } from 'better-auth/api'
 import { memoize } from 'memoza'
 import { createPermix } from 'permix/orpc'
 
 import { auth } from '~/lib/auth'
-import { userEncryptionKey } from '~/lib/encryption-key'
+import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { redis } from '~/lib/redis'
 import { getSubscription } from '~/lib/subscription'
 
@@ -21,25 +19,35 @@ export { getSubscription } from '~/lib/subscription'
 
 export const orpc = os.$context<Context>()
 
-export const getWorkspaceSecret = memoize(
-  async (workspaceId: string) => {
-    const [owner] = await db
-      .select({ userId: members.userId })
-      .from(members)
-      .where(
-        and(eq(members.workspaceId, workspaceId), eq(members.role, 'owner'))
-      )
-      .orderBy(asc(members.createdAt))
-      .limit(1)
+// Answered as CONFLICT, not Better Auth's BAD_REQUEST: the API alerts on every 400, and these are an ordinary answer to what the user typed.
+const CONFLICT_CODES: ReadonlySet<string> = new Set([
+  'USER_IS_ALREADY_A_MEMBER_OF_THIS_ORGANIZATION',
+  'USER_IS_ALREADY_INVITED_TO_THIS_ORGANIZATION',
+])
 
-    if (!owner) {
-      throw new ORPCError('NOT_FOUND', { message: 'Workspace not found' })
-    }
+export const viaAuth = async <T>(promise: Promise<T>) => {
+  try {
+    return await promise
+  } catch (error) {
+    throw isAPIError(error)
+      ? new ORPCError(
+          CONFLICT_CODES.has(error.body?.code ?? '')
+            ? 'CONFLICT'
+            : String(error.status),
+          {
+            message: error.message
+              .replaceAll('organization', 'workspace')
+              .replaceAll('Organization', 'Workspace')
+              .replace('User is', 'They are'),
+          }
+        )
+      : error
+  }
+}
 
-    return userEncryptionKey.get(owner.userId)
-  },
-  { maxAge: 5 * 60 * 1000 }
-)
+export const getWorkspaceSecret = memoize(workspaceEncryptionKey.get, {
+  maxAge: 5 * 60 * 1000,
+})
 
 export const decryptConnectionString = async ({
   encryptedText,

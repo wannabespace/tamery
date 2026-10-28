@@ -1,24 +1,61 @@
 ---
 title: 'Workspaces'
 sidebarTitle: 'Workspaces'
-description: 'Keep separate groups of connections for different kinds of work.'
-keywords: ['environments', 'folders', 'organize']
+description: 'Keep separate groups of connections and share them with your team.'
+keywords: ['environments', 'folders', 'organize', 'invite', 'collaboration']
 ---
 
 A workspace is a group of connections. Keep one for your own projects and another for a client, and the two lists never mix.
 
-When you sign up, you get a workspace called **Personal**. The workspace name in the title bar switches between them. Switching takes you back to the connections list of the one you picked.
+When you sign up, you get a workspace called **Personal**. To switch, click the workspace name in the title bar and choose **Switch workspace**. Switching takes you back to the connections list of the one you picked.
 
 ## Create a workspace
 
 Needs [Pro](/account/plans) and an internet connection.
 
 1. Click the workspace name in the title bar.
-2. Choose **Create workspace**.
+2. Choose **Switch workspace**, then **Create workspace**.
 3. Enter a name and click **Create**.
 
 Tamery switches you into the new workspace right away.
 
 New connections land in the workspace you have open, and so do connections an agent adds through [MCP](/mcp/overview). Each device remembers its own open workspace, and switching works offline.
 
-Workspaces belong to your account only. Inviting teammates, sharing a workspace, renaming, and deleting one are not available.
+## Share a workspace
+
+Everyone in a workspace sees its connections and gets changes as they happen. Your **Personal** workspace is always private, so create a workspace for the connections you want to share.
+
+1. Click the workspace name in the title bar and choose **Invite and manage members**.
+2. Enter the email of the person's Tamery account, pick a role, and click **Invite**.
+
+The person must already have a Tamery account. They get an email whose **View invitation** opens a page on tamery.app to join or decline. The workspace then appears in Tamery on all their devices, including any already open. Tamery also shows a banner until they answer or dismiss it. The invitation also waits under **Invitations** in their workspace menu, marked by a dot on the workspace name. Opening it lets them **Join** or **Decline**, or close it and decide later.
+
+| Role | Can do |
+| --- | --- |
+| Owner | Everything an admin can, and make other members owners |
+| Admin | Everything an editor can; invite people and change or remove admins, editors and viewers |
+| Editor | Add, edit, move, and remove connections |
+| Viewer | Open and query the connections; cannot change them |
+
+A connection's [sync setting](/connections/overview#choose-what-syncs) decides what the others get. With **Full**, they connect right away. With **No password**, each person enters the password on their own device. With **Metadata only**, each person enters the server details.
+
+Anyone who can open a connection can read its password, viewers included. Give a viewer a database user with only the access they need.
+
+A viewer who creates a connection gets it in their **Personal** workspace, and Tamery switches there.
+
+### Leave or remove someone
+
+On the **Members** page, an admin or owner removes someone with the remove button on their row, after confirming. To leave yourself, click **Leave** on your own row. A workspace always keeps an owner, so its only owner first picks **Owner** in another member's role picker. Someone who is only invited is not a member yet: they have to join first.
+
+The workspace's connections disappear from that person's devices. Connections they added stay in the workspace, and the [shares](/features/sharing) they made of its tables stop working. Becoming a viewer stops those shares too, so making an editor, admin or owner a viewer asks first.
+
+Deleting your account removes you from every workspace and deletes the workspaces where you are the only member. If you are the only owner of a workspace that has other members, make one of them an owner first.
+
+## Copy or move a connection
+
+Right-click a connection, or open its **⋯** menu:
+
+- **Duplicate** makes a copy in the same workspace. Once you edit more than one workspace, it becomes **Copy to**, which lists them all, this one first.
+- **Move to** moves the connection to another workspace where you are an editor. Everyone in the old workspace loses it, and everyone in the new one gets it. Shares of it made by people who are not editors of the new workspace stop working. Needs an internet connection.
+
+Renaming and deleting a workspace are not available.

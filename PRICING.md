@@ -83,6 +83,19 @@ Where today's wiring contradicts the framework. Read the routers for the current
 5. **One limit contract.** Every limit, metered or quantity, reports through `usage.get` as a `{ max, used, resetAt }` quota, so clients share one upgrade-prompt component instead of per-feature paywall screens.
 6. **Workspace gating stays as it is** — one free personal workspace is a quantity limit. When members and invitations ship, resist moving _collaboration_ under Pro: multi-player belongs to a per-seat Team tier and Pro stays a single-player scale upgrade. Deciding this now avoids re-gating workspaces twice.
 
+## Team tier ideas
+
+Proposals for shared workspaces (members, invitations, roles Owner / Editor / Viewer), not decisions yet. Until they are decided, creating a workspace stays Pro and anyone with an account can be invited.
+
+- **Seats are Editors.** Bill per Editor; Viewers are free (or free up to a generous count). Viewers only use connections someone else maintains and cost us nothing, and free Viewers let a team pull in the whole company — the land-and-expand path.
+- **The workspace pays, not the member.** An invited Free user works in a paid workspace without upgrading; the workspace's plan sets the limits inside it, the member's own plan sets them in their Personal workspace.
+- **Count limits per workspace, not per author.** The connection limit counts the author's rows today, so a Free Editor in a paid workspace would hit 3 there. Shared workspaces need the count scoped to the workspace's plan before Team launches.
+- **A free taste of sharing.** One shared workspace with one invitee on Free (or Pro) keeps "collaboration is Team" honest while letting a pair try it — the limit is a natural quantity (members), so it passes the explainability test. Sending the second invite is the upgrade moment, with a 14-day Team trial.
+- **Pooled AI credits per workspace.** Team credits belong to the workspace, so a heavy user doesn't need their own Pro.
+- **Real enforcement as the Team/Enterprise differentiator.** Today anyone who can open a connection can read its password. A workspace policy that runs Viewers only through the cloud proxy (the string never reaches their device), a policy forcing **No password** / **Metadata only** sync, and an audit log of who opened or copied which connection are worth paying for and cost us real infra.
+- **SSO / SCIM and domain capture** (anyone with `@company.com` joins automatically) are Enterprise.
+- **A lapsed Team never locks anyone out.** Members keep using existing connections; only new invites, new Editors and new connections are blocked (implementation rule 6).
+
 ## Implementation rules
 
 How to wire a gate once the framework has decided where a feature lands:

@@ -9,6 +9,7 @@ import { silently } from '@tamery/shared/utils'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 
 import { aiUsage } from '~/lib/ai-usage'
+import { inMemberWorkspace } from '~/lib/workspace'
 import { publisher as chatsMessagesPartsPublisher } from '~/orpc/routers/chats-messages-parts/events'
 import { publisher as chatsMessagesPublisher } from '~/orpc/routers/chats-messages/events'
 import { publisher as chatsPublisher } from '~/orpc/routers/chats/events'
@@ -56,7 +57,7 @@ export const chatPersist = {
     const resource = await db.query.connectionsResources.findFirst({
       columns: { id: true },
       where: {
-        connection: { userId: { eq: data.userId } },
+        connection: { RAW: inMemberWorkspace(data.userId) },
         id: { eq: data.connectionResourceId },
       },
     })

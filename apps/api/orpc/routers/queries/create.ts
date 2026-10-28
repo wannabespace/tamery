@@ -2,6 +2,7 @@ import { db } from '@tamery/db'
 import { queriesInsertSchema } from '@tamery/db/schema'
 import { queries } from '@tamery/db/schema/queries'
 
+import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
@@ -16,7 +17,7 @@ export const create = orpc
     const resource = await db.query.connectionsResources.findFirst({
       columns: { id: true },
       where: {
-        connection: { userId: { eq: context.user.id } },
+        connection: { RAW: inMemberWorkspace(context.user.id) },
         id: { eq: input.connectionResourceId },
       },
     })

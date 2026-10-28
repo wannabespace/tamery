@@ -1,6 +1,7 @@
 import { db } from '@tamery/db'
 import { chats, chatsInsertSchema } from '@tamery/db/schema'
 
+import { inMemberWorkspace } from '~/lib/workspace'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 import { publisher } from './events'
@@ -16,7 +17,7 @@ export const create = orpc
     const resource = await db.query.connectionsResources.findFirst({
       columns: { id: true },
       where: {
-        connection: { userId: { eq: context.user.id } },
+        connection: { RAW: inMemberWorkspace(context.user.id) },
         id: { eq: input.connectionResourceId },
       },
     })

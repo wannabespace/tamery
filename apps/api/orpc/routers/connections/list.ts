@@ -1,7 +1,8 @@
 import { db } from '@tamery/db'
 import { connections } from '@tamery/db/schema'
-import { and, desc, eq, isNotNull } from 'drizzle-orm'
+import { and, desc, isNotNull } from 'drizzle-orm'
 
+import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 export const list = orpc
@@ -24,7 +25,7 @@ export const list = orpc
       .from(connections)
       .where(
         and(
-          eq(connections.userId, context.user.id),
+          inMemberWorkspace(context.user.id)(connections),
           isNotNull(connections.connectionString)
         )
       )

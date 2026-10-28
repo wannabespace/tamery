@@ -1,3 +1,4 @@
+import type { WorkspaceRole } from '@tamery/shared/workspace'
 import { defineRelationsPart } from 'drizzle-orm'
 import { createSelectSchema } from 'drizzle-orm/arktype'
 import * as d from 'drizzle-orm/pg-core'
@@ -104,7 +105,7 @@ export const members = d.snakeCase.table(
   'members',
   {
     ...baseTable,
-    role: d.text().default('member').notNull(),
+    role: d.text().default('viewer').$type<WorkspaceRole>().notNull(),
     userId: d
       .uuid()
       .notNull()
