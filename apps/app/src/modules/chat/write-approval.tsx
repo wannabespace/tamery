@@ -13,7 +13,6 @@ import { useIsMutating, useMutation, useQuery } from '@tanstack/react-query'
 import { agentDatabase } from '~/core/agent/database'
 import { WriteEstimate } from '~/core/agent/write-estimate'
 import type { Connection } from '~/core/connection/sync'
-import { getQueryLanguage } from '~/core/runtime/language'
 import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 
@@ -30,17 +29,21 @@ export const WriteApproval = ({
   input: ChatTools['execute']['input']
   toolCallId: string
 }) => {
-  const dialect = connection ? getDialect(connection.type) : null
-  const destroys = dialect
-    ? getQueryLanguage(dialect).destructive(input.statement)
-    : []
-  const decision = { destructive: destroys.length > 0, dialect }
+  const { data: write } = useQuery({
+    queryFn: () => agentDatabase.prepareWrite(input),
+    queryKey: ['agent-write-prepare', toolCallId],
+    retry: false,
+    staleTime: Infinity,
+  })
+  const destructive = write?.kind === 'destructive'
+  const decision = {
+    destructive,
+    dialect: connection ? getDialect(connection.type) : null,
+  }
   const estimateKey = ['agent-estimate', toolCallId]
   const estimate = useQuery({
-    queryFn: async ({ signal }) => {
-      const write = await agentDatabase.prepareWrite(input)
-      return write.estimate(signal)
-    },
+    enabled: !!write,
+    queryFn: ({ signal }) => write?.estimate(signal) ?? null,
     queryKey: estimateKey,
     retry: false,
     staleTime: Infinity,
@@ -84,7 +87,7 @@ export const WriteApproval = ({
             render={
               <Button
                 size="sm"
-                variant={destroys.length > 0 ? 'destructive' : 'default'}
+                variant={destructive ? 'destructive' : 'default'}
                 disabled={isRunning}
                 onClick={() => {
                   posthog.capture('ai_chat_write_approved', decision)
@@ -97,9 +100,7 @@ export const WriteApproval = ({
             Run
           </TooltipTrigger>
           <TooltipContent side="top">
-            {destroys.length > 0
-              ? `Removes data: ${destroys.join(', ')}`
-              : 'Run this statement'}
+            {destructive ? 'Removes data or schema' : 'Run this statement'}
           </TooltipContent>
         </Tooltip>
       </div>

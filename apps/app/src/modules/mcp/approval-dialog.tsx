@@ -81,13 +81,7 @@ export const ApprovalDialog = () => {
           <AlertDialogFooter>
             <AlertDialogCancel ref={declineRef}>Decline</AlertDialogCancel>
             <AlertDialogAction
-              variant={
-                getQueryLanguage(getDialect(item.connection.type)).destructive(
-                  item.sql
-                ).length > 0
-                  ? 'destructive'
-                  : 'warning'
-              }
+              variant={item.kind === 'destructive' ? 'destructive' : 'warning'}
               onClick={() => item.decide(true)}
             >
               Run

@@ -34,6 +34,9 @@ import {
 
 type Statement = AgentTarget & { statement: string }
 
+/** What a statement does, read from its text, never from what the agent says it does: approvals, policies and the audit log go by it. */
+export type OperationKind = 'destructive' | 'read' | 'write'
+
 const ESTIMATE_BUDGET_MS = 3000
 
 const EXPLAINED_COMMANDS = new Set([
@@ -89,6 +92,7 @@ export const agentDatabase = {
     const params = await getQueryParams(connection, resource)
     return {
       connection,
+      kind: 'read' as OperationKind,
       run: async (signal: AbortSignal) =>
         toToolOutput(
           await transactionQuery({
@@ -109,6 +113,11 @@ export const agentDatabase = {
     }
     const params = await getQueryParams(connection, resource)
     const estimator = estimateQuery(sql, dialect)
+    const language = getQueryLanguage(dialect)
+    let kind: OperationKind = language.readsOnly(sql) ? 'read' : 'write'
+    if (language.destructive(sql).length > 0) {
+      kind = 'destructive'
+    }
     return {
       connection,
       /** Rows the planner expects the statement to change, or null when the engine or statement has none or the planner is slow. The pool holds one connection, so settle it before `run`. */
@@ -125,6 +134,7 @@ export const agentDatabase = {
         )
         return rows.unwrapOr(null)
       },
+      kind,
       resource,
       run: async (signal: AbortSignal) => {
         const sets = await statementQuery(sql, dialect).run({

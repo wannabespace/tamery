@@ -1,5 +1,6 @@
 import { createStore } from 'seitu'
 
+import type { OperationKind } from '~/core/agent/database'
 import type { Connection } from '~/core/connection/sync'
 import { notifications } from '~/lib/notifications'
 import { posthog } from '~/lib/posthog'
@@ -9,6 +10,7 @@ interface Approval {
   decide: (approved: boolean) => void
   estimate: number | null
   id: string
+  kind: OperationKind
   resourceName: string | null
   sql: string
 }
@@ -18,12 +20,14 @@ const store = createStore<{ pending: Approval[] }>({ pending: [] })
 const request = async ({
   connection,
   estimate,
+  kind,
   resourceName,
   signal,
   sql,
 }: {
   connection: Connection
   estimate: (signal: AbortSignal) => Promise<number | null>
+  kind: OperationKind
   resourceName: string | null
   signal: AbortSignal
   sql: string
@@ -56,6 +60,7 @@ const request = async ({
         decide: decision.resolve,
         estimate: null,
         id,
+        kind,
         resourceName,
         sql,
       },
@@ -71,6 +76,7 @@ const request = async ({
     posthog.capture('mcp_write_reviewed', {
       approved,
       connection_type: connection.type,
+      kind,
     })
     if (!approved) {
       throw new Error('The user declined to run this statement.')
