@@ -6,7 +6,9 @@ import {
   createSyncPublisher,
 } from '~/orpc/lib/sync'
 
-const output = createSyncOutputSchema(workspacesSelectSchema)
+export const output = createSyncOutputSchema(
+  workspacesSelectSchema.merge({ role: 'string' })
+)
 
 export const publisher = createSyncPublisher(
   output,

@@ -1,15 +1,9 @@
 import { db } from '@tamery/db'
-import {
-  connections,
-  members,
-  queries,
-  sessions,
-  workspaces,
-} from '@tamery/db/schema'
+import { connections, queries, sessions } from '@tamery/db/schema'
 import { challenge } from '@tamery/shared/challenge'
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
 import { type } from 'arktype'
-import { eq, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 import { auth } from '~/lib/auth'
 import { ensureDefaultWorkspace } from '~/lib/workspace'
@@ -50,11 +44,6 @@ const adoptAnonymousUser = async (anonymousUserId: string, userId: string) => {
   )
 
   await db.transaction(async (tx) => {
-    const anonymousMembers = await tx
-      .select({ workspaceId: members.workspaceId })
-      .from(members)
-      .where(eq(members.userId, anonymousUserId))
-
     await tx
       .update(connections)
       .set({ userId, workspaceId })
@@ -71,12 +60,6 @@ const adoptAnonymousUser = async (anonymousUserId: string, userId: string) => {
       .update(queries)
       .set({ userId })
       .where(eq(queries.userId, anonymousUserId))
-    await tx.delete(workspaces).where(
-      inArray(
-        workspaces.id,
-        anonymousMembers.map((member) => member.workspaceId)
-      )
-    )
   })
 
   const context = await auth.$context

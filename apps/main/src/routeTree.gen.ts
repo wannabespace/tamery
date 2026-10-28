@@ -28,6 +28,7 @@ import { Route as AccountAiUsageRouteImport } from './modules/ai-usage/routes/ac
 import { Route as AccountBillingRouteImport } from './modules/billing/routes/account/billing'
 import { Route as DeepDotshareRouteImport } from './modules/deep-link/routes/deep.share'
 import { Route as DeepDotsignInRouteImport } from './modules/deep-link/routes/deep.sign-in'
+import { Route as InvitationDotinvitationIdRouteImport } from './modules/deep-link/routes/invitation.$invitationId'
 import { Route as LayoutBlogDotindexRouteImport } from './modules/blog/routes/_layout/blog.index'
 import { Route as LayoutBlogDotslugRouteImport } from './modules/blog/routes/_layout/blog.$slug'
 import { Route as AccountSettingsIndexRouteImport } from './modules/settings/routes/account/settings/index'
@@ -125,6 +126,12 @@ const DeepDotsignInRoute = DeepDotsignInRouteImport.update({
   path: '/deep/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InvitationDotinvitationIdRoute =
+  InvitationDotinvitationIdRouteImport.update({
+    id: '/invitation/$invitationId',
+    path: '/invitation/$invitationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LayoutBlogDotindexRoute = LayoutBlogDotindexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
@@ -158,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/account/billing': typeof AccountBillingRoute
   '/deep/share': typeof DeepDotshareRoute
   '/deep/sign-in': typeof DeepDotsignInRoute
+  '/invitation/$invitationId': typeof InvitationDotinvitationIdRoute
   '/account/': typeof AccountIndexRoute
   '/blog/$slug': typeof LayoutBlogDotslugRoute
   '/blog/': typeof LayoutBlogDotindexRoute
@@ -179,6 +187,7 @@ export interface FileRoutesByTo {
   '/account/billing': typeof AccountBillingRoute
   '/deep/share': typeof DeepDotshareRoute
   '/deep/sign-in': typeof DeepDotsignInRoute
+  '/invitation/$invitationId': typeof InvitationDotinvitationIdRoute
   '/account': typeof AccountIndexRoute
   '/blog/$slug': typeof LayoutBlogDotslugRoute
   '/blog': typeof LayoutBlogDotindexRoute
@@ -203,6 +212,7 @@ export interface FileRoutesById {
   '/account/billing': typeof AccountBillingRoute
   '/deep/share': typeof DeepDotshareRoute
   '/deep/sign-in': typeof DeepDotsignInRoute
+  '/invitation/$invitationId': typeof InvitationDotinvitationIdRoute
   '/_layout/': typeof LayoutIndexRoute
   '/account/': typeof AccountIndexRoute
   '/_layout/blog/$slug': typeof LayoutBlogDotslugRoute
@@ -228,6 +238,7 @@ export interface FileRouteTypes {
     | '/account/billing'
     | '/deep/share'
     | '/deep/sign-in'
+    | '/invitation/$invitationId'
     | '/account/'
     | '/blog/$slug'
     | '/blog/'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
     | '/account/billing'
     | '/deep/share'
     | '/deep/sign-in'
+    | '/invitation/$invitationId'
     | '/account'
     | '/blog/$slug'
     | '/blog'
@@ -272,6 +284,7 @@ export interface FileRouteTypes {
     | '/account/billing'
     | '/deep/share'
     | '/deep/sign-in'
+    | '/invitation/$invitationId'
     | '/_layout/'
     | '/account/'
     | '/_layout/blog/$slug'
@@ -286,6 +299,7 @@ export interface RootRouteChildren {
   OpenRoute: typeof OpenRoute
   DeepDotshareRoute: typeof DeepDotshareRoute
   DeepDotsignInRoute: typeof DeepDotsignInRoute
+  InvitationDotinvitationIdRoute: typeof InvitationDotinvitationIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -423,6 +437,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeepDotsignInRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invitation/$invitationId': {
+      id: '/invitation/$invitationId'
+      path: '/invitation/$invitationId'
+      fullPath: '/invitation/$invitationId'
+      preLoaderRoute: typeof InvitationDotinvitationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_layout/blog/': {
       id: '/_layout/blog/'
       path: '/blog'
@@ -512,6 +533,7 @@ const rootRouteChildren: RootRouteChildren = {
   OpenRoute: OpenRoute,
   DeepDotshareRoute: DeepDotshareRoute,
   DeepDotsignInRoute: DeepDotsignInRoute,
+  InvitationDotinvitationIdRoute: InvitationDotinvitationIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -35,6 +35,7 @@ import { ResourceLabel } from '~/core/connection/resource-label'
 import type { Connection, ConnectionResource } from '~/core/connection/sync'
 import { useConnectionResourceLinkParams } from '~/core/connection/use-connection-resource-link-params'
 import { connectionResourcesQueryOptions } from '~/core/queries/connection/resources'
+import { SettingsButton } from '~/core/settings/settings-button'
 import { checkOrUpgrade, usePermissions } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
 import { queryClient } from '~/lib/query-client'
@@ -435,6 +436,7 @@ export const ProtectedTitleBar = () => {
             <UpdateButton />
             <OpenInWeb />
             <CommandPaletteButton />
+            <SettingsButton />
             <span className="bg-border mx-1 h-4 w-px shrink-0 self-center" />
             <UserButton side="bottom" align="end" />
           </div>

@@ -4,8 +4,9 @@ import {
   connectionsResources,
   connectionsResourcesInsertSchema,
 } from '@tamery/db/schema'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
+import { memberWorkspaces, publishToWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
@@ -18,12 +19,12 @@ export const create = orpc
   })
   .handler(async ({ context, errors, input }) => {
     const [connection] = await db
-      .select({ id: connections.id })
+      .select({ workspaceId: connections.workspaceId })
       .from(connections)
       .where(
         and(
           eq(connections.id, input.connectionId),
-          eq(connections.userId, context.user.id)
+          inArray(connections.workspaceId, memberWorkspaces(context.user.id))
         )
       )
       .limit(1)
@@ -49,7 +50,7 @@ export const create = orpc
       })
     }
 
-    publisher.publish(context.user.id, {
+    await publishToWorkspace(publisher, connection.workspaceId, {
       type: 'insert',
       value: inserted,
     })

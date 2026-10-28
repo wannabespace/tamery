@@ -3,7 +3,12 @@ import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
 import * as schema from '@tamery/db/schema'
 import { AUTH_COOKIE_PREFIX } from '@tamery/shared/constants'
-import { getPermissions } from '@tamery/shared/permissions'
+import {
+  INVITABLE_ROLES,
+  isDefaultWorkspaceMetadata,
+  WORKSPACE_ROLES,
+} from '@tamery/shared/workspace'
+import type { WorkspaceRole } from '@tamery/shared/workspace'
 import { betterAuth } from 'better-auth'
 import { emailHarmony } from 'better-auth-harmony'
 import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api'
@@ -15,18 +20,32 @@ import {
   organization,
   twoFactor,
 } from 'better-auth/plugins'
+import { createAccessControl } from 'better-auth/plugins/access'
+import {
+  defaultStatements,
+  ownerAc,
+} from 'better-auth/plugins/organization/access'
 import { eq } from 'drizzle-orm'
 
 import { env, nodeEnv } from '~/env'
-import { userEncryptionKey } from '~/lib/encryption-key'
 import { resend, sendEmail } from '~/lib/resend'
 
 import { requireEarlyAccess, requireUserEarlyAccess } from './early-access'
 import { redisMemoize } from './redis'
-import { getSubscription } from './subscription'
-import { ensureDefaultWorkspace } from './workspace'
+import { deleteSoleMemberWorkspaces, ensureDefaultWorkspace } from './workspace'
 
 const twoFactorPlugin = twoFactor({ allowPasswordless: true })
+
+const workspaceAccess = createAccessControl(defaultStatements)
+
+const workspaceRoles = {
+  editor: workspaceAccess.newRole({
+    invitation: ['create', 'cancel'],
+    member: ['create', 'update', 'delete'],
+  }),
+  owner: workspaceAccess.newRole(ownerAc.statements),
+  viewer: workspaceAccess.newRole({}),
+} satisfies Record<WorkspaceRole, unknown>
 
 const isOAuthCallback = ({ path }: { path?: string }) =>
   path?.startsWith('/callback/') === true
@@ -86,15 +105,6 @@ export const auth = betterAuth({
           return { data: user }
         },
         after: async (user) => {
-          await userEncryptionKey.create(user.id).catch(async (error) => {
-            console.error(
-              `Failed to create user encryption key: ${error instanceof Error ? error.message : error}`,
-              error instanceof Error && error.cause ? error.cause : undefined
-            )
-            await db.delete(users).where(eq(users.id, user.id))
-            throw error
-          })
-
           if (resend && !user.isAnonymous) {
             const [firstName = '', ...lastName] = user.name.split(' ')
 
@@ -107,6 +117,11 @@ export const auth = betterAuth({
               },
             })
           }
+        },
+      },
+      delete: {
+        before: async (user) => {
+          await deleteSoleMemberWorkspaces(user.id)
         },
       },
       update: {
@@ -229,12 +244,65 @@ export const auth = betterAuth({
       },
     }),
     organization({
-      allowUserToCreateOrganization: async (user) =>
-        getPermissions({
-          subscription: await getSubscription(user.id),
-          user: { isAnonymous: user.isAnonymous },
-        }).workspace.create === true,
+      ac: workspaceAccess,
+      allowUserToCreateOrganization: false,
       disableOrganizationDeletion: true,
+      organizationHooks: {
+        beforeCreateInvitation: async ({
+          invitation,
+          organization: workspace,
+        }) => {
+          if (
+            !(INVITABLE_ROLES as readonly string[]).includes(invitation.role)
+          ) {
+            throw APIError.from('BAD_REQUEST', {
+              code: 'INVALID_ROLE',
+              message: 'Invite people as an editor or a viewer.',
+            })
+          }
+
+          const [row, invitee] = await Promise.all([
+            db.query.workspaces.findFirst({
+              columns: { metadata: true },
+              where: { id: { eq: workspace.id } },
+            }),
+            db.query.users.findFirst({
+              columns: { id: true },
+              where: {
+                email: { eq: invitation.email },
+                isAnonymous: { OR: [{ eq: false }, { isNull: true }] },
+              },
+            }),
+          ])
+
+          if (row && isDefaultWorkspaceMetadata(row.metadata)) {
+            throw APIError.from('BAD_REQUEST', {
+              code: 'PERSONAL_WORKSPACE',
+              message:
+                'Your Personal workspace can’t be shared. Create a workspace to invite people.',
+            })
+          }
+
+          if (!invitee) {
+            throw APIError.from('BAD_REQUEST', {
+              code: 'USER_NOT_FOUND',
+              message:
+                'No Tamery account uses this email. Ask them to sign up first.',
+            })
+          }
+        },
+        beforeUpdateMemberRole: ({ newRole }) => {
+          if (!(WORKSPACE_ROLES as readonly string[]).includes(newRole)) {
+            throw APIError.from('BAD_REQUEST', {
+              code: 'INVALID_ROLE',
+              message: 'A member is an owner, an editor or a viewer.',
+            })
+          }
+
+          return Promise.resolve()
+        },
+      },
+      roles: workspaceRoles,
       schema: {
         invitation: {
           fields: {
@@ -254,6 +322,25 @@ export const auth = betterAuth({
             activeOrganizationId: 'activeWorkspaceId',
           },
         },
+      },
+      sendInvitationEmail: async ({
+        email,
+        id,
+        inviter,
+        organization: workspace,
+        role,
+      }) => {
+        await sendEmail({
+          props: {
+            inviterName: inviter.user.name,
+            role,
+            url: `${env.MAIN_URL}/invitation/${id}`,
+            workspaceName: workspace.name,
+          },
+          subject: `${inviter.user.name} invited you to ${workspace.name} on Tamery`,
+          template: 'WorkspaceInvitation',
+          to: email,
+        })
       },
     }),
     lastLoginMethod(),

@@ -31,7 +31,7 @@ export const create = orpc
         workspaceId: row.id,
       })
 
-      return row
+      return { ...row, role: 'owner' }
     })
 
     publisher.publish(context.user.id, {

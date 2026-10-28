@@ -1,4 +1,7 @@
-import { isDefaultWorkspaceMetadata } from '@tamery/shared/workspace'
+import {
+  canEditWorkspace,
+  isDefaultWorkspaceMetadata,
+} from '@tamery/shared/workspace'
 import { type } from 'arktype'
 import { createWebStorageValue } from 'seitu/web'
 
@@ -20,6 +23,16 @@ export const workspaceSelection = {
     ) ??
     workspaces.at(0) ??
     null,
+  /** Where a new connection lands: the active workspace, or Personal when the user only views it, as the server does. */
+  target: (workspaces: Workspace[]) => {
+    const current = workspaceSelection.current(workspaces)
+
+    return current && canEditWorkspace(current.role)
+      ? current
+      : (workspaces.find((workspace) =>
+          isDefaultWorkspaceMetadata(workspace.metadata)
+        ) ?? null)
+  },
   set: (workspaceId: string) => {
     workspaceSelection.id.set(workspaceId)
   },

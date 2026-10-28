@@ -1,6 +1,7 @@
 export { create } from './create'
 export { events } from './events'
 export { list } from './list'
+export { move } from './move'
 export { remove } from './remove'
 export { resolve } from './resolve'
 export { sync } from './sync'

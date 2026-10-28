@@ -1,12 +1,15 @@
 import { env } from '@tamery/db/env'
-import { userEncryptionKeys } from '@tamery/db/schema'
+import { workspaceEncryptionKeys } from '@tamery/db/schema'
 
 import { runColumnKeyRotation } from './column-key'
 
-// USER_KEY_SECRET wraps every per-user connection key in user_encryption_keys.
+// USER_KEY_SECRET wraps every per-workspace connection key in workspace_encryption_keys.
 await runColumnKeyRotation({
   columns: [
-    { cipher: userEncryptionKeys.secret, id: userEncryptionKeys.userId },
+    {
+      cipher: workspaceEncryptionKeys.secret,
+      id: workspaceEncryptionKeys.workspaceId,
+    },
   ],
   secretName: 'USER_KEY_SECRET',
   secrets: env.USER_KEY_SECRET,

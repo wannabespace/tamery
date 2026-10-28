@@ -1,9 +1,10 @@
 import { db } from '@tamery/db'
 import { connections, connectionsUpdateSchema } from '@tamery/db/schema'
 import { decrypt } from '@tamery/shared/crypto-node'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 import { encryptConnectionString } from '~/lib/connection-string'
+import { editableWorkspaces, publishToWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher, syncedColumns } from './events'
@@ -25,7 +26,10 @@ export const update = orpc
       .select()
       .from(connections)
       .where(
-        and(eq(connections.id, id), eq(connections.userId, context.user.id))
+        and(
+          eq(connections.id, id),
+          inArray(connections.workspaceId, editableWorkspaces(context.user.id))
+        )
       )
       .limit(1)
 
@@ -50,16 +54,14 @@ export const update = orpc
           syncType: found.syncType,
         }),
       })
-      .where(
-        and(eq(connections.userId, context.user.id), eq(connections.id, id))
-      )
+      .where(eq(connections.id, id))
       .returning(syncedColumns)
 
     if (!connection) {
       throw errors.NOT_FOUND()
     }
 
-    publisher.publish(context.user.id, {
+    await publishToWorkspace(publisher, connection.workspaceId, {
       type: 'update',
       value: connection,
     })

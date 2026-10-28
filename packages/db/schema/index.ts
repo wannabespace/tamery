@@ -41,7 +41,7 @@ export {
   syncType,
 } from './connections'
 export { earlyAccess } from './early-access'
-export { userEncryptionKeys } from './encryption'
+export { workspaceEncryptionKeys } from './encryption'
 export {
   queries,
   queriesUpdateSchema,

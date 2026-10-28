@@ -1,10 +1,13 @@
+import type { Publisher } from '@orpc/publisher'
 import { db } from '@tamery/db'
 import { members, workspaces } from '@tamery/db/schema'
 import { slugify } from '@tamery/shared/slugify'
 import {
+  EDITOR_ROLES,
   isDefaultWorkspaceMetadata,
   serializeWorkspaceMetadata,
 } from '@tamery/shared/workspace'
+import type { Column } from 'drizzle-orm'
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
@@ -72,23 +75,69 @@ export const ensureDefaultWorkspace = async (userId: string) => {
   })
 }
 
-export const memberWorkspaceIds = async (
-  userId: string,
-  workspaceIds: string[]
-) => {
-  if (workspaceIds.length === 0) {
-    return new Set<string>()
-  }
-
-  const rows = await db
-    .select({ workspaceId: members.workspaceId })
+export const memberWorkspaces = (userId: string) =>
+  db
+    .select({ id: members.workspaceId })
     .from(members)
+    .where(eq(members.userId, userId))
+
+export const editableWorkspaces = (userId: string) =>
+  db
+    .select({ id: members.workspaceId })
+    .from(members)
+    .where(and(eq(members.userId, userId), inArray(members.role, EDITOR_ROLES)))
+
+/** Relational-query `RAW` filters for rows of the workspaces the user belongs to, or edits. */
+export const inMemberWorkspace =
+  (userId: string) => (table: { workspaceId: Column }) =>
+    inArray(table.workspaceId, memberWorkspaces(userId))
+
+export const inEditableWorkspace =
+  (userId: string) => (table: { workspaceId: Column }) =>
+    inArray(table.workspaceId, editableWorkspaces(userId))
+
+export const isWorkspaceEditor = async (userId: string, workspaceId: string) =>
+  (await db.$count(
+    members,
+    and(
+      eq(members.userId, userId),
+      eq(members.workspaceId, workspaceId),
+      inArray(members.role, EDITOR_ROLES)
+    )
+  )) > 0
+
+export const workspaceMemberIds = async (workspaceId: string) => {
+  const rows = await db
+    .select({ userId: members.userId })
+    .from(members)
+    .where(eq(members.workspaceId, workspaceId))
+
+  return rows.map((row) => row.userId)
+}
+
+export const publishToWorkspace = async <TPayload extends object>(
+  publisher: Publisher<Record<string, TPayload>>,
+  workspaceId: string,
+  payload: TPayload
+) => {
+  const userIds = await workspaceMemberIds(workspaceId)
+
+  await Promise.all(userIds.map((userId) => publisher.publish(userId, payload)))
+}
+
+export const deleteSoleMemberWorkspaces = async (userId: string) => {
+  const soleMember = db
+    .select({ id: members.workspaceId })
+    .from(members)
+    .groupBy(members.workspaceId)
+    .having(sql`count(*) = 1`)
+
+  await db
+    .delete(workspaces)
     .where(
       and(
-        eq(members.userId, userId),
-        inArray(members.workspaceId, workspaceIds)
+        inArray(workspaces.id, memberWorkspaces(userId)),
+        inArray(workspaces.id, soleMember)
       )
     )
-
-  return new Set(rows.map((row) => row.workspaceId))
 }

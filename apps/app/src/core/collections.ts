@@ -27,14 +27,25 @@ const createCollections = () => {
     connectionsResourcesCollection
   )
 
+  const connectionsCollection = createConnectionsCollection(
+    connectionStringsCollection
+  )
+
+  connectionsCollection.subscribeChanges((changes) => {
+    for (const change of changes) {
+      const { id } = change.value
+      if (change.type === 'delete' && connectionStringsCollection.has(id)) {
+        connectionStringsCollection.delete(id)
+      }
+    }
+  })
+
   return {
     chatsCollection: createChatsCollection(),
     chatsMessagesCollection: createChatsMessagesCollection(),
     chatsMessagesPartsCollection: createChatsMessagesPartsCollection(),
     connectionStringsCollection,
-    connectionsCollection: createConnectionsCollection(
-      connectionStringsCollection
-    ),
+    connectionsCollection,
     connectionsResourcesCollection,
     queriesCollection: createQueriesCollection(),
     workspacesCollection: createWorkspacesCollection(),

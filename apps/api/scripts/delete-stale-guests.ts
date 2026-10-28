@@ -1,8 +1,8 @@
 import process from 'node:process'
 
 import { db } from '@tamery/db'
-import { members, sessions, users, workspaces } from '@tamery/db/schema'
-import { and, eq, exists, gt, inArray, not } from 'drizzle-orm'
+import { sessions, users } from '@tamery/db/schema'
+import { and, eq, exists, gt, not } from 'drizzle-orm'
 
 import { auth } from '~/lib/auth'
 
@@ -41,23 +41,10 @@ if (!shouldDelete) {
 
 const guestIds = staleGuests.map((guest) => guest.id)
 
-// Workspaces have no user FK, so they outlive the user unless deleted first.
-await db
-  .delete(workspaces)
-  .where(
-    inArray(
-      workspaces.id,
-      db
-        .select({ id: members.workspaceId })
-        .from(members)
-        .where(inArray(members.userId, guestIds))
-    )
-  )
-
 const context = await auth.$context
 
 for (const id of guestIds) {
-  // oxlint-disable-next-line eslint/no-await-in-loop -- one at a time: each delete cascades to the user's own rows (encryption key, sessions)
+  // oxlint-disable-next-line eslint/no-await-in-loop -- one at a time: each delete cascades to the user's own rows (sessions) and drops their sole-member workspaces with those workspaces' keys
   await context.internalAdapter.deleteUser(id)
 }
 

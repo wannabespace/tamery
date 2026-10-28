@@ -40,6 +40,10 @@ import {
   reconnectingPromises,
 } from '~/core/runtime/query'
 import { slowQueries } from '~/core/runtime/slow-queries'
+import {
+  openedInvitationId,
+  useInvitations,
+} from '~/core/workspace/invitations'
 import { useIsAnonymous } from '~/lib/auth'
 import { orpc } from '~/lib/orpc'
 import { appStore, useIsOnline } from '~/store'
@@ -199,6 +203,27 @@ const GuestBannerContent = ({
   )
 }
 
+const DismissButton = ({ onDismiss }: { onDismiss: () => void }) => (
+  <Tooltip>
+    <TooltipTrigger
+      render={
+        <Button
+          variant="ghost-tint"
+          size="icon-xs"
+          aria-label="Dismiss banner"
+          onClick={onDismiss}
+        />
+      }
+    >
+      <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+    </TooltipTrigger>
+    <TooltipContent side="bottom">Dismiss</TooltipContent>
+  </Tooltip>
+)
+
+const dismiss = (key: string) =>
+  bannerDismissedValue.set((state) => [...state, key])
+
 const EditConnectionAction = ({ connectionId }: { connectionId: string }) => (
   <Button
     variant="ghost-tint"
@@ -242,6 +267,7 @@ export const GlobalBanner = () => {
   const isGuest = useIsAnonymous()
   const dismissed = useSubscription(bannerDismissedValue)
   const delayPassed = useDelay(INITIAL_DELAY)
+  const invitation = useInvitations().find(({ id }) => !dismissed.includes(id))
 
   const { data: serverItems = [] } = useQuery({
     ...bannerQueryOptions,
@@ -269,26 +295,36 @@ export const GlobalBanner = () => {
           {typeConfig[item.type].icon}
           <span className="flex-1 leading-none">{item.text}</span>
           {item.dismissible && (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="ghost-tint"
-                    size="icon-xs"
-                    aria-label="Dismiss banner"
-                    onClick={() =>
-                      bannerDismissedValue.set((state) => [...state, item.text])
-                    }
-                  />
-                }
-              >
-                <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Dismiss</TooltipContent>
-            </Tooltip>
+            <DismissButton onDismiss={() => dismiss(item.text)} />
           )}
         </Banner>
       ))}
+      {invitation && (
+        <Banner key={invitation.id} className={typeConfig.info.className}>
+          {typeConfig.info.icon}
+          <span className="min-w-0 flex-1 truncate leading-none">
+            <span data-mask>{invitation.inviterName ?? 'A member'}</span>{' '}
+            invited you to{' '}
+            <span data-mask className="font-medium">
+              {invitation.workspaceName}
+            </span>
+            .
+          </span>
+          <Button
+            variant="ghost-tint"
+            size="xs"
+            onClick={() => openedInvitationId.set(invitation.id)}
+          >
+            View invitation
+            <HugeiconsIcon
+              icon={ArrowRight01Icon}
+              strokeWidth={2}
+              data-icon="inline-end"
+            />
+          </Button>
+          <DismissButton onDismiss={() => dismiss(invitation.id)} />
+        </Banner>
+      )}
       {isGuest && (
         <Banner key="guest" className={typeConfig.info.className}>
           <GuestBannerContent prompt={signInPrompt} />

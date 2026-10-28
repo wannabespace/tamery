@@ -11,6 +11,7 @@ export interface Workspace extends BaseTable {
   slug: string
   logo: string | null
   metadata: string | null
+  role: string
 }
 
 export const createWorkspacesCollection = () =>

@@ -8,6 +8,7 @@ import { type } from 'arktype'
 import { addSeconds } from 'date-fns'
 import { and, eq, getColumns, gte, inArray, notInArray, or } from 'drizzle-orm'
 
+import { memberWorkspaces } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 import { createSyncOutputSchema, syncDiff } from '~/orpc/lib/sync'
 
@@ -36,7 +37,10 @@ export const sync = orpc
             )
             .where(
               and(
-                eq(connections.userId, context.user.id),
+                inArray(
+                  connections.workspaceId,
+                  memberWorkspaces(context.user.id)
+                ),
                 inArray(connectionsResources.id, includeIds)
               )
             )
@@ -51,7 +55,10 @@ export const sync = orpc
             )
             .where(
               and(
-                eq(connections.userId, context.user.id),
+                inArray(
+                  connections.workspaceId,
+                  memberWorkspaces(context.user.id)
+                ),
                 notInArray(connectionsResources.id, excludeIds)
               )
             ),
@@ -65,7 +72,10 @@ export const sync = orpc
             )
             .where(
               and(
-                eq(connections.userId, context.user.id),
+                inArray(
+                  connections.workspaceId,
+                  memberWorkspaces(context.user.id)
+                ),
                 or(
                   ...items.map((cr) =>
                     and(

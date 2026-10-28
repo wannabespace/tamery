@@ -7,6 +7,7 @@ import { FREE_SHARE_LIMIT_MESSAGE } from '@tamery/shared/usage'
 import { pick } from '@tamery/shared/utils'
 import { and, eq, gt, isNull, or, sql } from 'drizzle-orm'
 
+import { inEditableWorkspace } from '~/lib/workspace'
 import { orpc, permissionsMiddleware } from '~/orpc'
 
 export const save = orpc
@@ -28,7 +29,7 @@ export const save = orpc
     const resource = await db.query.connectionsResources.findFirst({
       columns: { id: true },
       where: {
-        connection: { userId: { eq: context.user.id } },
+        connection: { RAW: inEditableWorkspace(context.user.id) },
         id: { eq: input.connectionResourceId },
       },
       with: { connection: { columns: { syncType: true } } },

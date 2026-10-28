@@ -1,16 +1,13 @@
 import { ORPCError, os } from '@orpc/server'
-import { db } from '@tamery/db'
-import { members } from '@tamery/db/schema'
 import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
 import { decrypt } from '@tamery/shared/crypto-node'
 import type { Permissions } from '@tamery/shared/permissions'
 import { getPermissions } from '@tamery/shared/permissions'
-import { and, asc, eq } from 'drizzle-orm'
 import { memoize } from 'memoza'
 import { createPermix } from 'permix/orpc'
 
 import { auth } from '~/lib/auth'
-import { userEncryptionKey } from '~/lib/encryption-key'
+import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { redis } from '~/lib/redis'
 import { getSubscription } from '~/lib/subscription'
 
@@ -22,22 +19,7 @@ export { getSubscription } from '~/lib/subscription'
 export const orpc = os.$context<Context>()
 
 export const getWorkspaceSecret = memoize(
-  async (workspaceId: string) => {
-    const [owner] = await db
-      .select({ userId: members.userId })
-      .from(members)
-      .where(
-        and(eq(members.workspaceId, workspaceId), eq(members.role, 'owner'))
-      )
-      .orderBy(asc(members.createdAt))
-      .limit(1)
-
-    if (!owner) {
-      throw new ORPCError('NOT_FOUND', { message: 'Workspace not found' })
-    }
-
-    return userEncryptionKey.get(owner.userId)
-  },
+  (workspaceId: string) => workspaceEncryptionKey.get(workspaceId),
   { maxAge: 5 * 60 * 1000 }
 )
 

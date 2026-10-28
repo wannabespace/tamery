@@ -3,6 +3,7 @@ import type {
   Provider,
 } from '@tamery/shared/enums/connection-type'
 import type { SyncType } from '@tamery/shared/enums/sync-type'
+import { pick } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import { v7 } from 'uuid'
 
@@ -69,6 +70,8 @@ export const saveConnectionString = async ({
   const existingResource = findResource(connectionId, resource)
   const resourceId = existingResource?.id ?? v7()
 
+  // Before mutateOffline: in a tab that is not the outbox leader, commit runs push synchronously, and push reads the string.
+  write()
   const tx = mutateOffline(() => {
     if (writeRow) {
       // An empty password on a device that never had it means "not known here", not "none": clearing the flag would stop every device asking for it.
@@ -89,7 +92,6 @@ export const saveConnectionString = async ({
       })
     }
   })
-  write()
 
   const settle = async () => {
     const persisted = await Result.tryPromise(() => tx.isPersisted.promise)
@@ -156,6 +158,23 @@ export const createConnection = async ({
   })
   return { id, resourceId }
 }
+
+export const copyConnection = async (
+  connection: Connection,
+  workspaceId: string
+) =>
+  createConnection({
+    ...pick(connection, ['color', 'label', 'provider', 'syncType', 'type']),
+    connectionString:
+      await getCollections().connectionStringsCollection.utils.decrypt(
+        connection.id
+      ),
+    name:
+      workspaceId === connection.workspaceId
+        ? `${connection.name} copy`
+        : connection.name,
+    workspaceId,
+  })
 
 export const updateConnection = (
   connectionId: string,

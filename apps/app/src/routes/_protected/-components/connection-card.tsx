@@ -1,6 +1,7 @@
 import { connectionSecrets } from '@tamery/connection/secrets'
 import { resourceConnectionString } from '@tamery/connection/utils'
 import { CONNECTION_RESOURCE_ROOT_SYMBOL } from '@tamery/shared/constants'
+import { canEditWorkspace } from '@tamery/shared/workspace'
 import { Button } from '@tamery/ui/components/button'
 import { HighlightText } from '@tamery/ui/components/custom/highlight'
 import { copy } from '@tamery/ui/lib/copy'
@@ -16,11 +17,16 @@ import { AppContextMenu, AppMenuButton } from '~/components/app-context-menu'
 import { useCollections } from '~/core/collections'
 import { ConnectionResourceLink } from '~/core/connection/connection-resource-link'
 import { useFetchingConfig } from '~/core/connection/fetching'
+import { copyConnection } from '~/core/connection/save'
 import { getConnectionStore } from '~/core/connection/stores'
 import type { Connection } from '~/core/connection/sync'
 import { connectionResourcesQueryOptions } from '~/core/queries/connection/resources'
+import { checkOrUpgrade } from '~/core/user/permissions'
+import { useActiveWorkspace } from '~/core/workspace/hooks'
+import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { getCopyDatabaseAction } from '~/modules/copy-database/copy-database-dialog'
+import { useIsOnline } from '~/store'
 import { openNewWindow } from '~/utils/new-window'
 
 import { ConnectionCardMeta } from './connection-card-meta'
@@ -38,8 +44,16 @@ export const ConnectionCard = ({
   search: string
 }) => {
   const router = useRouter()
-  const { connectionStringsCollection, connectionsResourcesCollection } =
-    useCollections()
+  const {
+    connectionStringsCollection,
+    connectionsCollection,
+    connectionsResourcesCollection,
+  } = useCollections()
+  const { workspaces } = useActiveWorkspace()
+  const isOnline = useIsOnline()
+  const editableWorkspaces = workspaces.filter((workspace) =>
+    canEditWorkspace(workspace.role)
+  )
   const { data: connectionString } = useLiveQuery({
     query: (q) =>
       q
@@ -130,17 +144,45 @@ export const ConnectionCard = ({
     toast.success('Credentials cleared from this device')
   }
 
+  const copyTo = useMutation({
+    meta: { event: 'connection_copied' },
+    mutationFn: (workspaceId: string) =>
+      copyConnection(connection, workspaceId),
+    onError: (copyError) => toast.error(copyError.message),
+    onSuccess: () => toast.success('Connection copied'),
+  })
+  const moveTo = useMutation({
+    meta: { event: 'connection_moved' },
+    mutationFn: (workspaceId: string) =>
+      orpc.connections.move.call({ id: connection.id, workspaceId }),
+    onSuccess: () => toast.success('Connection moved'),
+  })
+
   const isLoadingVisible =
     (isFetching && connectionResourcesNames.length === 0) || refresh.isPending
 
   const items = buildConnectionMenuItems({
+    canEdit: editableWorkspaces.some(
+      (workspace) => workspace.id === connection.workspaceId
+    ),
     canSend,
     connection,
+    editableWorkspaces,
+    isOnline,
     onClearPassword: handleClearPassword,
     onCopy: handleCopy,
     onCopyDatabase: getCopyDatabaseAction(
       selectedResource ? { connection, resource: selectedResource } : null
     ),
+    onCopyTo: (workspaceId) => {
+      if (
+        checkOrUpgrade('connection.create', {
+          count: connectionsCollection.size,
+        })
+      ) {
+        copyTo.mutate(workspaceId)
+      }
+    },
     onEdit: () => {
       posthog.capture('connection_edit_opened')
       void router.navigate({
@@ -157,6 +199,7 @@ export const ConnectionCard = ({
             }).href
           )
       : null,
+    onMoveTo: (workspaceId) => moveTo.mutate(workspaceId),
     onRefresh: () => refresh.mutate(),
     onRemove,
   })

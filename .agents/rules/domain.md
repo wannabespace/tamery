@@ -50,11 +50,16 @@ User-facing names differ from internal ids in two places: **Query** is the user-
 Better Auth's `organization` plugin is remapped to `workspace`; the plugin's `activeOrganizationId` field points at the `activeWorkspaceId` column.
 
 - Every user gets a lazily-created **default personal workspace**; `connections.create` falls back to it.
-- Extra workspaces are gated by `workspace.create`. Deletion is **disabled** — connections cascade and there is no delete flow yet.
+- Extra workspaces are gated by `workspace.create` and made only through `workspaces.create` (Better Auth's own create endpoint is off). Deletion is **disabled** — connections cascade and there is no delete flow yet.
 - The client scopes connections to the active workspace **inside** each `useLiveQuery`, never a post-query `.filter()` (a new array every render).
 - Workspaces reach the client through `workspacesCollection`, **not** Better Auth's `useListOrganizations` — the list must survive offline.
 - Active workspace is per-device `localStorage`, **never** pushed to the session; callers pass the active id explicitly to Better Auth endpoints.
-- `connections.create` accepts the client's `workspaceId` (membership-checked) so offline-created connections land in the device-active workspace. Multi-member and invites are not built yet.
+- `connections.create` accepts the client's `workspaceId` (editor-checked) so offline-created connections land in the device-active workspace; one the user only views falls back to Personal, and the client picks the same target first (`workspaceSelection.target`).
+- **Members have one role each: Owner, Editor or Viewer** (`WORKSPACE_ROLES`, `@tamery/shared/workspace`; Better Auth access control in `lib/auth.ts`). Editors add, change, move and remove connections, publish shares and manage editors and viewers; only owners touch owners; viewers only use connections. A workspace may have several owners, and its last owner cannot leave. Personal is never shared, and only an existing non-guest account can be invited (`organizationHooks`).
+- **Connections belong to their workspace, not their author**: every read is scoped by membership (`memberWorkspaces`/`inMemberWorkspace`), every change by editor role (`editableWorkspaces`), and `connections.userId` only records the author (set null when that account is deleted; the plan's connection count still counts by it).
+- **The workspace row carries the member's `role`**, and its `updatedAt` is the later of the workspace's and the membership's, so a role change reaches an offline device through the catch-up.
+- **Every change is published to every member** (`publishToWorkspace`). Membership changes go through the `workspaces.*` oRPC wrappers around Better Auth's endpoints so `publishMembership` pushes or withdraws the workspace and its connections and resources; calling Better Auth directly skips that until the next catch-up.
+- **A deleted connection row deletes its local string** (`core/collections.ts`), so removing a member wipes what their devices kept. `connections.move` therefore sends a member of both workspaces only an upsert: a delete would wipe the secrets their device holds for a **No password** or **Metadata only** connection.
 
 ## Early access
 

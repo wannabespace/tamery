@@ -26,3 +26,31 @@ export const serializeWorkspaceMetadata = (
 
 export const isDefaultWorkspaceMetadata = (metadata: string | null) =>
   parseWorkspaceMetadata(metadata).default === true
+
+export const WORKSPACE_ROLES = ['owner', 'editor', 'viewer'] as const
+
+export type WorkspaceRole = (typeof WORKSPACE_ROLES)[number]
+
+export const INVITABLE_ROLES = [
+  'editor',
+  'viewer',
+] as const satisfies WorkspaceRole[]
+
+export const EDITOR_ROLES = [
+  'owner',
+  'editor',
+] as const satisfies WorkspaceRole[]
+
+export const canEditWorkspace = (role: string) =>
+  (EDITOR_ROLES as readonly string[]).includes(role)
+
+export const describeInvitation = ({
+  inviterName,
+  role,
+}: {
+  inviterName: string | null
+  role: string
+}) =>
+  role === 'viewer'
+    ? `${inviterName ?? 'A member'} invited you as a viewer. You will be able to open and query its connections, but not change them.`
+    : `${inviterName ?? 'A member'} invited you as an editor. You will be able to open, add and edit its connections, and invite others.`

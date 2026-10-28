@@ -5,7 +5,11 @@ import { type } from 'arktype'
 import { and, eq, ne } from 'drizzle-orm'
 
 import { encryptConnectionString } from '~/lib/connection-string'
-import { ensureDefaultWorkspace, memberWorkspaceIds } from '~/lib/workspace'
+import {
+  ensureDefaultWorkspace,
+  isWorkspaceEditor,
+  publishToWorkspace,
+} from '~/lib/workspace'
 import { orpc, permissionsMiddleware } from '~/orpc'
 
 import { publisher, syncedColumns } from './events'
@@ -21,12 +25,9 @@ export const create = orpc
     FORBIDDEN: { message: GUEST_CONNECTIONS_MESSAGE },
   })
   .handler(async ({ context, errors, input }) => {
-    const allowedWorkspaceIds = await memberWorkspaceIds(
-      context.user.id,
-      typeof input.workspaceId === 'string' ? [input.workspaceId] : []
-    )
     const workspaceId =
-      input.workspaceId && allowedWorkspaceIds.has(input.workspaceId)
+      input.workspaceId &&
+      (await isWorkspaceEditor(context.user.id, input.workspaceId))
         ? input.workspaceId
         : await ensureDefaultWorkspace(context.user.id)
     const workspaceSecret = await context.getWorkspaceSecret(workspaceId)
@@ -57,7 +58,7 @@ export const create = orpc
       .returning(syncedColumns)
 
     if (inserted) {
-      publisher.publish(context.user.id, {
+      await publishToWorkspace(publisher, workspaceId, {
         type: 'insert',
         value: inserted,
       })
