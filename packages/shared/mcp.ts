@@ -12,6 +12,9 @@ export const UNTRUSTED_DATA_NOTE =
 export const SEARCH_SCHEMA_DESCRIPTION =
   'Find tables and columns by name or comment across a connection: any word of query matches. On a database with many tables, call it before list_tables to find where data lives.'
 
+export const SEARCH_SAVED_QUERIES_DESCRIPTION =
+  "Find the user's saved queries on a connection by name and SQL text: every word of query must match. Reuse or adapt one the user already trusts before writing SQL from scratch."
+
 export const COLUMN_VALUES_DESCRIPTION =
   'The most common values of one column with how often each occurs (up to 50), its distinct and null counts, and min and max for numbers and dates. Call it before filtering on a value the user named, to match its exact spelling and case.'
 
@@ -66,6 +69,10 @@ export interface McpSource {
     args: McpTarget & { sql: string },
     onAbort: OnAbort
   ) => Promise<unknown>
+  searchSavedQueries: (
+    args: McpTarget & { query: string },
+    onAbort: OnAbort
+  ) => unknown
   searchSchema: (
     args: McpTarget & { query: string },
     onAbort: OnAbort
@@ -88,6 +95,7 @@ export type McpTool =
   | 'list_tables'
   | 'describe_table'
   | 'search_schema'
+  | 'search_saved_queries'
   | 'column_values'
   | 'query'
   | 'execute'

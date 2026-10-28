@@ -78,6 +78,10 @@ const addReadOutput = async (
         toolCallId,
       })
     }
+    case 'search_saved_queries': {
+      const output = agentDatabase.searchSavedQueries(toolCall.input)
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
     case 'search_schema': {
       const output = await agentDatabase.searchSchema(toolCall.input)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })

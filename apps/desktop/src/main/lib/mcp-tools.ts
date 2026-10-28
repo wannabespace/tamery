@@ -15,6 +15,7 @@ import {
   COLUMN_VALUES_DESCRIPTION,
   DEFAULT_MCP_ACCESS,
   MCP_RESULT_LIMITS,
+  SEARCH_SAVED_QUERIES_DESCRIPTION,
   SEARCH_SCHEMA_DESCRIPTION,
   UNTRUSTED_DATA_NOTE,
 } from '@tamery/shared/mcp'
@@ -253,6 +254,19 @@ export const createMcpServer = (
     (args, { signal }) =>
       runLogged('search_schema', { ...args, detail: args.query }, () =>
         askShared({ args, method: 'searchSchema' }, signal)
+      )
+  )
+
+  server.registerTool(
+    'search_saved_queries',
+    {
+      annotations: { readOnlyHint: true },
+      description: SEARCH_SAVED_QUERIES_DESCRIPTION,
+      inputSchema: { ...targetInput, query: z.string() },
+    },
+    (args, { signal }) =>
+      runLogged('search_saved_queries', { ...args, detail: args.query }, () =>
+        askShared({ args, method: 'searchSavedQueries' }, signal)
       )
   )
 

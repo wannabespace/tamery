@@ -128,6 +128,12 @@ export const mcpSource: McpSource = {
       connection_type: connection.type,
     })
   },
+  searchSavedQueries: (args) => {
+    posthog.capture('mcp_saved_queries_searched', {
+      connection_type: resolveResource(args).connection.type,
+    })
+    return agentDatabase.searchSavedQueries(args)
+  },
   searchSchema: (args) => {
     posthog.capture('mcp_schema_searched', {
       connection_type: resolveResource(args).connection.type,

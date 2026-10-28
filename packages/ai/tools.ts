@@ -2,6 +2,7 @@ import type { ConnectionType } from '@tamery/shared/enums/connection-type'
 import {
   COLUMN_VALUES_DESCRIPTION,
   MCP_RESULT_LIMITS,
+  SEARCH_SAVED_QUERIES_DESCRIPTION,
   SEARCH_SCHEMA_DESCRIPTION,
   UNTRUSTED_DATA_NOTE,
 } from '@tamery/shared/mcp'
@@ -91,6 +92,11 @@ export const chatTools = {
     inputSchema: statement,
     outputSchema: resultSetsType,
     toModelOutput: asDatabaseData,
+  }),
+  search_saved_queries: tool({
+    description: SEARCH_SAVED_QUERIES_DESCRIPTION,
+    inputSchema: type({ '...': target, query: 'string' }),
+    outputSchema: type.unknown,
   }),
   search_schema: tool({
     description: SEARCH_SCHEMA_DESCRIPTION,

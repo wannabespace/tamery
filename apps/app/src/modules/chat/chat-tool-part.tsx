@@ -63,6 +63,11 @@ const getLabel = (part: ChatToolPart) => {
         ? `Listed tables in ${part.input.schema}`
         : 'Listed tables'
     }
+    case 'tool-search_saved_queries': {
+      return part.input?.query
+        ? `Searched saved queries for ${part.input.query}`
+        : 'Searched saved queries'
+    }
     case 'tool-search_schema': {
       return part.input?.query
         ? `Searched the schema for ${part.input.query}`
@@ -81,6 +86,7 @@ const getIcon = (part: ChatToolPart) => {
     case 'tool-list_tables': {
       return tableTypeIcon.table
     }
+    case 'tool-search_saved_queries':
     case 'tool-search_schema': {
       return Search01Icon
     }
