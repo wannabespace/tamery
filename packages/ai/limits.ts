@@ -6,3 +6,8 @@ export const AI_QUERY_LIMITS = {
   prompt: 2000,
   query: 30_000,
 } as const
+
+export const CHAT_TURN_LIMITS = {
+  steps: 25,
+  tokens: 500_000,
+} as const

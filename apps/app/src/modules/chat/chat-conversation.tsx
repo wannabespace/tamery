@@ -3,6 +3,7 @@ import { cn } from '@tamery/ui/lib/utils'
 import { ChatError } from './chat-error'
 import { ChatInput } from './chat-input'
 import { ChatMessages } from './chat-messages'
+import { ChatPaused } from './chat-paused'
 import type { ChatSession } from './use-chat-session'
 
 export const ChatConversation = ({
@@ -33,6 +34,9 @@ export const ChatConversation = ({
           error={session.error}
           onRetry={() => session.retry()}
         />
+      )}
+      {session.isPaused && (
+        <ChatPaused className={column} onContinue={() => session.resume()} />
       )}
       <ChatInput
         className={cn(column, isPage && 'pb-4')}

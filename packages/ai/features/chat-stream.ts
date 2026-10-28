@@ -7,6 +7,7 @@ import { createClient } from 'redis'
 import { v7 } from 'uuid'
 
 import { env } from '../env'
+import { CHAT_TURN_LIMITS } from '../limits'
 import type { AppUIMessage } from '../message'
 import { models } from '../models/list'
 import type { ChatDataParts } from '../tools'
@@ -32,6 +33,9 @@ const chatInstructions = (connection: ChatConnection) =>
     'Reads go through query. Changes go through execute, which waits for the user to approve the statement: say in one sentence what it changes before calling it.',
     'Be concise. Use fenced code blocks with a language tag for SQL and code.',
   ].join('\n')
+
+const CAPPED_INSTRUCTION =
+  'You have used every step this message allows, so you cannot call tools now. Say in two or three sentences what you found and what is left, and that the user can continue.'
 
 const mentionText = (part: DataUIPart<ChatDataParts>) =>
   part.type === 'data-connection'
@@ -78,10 +82,19 @@ export const chatStream = {
 
     try {
       const abortController = new AbortController()
+      const answer = data.messages.at(-1)
+      const continued = answer?.role === 'assistant' ? answer : null
+      const tokens = continued?.metadata?.tokens ?? 0
+      const capped =
+        tokens >= CHAT_TURN_LIMITS.tokens ||
+        (continued?.parts ?? []).filter((part) => part.type === 'step-start')
+          .length >= CHAT_TURN_LIMITS.steps
 
       const result = streamText({
         abortSignal: abortController.signal,
-        instructions: chatInstructions(data.connection),
+        instructions: capped
+          ? `${chatInstructions(data.connection)}\n${CAPPED_INSTRUCTION}`
+          : chatInstructions(data.connection),
         messages: await convertToModelMessages<AppUIMessage>(data.messages, {
           convertDataPart: (part) => ({
             text: mentionText(part),
@@ -91,11 +104,16 @@ export const chatStream = {
         }),
         model: models.chat,
         telemetry: data.telemetry,
+        toolChoice: capped ? 'none' : 'auto',
         tools: chatTools,
       })
 
       const uiStream = toUIMessageStream({
         generateMessageId: () => v7(),
+        messageMetadata: ({ part }) =>
+          part.type === 'finish'
+            ? { capped, tokens: tokens + (part.totalUsage.totalTokens ?? 0) }
+            : undefined,
         onEnd: ({ responseMessage }) => data.onFinish(responseMessage),
         onError: (error) => {
           console.error(`chat stream ${streamId} failed`, error)

@@ -6,7 +6,7 @@ import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { chats, chatsMessages, chatsMessagesParts } from '@tamery/db/schema'
 import { silently } from '@tamery/shared/utils'
-import { isDeepEqualData } from 'ai'
+import { isDeepEqualData, isToolUIPart } from 'ai'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 
 import { aiUsage } from '~/lib/ai-usage'
@@ -140,7 +140,7 @@ export const chatPersist = {
       })
     }
   },
-  /** Inserts a new turn; an assistant turn that already exists grows in place, since tool outputs and the answer after them extend the same message. */
+  /** Inserts a new turn; an answer that already exists grows in place, since the reply after its tool calls extends the same message. Only the model's own output comes through here: a window's answer turn goes through `persistToolOutputs`. */
   persistMessage: async (data: {
     chatId: string
     message: AppUIMessage
@@ -150,7 +150,7 @@ export const chatPersist = {
       return
     }
 
-    const { inserted, parts } = await db.transaction(async (tx) => {
+    const { message, parts } = await db.transaction(async (tx) => {
       const [insertedMessage] = await tx
         .insert(chatsMessages)
         .values({
@@ -174,7 +174,7 @@ export const chatPersist = {
           )
           .returning()
         return {
-          inserted: insertedMessage,
+          message: { type: 'insert' as const, value: insertedMessage },
           parts: insertedParts.map((value) => ({
             type: 'insert' as const,
             value,
@@ -183,20 +183,12 @@ export const chatPersist = {
       }
 
       if (data.message.role !== 'assistant') {
-        return { inserted: null, parts: [] }
+        return { message: null, parts: [] }
       }
 
-      const existingParts = await tx
-        .select({
-          id: chatsMessagesParts.id,
-          order: chatsMessagesParts.order,
-          part: chatsMessagesParts.part,
-        })
-        .from(chatsMessagesParts)
-        .innerJoin(
-          chatsMessages,
-          eq(chatsMessagesParts.messageId, chatsMessages.id)
-        )
+      const [updatedMessage] = await tx
+        .update(chatsMessages)
+        .set({ metadata: data.message.metadata ?? null })
         .where(
           and(
             eq(chatsMessages.id, data.message.id),
@@ -204,10 +196,15 @@ export const chatPersist = {
             eq(chatsMessages.role, 'assistant')
           )
         )
-      if (existingParts.length === 0) {
-        return { inserted: null, parts: [] }
+        .returning()
+      if (!updatedMessage) {
+        return { message: null, parts: [] }
       }
 
+      const existingParts = await tx
+        .select()
+        .from(chatsMessagesParts)
+        .where(eq(chatsMessagesParts.messageId, updatedMessage.id))
       const byOrder = new Map(existingParts.map((row) => [row.order, row]))
       const changed = await Promise.all(
         data.message.parts.map(async (part, order) => {
@@ -215,7 +212,7 @@ export const chatPersist = {
           if (!existing) {
             const [value] = await tx
               .insert(chatsMessagesParts)
-              .values({ messageId: data.message.id, order, part })
+              .values({ messageId: updatedMessage.id, order, part })
               .returning()
             return value && { type: 'insert' as const, value }
           }
@@ -230,17 +227,74 @@ export const chatPersist = {
           return value && { type: 'update' as const, value }
         })
       )
-      return { inserted: null, parts: changed.filter((item) => !!item) }
+      return {
+        message: { type: 'update' as const, value: updatedMessage },
+        parts: changed.filter((item) => !!item),
+      }
     })
 
-    if (inserted) {
-      chatsMessagesPublisher.publish(data.userId, {
-        type: 'insert',
-        value: inserted,
-      })
+    if (message) {
+      chatsMessagesPublisher.publish(data.userId, message)
     }
     for (const part of parts) {
       chatsMessagesPartsPublisher.publish(data.userId, part)
+    }
+  },
+  /** A window's answer turn may only fill in the outputs of tool calls the model made: its text, steps and usage stay the server's, which the turn limits count. */
+  persistToolOutputs: async (data: {
+    chatId: string
+    message: AppUIMessage
+    userId: string
+  }) => {
+    const existingParts = await db
+      .select({
+        id: chatsMessagesParts.id,
+        order: chatsMessagesParts.order,
+        part: chatsMessagesParts.part,
+      })
+      .from(chatsMessagesParts)
+      .innerJoin(
+        chatsMessages,
+        eq(chatsMessagesParts.messageId, chatsMessages.id)
+      )
+      .where(
+        and(
+          eq(chatsMessages.id, data.message.id),
+          eq(chatsMessages.chatId, data.chatId),
+          eq(chatsMessages.role, 'assistant')
+        )
+      )
+
+    const updates = existingParts.flatMap((existing) => {
+      const part = data.message.parts[existing.order]
+      return isToolUIPart(existing.part) &&
+        part &&
+        isToolUIPart(part) &&
+        part.type === existing.part.type &&
+        part.toolCallId === existing.part.toolCallId &&
+        !isDeepEqualData(existing.part, part)
+        ? [{ id: existing.id, part }]
+        : []
+    })
+    const updated = await db.transaction((tx) =>
+      Promise.all(
+        updates.map(async ({ id, part }) => {
+          const [value] = await tx
+            .update(chatsMessagesParts)
+            .set({ part })
+            .where(eq(chatsMessagesParts.id, id))
+            .returning()
+          return value
+        })
+      )
+    )
+    for (const value of updated) {
+      if (value) {
+        chatsMessagesPartsPublisher.publish(data.userId, {
+          type: 'update',
+          value,
+        })
+      }
     }
   },
   persistTitle: async (data: {

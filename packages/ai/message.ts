@@ -4,7 +4,9 @@ import { isTextUIPart } from 'ai'
 import type { ChatDataParts, ChatTools } from './tools'
 
 export interface AppMessageMetadata {
+  capped?: boolean
   stopped?: boolean
+  tokens?: number
 }
 
 export type AppUIMessage = UIMessage<

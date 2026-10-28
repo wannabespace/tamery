@@ -30,7 +30,7 @@ export const stream = orpc
     })
 
     const turn = messages.at(-1)
-    if (!turn) {
+    if (!turn || turn.role === 'system') {
       throw errors.BAD_REQUEST()
     }
 
@@ -40,7 +40,11 @@ export const stream = orpc
       userId: context.user.id,
     })
 
-    await chatPersist.persistMessage({
+    await (
+      turn.role === 'user'
+        ? chatPersist.persistMessage
+        : chatPersist.persistToolOutputs
+    )({
       chatId: input.chatId,
       message: turn,
       userId: context.user.id,

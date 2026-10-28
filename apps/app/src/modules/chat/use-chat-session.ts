@@ -95,8 +95,9 @@ export const useChatSession = ({
     messagesFromPartRows(transcriptRows),
     messages
   )
+  const lastMessage = displayMessages.at(-1)
   const isAwaitingAnswer =
-    !!chat && status === 'ready' && displayMessages.at(-1)?.role === 'user'
+    !!chat && status === 'ready' && lastMessage?.role === 'user'
   const firstMessage = displayMessages.at(0)
   const lastAsked = displayMessages.findLast(
     (message) => message.role === 'user'
@@ -127,9 +128,21 @@ export const useChatSession = ({
         transcript: displayMessages,
       }),
     error,
+    isPaused:
+      status === 'ready' &&
+      lastMessage?.role === 'assistant' &&
+      !!lastMessage.metadata?.capped,
     isReady: status === 'ready',
     isStreaming,
     messages: displayMessages,
+    resume: () => {
+      posthog.capture('ai_chat_continued')
+      void sendMessage({
+        id: v7(),
+        parts: [{ text: 'Continue', type: 'text' }],
+        role: 'user',
+      })
+    },
     retry: () => {
       posthog.capture('ai_chat_retried')
       if (messages.length > 0) {

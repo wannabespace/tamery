@@ -18,6 +18,8 @@ Each database keeps its own chats. **New chat** starts fresh, and the chat histo
 
 The agent reads your schema and runs read-only queries on its own. Each query shows its SQL and the rows it returned as a table under the answer; **Open as Query** opens that SQL in a new Query tab.
 
+One message lets the agent take up to 25 steps. When it reaches that, it stops, says what it found and what is left, and **Continue** lets it carry on.
+
 A statement that changes data or schema never runs on its own. The chat shows it with **Run** and **Decline**, and the agent continues once you choose. **Run** turns red when the statement removes data.
 
 ## Agent mode
