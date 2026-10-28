@@ -38,42 +38,43 @@ export const sendEmail = async <
     return
   }
 
-  if (template === 'Alert') {
-    const key = `resend:alerts:${Math.floor(Date.now() / 60_000)}`
-    const sent = await redis.incr(key)
-    if (sent === 1) {
-      await redis.expire(key, 60)
+  // Never throws: auth database hooks send mid-operation, and a Redis or Resend failure must not leave e.g. 2FA half-disabled.
+  try {
+    if (template === 'Alert') {
+      const key = `resend:alerts:${Math.floor(Date.now() / 60_000)}`
+      const sent = await redis.incr(key)
+      if (sent === 1) {
+        await redis.expire(key, 60)
+      }
+      if (sent > ALERTS_PER_MINUTE) {
+        return
+      }
     }
-    if (sent > ALERTS_PER_MINUTE) {
-      return
+
+    const Template = templates[template] as (props?: P) => React.ReactElement
+    const options: CreateEmailOptions = {
+      from: `Tamery <${CONTACT_EMAIL}>`,
+      react: Template(props),
+      subject,
+      to,
     }
-  }
 
-  const Template = templates[template] as (props?: P) => React.ReactElement
-  const options: CreateEmailOptions = {
-    from: `Tamery <${CONTACT_EMAIL}>`,
-    react: Template(props),
-    subject,
-    to,
-  }
-
-  await redisMemoize(
-    async () => {
-      try {
+    await redisMemoize(
+      async () => {
         const { error } = await resend.emails.send(options)
 
         if (error) {
           throw error
         }
-      } catch (error) {
-        console.error(
-          'Resend email service error:',
-          error instanceof Error ? error.message : 'Unknown error',
-          error
-        )
-      }
-    },
-    `resend:${JSON.stringify(options)}`,
-    10 * 60
-  )
+      },
+      `resend:${JSON.stringify(options)}`,
+      10 * 60
+    )
+  } catch (error) {
+    console.error(
+      'Resend email service error:',
+      error instanceof Error ? error.message : 'Unknown error',
+      error
+    )
+  }
 }

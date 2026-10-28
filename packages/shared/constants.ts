@@ -6,6 +6,11 @@ export const SOCIAL_LINKS = {
   TWITTER: 'https://x.com/tamery_app',
 } as const
 
+export const SOCIAL_PROVIDER_LABELS = {
+  github: 'GitHub',
+  google: 'Google',
+} as const
+
 export const RELEASES_URL = 'https://tamery.app/releases' as const
 
 export const DOCS_URL = 'https://docs.tamery.app' as const

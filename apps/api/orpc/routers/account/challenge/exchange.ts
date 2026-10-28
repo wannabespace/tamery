@@ -5,7 +5,7 @@ import { decrypt, encrypt } from '@tamery/shared/crypto-node'
 import { type } from 'arktype'
 import { eq, inArray } from 'drizzle-orm'
 
-import { auth } from '~/lib/auth'
+import { auth, sendNewSignInEmail } from '~/lib/auth'
 import { ensureDefaultWorkspace } from '~/lib/workspace'
 import { getWorkspaceSecret, orpc } from '~/orpc'
 
@@ -121,7 +121,7 @@ export const exchange = orpc
 
     const context = await auth.$context
     // Outside a better-auth endpoint createSession sees no request headers; the new-sign-in email reads the device from these.
-    const { token } = await context.internalAdapter.createSession(
+    const session = await context.internalAdapter.createSession(
       data.userId,
       false,
       {
@@ -129,6 +129,9 @@ export const exchange = orpc
         userAgent: headers.get('User-Agent'),
       }
     )
-    await codeChallengeRedis.delete(input.codeChallenge)
-    return { newUser: data.newUser, token }
+    await Promise.all([
+      codeChallengeRedis.delete(input.codeChallenge),
+      !data.newUser && sendNewSignInEmail(session),
+    ])
+    return { newUser: data.newUser, token: session.token }
   })

@@ -9,10 +9,12 @@ export const NewSignIn = ({
   device,
   ipAddress,
   location,
+  twoFactorEnabled,
 }: {
   device: string
   ipAddress: string
   location: string | null
+  twoFactorEnabled: boolean
 }) => (
   <Base
     preview={`New sign-in from ${device}`}
@@ -33,8 +35,9 @@ export const NewSignIn = ({
       </Text>
       <Text>If this was you, there&apos;s nothing to do.</Text>
       <Text>
-        If it wasn&apos;t, sign that device out and turn on two-factor
-        authentication.
+        {twoFactorEnabled
+          ? "If it wasn't, sign that device out right away: whoever it was also got past two-factor authentication."
+          : "If it wasn't, sign that device out and turn on two-factor authentication."}
       </Text>
     </Section>
     <Button href={`${env.MAIN_URL}/account/settings`}>Review sessions</Button>

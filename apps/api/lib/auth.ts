@@ -2,7 +2,10 @@ import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2'
 import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
 import * as schema from '@tamery/db/schema'
-import { AUTH_COOKIE_PREFIX } from '@tamery/shared/constants'
+import {
+  AUTH_COOKIE_PREFIX,
+  SOCIAL_PROVIDER_LABELS,
+} from '@tamery/shared/constants'
 import { formatDeviceLabel } from '@tamery/shared/device-label'
 import { getPermissions } from '@tamery/shared/permissions'
 import { betterAuth } from 'better-auth'
@@ -30,23 +33,77 @@ import { ensureDefaultWorkspace } from './workspace'
 
 const twoFactorPlugin = twoFactor({ allowPasswordless: true })
 
-const NEW_ACCOUNT_WINDOW_MS = 60_000
+const providerLabels: Partial<Record<string, string>> = SOCIAL_PROVIDER_LABELS
 
-const SOCIAL_PROVIDER_NAMES: Record<string, string> = {
-  github: 'GitHub',
-  google: 'Google',
-}
+// Keyed by the request's auth context: better-call hands the same object to the endpoint, its database hooks and the after hooks.
+const signUpRequests = new WeakSet<object>()
 
-const findEstablishedUser = async (userId: string, at: Date) => {
-  const user = await db.query.users.findFirst({
-    columns: { createdAt: true, email: true },
+const findUser = (userId: string) =>
+  db.query.users.findFirst({
+    columns: { email: true, twoFactorEnabled: true },
     where: { id: { eq: userId } },
   })
 
-  return user &&
-    at.getTime() - user.createdAt.getTime() >= NEW_ACCOUNT_WINDOW_MS
-    ? user
-    : null
+export const sendNewSignInEmail = async ({
+  ipAddress,
+  userAgent,
+  userId,
+}: {
+  ipAddress?: string | null
+  userAgent?: string | null
+  userId: string
+}) => {
+  const user = await findUser(userId)
+
+  if (!user) {
+    return
+  }
+
+  await sendEmail({
+    props: {
+      device: formatDeviceLabel(userAgent ?? ''),
+      ipAddress: ipAddress ?? '',
+      location: locateIp(ipAddress ?? ''),
+      twoFactorEnabled: user.twoFactorEnabled === true,
+    },
+    subject: 'New sign-in to your Tamery account',
+    template: 'NewSignIn',
+    to: user.email,
+  })
+}
+
+const sendTwoFactorChangedEmail = async (user: {
+  email: string
+  twoFactorEnabled?: boolean | null
+}) => {
+  const enabled = user.twoFactorEnabled === true
+  await sendEmail({
+    props: { enabled },
+    subject: `Two-factor authentication turned ${enabled ? 'on' : 'off'}`,
+    template: 'TwoFactorChanged',
+    to: user.email,
+  })
+}
+
+const updateResendContact = async (user: {
+  email: string
+  id: string
+  name: string
+}) => {
+  if (nodeEnv !== 'production' || !resend) {
+    return
+  }
+
+  const [firstName = '', ...lastName] = user.name.split(' ')
+
+  await resend.contacts.update({
+    email: user.email,
+    firstName,
+    lastName: lastName.join(' '),
+    properties: {
+      id: user.id,
+    },
+  })
 }
 
 const isOAuthCallback = ({ path }: { path?: string }) =>
@@ -78,18 +135,19 @@ export const auth = betterAuth({
   databaseHooks: {
     account: {
       create: {
-        after: async (account) => {
-          const user = await findEstablishedUser(
-            account.userId,
-            account.createdAt
-          )
+        after: async (account, context) => {
+          if (!context || signUpRequests.has(context.context)) {
+            return
+          }
+
+          const user = await findUser(account.userId)
 
           if (!user) {
             return
           }
 
           const provider =
-            SOCIAL_PROVIDER_NAMES[account.providerId] ?? account.providerId
+            providerLabels[account.providerId] ?? account.providerId
           await sendEmail({
             props: { provider },
             subject: `${provider} was connected to your Tamery account`,
@@ -114,36 +172,6 @@ export const auth = betterAuth({
 
           return { data: session }
         },
-        after: async (session) => {
-          const [user, sameDevice] = await Promise.all([
-            findEstablishedUser(session.userId, session.createdAt),
-            db.query.sessions.findFirst({
-              columns: { id: true },
-              where: {
-                id: { ne: session.id },
-                ipAddress: { eq: session.ipAddress ?? '' },
-                userAgent: { eq: session.userAgent ?? '' },
-                userId: { eq: session.userId },
-              },
-            }),
-          ])
-
-          if (!user || sameDevice) {
-            return
-          }
-
-          // A 2FA sign-in creates a session, deletes it for the challenge, then creates another: identical props let sendEmail's memo send one email for both.
-          await sendEmail({
-            props: {
-              device: formatDeviceLabel(session.userAgent ?? ''),
-              ipAddress: session.ipAddress ?? '',
-              location: locateIp(session.ipAddress ?? ''),
-            },
-            subject: 'New sign-in to your Tamery account',
-            template: 'NewSignIn',
-            to: user.email,
-          })
-        },
       },
     },
     user: {
@@ -159,7 +187,11 @@ export const auth = betterAuth({
 
           return { data: user }
         },
-        after: async (user) => {
+        after: async (user, context) => {
+          if (context) {
+            signUpRequests.add(context.context)
+          }
+
           await userEncryptionKey.create(user.id).catch(async (error) => {
             console.error(
               `Failed to create user encryption key: ${error instanceof Error ? error.message : error}`,
@@ -185,30 +217,11 @@ export const auth = betterAuth({
       },
       update: {
         after: async (user, context) => {
-          if (context?.path.startsWith('/two-factor/')) {
-            const enabled = user.twoFactorEnabled === true
-            await sendEmail({
-              props: { enabled },
-              subject: `Two-factor authentication turned ${enabled ? 'on' : 'off'}`,
-              template: 'TwoFactorChanged',
-              to: user.email,
-            })
-          }
-
-          if (nodeEnv !== 'production' || !resend) {
-            return
-          }
-
-          const [firstName = '', ...lastName] = user.name.split(' ')
-
-          await resend.contacts.update({
-            email: user.email,
-            firstName,
-            lastName: lastName.join(' '),
-            properties: {
-              id: user.id,
-            },
-          })
+          await Promise.all([
+            context?.path.startsWith('/two-factor/') &&
+              sendTwoFactorChangedEmail(user),
+            updateResendContact(user),
+          ])
         },
       },
     },
@@ -298,6 +311,19 @@ export const auth = betterAuth({
               )
             }),
             matcher: isOAuthCallback,
+          },
+          // Must run after twoFactor's hook, which clears newSession while a challenge is pending; the global hooks.after runs before plugin hooks.
+          {
+            handler: createAuthMiddleware(async (ctx) => {
+              const { newSession, session } = ctx.context
+
+              if (!newSession || session || signUpRequests.has(ctx.context)) {
+                return
+              }
+
+              await sendNewSignInEmail(newSession.session)
+            }),
+            matcher: () => true,
           },
         ],
       },
