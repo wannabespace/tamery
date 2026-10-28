@@ -1,6 +1,7 @@
 import { PlusSignIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
+import { Dialog } from '@tamery/ui/components/dialog'
 import { and, eq, useLiveQuery } from '@tanstack/react-db'
 import { useState } from 'react'
 
@@ -10,7 +11,7 @@ import type { SchemaNote } from '~/core/schema-notes/sync'
 
 import type { DiagramTable } from '../lib/schema'
 import { EmptyRow, List, Section, rowClass } from './inspector-sections'
-import { NoteDialog } from './note-dialog'
+import { NoteDialogContent } from './note-dialog'
 
 export const NotesSection = ({ table }: { table: DiagramTable }) => {
   const { connectionResource } = useConnectionContext()
@@ -31,6 +32,10 @@ export const NotesSection = ({ table }: { table: DiagramTable }) => {
   const [dialog, setDialog] = useState<{ editing: SchemaNote | null } | null>(
     null
   )
+  const [shown, setShown] = useState(dialog)
+  if (dialog && dialog !== shown) {
+    setShown(dialog)
+  }
 
   return (
     <Section
@@ -72,13 +77,20 @@ export const NotesSection = ({ table }: { table: DiagramTable }) => {
         ))}
         {notes.length === 0 && <EmptyRow>No notes yet</EmptyRow>}
       </List>
-      {dialog && (
-        <NoteDialog
-          editing={dialog.editing}
-          table={table}
-          onClose={() => setDialog(null)}
-        />
-      )}
+      <Dialog
+        open={!!dialog}
+        onOpenChange={(open) => !open && setDialog(null)}
+        onOpenChangeComplete={(open) => !open && setShown(null)}
+      >
+        {shown && (
+          <NoteDialogContent
+            key={shown.editing?.id ?? 'new'}
+            editing={shown.editing}
+            table={table}
+            onClose={() => setDialog(null)}
+          />
+        )}
+      </Dialog>
     </Section>
   )
 }
