@@ -20,7 +20,7 @@ The agent reads your schema and runs read-only queries on its own. Each query sh
 
 One message lets the agent take up to 25 steps. When it reaches that, it stops, says what it found and what is left, and **Continue** lets it carry on.
 
-A statement that changes data or schema never runs on its own. The chat shows it with **Run** and **Decline**, and the agent continues once you choose. On PostgreSQL and MySQL the card also says how many rows the database expects it to change. **Run** turns red when the statement removes data.
+A statement that changes data or schema never runs on its own. The chat shows it with **Run** and **Decline**, and the agent continues once you choose. The card waits for you when you reload, switch chats or leave agent mode. On PostgreSQL and MySQL the card also says how many rows the database expects it to change. **Run** turns red when the statement removes data.
 
 ## Agent mode
 

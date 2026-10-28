@@ -32,7 +32,7 @@ export interface ToolPartActions {
 const isSettled = (part: ChatToolPart) =>
   part.state === 'output-available' || part.state === 'output-error'
 
-const statusOf = (part: ChatToolPart, isLast: boolean) => {
+const getStatus = (part: ChatToolPart, isLast: boolean) => {
   if (part.state === 'output-error') {
     return <span className="text-destructive">Failed</span>
   }
@@ -46,7 +46,7 @@ const statusOf = (part: ChatToolPart, isLast: boolean) => {
   )
 }
 
-const labelOf = (part: ChatToolPart) => {
+const getLabel = (part: ChatToolPart) => {
   switch (part.type) {
     case 'tool-describe_table': {
       return part.input?.table ? `Read ${part.input.table}` : 'Read a table'
@@ -65,7 +65,7 @@ const labelOf = (part: ChatToolPart) => {
   }
 }
 
-const iconOf = (part: ChatToolPart) => {
+const getIcon = (part: ChatToolPart) => {
   switch (part.type) {
     case 'tool-describe_table':
     case 'tool-list_tables': {
@@ -104,7 +104,7 @@ const StatementPart = ({
   return (
     <div className="flex flex-col gap-2">
       <ChatDisclosure
-        icon={iconOf(part)}
+        icon={getIcon(part)}
         label={
           connection ? (
             <>
@@ -118,7 +118,7 @@ const StatementPart = ({
           awaitsApproval ? (
             <span className="text-warning">Needs approval</span>
           ) : (
-            statusOf(part, actions.isLast)
+            getStatus(part, actions.isLast)
           )
         }
       >
@@ -159,9 +159,9 @@ export const ToolPart = ({
 
   return (
     <ChatDisclosure
-      icon={iconOf(part)}
-      label={labelOf(part)}
-      status={statusOf(part, actions.isLast)}
+      icon={getIcon(part)}
+      label={getLabel(part)}
+      status={getStatus(part, actions.isLast)}
     >
       {part.state === 'output-available' && part.output !== undefined && (
         <ResponseCodeBlock

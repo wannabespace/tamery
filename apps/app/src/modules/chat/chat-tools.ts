@@ -21,8 +21,9 @@ type ToolCall = Exclude<
 const DECLINED = 'The user declined to run this statement.'
 
 const runs = new Map<string, AbortController>()
+const decided = new Set<string>()
 
-const signalOf = (chatId: string) => {
+const getSignal = (chatId: string) => {
   const running = runs.get(chatId)
   if (running && !running.signal.aborted) {
     return running.signal
@@ -82,7 +83,7 @@ const answer = async (
 export const chatToolRuns = {
   read: async (chat: AppChat, toolCall: ToolCall) => {
     const result = await Result.tryPromise(() =>
-      answer(chat, toolCall, signalOf(chat.id))
+      answer(chat, toolCall, getSignal(chat.id))
     )
     posthog.capture('ai_chat_tool_run', {
       success: result.isOk(),
@@ -98,7 +99,7 @@ export const chatToolRuns = {
     }
   },
   stop: (chatId: string) => runs.get(chatId)?.abort(),
-  /** A chat reopened from the collections holds no live turns, and `addToolOutput` only finds a call among those, so the transcript is seeded first. */
+  /** Decides a pending `execute` once per window: a second press, or a card remounted mid-run (agent mode, a chat switch), is ignored. A chat reopened from the collections holds no live turns, and `addToolOutput` only finds a call among those, so the transcript is seeded first. */
   write: async ({
     approved,
     chat,
@@ -112,6 +113,10 @@ export const chatToolRuns = {
     toolCallId: string
     transcript: AppUIMessage[]
   }) => {
+    if (decided.has(toolCallId)) {
+      return
+    }
+    decided.add(toolCallId)
     const isLive = chat.messages.some(({ parts }) =>
       parts.some((part) => isToolUIPart(part) && part.toolCallId === toolCallId)
     )
@@ -130,7 +135,7 @@ export const chatToolRuns = {
     }
     const result = await Result.tryPromise(async () => {
       const { run } = await agentDatabase.prepareWrite(input)
-      return toJsonSets(await run(signalOf(chat.id)))
+      return toJsonSets(await run(getSignal(chat.id)))
     })
     if (result.isErr()) {
       const error = toError(result.error.cause)

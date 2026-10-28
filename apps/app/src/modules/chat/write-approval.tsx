@@ -8,7 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useIsMutating, useMutation, useQuery } from '@tanstack/react-query'
 
 import { agentDatabase } from '~/core/agent/database'
 import { WriteEstimate } from '~/core/agent/write-estimate'
@@ -42,8 +42,11 @@ export const WriteApproval = ({
     retry: false,
     staleTime: Infinity,
   })
+  const runKey = ['agent-write', toolCallId]
+  const isRunning = useIsMutating({ mutationKey: runKey }) > 0
   const run = useMutation({
     meta: { event: 'ai_chat_write_run' },
+    mutationKey: runKey,
     mutationFn: async () => {
       await queryClient.cancelQueries({ queryKey: estimateKey })
       return decideWrite({ approved: true, input, toolCallId })
@@ -65,7 +68,7 @@ export const WriteApproval = ({
         <Button
           size="sm"
           variant="ghost-muted"
-          disabled={run.isPending}
+          disabled={isRunning}
           onClick={() => {
             void decideWrite({ approved: false, input, toolCallId })
           }}
@@ -78,12 +81,12 @@ export const WriteApproval = ({
               <Button
                 size="sm"
                 variant={destroys.length > 0 ? 'destructive' : 'default'}
-                disabled={run.isPending}
+                disabled={isRunning}
                 onClick={() => run.mutate()}
               />
             }
           >
-            {run.isPending && <Spinner />}
+            {isRunning && <Spinner />}
             Run
           </TooltipTrigger>
           <TooltipContent side="top">
