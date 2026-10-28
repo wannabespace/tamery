@@ -25,11 +25,17 @@ export const create = orpc
     FORBIDDEN: { message: GUEST_CONNECTIONS_MESSAGE },
   })
   .handler(async ({ context, errors, input }) => {
-    const workspaceId =
+    if (
       input.workspaceId &&
-      (await isWorkspaceEditor(context.user.id, input.workspaceId))
-        ? input.workspaceId
-        : await ensureDefaultWorkspace(context.user.id)
+      !(await isWorkspaceEditor(context.user.id, input.workspaceId))
+    ) {
+      throw errors.FORBIDDEN({
+        message: 'Only editors can add connections to this workspace.',
+      })
+    }
+
+    const workspaceId =
+      input.workspaceId ?? (await ensureDefaultWorkspace(context.user.id))
     const workspaceSecret = await context.getWorkspaceSecret(workspaceId)
 
     // Excludes its own id, or an outbox replay of a lost response counts its own row and fails.

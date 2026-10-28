@@ -3,6 +3,7 @@ import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
 import { decrypt } from '@tamery/shared/crypto-node'
 import type { Permissions } from '@tamery/shared/permissions'
 import { getPermissions } from '@tamery/shared/permissions'
+import { isAPIError } from 'better-auth/api'
 import { memoize } from 'memoza'
 import { createPermix } from 'permix/orpc'
 
@@ -17,6 +18,17 @@ import type { router } from './routers'
 export { getSubscription } from '~/lib/subscription'
 
 export const orpc = os.$context<Context>()
+
+export const viaAuth = async <T>(promise: Promise<T>) => {
+  try {
+    return await promise
+  } catch (error) {
+    if (isAPIError(error)) {
+      throw new ORPCError(String(error.status), { message: error.message })
+    }
+    throw error
+  }
+}
 
 export const getWorkspaceSecret = memoize(
   (workspaceId: string) => workspaceEncryptionKey.get(workspaceId),

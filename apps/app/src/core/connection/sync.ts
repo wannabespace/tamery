@@ -52,8 +52,8 @@ export interface ConnectionResource extends BaseTable {
 
 export const createConnectionsCollection = (
   connectionStrings: ConnectionStringsCollection
-) =>
-  createCollection(
+) => {
+  const collection = createCollection(
     persistedCollectionOptions({
       ...syncCollectionOptions<Connection>({
         events: async ({ signal, write }) => {
@@ -84,6 +84,18 @@ export const createConnectionsCollection = (
       schemaVersion: PERSISTED_SCHEMA_VERSION,
     })
   )
+
+  collection.subscribeChanges((changes) => {
+    for (const change of changes) {
+      const { id } = change.value
+      if (change.type === 'delete' && connectionStrings.has(id)) {
+        connectionStrings.delete(id)
+      }
+    }
+  })
+
+  return collection
+}
 
 export const createConnectionsResourcesCollection = () =>
   createCollection(

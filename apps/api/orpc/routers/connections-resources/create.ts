@@ -4,9 +4,9 @@ import {
   connectionsResources,
   connectionsResourcesInsertSchema,
 } from '@tamery/db/schema'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
-import { memberWorkspaces, publishToWorkspace } from '~/lib/workspace'
+import { inMemberWorkspace, publishToWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
@@ -24,7 +24,7 @@ export const create = orpc
       .where(
         and(
           eq(connections.id, input.connectionId),
-          inArray(connections.workspaceId, memberWorkspaces(context.user.id))
+          inMemberWorkspace(context.user.id)(connections)
         )
       )
       .limit(1)

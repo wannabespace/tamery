@@ -62,8 +62,9 @@ NODE_ENV=production bun run rotate:encryption-secret [--execute]   # or rotate:u
   5. Rotate the key values as well.
 - **Lost KMS key:** wrap the backed-up plaintext under a new key. Without the backup, the data is gone.
 - **Lost workspace key row:**
-  1. Clear `connection_string` on that workspace's connections; the next request mints a new key.
-  2. Have the members re-enter their connection strings.
+  1. Mint a new key with `workspaceEncryptionKey.create(workspaceId, db)`.
+  2. Clear `connection_string` on that workspace's connections.
+  3. Have the members re-enter their connection strings.
 - **Restoring a backup from before a rotation:**
   1. Set `<current>,<retired>`.
   2. Restore the backup.

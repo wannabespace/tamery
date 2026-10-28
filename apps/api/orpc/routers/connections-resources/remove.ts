@@ -1,8 +1,9 @@
 import { db } from '@tamery/db'
-import { connectionsResources } from '@tamery/db/schema'
+import { connections, connectionsResources } from '@tamery/db/schema'
 import { type } from 'arktype'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
+import { inEditableWorkspace, publishToWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
@@ -11,21 +12,19 @@ export const remove = orpc
   .use(authMiddleware)
   .input(type({ id: 'string.uuid.v7' }))
   .handler(async ({ context, input: { id } }) => {
-    const owned = await db.query.connectionsResources.findFirst({
-      columns: {
-        id: true,
-      },
-      where: {
-        connection: {
-          userId: {
-            eq: context.user.id,
-          },
-        },
-        id: {
-          eq: id,
-        },
-      },
-    })
+    const [owned] = await db
+      .select({ workspaceId: connections.workspaceId })
+      .from(connectionsResources)
+      .innerJoin(
+        connections,
+        eq(connections.id, connectionsResources.connectionId)
+      )
+      .where(
+        and(
+          eq(connectionsResources.id, id),
+          inEditableWorkspace(context.user.id)(connections)
+        )
+      )
 
     if (!owned) {
       return
@@ -33,5 +32,8 @@ export const remove = orpc
 
     await db.delete(connectionsResources).where(eq(connectionsResources.id, id))
 
-    publisher.publish(context.user.id, { key: id, type: 'delete' })
+    await publishToWorkspace(publisher, owned.workspaceId, {
+      key: id,
+      type: 'delete',
+    })
   })

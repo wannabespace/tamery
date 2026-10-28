@@ -29,27 +29,33 @@ export const isDefaultWorkspaceMetadata = (metadata: string | null) =>
 
 export const WORKSPACE_ROLES = ['owner', 'editor', 'viewer'] as const
 
-export type WorkspaceRole = (typeof WORKSPACE_ROLES)[number]
+export const workspaceRole = type.enumerated(...WORKSPACE_ROLES)
+
+export type WorkspaceRole = typeof workspaceRole.infer
 
 export const INVITABLE_ROLES = [
   'editor',
   'viewer',
 ] as const satisfies WorkspaceRole[]
 
+export const invitableRole = type.enumerated(...INVITABLE_ROLES)
+
+export type InvitableRole = typeof invitableRole.infer
+
 export const EDITOR_ROLES = [
   'owner',
   'editor',
 ] as const satisfies WorkspaceRole[]
 
-export const canEditWorkspace = (role: string) =>
-  (EDITOR_ROLES as readonly string[]).includes(role)
+export const canEditWorkspace = (role: WorkspaceRole) =>
+  EDITOR_ROLES.some((editorRole) => editorRole === role)
 
 export const describeInvitation = ({
   inviterName,
   role,
 }: {
   inviterName: string | null
-  role: string
+  role: InvitableRole
 }) =>
   role === 'viewer'
     ? `${inviterName ?? 'A member'} invited you as a viewer. You will be able to open and query its connections, but not change them.`

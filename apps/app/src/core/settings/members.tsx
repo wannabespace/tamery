@@ -1,5 +1,5 @@
 import { Cancel01Icon, UserRemove01Icon } from '@hugeicons/core-free-icons'
-import type { WorkspaceRole } from '@tamery/shared/workspace'
+import type { InvitableRole, WorkspaceRole } from '@tamery/shared/workspace'
 import {
   canEditWorkspace,
   INVITABLE_ROLES,
@@ -43,8 +43,6 @@ const ROLE_LABELS: Record<WorkspaceRole, string> = {
   owner: 'Owner',
   viewer: 'Viewer',
 }
-
-const roleLabel = (role: string) => ROLE_LABELS[role as WorkspaceRole] ?? role
 
 const roleItems = (roles: readonly WorkspaceRole[]) =>
   roles.map((value) => ({ label: ROLE_LABELS[value], value }))
@@ -93,7 +91,7 @@ const InviteForm = ({
   workspaceId: string
 }) => {
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<(typeof INVITABLE_ROLES)[number]>('editor')
+  const [role, setRole] = useState<InvitableRole>('editor')
   const invite = useMutation({
     meta: { event: 'workspace_member_invited' },
     mutationFn: () =>
@@ -236,7 +234,7 @@ const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
                 label={`Role of ${member.name}`}
                 roles={isOwner ? WORKSPACE_ROLES : INVITABLE_ROLES}
                 size="sm"
-                value={member.role as WorkspaceRole}
+                value={member.role}
                 disabled={!isOnline}
                 onChange={(role) =>
                   updateRole.mutate({ memberId: member.id, role })
@@ -244,7 +242,7 @@ const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
               />
             ) : (
               <span className="text-muted-foreground text-xs">
-                {roleLabel(member.role)}
+                {ROLE_LABELS[member.role]}
               </span>
             )}
             {member.isYou ? (
@@ -290,7 +288,7 @@ const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
             <SettingsRow
               key={invitation.id}
               title={<span data-mask>{invitation.email}</span>}
-              description={`Invited as ${roleLabel(invitation.role).toLowerCase()}`}
+              description={`Invited as ${ROLE_LABELS[invitation.role].toLowerCase()}`}
             >
               <IconButton
                 icon={Cancel01Icon}

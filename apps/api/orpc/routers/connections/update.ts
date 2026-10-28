@@ -1,10 +1,10 @@
 import { db } from '@tamery/db'
 import { connections, connectionsUpdateSchema } from '@tamery/db/schema'
 import { decrypt } from '@tamery/shared/crypto-node'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
 import { encryptConnectionString } from '~/lib/connection-string'
-import { editableWorkspaces, publishToWorkspace } from '~/lib/workspace'
+import { inEditableWorkspace, publishToWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher, syncedColumns } from './events'
@@ -22,40 +22,45 @@ export const update = orpc
   .handler(async ({ context, errors, input }) => {
     const { id, ...changes } = input
 
-    const [found] = await db
-      .select()
-      .from(connections)
-      .where(
-        and(
-          eq(connections.id, id),
-          inArray(connections.workspaceId, editableWorkspaces(context.user.id))
+    const connection = await db.transaction(async (tx) => {
+      // Locked until the write lands: a move committing in between would leave this string under the old workspace's key.
+      const [found] = await tx
+        .select()
+        .from(connections)
+        .where(
+          and(
+            eq(connections.id, id),
+            inEditableWorkspace(context.user.id)(connections)
+          )
         )
-      )
-      .limit(1)
+        .for('update')
 
-    if (!found) {
-      throw errors.NOT_FOUND()
-    }
+      if (!found) {
+        throw errors.NOT_FOUND()
+      }
 
-    const secret = await context.getWorkspaceSecret(found.workspaceId)
+      const secret = await context.getWorkspaceSecret(found.workspaceId)
 
-    const connectionString =
-      changes.connectionString ??
-      (found.connectionString &&
-        decrypt({ encryptedText: found.connectionString, secret }))
+      const connectionString =
+        changes.connectionString ??
+        (found.connectionString &&
+          decrypt({ encryptedText: found.connectionString, secret }))
 
-    const [connection] = await db
-      .update(connections)
-      .set({
-        ...changes,
-        connectionString: encryptConnectionString({
-          connectionString,
-          secret,
-          syncType: found.syncType,
-        }),
-      })
-      .where(eq(connections.id, id))
-      .returning(syncedColumns)
+      const [updated] = await tx
+        .update(connections)
+        .set({
+          ...changes,
+          connectionString: encryptConnectionString({
+            connectionString,
+            secret,
+            syncType: found.syncType,
+          }),
+        })
+        .where(eq(connections.id, id))
+        .returning(syncedColumns)
+
+      return updated
+    })
 
     if (!connection) {
       throw errors.NOT_FOUND()

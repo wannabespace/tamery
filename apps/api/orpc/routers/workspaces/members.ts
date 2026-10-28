@@ -1,10 +1,10 @@
-import { INVITABLE_ROLES, WORKSPACE_ROLES } from '@tamery/shared/workspace'
+import { invitableRole, workspaceRole } from '@tamery/shared/workspace'
 import { type } from 'arktype'
 
 import { auth } from '~/lib/auth'
-import { accountMiddleware, orpc } from '~/orpc'
+import { accountMiddleware, orpc, viaAuth } from '~/orpc'
 
-import { publishMembership, viaAuth } from './access'
+import { syncMembership } from './membership'
 
 const workspaceInput = type({ workspaceId: 'string.uuid.v7' })
 
@@ -25,13 +25,17 @@ export const members = orpc
           (invitation) =>
             invitation.status === 'pending' && invitation.expiresAt > now
         )
-        .map(({ email, id, role }) => ({ email, id, role })),
+        .map(({ email, id, role }) => ({
+          email,
+          id,
+          role: invitableRole.assert(role),
+        })),
       members: rows.map(({ id, role, user: member, userId }) => ({
         email: member.email,
         id,
         isYou: userId === user.id,
         name: member.name,
-        role,
+        role: workspaceRole.assert(role),
       })),
     }
   })
@@ -41,7 +45,7 @@ export const invite = orpc
   .input(
     workspaceInput.merge({
       email: 'string.email',
-      role: type.enumerated(...INVITABLE_ROLES),
+      role: invitableRole,
     })
   )
   .handler(async ({ context: { headers }, input }) => {
@@ -79,7 +83,7 @@ export const removeMember = orpc
     )
 
     if (removed) {
-      await publishMembership(removed.member.userId, input.workspaceId)
+      await syncMembership(removed.member.userId, input.workspaceId)
     }
   })
 
@@ -88,7 +92,7 @@ export const updateMemberRole = orpc
   .input(
     workspaceInput.merge({
       memberId: 'string',
-      role: type.enumerated(...WORKSPACE_ROLES),
+      role: workspaceRole,
     })
   )
   .handler(async ({ context: { headers }, input }) => {
@@ -103,7 +107,7 @@ export const updateMemberRole = orpc
       })
     )
 
-    await publishMembership(member.userId, input.workspaceId)
+    await syncMembership(member.userId, input.workspaceId)
   })
 
 export const leave = orpc
@@ -116,5 +120,5 @@ export const leave = orpc
         headers,
       })
     )
-    await publishMembership(user.id, input.workspaceId)
+    await syncMembership(user.id, input.workspaceId)
   })

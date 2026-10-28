@@ -1,4 +1,5 @@
 import { Section, Text } from '@react-email/components'
+import type { InvitableRole } from '@tamery/shared/workspace'
 
 import { Base } from '../components/base'
 import { Button } from '../components/button'
@@ -10,7 +11,7 @@ export const WorkspaceInvitation = ({
   workspaceName,
 }: {
   inviterName: string
-  role: string
+  role: InvitableRole
   url: string
   workspaceName: string
 }) => (

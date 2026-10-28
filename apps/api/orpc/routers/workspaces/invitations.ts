@@ -1,12 +1,13 @@
 import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
+import { invitableRole } from '@tamery/shared/workspace'
 import { type } from 'arktype'
 import { inArray } from 'drizzle-orm'
 
 import { auth } from '~/lib/auth'
-import { accountMiddleware, orpc } from '~/orpc'
+import { accountMiddleware, orpc, viaAuth } from '~/orpc'
 
-import { publishMembership, viaAuth } from './access'
+import { syncMembership } from './membership'
 
 const invitationInput = type({ invitationId: 'string' })
 
@@ -33,7 +34,7 @@ export const invitations = orpc
       id,
       inviterName:
         inviters.find((inviter) => inviter.id === inviterId)?.name ?? null,
-      role,
+      role: invitableRole.assert(role),
       workspaceName: organizationName,
     }))
   })
@@ -47,7 +48,7 @@ export const acceptInvitation = orpc
     )
 
     if (accepted) {
-      await publishMembership(user.id, accepted.member.organizationId)
+      await syncMembership(user.id, accepted.member.organizationId)
     }
 
     return { workspaceId: accepted?.member.organizationId ?? null }

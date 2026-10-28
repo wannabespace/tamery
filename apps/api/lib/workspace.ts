@@ -1,6 +1,12 @@
 import type { Publisher } from '@orpc/publisher'
 import { db } from '@tamery/db'
-import { members, workspaces } from '@tamery/db/schema'
+import {
+  connections,
+  connectionsResources,
+  members,
+  shares,
+  workspaces,
+} from '@tamery/db/schema'
 import { slugify } from '@tamery/shared/slugify'
 import {
   EDITOR_ROLES,
@@ -8,8 +14,10 @@ import {
   serializeWorkspaceMetadata,
 } from '@tamery/shared/workspace'
 import type { Column } from 'drizzle-orm'
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, notInArray, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
+
+import { workspaceEncryptionKey } from '~/lib/encryption-key'
 
 const DEFAULT_WORKSPACE_NAME = 'Personal'
 
@@ -70,24 +78,35 @@ export const ensureDefaultWorkspace = async (userId: string) => {
       userId,
       workspaceId: workspace.id,
     })
+    await workspaceEncryptionKey.create(workspace.id, tx)
 
     return workspace.id
   })
 }
 
-export const memberWorkspaces = (userId: string) =>
+const memberWorkspaces = (userId: string) =>
   db
     .select({ id: members.workspaceId })
     .from(members)
     .where(eq(members.userId, userId))
 
-export const editableWorkspaces = (userId: string) =>
+const editableWorkspaces = (userId: string) =>
   db
     .select({ id: members.workspaceId })
     .from(members)
     .where(and(eq(members.userId, userId), inArray(members.role, EDITOR_ROLES)))
 
-/** Relational-query `RAW` filters for rows of the workspaces the user belongs to, or edits. */
+const editorIds = (workspaceId: string) =>
+  db
+    .select({ id: members.userId })
+    .from(members)
+    .where(
+      and(
+        eq(members.workspaceId, workspaceId),
+        inArray(members.role, EDITOR_ROLES)
+      )
+    )
+
 export const inMemberWorkspace =
   (userId: string) => (table: { workspaceId: Column }) =>
     inArray(table.workspaceId, memberWorkspaces(userId))
@@ -115,14 +134,73 @@ export const workspaceMemberIds = async (workspaceId: string) => {
   return rows.map((row) => row.userId)
 }
 
+export const publishToUsers = async <TPayload extends object>(
+  publisher: Publisher<Record<string, TPayload>>,
+  userIds: string[],
+  payloads: TPayload[]
+) => {
+  await Promise.all(
+    userIds.flatMap((userId) =>
+      payloads.map((payload) => publisher.publish(userId, payload))
+    )
+  )
+}
+
 export const publishToWorkspace = async <TPayload extends object>(
   publisher: Publisher<Record<string, TPayload>>,
   workspaceId: string,
   payload: TPayload
 ) => {
-  const userIds = await workspaceMemberIds(workspaceId)
+  await publishToUsers(publisher, await workspaceMemberIds(workspaceId), [
+    payload,
+  ])
+}
 
-  await Promise.all(userIds.map((userId) => publisher.publish(userId, payload)))
+/** A share reads its connection with the workspace's key, so it must not outlive its author's right to edit that workspace. */
+export const revokeNonEditorShares = async (workspaceId: string) => {
+  await db
+    .delete(shares)
+    .where(
+      and(
+        inArray(
+          shares.connectionResourceId,
+          db
+            .select({ id: connectionsResources.id })
+            .from(connectionsResources)
+            .innerJoin(
+              connections,
+              eq(connections.id, connectionsResources.connectionId)
+            )
+            .where(eq(connections.workspaceId, workspaceId))
+        ),
+        notInArray(shares.userId, editorIds(workspaceId))
+      )
+    )
+}
+
+export const lastOwnedSharedWorkspaces = async (userId: string) => {
+  const rows = await db
+    .select({ name: workspaces.name })
+    .from(workspaces)
+    .innerJoin(members, eq(members.workspaceId, workspaces.id))
+    .where(
+      inArray(
+        workspaces.id,
+        db
+          .select({ id: members.workspaceId })
+          .from(members)
+          .where(and(eq(members.userId, userId), eq(members.role, 'owner')))
+      )
+    )
+    .groupBy(workspaces.id, workspaces.name)
+    .having(
+      and(
+        sql`count(*) > 1`,
+        sql`count(*) filter (where ${members.role} = 'owner') = 1`
+      )
+    )
+
+  return rows.map((row) => row.name)
 }
 
 export const deleteSoleMemberWorkspaces = async (userId: string) => {

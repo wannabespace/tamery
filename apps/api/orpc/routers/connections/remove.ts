@@ -1,9 +1,9 @@
 import { db } from '@tamery/db'
 import { connections } from '@tamery/db/schema'
 import { type } from 'arktype'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
-import { editableWorkspaces, publishToWorkspace } from '~/lib/workspace'
+import { inEditableWorkspace, publishToWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
@@ -20,7 +20,7 @@ export const remove = orpc
       .where(
         and(
           eq(connections.id, id),
-          inArray(connections.workspaceId, editableWorkspaces(context.user.id))
+          inEditableWorkspace(context.user.id)(connections)
         )
       )
       .returning({ workspaceId: connections.workspaceId })

@@ -1,3 +1,4 @@
+import type { WorkspaceRole } from '@tamery/shared/workspace'
 import { persistedCollectionOptions } from '@tanstack/browser-db-sqlite-persistence'
 import { createCollection } from '@tanstack/react-db'
 
@@ -11,7 +12,7 @@ export interface Workspace extends BaseTable {
   slug: string
   logo: string | null
   metadata: string | null
-  role: string
+  role: WorkspaceRole
 }
 
 export const createWorkspacesCollection = () =>

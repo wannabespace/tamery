@@ -1,5 +1,6 @@
 import { db } from '@tamery/db'
 
+import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 export const list = orpc.use(authMiddleware).handler(({ context }) =>
@@ -15,11 +16,7 @@ export const list = orpc.use(authMiddleware).handler(({ context }) =>
       createdAt: 'desc',
     },
     where: {
-      connection: {
-        userId: {
-          eq: context.user.id,
-        },
-      },
+      connection: { RAW: inMemberWorkspace(context.user.id) },
     },
   })
 )

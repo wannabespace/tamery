@@ -4,9 +4,8 @@ import { users } from '@tamery/db/schema'
 import * as schema from '@tamery/db/schema'
 import { AUTH_COOKIE_PREFIX } from '@tamery/shared/constants'
 import {
-  INVITABLE_ROLES,
+  invitableRole,
   isDefaultWorkspaceMetadata,
-  WORKSPACE_ROLES,
 } from '@tamery/shared/workspace'
 import type { WorkspaceRole } from '@tamery/shared/workspace'
 import { betterAuth } from 'better-auth'
@@ -32,7 +31,11 @@ import { resend, sendEmail } from '~/lib/resend'
 
 import { requireEarlyAccess, requireUserEarlyAccess } from './early-access'
 import { redisMemoize } from './redis'
-import { deleteSoleMemberWorkspaces, ensureDefaultWorkspace } from './workspace'
+import {
+  deleteSoleMemberWorkspaces,
+  ensureDefaultWorkspace,
+  lastOwnedSharedWorkspaces,
+} from './workspace'
 
 const twoFactorPlugin = twoFactor({ allowPasswordless: true })
 
@@ -68,6 +71,17 @@ export const auth = betterAuth({
   appName: 'Tamery',
   basePath: '/auth',
   baseURL: env.API_URL,
+  // Membership changes go through the workspaces oRPC procedures only: they sync members' devices and revoke shares, which these endpoints would skip.
+  disabledPaths: [
+    '/organization/accept-invitation',
+    '/organization/cancel-invitation',
+    '/organization/invite-member',
+    '/organization/leave',
+    '/organization/reject-invitation',
+    '/organization/remove-member',
+    '/organization/update',
+    '/organization/update-member-role',
+  ],
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema,
@@ -121,6 +135,15 @@ export const auth = betterAuth({
       },
       delete: {
         before: async (user) => {
+          const [lastOwned] = await lastOwnedSharedWorkspaces(user.id)
+
+          if (lastOwned) {
+            throw APIError.from('BAD_REQUEST', {
+              code: 'LAST_WORKSPACE_OWNER',
+              message: `Make another member an owner of ${lastOwned} before deleting your account.`,
+            })
+          }
+
           await deleteSoleMemberWorkspaces(user.id)
         },
       },
@@ -252,15 +275,6 @@ export const auth = betterAuth({
           invitation,
           organization: workspace,
         }) => {
-          if (
-            !(INVITABLE_ROLES as readonly string[]).includes(invitation.role)
-          ) {
-            throw APIError.from('BAD_REQUEST', {
-              code: 'INVALID_ROLE',
-              message: 'Invite people as an editor or a viewer.',
-            })
-          }
-
           const [row, invitee] = await Promise.all([
             db.query.workspaces.findFirst({
               columns: { metadata: true },
@@ -290,16 +304,6 @@ export const auth = betterAuth({
                 'No Tamery account uses this email. Ask them to sign up first.',
             })
           }
-        },
-        beforeUpdateMemberRole: ({ newRole }) => {
-          if (!(WORKSPACE_ROLES as readonly string[]).includes(newRole)) {
-            throw APIError.from('BAD_REQUEST', {
-              code: 'INVALID_ROLE',
-              message: 'A member is an owner, an editor or a viewer.',
-            })
-          }
-
-          return Promise.resolve()
         },
       },
       roles: workspaceRoles,
@@ -333,7 +337,7 @@ export const auth = betterAuth({
         await sendEmail({
           props: {
             inviterName: inviter.user.name,
-            role,
+            role: invitableRole.assert(role),
             url: `${env.MAIN_URL}/invitation/${id}`,
             workspaceName: workspace.name,
           },

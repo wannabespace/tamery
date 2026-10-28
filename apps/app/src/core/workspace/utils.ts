@@ -23,7 +23,7 @@ export const workspaceSelection = {
     ) ??
     workspaces.at(0) ??
     null,
-  /** Where a new connection lands: the active workspace, or Personal when the user only views it, as the server does. */
+  /** Where a new connection lands: the active workspace, or Personal when the user only views it, since the server rejects a workspace the user cannot edit. */
   target: (workspaces: Workspace[]) => {
     const current = workspaceSelection.current(workspaces)
 

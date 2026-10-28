@@ -3,36 +3,23 @@ import { workspaceEncryptionKeys } from '@tamery/db/schema'
 import { eq } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
-const read = async (workspaceId: string) => {
-  const [row] = await db
-    .select({ secret: workspaceEncryptionKeys.secret })
-    .from(workspaceEncryptionKeys)
-    .where(eq(workspaceEncryptionKeys.workspaceId, workspaceId))
-    .limit(1)
-
-  return row?.secret
-}
-
 export const workspaceEncryptionKey = {
-  async get(workspaceId: string) {
-    const existing = await read(workspaceId)
-
-    if (existing) {
-      return existing
-    }
-
-    // Racing first requests each mint a key; the conflict keeps one, and everyone reads that one back.
-    await db
+  async create(workspaceId: string, executor: Pick<typeof db, 'insert'>) {
+    await executor
       .insert(workspaceEncryptionKeys)
       .values({ secret: nanoid(), workspaceId })
-      .onConflictDoNothing()
+  },
+  async get(workspaceId: string) {
+    const [row] = await db
+      .select({ secret: workspaceEncryptionKeys.secret })
+      .from(workspaceEncryptionKeys)
+      .where(eq(workspaceEncryptionKeys.workspaceId, workspaceId))
+      .limit(1)
 
-    const created = await read(workspaceId)
-
-    if (!created) {
+    if (!row) {
       throw new Error(`No encryption key for workspace ${workspaceId}`)
     }
 
-    return created
+    return row.secret
   },
 }
