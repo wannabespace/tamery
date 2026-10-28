@@ -16,7 +16,7 @@ Each database keeps its own chats. **New chat** starts fresh, and the chat histo
 
 ## What the agent does
 
-The agent reads your schema and runs read-only queries on its own. Each query shows its SQL and the rows it returned as a table under the answer; **Open as Query** opens that SQL in a new Query tab.
+The agent reads your schema and runs read-only queries on its own. Each query shows its SQL and the rows it returned as a table under the answer; **Open as Query** opens that SQL in a new Query tab. The agent reads at most 200 rows and about 60 KB per query, and a value longer than 2 KB reaches it cut short, so it filters and aggregates in SQL instead of reading whole tables.
 
 One message lets the agent take up to 25 steps. When it reaches that, it stops, says what it found and what is left, and **Continue** lets it carry on.
 

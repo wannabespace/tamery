@@ -23,6 +23,7 @@ import {
   resolveResource,
   resolveTarget,
 } from './target'
+import { toToolOutput } from './tool-output'
 
 type Statement = AgentTarget & { sql: string }
 
@@ -61,12 +62,14 @@ export const agentDatabase = {
     const params = await getQueryParams(connection, resource)
     return {
       connection,
-      run: (signal: AbortSignal) =>
-        transactionQuery({
-          accessMode: 'read only',
-          commit: false,
-          statements: [sql],
-        }).run({ ...params, signal }),
+      run: async (signal: AbortSignal) =>
+        toToolOutput(
+          await transactionQuery({
+            accessMode: 'read only',
+            commit: false,
+            statements: [sql],
+          }).run({ ...params, signal })
+        ),
     }
   },
   prepareWrite: async ({ sql, ...target }: Statement) => {
@@ -104,7 +107,7 @@ export const agentDatabase = {
         if (resource) {
           refreshAfterRun(resource, dialect, sql)
         }
-        return sets
+        return toToolOutput(sets)
       },
     }
   },

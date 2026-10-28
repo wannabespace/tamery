@@ -1,15 +1,12 @@
 import type { Chat } from '@ai-sdk/react'
 import type { AppUIMessage } from '@tamery/ai/message'
-import { resultSetsType } from '@tamery/ai/tools'
 import type { ChatTools } from '@tamery/ai/tools'
 import { toError } from '@tamery/shared/utils'
-import { bytesToHex } from '@tamery/shared/value-text'
 import type { ChatOnToolCallCallback } from 'ai'
 import { isToolUIPart } from 'ai'
 import { Result } from 'better-result'
 
 import { agentDatabase } from '~/core/agent/database'
-import type { ResultSet } from '~/core/queries/connection/custom'
 import { posthog } from '~/lib/posthog'
 
 type AppChat = Chat<AppUIMessage>
@@ -32,20 +29,6 @@ const getSignal = (chatId: string) => {
   runs.set(chatId, controller)
   return controller.signal
 }
-
-const jsonValue = (_key: string, value: unknown) => {
-  if (typeof value === 'bigint') {
-    return value.toString()
-  }
-  if (value instanceof Uint8Array) {
-    return bytesToHex(value)
-  }
-  return value
-}
-
-/** Outputs persist as JSON, and drivers hand over bigint and bytes, which JSON cannot hold. */
-const toJsonSets = (sets: ResultSet[]) =>
-  resultSetsType.assert(JSON.parse(JSON.stringify(sets, jsonValue)))
 
 const answer = async (
   chat: AppChat,
@@ -71,7 +54,7 @@ const answer = async (
     }
     case 'query': {
       const { run } = await agentDatabase.prepareRead(toolCall.input)
-      const output = toJsonSets(await run(signal))
+      const output = await run(signal)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
     default: {
@@ -135,7 +118,7 @@ export const chatToolRuns = {
     }
     const result = await Result.tryPromise(async () => {
       const { run } = await agentDatabase.prepareWrite(input)
-      return toJsonSets(await run(getSignal(chat.id)))
+      return run(getSignal(chat.id))
     })
     if (result.isErr()) {
       const error = toError(result.error.cause)

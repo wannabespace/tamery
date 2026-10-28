@@ -1,5 +1,5 @@
 import type { ConnectionType } from '@tamery/shared/enums/connection-type'
-import { MCP_MAX_ROWS } from '@tamery/shared/mcp'
+import { MCP_RESULT_LIMITS } from '@tamery/shared/mcp'
 import type { InferUITools } from 'ai'
 import { tool } from 'ai'
 import { type } from 'arktype'
@@ -34,7 +34,7 @@ export const chatTools = {
     outputSchema: type.unknown,
   }),
   execute: tool({
-    description: `Run one SQL statement that changes data or schema, in the connection's own dialect. Nothing runs until the user approves it in the chat; a declined statement comes back as an error, so never retry it unchanged. Wrap several statements in BEGIN … COMMIT to run them as one transaction, except on ClickHouse. Use query for reads. At most ${MCP_MAX_ROWS} rows come back.`,
+    description: `Run one SQL statement that changes data or schema, in the connection's own dialect. Nothing runs until the user approves it in the chat; a declined statement comes back as an error, so never retry it unchanged. Wrap several statements in BEGIN … COMMIT to run them as one transaction, except on ClickHouse. Use query for reads. ${MCP_RESULT_LIMITS}`,
     inputSchema: statement,
     outputSchema: resultSetsType,
   }),
@@ -51,7 +51,7 @@ export const chatTools = {
     outputSchema: type.unknown,
   }),
   query: tool({
-    description: `Run one read-only SQL statement in the connection's own dialect; statements that write are rejected. At most ${MCP_MAX_ROWS} rows come back and "truncated" says there were more, so filter or aggregate in SQL instead of reading whole tables. The user sees the rows as a table under your call, so never repeat them in your answer.`,
+    description: `Run one read-only SQL statement in the connection's own dialect; statements that write are rejected. ${MCP_RESULT_LIMITS} The user sees the rows as a table under your call, so never repeat them in your answer.`,
     inputSchema: statement,
     outputSchema: resultSetsType,
   }),

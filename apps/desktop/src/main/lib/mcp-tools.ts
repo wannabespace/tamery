@@ -11,7 +11,7 @@ import type {
   McpTarget,
   McpTool,
 } from '@tamery/shared/mcp'
-import { DEFAULT_MCP_ACCESS, MCP_MAX_ROWS } from '@tamery/shared/mcp'
+import { DEFAULT_MCP_ACCESS, MCP_RESULT_LIMITS } from '@tamery/shared/mcp'
 import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import { app } from 'electron'
@@ -42,7 +42,7 @@ const targetInput = {
 
 const sqlInput = { ...targetInput, sql: z.string() }
 
-const INSTRUCTIONS = `Tamery is the user's database client. Start with list_connections, then read the schema with list_tables and describe_table before writing SQL in the connection's own dialect. A MongoDB connection takes mongosh calls instead of SQL, one per statement: db.orders.find({ status: "paid" }).limit(20), db.orders.aggregate([...]), db.runCommand({ ... }); a collection is its table and a field its column, and Extended JSON values ({ "$oid": … }) are written back as ObjectId("…") and the like. When the user names a record, value or thing to change, it almost always lives in the data, not in Tamery: connection names are only labels. Find it before answering — pick the likely tables from their names and columns, search them with query using case-insensitive partial matches (e.g. LOWER(column) LIKE '%value%'), and if several rows or connections could match, show the candidates and ask which one. query only reads; execute changes data or schema where the connection's access allows it, and on "ask" the user approves or declines each statement in Tamery, so explain in your reply what it changes. Results stop at ${MCP_MAX_ROWS} rows, so filter or aggregate in SQL instead of reading whole tables. create_connection saves a new connection from a connection string the user gives you; no tool edits or removes one.`
+const INSTRUCTIONS = `Tamery is the user's database client. Start with list_connections, then read the schema with list_tables and describe_table before writing SQL in the connection's own dialect. A MongoDB connection takes mongosh calls instead of SQL, one per statement: db.orders.find({ status: "paid" }).limit(20), db.orders.aggregate([...]), db.runCommand({ ... }); a collection is its table and a field its column, and Extended JSON values ({ "$oid": … }) are written back as ObjectId("…") and the like. When the user names a record, value or thing to change, it almost always lives in the data, not in Tamery: connection names are only labels. Find it before answering — pick the likely tables from their names and columns, search them with query using case-insensitive partial matches (e.g. LOWER(column) LIKE '%value%'), and if several rows or connections could match, show the candidates and ask which one. query only reads; execute changes data or schema where the connection's access allows it, and on "ask" the user approves or declines each statement in Tamery, so explain in your reply what it changes. ${MCP_RESULT_LIMITS} create_connection saves a new connection from a connection string the user gives you; no tool edits or removes one.`
 
 export const createMcpServer = (
   access: () => Record<string, McpAccess>,
@@ -179,7 +179,7 @@ export const createMcpServer = (
     'query',
     {
       annotations: { readOnlyHint: true },
-      description: `Run one read-only SQL statement on a Tamery connection, in the connection's own SQL dialect. Statements that write are rejected; on MongoDB that is any call but find, findOne, aggregate without $out or $merge, the counts, distinct and the read commands. PostgreSQL, MySQL, Oracle, ClickHouse, SQLite and MongoDB also run it read-only, and every engine but ClickHouse, which has no transactions, rolls it back; a function with side effects can still act, so only a read-only database login guarantees no writes. At most ${MCP_MAX_ROWS} rows come back; "truncated" says there were more. Read the schema with list_tables and describe_table first.`,
+      description: `Run one read-only SQL statement on a Tamery connection, in the connection's own SQL dialect. Statements that write are rejected; on MongoDB that is any call but find, findOne, aggregate without $out or $merge, the counts, distinct and the read commands. PostgreSQL, MySQL, Oracle, ClickHouse, SQLite and MongoDB also run it read-only, and every engine but ClickHouse, which has no transactions, rolls it back; a function with side effects can still act, so only a read-only database login guarantees no writes. ${MCP_RESULT_LIMITS} Read the schema with list_tables and describe_table first.`,
       inputSchema: sqlInput,
     },
     (args, { signal }) =>
@@ -229,7 +229,7 @@ export const createMcpServer = (
     'execute',
     {
       annotations: { destructiveHint: true, readOnlyHint: false },
-      description: `Run one SQL statement that may change data or schema, on a Tamery connection whose access is "ask" or "write", in the connection's own SQL dialect, or one mongosh call on MongoDB. It commits; wrap several statements in BEGIN … COMMIT to run them as one transaction (on Oracle, in one PL/SQL BEGIN … END; block ending in COMMIT), except on ClickHouse and MongoDB, which run one statement at a time. On "ask" it waits until the user approves it in Tamery, and fails if they decline. Use query for reads. At most ${MCP_MAX_ROWS} rows come back.`,
+      description: `Run one SQL statement that may change data or schema, on a Tamery connection whose access is "ask" or "write", in the connection's own SQL dialect, or one mongosh call on MongoDB. It commits; wrap several statements in BEGIN … COMMIT to run them as one transaction (on Oracle, in one PL/SQL BEGIN … END; block ending in COMMIT), except on ClickHouse and MongoDB, which run one statement at a time. On "ask" it waits until the user approves it in Tamery, and fails if they decline. Use query for reads. ${MCP_RESULT_LIMITS}`,
       inputSchema: sqlInput,
     },
     (args, { signal }) =>

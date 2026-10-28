@@ -2,6 +2,11 @@ import type { ConnectionType } from './enums/connection-type'
 import type { SyncType } from './enums/sync-type'
 
 export const MCP_MAX_ROWS = 200
+export const MCP_CELL_BYTES = 2000
+export const MCP_RESULT_BYTES = 60_000
+
+/** How a result's limits read to an agent, in each tool that returns rows. */
+export const MCP_RESULT_LIMITS = `At most ${MCP_MAX_ROWS} rows and about ${MCP_RESULT_BYTES / 1000} KB come back, and "truncated" says rows were left out, so filter or aggregate in SQL instead of reading whole tables. A value longer than ${MCP_CELL_BYTES} bytes comes back as { "truncated": true, "bytes": <full size>, "head": <its start> }; select a part of it in SQL to read more.`
 
 export type McpAccess = 'off' | 'read' | 'ask' | 'write'
 
