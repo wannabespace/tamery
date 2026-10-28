@@ -7,7 +7,7 @@ import { FREE_SHARE_LIMIT_MESSAGE } from '@tamery/shared/usage'
 import { pick } from '@tamery/shared/utils'
 import { and, eq, gt, isNull, or, sql } from 'drizzle-orm'
 
-import { inEditableWorkspace } from '~/lib/workspace'
+import { inMemberWorkspace, isWorkspaceEditor } from '~/lib/workspace'
 import { orpc, permissionsMiddleware } from '~/orpc'
 
 export const save = orpc
@@ -20,6 +20,10 @@ export const save = orpc
     NOT_SYNCED: {
       message: 'Only a connection synced with Full can be shared.',
     },
+    READ_ONLY: {
+      message: 'Only editors can share this workspace’s tables.',
+      status: 403,
+    },
   })
   .handler(async ({ context, errors, input }) => {
     if (context.user.isAnonymous) {
@@ -29,14 +33,22 @@ export const save = orpc
     const resource = await db.query.connectionsResources.findFirst({
       columns: { id: true },
       where: {
-        connection: { RAW: inEditableWorkspace(context.user.id) },
+        connection: { RAW: inMemberWorkspace(context.user.id) },
         id: { eq: input.connectionResourceId },
       },
-      with: { connection: { columns: { syncType: true } } },
+      with: { connection: { columns: { syncType: true, workspaceId: true } } },
     })
 
     if (!resource?.connection) {
       throw errors.NOT_FOUND()
+    }
+    if (
+      !(await isWorkspaceEditor(
+        context.user.id,
+        resource.connection.workspaceId
+      ))
+    ) {
+      throw errors.READ_ONLY()
     }
     if (resource.connection.syncType !== SyncType.Cloud) {
       throw errors.NOT_SYNCED()

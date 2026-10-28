@@ -3,6 +3,7 @@ import type { WorkspaceRole } from '@tamery/shared/workspace'
 import {
   EDITOR_ROLES,
   INVITABLE_ROLES,
+  MEMBER_MANAGER_ROLES,
   WORKSPACE_ROLES,
 } from '@tamery/shared/workspace'
 import { Button } from '@tamery/ui/components/button'
@@ -19,6 +20,7 @@ import {
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { capitalCase } from 'change-case'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 import type { Workspace } from '~/core/workspace/sync'
@@ -27,12 +29,17 @@ import { queryClient } from '~/lib/query-client'
 import { useIsOnline } from '~/store'
 
 import { InviteForm } from './invite-form'
+import type { MemberConfirmation } from './member-confirm-dialog'
+import { MemberConfirmDialog } from './member-confirm-dialog'
 import { RoleSelect } from './role-select'
 
 export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
   const navigate = useNavigate()
   const isOnline = useIsOnline()
   const input = { workspaceId: workspace.id }
+  const [confirmation, setConfirmation] = useState<MemberConfirmation | null>(
+    null
+  )
   const { data } = useQuery(orpc.workspaces.members.queryOptions({ input }))
   const refresh = () =>
     queryClient.invalidateQueries({
@@ -77,7 +84,7 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
     )
   }
 
-  const canManage = EDITOR_ROLES.includes(workspace.role)
+  const canManage = MEMBER_MANAGER_ROLES.includes(workspace.role)
   const isOwner = workspace.role === 'owner'
   const isSoleOwner =
     isOwner && data.members.filter(({ role }) => role === 'owner').length === 1
@@ -116,7 +123,9 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
                 value={member.role}
                 disabled={!isOnline}
                 onChange={(role) =>
-                  updateRole.mutate({ memberId: member.id, role })
+                  role === 'viewer' && EDITOR_ROLES.includes(member.role)
+                    ? setConfirmation({ action: 'demote', member })
+                    : updateRole.mutate({ memberId: member.id, role })
                 }
               />
             ) : (
@@ -153,13 +162,22 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
                   size="icon-xs"
                   variant="ghost-destructive"
                   disabled={!isOnline}
-                  onClick={() => remove.mutate(member.id)}
+                  onClick={() => setConfirmation({ action: 'remove', member })}
                 />
               )
             )}
           </SettingsRow>
         ))}
       </SettingsGroup>
+      <MemberConfirmDialog
+        confirmation={confirmation}
+        onCancel={() => setConfirmation(null)}
+        onConfirm={({ action, member }) =>
+          action === 'remove'
+            ? remove.mutate(member.id)
+            : updateRole.mutate({ memberId: member.id, role: 'viewer' })
+        }
+      />
       {canManage && data.invitations.length > 0 && (
         <SettingsGroup title="Invitations">
           {data.invitations.map((invitation) => (

@@ -32,8 +32,9 @@ The person must already have a Tamery account. They get an email whose **View in
 
 | Role | Can do |
 | --- | --- |
-| Owner | Everything an editor can, and make other members owners |
-| Editor | Add, edit, move, and remove connections; invite people and change or remove editors and viewers |
+| Owner | Everything an admin can, and make other members owners |
+| Admin | Everything an editor can; invite people and change or remove admins, editors and viewers |
+| Editor | Add, edit, move, and remove connections |
 | Viewer | Open and query the connections; cannot change them |
 
 A connection's [sync setting](/connections/overview#choose-what-syncs) decides what the others get. With **Full**, they connect right away. With **No password**, each person enters the password on their own device. With **Metadata only**, each person enters the server details.
@@ -44,9 +45,9 @@ A viewer who creates a connection gets it in their **Personal** workspace, and T
 
 ### Leave or remove someone
 
-On the **Members** page, an editor or owner removes someone with the remove button on their row. To leave yourself, click **Leave** on your own row. A workspace always keeps an owner, so its only owner first picks **Owner** in another member's role picker. Someone who is only invited is not a member yet: they have to join first.
+On the **Members** page, an admin or owner removes someone with the remove button on their row, after confirming. To leave yourself, click **Leave** on your own row. A workspace always keeps an owner, so its only owner first picks **Owner** in another member's role picker. Someone who is only invited is not a member yet: they have to join first.
 
-The workspace's connections disappear from that person's devices. Connections they added stay in the workspace, and the [shares](/features/sharing) they made of its tables stop working. Becoming a viewer stops those shares too.
+The workspace's connections disappear from that person's devices. Connections they added stay in the workspace, and the [shares](/features/sharing) they made of its tables stop working. Becoming a viewer stops those shares too, so making an editor, admin or owner a viewer asks first.
 
 Deleting your account removes you from every workspace and deletes the workspaces where you are the only member. If you are the only owner of a workspace that has other members, make one of them an owner first.
 

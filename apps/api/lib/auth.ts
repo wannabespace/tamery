@@ -280,7 +280,7 @@ export const auth = betterAuth({
           ])
 
           if (row && isDefaultWorkspaceMetadata(row.metadata)) {
-            throw APIError.from('BAD_REQUEST', {
+            throw APIError.from('FORBIDDEN', {
               code: 'PERSONAL_WORKSPACE',
               message:
                 'Your Personal workspace can’t be shared. Create a workspace to invite people.',
@@ -288,7 +288,7 @@ export const auth = betterAuth({
           }
 
           if (!invitee) {
-            throw APIError.from('BAD_REQUEST', {
+            throw APIError.from('NOT_FOUND', {
               code: 'USER_NOT_FOUND',
               message:
                 'No Tamery account uses this email. Ask them to sign up first.',
@@ -297,10 +297,11 @@ export const auth = betterAuth({
         },
       },
       roles: {
-        editor: workspaceAccess.newRole({
+        admin: workspaceAccess.newRole({
           invitation: ['create', 'cancel'],
           member: ['create', 'update', 'delete'],
         }),
+        editor: workspaceAccess.newRole({}),
         owner: workspaceAccess.newRole(ownerAc.statements),
         viewer: workspaceAccess.newRole({}),
       } satisfies Record<WorkspaceRole, unknown>,

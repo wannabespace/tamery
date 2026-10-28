@@ -7,6 +7,7 @@ import {
   UserGroupIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { isDefaultWorkspaceMetadata } from '@tamery/shared/workspace'
 import { Button } from '@tamery/ui/components/button'
 import {
   DropdownMenu,
@@ -157,24 +158,30 @@ export const WorkspaceSwitcher = () => {
               Switch workspace
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="min-w-48">
-              {workspaces.map((workspace) => (
-                <DropdownMenuItem
-                  key={workspace.id}
-                  onClick={() => switchWorkspace(workspace.id)}
-                >
-                  <WorkspaceGlyph workspace={workspace} />
-                  <span data-mask className="truncate">
-                    {workspace.name}
-                  </span>
-                  {workspace.id === activeWorkspace?.id && (
-                    <HugeiconsIcon
-                      icon={Tick02Icon}
-                      strokeWidth={2}
-                      className="ml-auto"
-                    />
-                  )}
-                </DropdownMenuItem>
-              ))}
+              {workspaces
+                .toSorted(
+                  (a, b) =>
+                    Number(isDefaultWorkspaceMetadata(b.metadata)) -
+                    Number(isDefaultWorkspaceMetadata(a.metadata))
+                )
+                .map((workspace) => (
+                  <DropdownMenuItem
+                    key={workspace.id}
+                    onClick={() => switchWorkspace(workspace.id)}
+                  >
+                    <WorkspaceGlyph workspace={workspace} />
+                    <span data-mask className="truncate">
+                      {workspace.name}
+                    </span>
+                    {workspace.id === activeWorkspace?.id && (
+                      <HugeiconsIcon
+                        icon={Tick02Icon}
+                        strokeWidth={2}
+                        className="ml-auto"
+                      />
+                    )}
+                  </DropdownMenuItem>
+                ))}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className={isAnonymous ? 'opacity-50' : undefined}

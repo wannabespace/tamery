@@ -13,16 +13,15 @@ export const ShareMenuItem = ({
   schema: string
   table: string
 }) => {
-  const { loaded, synced } = useTableShare(schema, table)
+  const { editable, loaded, synced } = useTableShare(schema, table)
+  const hint = synced ? !editable && 'Editors only' : 'Needs Full sync'
 
   return (
-    <DropdownMenuItem disabled={!synced || !loaded} onClick={onOpen}>
+    <DropdownMenuItem disabled={!!hint || !loaded} onClick={onOpen}>
       <HugeiconsIcon icon={Share08Icon} strokeWidth={2} />
       Share
-      {!synced && (
-        <span className="text-muted-foreground ml-auto text-xs">
-          Needs Full sync
-        </span>
+      {hint && (
+        <span className="text-muted-foreground ml-auto text-xs">{hint}</span>
       )}
     </DropdownMenuItem>
   )

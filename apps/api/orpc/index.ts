@@ -19,12 +19,28 @@ export { getSubscription } from '~/lib/subscription'
 
 export const orpc = os.$context<Context>()
 
+// Answered as CONFLICT, not Better Auth's BAD_REQUEST: the API alerts on every 400, and these are an ordinary answer to what the user typed.
+const CONFLICT_CODES: ReadonlySet<string> = new Set([
+  'USER_IS_ALREADY_A_MEMBER_OF_THIS_ORGANIZATION',
+  'USER_IS_ALREADY_INVITED_TO_THIS_ORGANIZATION',
+])
+
 export const viaAuth = async <T>(promise: Promise<T>) => {
   try {
     return await promise
   } catch (error) {
     throw isAPIError(error)
-      ? new ORPCError(String(error.status), { message: error.message })
+      ? new ORPCError(
+          CONFLICT_CODES.has(error.body?.code ?? '')
+            ? 'CONFLICT'
+            : String(error.status),
+          {
+            message: error.message
+              .replaceAll('organization', 'workspace')
+              .replaceAll('Organization', 'Workspace')
+              .replace('User is', 'They are'),
+          }
+        )
       : error
   }
 }
