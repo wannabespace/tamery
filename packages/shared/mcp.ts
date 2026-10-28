@@ -66,11 +66,11 @@ export interface McpSource {
     onAbort: OnAbort
   ) => Promise<unknown>
   explain: (
-    args: McpTarget & { analyze: boolean; sql: string },
+    args: McpTarget & { analyze: boolean; statement: string },
     onAbort: OnAbort
   ) => Promise<unknown>
   execute: (
-    args: McpTarget & { sql: string; approve: boolean },
+    args: McpTarget & { statement: string; approve: boolean },
     onAbort: OnAbort
   ) => Promise<unknown>
   proposeChange: (
@@ -78,7 +78,7 @@ export interface McpSource {
     onAbort: OnAbort
   ) => Promise<unknown>
   query: (
-    args: McpTarget & { sql: string },
+    args: McpTarget & { statement: string },
     onAbort: OnAbort
   ) => Promise<unknown>
   searchSavedQueries: (

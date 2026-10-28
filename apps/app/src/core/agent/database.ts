@@ -32,7 +32,7 @@ import {
   resolveTarget,
 } from './target'
 
-type Statement = AgentTarget & { sql: string }
+type Statement = AgentTarget & { statement: string }
 
 const ESTIMATE_BUDGET_MS = 3000
 
@@ -79,7 +79,7 @@ export const agentDatabase = {
       }))
   },
   describeTable,
-  prepareRead: async ({ sql, ...target }: Statement) => {
+  prepareRead: async ({ statement: sql, ...target }: Statement) => {
     const { connection, resource } = resolveTarget(target)
     if (!getQueryLanguage(getDialect(connection.type)).readsOnly(sql)) {
       throw new Error(
@@ -99,7 +99,7 @@ export const agentDatabase = {
         ),
     }
   },
-  prepareWrite: async ({ sql, ...target }: Statement) => {
+  prepareWrite: async ({ statement: sql, ...target }: Statement) => {
     const { connection, resource } = resolveTarget(target)
     const dialect = getDialect(connection.type)
     if (getQueryLanguage(dialect).split(sql).length !== 1) {
@@ -144,7 +144,7 @@ export const agentDatabase = {
   /** The plan of one statement. Only a read may be analyzed, since that runs it; the text must open with a data verb, so nothing it holds can turn the EXPLAIN into something else. */
   explain: async ({
     analyze,
-    sql,
+    statement: sql,
     ...target
   }: Statement & { analyze: boolean }) => {
     const { connection, resource } = resolveTarget(target)

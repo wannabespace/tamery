@@ -62,7 +62,14 @@ const targetInput = {
     ),
 }
 
-const sqlInput = { ...targetInput, sql: z.string() }
+const statementInput = {
+  ...targetInput,
+  statement: z
+    .string()
+    .describe(
+      "SQL in the connection's own dialect, or one mongosh call on MongoDB"
+    ),
+}
 
 const rowValues = z.record(z.string(), z.unknown())
 
@@ -237,10 +244,10 @@ export const createMcpServer = (
     {
       annotations: { readOnlyHint: true },
       description: `Run one read-only SQL statement on a Tamery connection, in the connection's own SQL dialect. Statements that write are rejected; on MongoDB that is any call but find, findOne, aggregate without $out or $merge, the counts, distinct and the read commands. PostgreSQL, MySQL, Oracle, ClickHouse, SQLite and MongoDB also run it read-only, and every engine but ClickHouse, which has no transactions, rolls it back; a function with side effects can still act, so only a read-only database login guarantees no writes. ${MCP_RESULT_LIMITS} Read the schema with list_tables and describe_table first.`,
-      inputSchema: sqlInput,
+      inputSchema: statementInput,
     },
     (args, { signal }) =>
-      runLogged('query', { ...args, query: args.sql }, () =>
+      runLogged('query', { ...args, query: args.statement }, () =>
         askShared({ args, method: 'query' }, signal)
       )
   )
@@ -333,10 +340,10 @@ export const createMcpServer = (
     {
       annotations: { readOnlyHint: true },
       description: EXPLAIN_DESCRIPTION,
-      inputSchema: { ...sqlInput, analyze: z.boolean() },
+      inputSchema: { ...statementInput, analyze: z.boolean() },
     },
     (args, { signal }) =>
-      runLogged('explain', { ...args, query: args.sql }, () =>
+      runLogged('explain', { ...args, query: args.statement }, () =>
         askShared({ args, method: 'explain' }, signal)
       )
   )
@@ -366,10 +373,10 @@ export const createMcpServer = (
     {
       annotations: { destructiveHint: true, readOnlyHint: false },
       description: `Run one SQL statement that may change data or schema, on a Tamery connection whose access is "ask" or "write", in the connection's own SQL dialect, or one mongosh call on MongoDB. It commits; wrap several statements in BEGIN … COMMIT to run them as one transaction (on Oracle, in one PL/SQL BEGIN … END; block ending in COMMIT), except on ClickHouse and MongoDB, which run one statement at a time. On "ask" it waits until the user approves it in Tamery, and fails if they decline. Use query for reads. ${MCP_RESULT_LIMITS}`,
-      inputSchema: sqlInput,
+      inputSchema: statementInput,
     },
     (args, { signal }) =>
-      runLogged('execute', { ...args, query: args.sql }, async () => {
+      runLogged('execute', { ...args, query: args.statement }, async () => {
         const connectionAccess = getSharedAccess(args.connectionId)
         if (connectionAccess === 'read') {
           throw new Error(

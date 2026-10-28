@@ -63,7 +63,7 @@ export const appActions = {
     posthog.capture('ai_chat_app_action', { action: 'export_result', format })
     return { exported: records.length }
   },
-  openQuery: ({ sql, ...target }: Input<'open_query'>) => {
+  openQuery: ({ statement, ...target }: Input<'open_query'>) => {
     const { connection, resource } = resolveResource(target)
     const tabId = openRunnerTab(resource.id)
     setQuery(
@@ -72,7 +72,7 @@ export const appActions = {
         resourceId: resource.id,
         tabId,
       }),
-      sql
+      statement
     )
     show(resource.id, tabId)
     posthog.capture('ai_chat_app_action', { action: 'open_query' })

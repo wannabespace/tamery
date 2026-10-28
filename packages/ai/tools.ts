@@ -25,7 +25,12 @@ const target = type({
   ),
 })
 
-const statement = type({ '...': target, sql: 'string' })
+const statementInput = type({
+  '...': target,
+  statement: type.string.describe(
+    "SQL in the connection's own dialect, or one mongosh call on MongoDB"
+  ),
+})
 
 const tableTarget = type({
   '...': target,
@@ -61,10 +66,10 @@ export const chatTools = {
   }),
   combine: tool({
     description:
-      "Run SQLite over result sets this chat already fetched, to join, compare or aggregate rows across connections or queries without matching them by hand. Each input loads one result (its query or execute call's toolCallId) as a table under the name you give it; then sql runs in SQLite's dialect over those tables. Values keep the types they came with; dates are text.",
+      "Run SQLite over result sets this chat already fetched, to join, compare or aggregate rows across connections or queries without matching them by hand. Each input loads one result (its query or execute call's toolCallId) as a table under the name you give it; then statement runs in SQLite's dialect over those tables. Values keep the types they came with; dates are text.",
     inputSchema: type({
       inputs: type({ name: 'string', toolCallId: 'string' }).array(),
-      sql: 'string',
+      statement: 'string',
     }),
     outputSchema: resultSetsType,
     toModelOutput: asDatabaseData,
@@ -88,7 +93,7 @@ export const chatTools = {
   }),
   execute: tool({
     description: `Run one SQL statement that changes data or schema, in the connection's own dialect. Nothing runs until the user approves it in the chat; a declined statement comes back as an error, so never retry it unchanged. Wrap several statements in BEGIN … COMMIT to run them as one transaction, except on ClickHouse. Use query for reads. ${MCP_RESULT_LIMITS}`,
-    inputSchema: statement,
+    inputSchema: statementInput,
     outputSchema: resultSetsType,
     toModelOutput: asDatabaseData,
   }),
@@ -100,7 +105,7 @@ export const chatTools = {
   }),
   explain: tool({
     description: EXPLAIN_DESCRIPTION,
-    inputSchema: type({ '...': statement, analyze: 'boolean' }),
+    inputSchema: type({ '...': statementInput, analyze: 'boolean' }),
     outputSchema: resultSetsType,
     toModelOutput: asDatabaseData,
   }),
@@ -120,7 +125,7 @@ export const chatTools = {
   open_query: tool({
     description:
       'Open SQL in a new Query tab in Tamery, for the user to read, change and run. It does not run it.',
-    inputSchema: statement,
+    inputSchema: statementInput,
     outputSchema: opened,
   }),
   open_table: tool({
@@ -161,7 +166,7 @@ export const chatTools = {
   }),
   query: tool({
     description: `Run one read-only SQL statement in the connection's own dialect; statements that write are rejected. ${MCP_RESULT_LIMITS} The user sees the rows as a table under your call, so never repeat them in your answer.`,
-    inputSchema: statement,
+    inputSchema: statementInput,
     outputSchema: resultSetsType,
     toModelOutput: asDatabaseData,
   }),

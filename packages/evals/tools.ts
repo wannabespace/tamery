@@ -218,8 +218,8 @@ const answer = (part: ToolPart): unknown => {
       return read(
         getEngine(part.input.connectionId),
         part.input.connectionId === 'mongodb'
-          ? `${part.input.sql}`
-          : `EXPLAIN ${part.input.sql}`
+          ? `${part.input.statement}`
+          : `EXPLAIN ${part.input.statement}`
       )
     }
     case 'tool-create_share':
@@ -237,7 +237,7 @@ const answer = (part: ToolPart): unknown => {
       return { note: null, saved: false }
     }
     case 'tool-query': {
-      return read(getEngine(part.input.connectionId), part.input.sql)
+      return read(getEngine(part.input.connectionId), part.input.statement)
     }
     default: {
       throw new Error('The user declined to run this statement.')

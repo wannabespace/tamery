@@ -32,7 +32,7 @@ export const WriteApproval = ({
 }) => {
   const dialect = connection ? getDialect(connection.type) : null
   const destroys = dialect
-    ? getQueryLanguage(dialect).destructive(input.sql)
+    ? getQueryLanguage(dialect).destructive(input.statement)
     : []
   const decision = { destructive: destroys.length > 0, dialect }
   const estimateKey = ['agent-estimate', toolCallId]
@@ -58,7 +58,7 @@ export const WriteApproval = ({
 
   return (
     <div className="bg-background ring-foreground/4 flex flex-col gap-2 rounded-xl p-2 ring">
-      <ResponseCodeBlock code={input.sql} language="sql" />
+      <ResponseCodeBlock code={input.statement} language="sql" />
       {typeof estimate.data === 'number' && (
         <div className="pl-1">
           <WriteEstimate rows={estimate.data} />

@@ -63,7 +63,7 @@ export const ToolResult = ({
     const tabId = openRunnerTab(resource.id)
     setQuery(
       runnerPageStore({ dialect, resourceId: resource.id, tabId }),
-      target.sql
+      target.statement
     )
     posthog.capture('ai_chat_result_opened')
     agentModeValue.set(false)

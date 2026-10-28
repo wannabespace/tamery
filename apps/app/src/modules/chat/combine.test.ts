@@ -9,7 +9,7 @@ const result = (
   columns: string[],
   rows: unknown[][]
 ): AppUIMessage['parts'][number] => ({
-  input: { connectionId: 'c', resource: null, sql: 'select' },
+  input: { connectionId: 'c', resource: null, statement: 'select' },
   output: [{ affectedRows: null, columns, rows, truncated: false }],
   state: 'output-available',
   toolCallId,
@@ -48,7 +48,8 @@ test('joins result sets from two queries in SQLite', async () => {
       { name: 'c', toolCallId: 'customers' },
       { name: 'o', toolCallId: 'orders' },
     ],
-    sql: 'select c.name, sum(o.total) as spent from c join o on o.customer_id = c.id group by c.name order by spent desc',
+    statement:
+      'select c.name, sum(o.total) as spent from c join o on o.customer_id = c.id group by c.name order by spent desc',
   })
   expect(set?.columns).toEqual(['name', 'spent'])
   expect(set?.rows).toEqual([

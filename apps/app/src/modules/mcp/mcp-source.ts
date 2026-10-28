@@ -116,7 +116,7 @@ export const mcpSource: McpSource = {
         estimate,
         resourceName: resource?.name ?? null,
         signal,
-        sql: statement.sql,
+        sql: statement.statement,
       })
     }
     const sets = await runForAgent(run(signal), {
@@ -125,7 +125,7 @@ export const mcpSource: McpSource = {
     })
     if (!approve) {
       notifications.notify({
-        body: statement.sql,
+        body: statement.statement,
         title: `An agent changed ${connection.name}`,
       })
     }

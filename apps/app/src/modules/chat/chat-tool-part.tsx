@@ -145,7 +145,9 @@ const StatementPart = ({
           )
         }
       >
-        {input?.sql && <ResponseCodeBlock code={input.sql} language="sql" />}
+        {input?.statement && (
+          <ResponseCodeBlock code={input.statement} language="sql" />
+        )}
         {part.state === 'output-error' && (
           <ResponseCodeBlock code={part.errorText} language="text" />
         )}
@@ -187,8 +189,8 @@ export const ToolPart = ({
           label="Combined results"
           status={getStatus(part, actions.isLast)}
         >
-          {part.input?.sql && (
-            <ResponseCodeBlock code={part.input.sql} language="sql" />
+          {part.input?.statement && (
+            <ResponseCodeBlock code={part.input.statement} language="sql" />
           )}
           {part.state === 'output-error' && (
             <ResponseCodeBlock code={part.errorText} language="text" />

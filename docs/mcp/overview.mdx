@@ -61,7 +61,7 @@ With **Read and write**, you get a notification after each change instead.
 | `propose_change` | Draft row edits, inserts, deletes, schema changes or a new index in Tamery for you to review and apply. Nothing runs until you do. |
 | `execute` | Change data or schema, within the connection's access. Several statements need a `BEGIN … COMMIT` block. |
 
-On a MongoDB connection, agents send mongosh calls such as `db.orders.find({ status: 'paid' })` instead of SQL, one call at a time.
+`query`, `explain` and `execute` take what to run as `statement`: SQL in the connection's own dialect, or on a MongoDB connection a mongosh call such as `db.orders.find({ status: 'paid' })`, one call at a time.
 
 Connections an agent creates start at **Ask before writing**. No tool can edit or remove a connection.
 

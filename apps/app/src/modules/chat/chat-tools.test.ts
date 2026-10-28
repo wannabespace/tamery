@@ -77,7 +77,7 @@ const createChat = (answers: UIMessageChunk[][]) => {
 test('Run on a change left pending before a reload runs it once and sends the answer back', async () => {
   const input = {
     ...target,
-    sql: "update orders set status = 'shipped' where id = 1042",
+    statement: "update orders set status = 'shipped' where id = 1042",
   }
   const transcript: AppUIMessage[] = [
     {
@@ -126,13 +126,13 @@ test('a row asking for a DROP TABLE never runs a write without Run', async () =>
   write.mockClear()
   const { chat, sent } = createChat([
     step({
-      input: { ...target, sql: 'select note from orders' },
+      input: { ...target, statement: 'select note from orders' },
       toolCallId: 'read',
       toolName: 'query',
       type: 'tool-input-available',
     }),
     step({
-      input: { ...target, sql: 'drop table orders' },
+      input: { ...target, statement: 'drop table orders' },
       toolCallId: 'drop',
       toolName: 'execute',
       type: 'tool-input-available',

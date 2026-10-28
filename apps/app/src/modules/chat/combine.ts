@@ -32,7 +32,7 @@ const toSqliteValue = (value: unknown) => {
 /** Runs SQLite over result sets the chat already fetched, each loaded as a table of its own, in a database that lives for this one call. */
 export const combineResults = async (
   messages: AppUIMessage[],
-  { inputs, sql }: ChatTools['combine']['input']
+  { inputs, statement }: ChatTools['combine']['input']
 ) => {
   loading ??= SQLiteESMFactory().then((module) => SQLite.Factory(module))
   const sqlite3 = await loading
@@ -47,22 +47,22 @@ export const combineResults = async (
         `CREATE TABLE ${quote(name)} (${columns.map(quote).join(', ')})`
       )
       // oxlint-disable-next-line no-await-in-loop
-      for await (const statement of sqlite3.statements(
+      for await (const insert of sqlite3.statements(
         db,
         `INSERT INTO ${quote(name)} VALUES (${columns.map(() => '?').join(', ')})`
       )) {
         for (const row of set.rows) {
-          sqlite3.bind_collection(statement, row.map(toSqliteValue))
+          sqlite3.bind_collection(insert, row.map(toSqliteValue))
           // oxlint-disable-next-line no-await-in-loop
-          await sqlite3.step(statement)
+          await sqlite3.step(insert)
           // oxlint-disable-next-line no-await-in-loop
-          await sqlite3.reset(statement)
+          await sqlite3.reset(insert)
         }
       }
     }
     const rows: unknown[][] = []
     let columns: string[] = []
-    await sqlite3.exec(db, sql, (row, names) => {
+    await sqlite3.exec(db, statement, (row, names) => {
       columns = names
       rows.push(row)
     })
