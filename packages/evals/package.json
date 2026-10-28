@@ -1,0 +1,22 @@
+{
+  "name": "@tamery/evals",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check-types": "tsc",
+    "eval": "bun --env-file=../../apps/api/.env run.ts"
+  },
+  "dependencies": {
+    "@tamery/ai": "workspace:*",
+    "@tamery/connection": "workspace:*",
+    "@tamery/shared": "workspace:*",
+    "ai": "catalog:",
+    "mongodb": "catalog:",
+    "mysql2": "catalog:",
+    "pg": "catalog:",
+    "uuid": "catalog:"
+  },
+  "devDependencies": {
+    "@types/pg": "catalog:"
+  }
+}

@@ -1,7 +1,5 @@
-import { MCP_CELL_BYTES, MCP_RESULT_BYTES } from '@tamery/shared/mcp'
-import { bytesToHex } from '@tamery/shared/value-text'
-
-import type { ResultSet } from '~/core/queries/connection/custom'
+import { MCP_CELL_BYTES, MCP_RESULT_BYTES } from './mcp'
+import { bytesToHex } from './value-text'
 
 const encoder = new TextEncoder()
 
@@ -31,7 +29,11 @@ const capCell = (value: unknown) => {
 }
 
 /** What an agent gets back from a statement: JSON values only, each long value cut, and rows dropped from the end past the result's byte budget, every cut marked `truncated`. */
-export const toToolOutput = (sets: ResultSet[]): ResultSet[] => {
+export const toToolOutput = <
+  Set extends { rows: unknown[][]; truncated: boolean },
+>(
+  sets: Set[]
+): Set[] => {
   let budget = MCP_RESULT_BYTES
   return sets.map((set) => {
     const rows: unknown[][] = []

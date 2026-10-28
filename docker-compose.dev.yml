@@ -33,6 +33,34 @@ services:
       timeout: 5s
       retries: 5
 
+  # The agent eval's databases (`packages/evals`), seeded by its runner: `docker compose -f docker-compose.dev.yml --profile evals up -d`.
+  eval-postgres:
+    image: postgres:18-alpine
+    profiles: [evals]
+    ports:
+      - '5434:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=shop
+
+  eval-mysql:
+    image: mysql:8.4
+    profiles: [evals]
+    command: [--innodb-buffer-pool-size=64M, --performance-schema=OFF]
+    ports:
+      - '3307:3306'
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=shop
+      - MYSQL_INITDB_SKIP_TZINFO=1
+
+  eval-mongodb:
+    image: mongo:8.0
+    profiles: [evals]
+    ports:
+      - '27018:27017'
+
 volumes:
   postgres_data:
   redis_data:

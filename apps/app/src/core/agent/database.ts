@@ -1,5 +1,6 @@
 import { getDialect } from '@tamery/shared/enums/connection-type'
 import { MCP_MAX_ROWS } from '@tamery/shared/mcp'
+import { toToolOutput } from '@tamery/shared/tool-output'
 import { Result } from 'better-result'
 
 import { getCollections } from '~/core/collections'
@@ -24,7 +25,6 @@ import {
   resolveResource,
   resolveTarget,
 } from './target'
-import { toToolOutput } from './tool-output'
 
 type Statement = AgentTarget & { sql: string }
 

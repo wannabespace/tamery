@@ -9,7 +9,7 @@ export const AI_QUERY_LIMITS = {
   query: 30_000,
 } as const
 
-interface AgentBudget {
+export interface AgentBudget {
   steps: number
   tokens: number
 }

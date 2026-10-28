@@ -1818,6 +1818,37 @@ importers:
         specifier: 'catalog:'
         version: 23.0.1(@types/node@26.1.1)
 
+  packages/evals:
+    dependencies:
+      '@tamery/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@tamery/connection':
+        specifier: workspace:*
+        version: link:../connection
+      '@tamery/shared':
+        specifier: workspace:*
+        version: link:../shared
+      ai:
+        specifier: 'catalog:'
+        version: 7.0.150(zod@4.6.7)
+      mongodb:
+        specifier: 'catalog:'
+        version: 7.7.0(@aws-sdk/credential-providers@3.993.0)(socks@2.8.10)
+      mysql2:
+        specifier: 'catalog:'
+        version: 3.24.6(@types/node@26.1.1)
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.1
+      uuid:
+        specifier: 'catalog:'
+        version: 14.0.3
+    devDependencies:
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.23.1
+
   packages/monaco:
     dependencies:
       '@tamery/ai':

@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { MCP_CELL_BYTES, MCP_RESULT_BYTES } from '@tamery/shared/mcp'
-
+import { MCP_CELL_BYTES, MCP_RESULT_BYTES } from './mcp'
 import { toToolOutput } from './tool-output'
 
 const set = (rows: unknown[][]) => ({
