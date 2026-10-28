@@ -34,7 +34,6 @@ const envType = type({
   INFISICAL_CLIENT_ID: 'string?',
   INFISICAL_CLIENT_SECRET: 'string?',
   INFISICAL_KMS_KEY_ID: 'string?',
-  INFISICAL_SITE_URL: 'string?',
 })
 
 const devOptionalEnvs = [
