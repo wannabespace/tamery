@@ -18,10 +18,12 @@ import { env } from '~/env'
 
 export const Base = ({
   children,
+  footnote,
   preview,
   title,
 }: {
   children: React.ReactNode
+  footnote?: React.ReactNode
   preview: string
   title: string
 }) => (
@@ -72,6 +74,11 @@ export const Base = ({
                 Website
               </Link>
             </Text>
+            {footnote && (
+              <Text className="text-muted-foreground mt-0 text-center text-xs">
+                {footnote}
+              </Text>
+            )}
           </Section>
         </Container>
       </Body>

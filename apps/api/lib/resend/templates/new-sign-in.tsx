@@ -17,6 +17,13 @@ export const NewSignIn = ({
   twoFactorEnabled: boolean
 }) => (
   <Base
+    footnote={
+      location && (
+        <Link className="text-muted-foreground" href="https://db-ip.com">
+          IP Geolocation by DB-IP
+        </Link>
+      )
+    }
     preview={`New sign-in from ${device}`}
     title="New sign-in to your account"
   >
@@ -41,12 +48,5 @@ export const NewSignIn = ({
       </Text>
     </Section>
     <Button href={`${env.MAIN_URL}/account/settings`}>Review sessions</Button>
-    {location && (
-      <Text className="text-muted-foreground mt-5 text-xs">
-        <Link className="text-muted-foreground" href="https://db-ip.com">
-          IP Geolocation by DB-IP
-        </Link>
-      </Text>
-    )}
   </Base>
 )
