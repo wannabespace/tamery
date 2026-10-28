@@ -8,6 +8,7 @@ import {
 } from '@tamery/shared/constants'
 import { formatDeviceLabel } from '@tamery/shared/device-label'
 import { getPermissions } from '@tamery/shared/permissions'
+import type { Session } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { emailHarmony } from 'better-auth-harmony'
 import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api'
@@ -48,11 +49,7 @@ export const sendNewSignInEmail = async ({
   ipAddress,
   userAgent,
   userId,
-}: {
-  ipAddress?: string | null
-  userAgent?: string | null
-  userId: string
-}) => {
+}: Pick<Session, 'ipAddress' | 'userAgent' | 'userId'>) => {
   const user = await findUser(userId)
 
   if (!user) {
@@ -69,40 +66,6 @@ export const sendNewSignInEmail = async ({
     subject: 'New sign-in to your Tamery account',
     template: 'NewSignIn',
     to: user.email,
-  })
-}
-
-const sendTwoFactorChangedEmail = async (user: {
-  email: string
-  twoFactorEnabled?: boolean | null
-}) => {
-  const enabled = user.twoFactorEnabled === true
-  await sendEmail({
-    props: { enabled },
-    subject: `Two-factor authentication turned ${enabled ? 'on' : 'off'}`,
-    template: 'TwoFactorChanged',
-    to: user.email,
-  })
-}
-
-const updateResendContact = async (user: {
-  email: string
-  id: string
-  name: string
-}) => {
-  if (nodeEnv !== 'production' || !resend) {
-    return
-  }
-
-  const [firstName = '', ...lastName] = user.name.split(' ')
-
-  await resend.contacts.update({
-    email: user.email,
-    firstName,
-    lastName: lastName.join(' '),
-    properties: {
-      id: user.id,
-    },
   })
 }
 
@@ -217,11 +180,30 @@ export const auth = betterAuth({
       },
       update: {
         after: async (user, context) => {
-          await Promise.all([
-            context?.path.startsWith('/two-factor/') &&
-              sendTwoFactorChangedEmail(user),
-            updateResendContact(user),
-          ])
+          if (context?.path.startsWith('/two-factor/')) {
+            const enabled = user.twoFactorEnabled === true
+            await sendEmail({
+              props: { enabled },
+              subject: `Two-factor authentication turned ${enabled ? 'on' : 'off'}`,
+              template: 'TwoFactorChanged',
+              to: user.email,
+            })
+          }
+
+          if (nodeEnv !== 'production' || !resend) {
+            return
+          }
+
+          const [firstName = '', ...lastName] = user.name.split(' ')
+
+          await resend.contacts.update({
+            email: user.email,
+            firstName,
+            lastName: lastName.join(' '),
+            properties: {
+              id: user.id,
+            },
+          })
         },
       },
     },
