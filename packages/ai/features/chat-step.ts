@@ -39,6 +39,11 @@ const mentionText = (part: DataUIPart<ChatDataParts>) =>
     ? `The user mentioned the connection "${part.data.name}" (id ${part.data.connectionId}, ${part.data.type}${inResource(part.data.resource)}).`
     : `The user mentioned the table "${part.data.schema}"."${part.data.table}" of connection ${part.data.connectionId}${inResource(part.data.resource)}. Its definition: ${JSON.stringify(part.data.definition)}`
 
+/** Needed in both places: on the system message it caches the tools and instructions, on the request it adds OpenRouter's automatic breakpoint at the last message, which caches the transcript and its mention definitions for the next step. */
+const PROMPT_CACHE = {
+  openrouter: { cacheControl: { type: 'ephemeral' } },
+}
+
 export interface ChatStepInput {
   abortSignal?: AbortSignal
   connection: ChatConnection
@@ -61,15 +66,20 @@ export const streamChatStep = async (data: ChatStepInput) => {
 
   const result = streamText({
     abortSignal: data.abortSignal,
-    instructions: capped
-      ? `${chatInstructions(data.connection)}\n${CAPPED_INSTRUCTION}`
-      : chatInstructions(data.connection),
+    instructions: {
+      content: capped
+        ? `${chatInstructions(data.connection)}\n${CAPPED_INSTRUCTION}`
+        : chatInstructions(data.connection),
+      providerOptions: PROMPT_CACHE,
+      role: 'system',
+    },
     messages: await convertToModelMessages<AppUIMessage>(data.messages, {
       convertDataPart: (part) => ({ text: mentionText(part), type: 'text' }),
       ignoreIncompleteToolCalls: true,
       tools: chatTools,
     }),
     model: models.chat,
+    providerOptions: PROMPT_CACHE,
     telemetry: data.telemetry,
     toolChoice: capped ? 'none' : 'auto',
     tools: chatTools,
