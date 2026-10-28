@@ -89,14 +89,14 @@ export const mcpSource: McpSource = {
     return agentDatabase.describeTable(args)
   },
   execute: async ({ approve, ...statement }, onAbort) => {
-    const { connection, params, resource, run } =
+    const { connection, estimate, resource, run } =
       await agentDatabase.prepareWrite(statement)
     await assertQuota()
     const signal = getAbortSignal(onAbort)
     if (approve) {
       await approval.request({
         connection,
-        params,
+        estimate,
         resourceName: resource?.name ?? null,
         signal,
         sql: statement.sql,

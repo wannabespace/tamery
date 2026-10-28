@@ -8,10 +8,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
+import { agentDatabase } from '~/core/agent/database'
+import { WriteEstimate } from '~/core/agent/write-estimate'
 import type { Connection } from '~/core/connection/sync'
 import { getQueryLanguage } from '~/core/runtime/language'
+import { queryClient } from '~/lib/query-client'
 
 import type { ToolPartActions } from './chat-tool-part'
 
@@ -29,14 +32,32 @@ export const WriteApproval = ({
   const destroys = connection
     ? getQueryLanguage(getDialect(connection.type)).destructive(input.sql)
     : []
+  const estimateKey = ['agent-estimate', toolCallId]
+  const estimate = useQuery({
+    queryFn: async ({ signal }) => {
+      const write = await agentDatabase.prepareWrite(input)
+      return write.estimate(signal)
+    },
+    queryKey: estimateKey,
+    retry: false,
+    staleTime: Infinity,
+  })
   const run = useMutation({
     meta: { event: 'ai_chat_write_run' },
-    mutationFn: () => decideWrite({ approved: true, input, toolCallId }),
+    mutationFn: async () => {
+      await queryClient.cancelQueries({ queryKey: estimateKey })
+      return decideWrite({ approved: true, input, toolCallId })
+    },
   })
 
   return (
     <div className="bg-background ring-foreground/4 flex flex-col gap-2 rounded-xl p-2 ring">
       <ResponseCodeBlock code={input.sql} language="sql" />
+      {typeof estimate.data === 'number' && (
+        <div className="pl-1">
+          <WriteEstimate rows={estimate.data} />
+        </div>
+      )}
       <div className="flex items-center gap-1.5">
         <span className="text-muted-foreground mr-auto pl-1 text-xs">
           Runs on <span data-mask>{connection?.name}</span> once you approve

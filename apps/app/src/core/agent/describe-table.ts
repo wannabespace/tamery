@@ -1,18 +1,17 @@
-import type { McpTarget } from '@tamery/shared/mcp'
-
 import { resourceConstraintsQueryOptions } from '~/core/queries/constraints/list'
 import { findEnum, resourceEnumsQueryOptions } from '~/core/queries/enums/list'
 import { resourceIndexesQueryOptions } from '~/core/queries/indexes/list'
 import { resourceTableColumnsQueryOptions } from '~/core/queries/tables/columns'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 
+import type { AgentTarget } from './target'
 import { fetchForAgent, resolveResource } from './target'
 
 export const describeTable = async ({
   schema,
   table,
   ...target
-}: McpTarget & { schema: string; table: string }) => {
+}: AgentTarget & { schema: string; table: string }) => {
   const { resource: connectionResource } = resolveResource(target)
   const inTable = (row: { schema: string; table: string }) =>
     row.schema === schema && row.table === table

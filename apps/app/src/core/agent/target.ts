@@ -1,5 +1,3 @@
-import type { McpTarget } from '@tamery/shared/mcp'
-
 import { getCollections } from '~/core/collections'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import { getConnectionStore } from '~/core/connection/stores'
@@ -7,6 +5,12 @@ import type { Connection } from '~/core/connection/sync'
 import { queryClient } from '~/lib/query-client'
 
 const AGENT_STALE_TIME = 5000
+
+/** MCP leaves `resource` out, the chat's tools send null: both mean the connection's own database. */
+export interface AgentTarget {
+  connectionId: string
+  resource?: string | null
+}
 
 export const fetchForAgent: typeof queryClient.query = (options) =>
   queryClient.query({ ...options, staleTime: AGENT_STALE_TIME })
@@ -28,7 +32,7 @@ const openResources = (connection: Connection) => {
 export const resolveTarget = ({
   connectionId,
   resource: resourceName,
-}: McpTarget) => {
+}: AgentTarget) => {
   const {
     connectionStringsCollection,
     connectionsCollection,
@@ -63,7 +67,7 @@ export const resolveTarget = ({
   return { connection, resource }
 }
 
-export const resolveResource = (target: McpTarget) => {
+export const resolveResource = (target: AgentTarget) => {
   const { connection, resource } = resolveTarget(target)
   if (!resource) {
     throw new Error(

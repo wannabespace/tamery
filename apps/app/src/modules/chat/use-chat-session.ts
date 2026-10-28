@@ -28,10 +28,7 @@ const mentionPart = async (
     return { data: mention.connection, type: 'data-connection' }
   }
   const definition = await Result.tryPromise(() =>
-    agentDatabase.describeTable({
-      ...mention.table,
-      resource: mention.table.resource ?? undefined,
-    })
+    agentDatabase.describeTable(mention.table)
   )
   return {
     data: { ...mention.table, definition: definition.unwrapOr(null) },

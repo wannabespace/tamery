@@ -1,35 +1,29 @@
-import { getDialect } from '@tamery/shared/enums/connection-type'
-import { silently } from '@tamery/shared/utils'
 import { createStore } from 'seitu'
 
 import type { Connection } from '~/core/connection/sync'
-import { estimateQuery } from '~/core/queries/connection/estimate'
-import type { QueryParams } from '~/core/runtime/query'
 import { notifications } from '~/lib/notifications'
 import { posthog } from '~/lib/posthog'
 
 interface Approval {
   connection: Connection
   decide: (approved: boolean) => void
-  estimate?: number
+  estimate: number | null
   id: string
   resourceName: string | null
   sql: string
 }
 
-const ESTIMATE_BUDGET_MS = 3000
-
 const store = createStore<{ pending: Approval[] }>({ pending: [] })
 
 const request = async ({
   connection,
-  params,
+  estimate,
   resourceName,
   signal,
   sql,
 }: {
   connection: Connection
-  params: QueryParams
+  estimate: (signal: AbortSignal) => Promise<number | null>
   resourceName: string | null
   signal: AbortSignal
   sql: string
@@ -37,22 +31,16 @@ const request = async ({
   signal.throwIfAborted()
   const id = crypto.randomUUID()
   const decided = new AbortController()
-  const estimating = AbortSignal.any([
-    signal,
-    decided.signal,
-    AbortSignal.timeout(ESTIMATE_BUDGET_MS),
-  ])
-  const estimate = estimateQuery(sql, getDialect(connection.type))
-  const estimated = silently(async () => {
-    const rows = await estimate?.run({ ...params, signal: estimating })
-    if (typeof rows === 'number') {
+  const estimated = estimate(AbortSignal.any([signal, decided.signal])).then(
+    (rows) => {
       store.set(({ pending }) => ({
         pending: pending.map((item) =>
           item.id === id ? { ...item, estimate: rows } : item
         ),
       }))
+      return rows
     }
-  })
+  )
 
   const decision = Promise.withResolvers<boolean>()
   signal.addEventListener(
@@ -63,7 +51,14 @@ const request = async ({
   store.set(({ pending }) => ({
     pending: [
       ...pending,
-      { connection, decide: decision.resolve, id, resourceName, sql },
+      {
+        connection,
+        decide: decision.resolve,
+        estimate: null,
+        id,
+        resourceName,
+        sql,
+      },
     ],
   }))
   notifications.notify({
@@ -76,7 +71,6 @@ const request = async ({
     posthog.capture('mcp_write_reviewed', {
       approved,
       connection_type: connection.type,
-      estimated: !!estimate,
     })
     if (!approved) {
       throw new Error('The user declined to run this statement.')

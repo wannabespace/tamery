@@ -1,10 +1,11 @@
 import { getDialect } from '@tamery/shared/enums/connection-type'
-import type { McpTarget } from '@tamery/shared/mcp'
 import { MCP_MAX_ROWS } from '@tamery/shared/mcp'
+import { Result } from 'better-result'
 
 import { getCollections } from '~/core/collections'
 import { refreshAfterRun } from '~/core/connection/refresh-after-run'
 import type { Connection, ConnectionResource } from '~/core/connection/sync'
+import { estimateQuery } from '~/core/queries/connection/estimate'
 import { statementQuery } from '~/core/queries/connection/statement'
 import { transactionQuery } from '~/core/queries/connection/transaction'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
@@ -15,6 +16,7 @@ import {
 } from '~/core/runtime/query'
 
 import { describeTable } from './describe-table'
+import type { AgentTarget } from './target'
 import {
   fetchForAgent,
   getResources,
@@ -22,9 +24,11 @@ import {
   resolveTarget,
 } from './target'
 
-type Statement = McpTarget & { sql: string }
+type Statement = AgentTarget & { sql: string }
 
-const paramsOf = async (
+const ESTIMATE_BUDGET_MS = 3000
+
+const getQueryParams = async (
   connection: Connection,
   resource: ConnectionResource | undefined
 ) => ({
@@ -54,7 +58,7 @@ export const agentDatabase = {
         'Only one read-only statement (SELECT, WITH, SHOW, DESCRIBE, EXPLAIN, or a MongoDB find, aggregate, count or distinct) runs at a time.'
       )
     }
-    const params = await paramsOf(connection, resource)
+    const params = await getQueryParams(connection, resource)
     return {
       connection,
       run: (signal: AbortSignal) =>
@@ -73,10 +77,24 @@ export const agentDatabase = {
         'Run one statement at a time, or wrap several in BEGIN … COMMIT to run them together (on Oracle, in one BEGIN … END; block; not on ClickHouse, which has no transactions).'
       )
     }
-    const params = await paramsOf(connection, resource)
+    const params = await getQueryParams(connection, resource)
+    const estimator = estimateQuery(sql, dialect)
     return {
       connection,
-      params,
+      /** Rows the planner expects the statement to change, or null when the engine or statement has none or the planner is slow. The pool holds one connection, so settle it before `run`. */
+      estimate: async (signal: AbortSignal) => {
+        const rows = await Result.tryPromise(
+          async () =>
+            (await estimator?.run({
+              ...params,
+              signal: AbortSignal.any([
+                signal,
+                AbortSignal.timeout(ESTIMATE_BUDGET_MS),
+              ]),
+            })) ?? null
+        )
+        return rows.unwrapOr(null)
+      },
       resource,
       run: async (signal: AbortSignal) => {
         const sets = await statementQuery(sql, dialect).run({
@@ -90,7 +108,10 @@ export const agentDatabase = {
       },
     }
   },
-  tables: async ({ schema, ...target }: McpTarget & { schema?: string }) => {
+  tables: async ({
+    schema,
+    ...target
+  }: AgentTarget & { schema?: string | null }) => {
     const { connection, resource } = resolveResource(target)
     const { schemas } = await fetchForAgent(
       resourceTablesAndSchemasQueryOptions({ connectionResource: resource })

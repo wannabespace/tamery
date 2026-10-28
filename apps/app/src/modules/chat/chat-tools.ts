@@ -46,11 +46,6 @@ const jsonValue = (_key: string, value: unknown) => {
 const toJsonSets = (sets: ResultSet[]) =>
   resultSetsType.assert(JSON.parse(JSON.stringify(sets, jsonValue)))
 
-const targetOf = <T extends { resource: string | null }>({
-  resource,
-  ...input
-}: T) => ({ ...input, resource: resource ?? undefined })
-
 const answer = async (
   chat: AppChat,
   { toolCallId, ...toolCall }: ToolCall,
@@ -58,7 +53,7 @@ const answer = async (
 ) => {
   switch (toolCall.toolName) {
     case 'describe_table': {
-      const output = await agentDatabase.describeTable(targetOf(toolCall.input))
+      const output = await agentDatabase.describeTable(toolCall.input)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
     case 'list_connections': {
@@ -66,10 +61,7 @@ const answer = async (
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
     case 'list_tables': {
-      const { schemas } = await agentDatabase.tables({
-        ...targetOf(toolCall.input),
-        schema: toolCall.input.schema ?? undefined,
-      })
+      const { schemas } = await agentDatabase.tables(toolCall.input)
       return chat.addToolOutput({
         output: { schemas },
         tool: toolCall.toolName,
@@ -77,7 +69,7 @@ const answer = async (
       })
     }
     case 'query': {
-      const { run } = await agentDatabase.prepareRead(targetOf(toolCall.input))
+      const { run } = await agentDatabase.prepareRead(toolCall.input)
       const output = toJsonSets(await run(signal))
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
@@ -137,7 +129,7 @@ export const chatToolRuns = {
       return
     }
     const result = await Result.tryPromise(async () => {
-      const { run } = await agentDatabase.prepareWrite(targetOf(input))
+      const { run } = await agentDatabase.prepareWrite(input)
       return toJsonSets(await run(signalOf(chat.id)))
     })
     if (result.isErr()) {
