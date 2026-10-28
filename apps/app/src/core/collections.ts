@@ -12,6 +12,7 @@ import {
   createConnectionsCollection,
   createConnectionsResourcesCollection,
 } from '~/core/connection/sync'
+import { createSchemaNotesCollection } from '~/core/schema-notes/sync'
 import { createWorkspacesCollection } from '~/core/workspace/sync'
 import {
   createChatsCollection,
@@ -37,6 +38,7 @@ const createCollections = () => {
     ),
     connectionsResourcesCollection,
     queriesCollection: createQueriesCollection(),
+    schemaNotesCollection: createSchemaNotesCollection(),
     workspacesCollection: createWorkspacesCollection(),
   }
 }

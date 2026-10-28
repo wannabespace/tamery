@@ -152,7 +152,11 @@ export const Runner = () => {
   const running = lastRun?.running ?? false
   const statements = runnerStatements({ ...tab, dialect })
   const language = getQueryLanguage(dialect)
-  const aiEdit = useAiEdit({ connectionType: connection.type, editorRef })
+  const aiEdit = useAiEdit({
+    connectionResourceId: connectionResource.id,
+    connectionType: connection.type,
+    editorRef,
+  })
 
   const current = (): {
     statements: RunnerStatement[]

@@ -4,7 +4,12 @@ import type { AppUIMessage } from '@tamery/ai/message'
 import { messagesFromPartRows } from '@tamery/ai/message'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
-import { chats, chatsMessages, chatsMessagesParts } from '@tamery/db/schema'
+import {
+  chats,
+  chatsMessages,
+  chatsMessagesParts,
+  schemaNotes,
+} from '@tamery/db/schema'
 import { silently } from '@tamery/shared/utils'
 import { isDeepEqualData, isToolUIPart } from 'ai'
 import { and, asc, eq, isNull } from 'drizzle-orm'
@@ -32,7 +37,21 @@ export const chatPersist = {
         message: 'Connection resource not found',
       })
     }
-    return { ...resource.connection, resource: resource.name }
+    const notes = await db
+      .select({
+        column: schemaNotes.column,
+        note: schemaNotes.note,
+        schema: schemaNotes.schema,
+        table: schemaNotes.table,
+      })
+      .from(schemaNotes)
+      .where(
+        and(
+          eq(schemaNotes.connectionResourceId, data.connectionResourceId),
+          eq(schemaNotes.userId, data.userId)
+        )
+      )
+    return { ...resource.connection, notes, resource: resource.name }
   },
   deleteMessage: async (data: {
     chatId: string

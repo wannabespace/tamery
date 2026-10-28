@@ -36,6 +36,7 @@ const runStep = async (
     connection: {
       id: evalCase.engine,
       name: CONNECTION_NAMES[evalCase.engine],
+      notes: [],
       resource: 'shop',
       type: evalCase.engine,
     },

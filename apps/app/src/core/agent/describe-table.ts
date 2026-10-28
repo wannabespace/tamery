@@ -1,3 +1,4 @@
+import { getCollections } from '~/core/collections'
 import { resourceConstraintsQueryOptions } from '~/core/queries/constraints/list'
 import { findEnum, resourceEnumsQueryOptions } from '~/core/queries/enums/list'
 import { resourceIndexesQueryOptions } from '~/core/queries/indexes/list'
@@ -69,6 +70,13 @@ export const describeTable = async ({
         type: first?.type,
       }
     }),
+    notes: getCollections().schemaNotesCollection.toArray.flatMap((note) =>
+      note.connectionResourceId === connectionResource.id &&
+      note.schema === schema &&
+      note.table === table
+        ? [{ column: note.column, note: note.note }]
+        : []
+    ),
     indexes: [...Map.groupBy(indexes.filter(inTable), (row) => row.name)].map(
       ([name, group]) => {
         const [first] = group

@@ -74,6 +74,18 @@ export const chatTools = {
     outputSchema: type.unknown,
     toModelOutput: asDatabaseData,
   }),
+  propose_note: tool({
+    description:
+      'Propose a note about the database for the user to keep: a fact its schema does not say, learned from the data or the user, e.g. "amounts are in cents" or "status 3 means refunded". It is about the whole database (schema and table null), a table (column null) or one column. Nothing is saved unless the user saves it, possibly edited; the output says whether they did and the text they kept. Never propose what the schema already says.',
+    inputSchema: type({
+      '...': target,
+      column: 'string | null',
+      note: 'string',
+      schema: 'string | null',
+      table: 'string | null',
+    }),
+    outputSchema: type({ note: 'string | null', saved: 'boolean' }),
+  }),
   query: tool({
     description: `Run one read-only SQL statement in the connection's own dialect; statements that write are rejected. ${MCP_RESULT_LIMITS} The user sees the rows as a table under your call, so never repeat them in your answer.`,
     inputSchema: statement,

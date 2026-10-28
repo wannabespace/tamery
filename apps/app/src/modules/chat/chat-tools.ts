@@ -15,13 +15,32 @@ type AnyToolCall = Parameters<
 >[0]['toolCall']
 type ToolCall = Exclude<
   AnyToolCall,
-  { dynamic: true } | { toolName: 'execute' }
+  { dynamic: true } | { toolName: 'execute' } | { toolName: 'propose_note' }
 >
 
 const DECLINED = 'The user declined to run this statement.'
 
 const runs = new Map<string, AbortController>()
 const decided = new Set<string>()
+
+/** A call is decided once per window: a second press, or a card remounted mid-run (agent mode, a chat switch), is ignored. A chat reopened from the collections holds no live turns, and `addToolOutput` only finds a call among those, so the transcript is seeded first. */
+const claimDecision = (
+  chat: AppChat,
+  toolCallId: string,
+  transcript: AppUIMessage[]
+) => {
+  if (decided.has(toolCallId)) {
+    return false
+  }
+  decided.add(toolCallId)
+  const isLive = chat.messages.some(({ parts }) =>
+    parts.some((part) => isToolUIPart(part) && part.toolCallId === toolCallId)
+  )
+  if (!isLive) {
+    chat.messages = transcript
+  }
+  return true
+}
 
 const getSignal = (chatId: string) => {
   const running = runs.get(chatId)
@@ -93,14 +112,37 @@ const read = async (chat: AppChat, toolCall: ToolCall) => {
 }
 
 export const chatToolRuns = {
-  /** Answers the model's tool calls in the window. Only reads run on their own: an `execute` waits for the user's Run on its card, whatever the transcript or the data it read says. */
+  /** Answers the model's tool calls in the window. Only reads run on their own: an `execute` waits for the user's Run on its card and a `propose_note` for Save, whatever the transcript or the data it read says. */
   answer: (chat: AppChat, toolCall: AnyToolCall) => {
-    if (!toolCall.dynamic && toolCall.toolName !== 'execute') {
+    if (
+      !toolCall.dynamic &&
+      toolCall.toolName !== 'execute' &&
+      toolCall.toolName !== 'propose_note'
+    ) {
       void read(chat, toolCall)
     }
   },
+  /** The card saves the note itself; this tells the model what the user kept. */
+  note: ({
+    chat,
+    kept,
+    toolCallId,
+    transcript,
+  }: {
+    chat: AppChat
+    kept: string | null
+    toolCallId: string
+    transcript: AppUIMessage[]
+  }) => {
+    if (claimDecision(chat, toolCallId, transcript)) {
+      void chat.addToolOutput({
+        output: { note: kept, saved: kept !== null },
+        tool: 'propose_note',
+        toolCallId,
+      })
+    }
+  },
   stop: (chatId: string) => runs.get(chatId)?.abort(),
-  /** Decides a pending `execute` once per window: a second press, or a card remounted mid-run (agent mode, a chat switch), is ignored. A chat reopened from the collections holds no live turns, and `addToolOutput` only finds a call among those, so the transcript is seeded first. */
   write: async ({
     approved,
     chat,
@@ -114,15 +156,8 @@ export const chatToolRuns = {
     toolCallId: string
     transcript: AppUIMessage[]
   }) => {
-    if (decided.has(toolCallId)) {
+    if (!claimDecision(chat, toolCallId, transcript)) {
       return
-    }
-    decided.add(toolCallId)
-    const isLive = chat.messages.some(({ parts }) =>
-      parts.some((part) => isToolUIPart(part) && part.toolCallId === toolCallId)
-    )
-    if (!isLive) {
-      chat.messages = transcript
     }
     if (!approved) {
       void chat.addToolOutput({

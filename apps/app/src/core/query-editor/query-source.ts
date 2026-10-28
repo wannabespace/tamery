@@ -1,3 +1,4 @@
+import { AI_QUERY_LIMITS } from '@tamery/ai/limits'
 import type { QuerySource, TableRef } from '@tamery/monaco/query-language'
 import {
   attachGhostTextEscape,
@@ -20,6 +21,7 @@ import type { ConnectionResource } from '~/core/connection/sync'
 import { resourceEnumsQueryOptions } from '~/core/queries/enums/list'
 import { resourceTableColumnsQueryOptions } from '~/core/queries/tables/columns'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
+import { schemaNotes } from '~/core/schema-notes/notes'
 import { permix } from '~/core/user/permissions'
 import { orpc } from '~/lib/orpc'
 import { queryClient } from '~/lib/query-client'
@@ -114,7 +116,13 @@ const querySourceFor = (
     catalog,
     complete: (input, signal) =>
       orpc.ai.completeQuery.call(
-        { ...input, type: connectionType },
+        {
+          ...input,
+          context: schemaNotes
+            .inContext(input.context, connectionResource.id)
+            .slice(0, AI_QUERY_LIMITS.context),
+          type: connectionType,
+        },
         { context: { silent: true }, signal }
       ),
     dialect,

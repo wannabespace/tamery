@@ -108,22 +108,37 @@ export const useChatSession = ({
 
   return {
     chatHistory,
-    decideWrite: ({
-      approved,
-      input,
-      toolCallId,
-    }: {
-      approved: boolean
-      input: ChatTools['execute']['input']
-      toolCallId: string
-    }) =>
-      chatToolRuns.write({
+    decide: {
+      note: ({
+        kept,
+        toolCallId,
+      }: {
+        kept: string | null
+        toolCallId: string
+      }) =>
+        chatToolRuns.note({
+          chat: instance,
+          kept,
+          toolCallId,
+          transcript: displayMessages,
+        }),
+      write: ({
         approved,
-        chat: instance,
         input,
         toolCallId,
-        transcript: displayMessages,
-      }),
+      }: {
+        approved: boolean
+        input: ChatTools['execute']['input']
+        toolCallId: string
+      }) =>
+        chatToolRuns.write({
+          approved,
+          chat: instance,
+          input,
+          toolCallId,
+          transcript: displayMessages,
+        }),
+    },
     error,
     isPaused:
       status === 'ready' &&

@@ -28,13 +28,13 @@ const ChatEmpty = () => (
 
 export const ChatMessages = ({
   className,
-  decideWrite,
+  decide,
   isPending,
   messages,
 }: {
   /** Layout of the message column, e.g. a centered width on a full page. */
   className?: string
-  decideWrite?: ToolPartActions['decideWrite']
+  decide?: ToolPartActions['decide']
   isPending: boolean
   messages: AppUIMessage[]
 }) => {
@@ -72,7 +72,7 @@ export const ChatMessages = ({
                           part={part}
                           actions={
                             message === messages.at(-1)
-                              ? { decideWrite, isLast: true }
+                              ? { decide, isLast: true }
                               : { isLast: false }
                           }
                         />

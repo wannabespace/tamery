@@ -26,6 +26,14 @@ A statement that changes data or schema never runs on its own. The chat shows it
 
 Click **Agent** in the title bar, or press **Cmd+Shift+L** (**Ctrl+Shift+L**), to turn the whole connection into the chat. The Navigator lists the connection's chats, the tabs become your open chats, and the chat takes the full width. Click **Agent** again to go back to your tables.
 
+## Schema notes
+
+Notes tell the AI what your schema doesn't: "amounts are in cents", "status 3 means refunded", "use `orders_v2`, not `orders`". A note can be about the whole database, a table or one column. Every AI feature that works with that database reads them: the chat, **Ask AI** filters, and the Query editor's completions, edits and fixes.
+
+When the agent learns something like this, it proposes a note. Edit the text if you like, then **Save** or **Dismiss**; nothing is kept until you save it. To add, edit or delete notes yourself, click a table in the [Schema visualizer](/features/schema-visualizer) and use **Notes** in its panel.
+
+Notes sync to your other devices with the connection and are stored encrypted.
+
 ## Mentions and commands
 
 Type **@** in the message box to mention:

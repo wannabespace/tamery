@@ -24,7 +24,7 @@ export const ChatConversation = ({
     <>
       <ChatMessages
         className={column}
-        decideWrite={session.isReady ? session.decideWrite : undefined}
+        decide={session.isReady ? session.decide : undefined}
         isPending={session.isStreaming}
         messages={session.messages}
       />

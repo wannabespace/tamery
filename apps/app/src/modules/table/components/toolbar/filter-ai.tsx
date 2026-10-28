@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { useConnectionContext } from '~/core/connection/route'
 import { resourceEnumsQueryOptions } from '~/core/queries/enums/list'
+import { schemaNotes } from '~/core/schema-notes/notes'
 import { checkOrUpgrade, usePermissions } from '~/core/user/permissions'
 import { usageQueryOptions } from '~/core/user/usage'
 import { orpc } from '~/lib/orpc'
@@ -175,7 +176,10 @@ export const useFilterAi = ({
           )}
           Enums: ${JSON.stringify(enums, null, 2)}
         `.trim()
-        generateFilter({ context, prompt })
+        generateFilter({
+          context: schemaNotes.inContext(context, connectionResource.id),
+          prompt,
+        })
       }
     },
     canAsk,

@@ -26,7 +26,7 @@ export const WriteApproval = ({
   toolCallId,
 }: {
   connection: Connection | undefined
-  decideWrite: NonNullable<ToolPartActions['decideWrite']>
+  decideWrite: NonNullable<ToolPartActions['decide']>['write']
   input: ChatTools['execute']['input']
   toolCallId: string
 }) => {

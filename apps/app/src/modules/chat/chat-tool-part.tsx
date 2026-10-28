@@ -1,12 +1,12 @@
 import {
   DatabaseIcon,
+  NoteIcon,
   PencilEdit02Icon,
   Search01Icon,
   Wrench01Icon,
 } from '@hugeicons/core-free-icons'
 import type { AppUIMessage } from '@tamery/ai/message'
-import type { ChatTools } from '@tamery/ai/tools'
-import { ResponseCodeBlock } from '@tamery/ui/components/response'
+import { Response, ResponseCodeBlock } from '@tamery/ui/components/response'
 import { Spinner } from '@tamery/ui/components/spinner'
 import type { ToolUIPart } from 'ai'
 
@@ -14,18 +14,16 @@ import { tableTypeIcon } from '~/core/catalog/table-type'
 import { useCollections } from '~/core/collections'
 
 import { ChatDisclosure } from './chat-disclosure'
+import { NoteProposal } from './note-proposal'
 import { ToolResult } from './tool-result'
+import type { ChatSession } from './use-chat-session'
 import { WriteApproval } from './write-approval'
 
 type ChatToolPart = Extract<AppUIMessage['parts'][number], ToolUIPart>
 
 export interface ToolPartActions {
-  /** Set only while a pending change may still be decided: on the last turn, with nothing streaming. */
-  decideWrite?: (decision: {
-    approved: boolean
-    input: ChatTools['execute']['input']
-    toolCallId: string
-  }) => Promise<void>
+  /** Set only while a pending change or note may still be decided: on the last turn, with nothing streaming. */
+  decide?: ChatSession['decide']
   /** On the last turn a pending call is still running; on an earlier one it never ran. */
   isLast: boolean
 }
@@ -114,7 +112,7 @@ const StatementPart = ({
   const awaitsApproval =
     part.type === 'tool-execute' &&
     part.state === 'input-available' &&
-    !!actions.decideWrite
+    !!actions.decide
 
   return (
     <div className="flex flex-col gap-2">
@@ -142,10 +140,10 @@ const StatementPart = ({
           <ResponseCodeBlock code={part.errorText} language="text" />
         )}
       </ChatDisclosure>
-      {awaitsApproval && actions.decideWrite && (
+      {awaitsApproval && actions.decide && (
         <WriteApproval
           connection={connection}
-          decideWrite={actions.decideWrite}
+          decideWrite={actions.decide.write}
           input={part.input}
           toolCallId={part.toolCallId}
         />
@@ -161,6 +159,41 @@ const StatementPart = ({
   )
 }
 
+const NotePart = ({
+  actions,
+  part,
+}: {
+  actions: ToolPartActions
+  part: Extract<ChatToolPart, { type: 'tool-propose_note' }>
+}) => {
+  const awaitsDecision = part.state === 'input-available' && !!actions.decide
+
+  return (
+    <div className="flex flex-col gap-2">
+      <ChatDisclosure
+        icon={NoteIcon}
+        label={part.output?.saved ? 'Saved a note' : 'Proposed a note'}
+        status={
+          awaitsDecision ? (
+            <span className="text-warning">Needs review</span>
+          ) : (
+            getStatus(part, actions.isLast)
+          )
+        }
+      >
+        <Response>{part.output?.note ?? part.input?.note ?? ''}</Response>
+      </ChatDisclosure>
+      {awaitsDecision && actions.decide && (
+        <NoteProposal
+          decideNote={actions.decide.note}
+          input={part.input}
+          toolCallId={part.toolCallId}
+        />
+      )}
+    </div>
+  )
+}
+
 export const ToolPart = ({
   actions,
   part,
@@ -170,6 +203,9 @@ export const ToolPart = ({
 }) => {
   if (part.type === 'tool-execute' || part.type === 'tool-query') {
     return <StatementPart actions={actions} part={part} />
+  }
+  if (part.type === 'tool-propose_note') {
+    return <NotePart actions={actions} part={part} />
   }
 
   return (

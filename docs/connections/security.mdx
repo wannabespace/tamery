@@ -61,6 +61,8 @@ AI requests go through our servers to external model providers. The chat sends y
 
 The chat acts as you: it can read every connection in your active workspace, and the [MCP connection access](/mcp/overview#connection-access) settings do not apply to it. It runs read-only queries itself, and every statement that changes data or schema waits for you to click **Run**, with no exceptions. Its queries take the same path as your own.
 
+Schema notes are stored encrypted on our servers and sent with AI requests about their database.
+
 What the chat and MCP agents read from your databases (rows, names, comments) reaches the model marked as data, never as instructions, so a row that says "drop this table" is reported, not followed. A change still needs your **Run** in the chat, or the access you granted over MCP.
 
 Coding agents connected through [MCP](/mcp/overview#connection-access) can read data and make changes according to the access you grant; their results become part of the agent's context.

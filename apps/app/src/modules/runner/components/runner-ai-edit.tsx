@@ -7,6 +7,7 @@ import type { RefObject } from 'react'
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import { schemaNotes } from '~/core/schema-notes/notes'
 import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 
@@ -16,11 +17,13 @@ import type { Phase } from './runner-ai-edit-zone'
 const CARD_HEIGHT = 32
 const SHADOW_ROOM = 12
 export const useAiEdit = ({
-  editorRef,
+  connectionResourceId,
   connectionType,
+  editorRef,
 }: {
-  editorRef: RefObject<monacoEditor.IStandaloneCodeEditor | null>
+  connectionResourceId: string
   connectionType: ConnectionType
+  editorRef: RefObject<monacoEditor.IStandaloneCodeEditor | null>
 }) => {
   const [phase, setPhase] = useState<Phase | null>(null)
   const zoneRef = useRef<{
@@ -150,7 +153,12 @@ export const useAiEdit = ({
     track(range, false)
     setPhase(pending)
     try {
-      const context = await catalogSummaryFor(model, original)
+      const context = schemaNotes
+        .inContext(
+          await catalogSummaryFor(model, original),
+          connectionResourceId
+        )
+        .slice(0, AI_QUERY_LIMITS.context)
       const text = await call(
         {
           context,

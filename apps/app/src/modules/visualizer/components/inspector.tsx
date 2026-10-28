@@ -37,6 +37,7 @@ import {
   useHoverRelation,
 } from './inspector-sections'
 import { columnMenu, tableMenu } from './menus'
+import { NotesSection } from './notes-section'
 import { draftStateClass } from './table-node'
 
 const noFilters: never[] = []
@@ -218,6 +219,7 @@ const Inspector = ({
             {table.columns.length === 0 && <EmptyRow>No columns yet</EmptyRow>}
           </List>
         </Section>
+        <NotesSection table={table} />
         <RelationsSection table={table} />
         <DefinitionsSections
           indexes={indexes}

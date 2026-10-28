@@ -46,6 +46,7 @@ One folder per domain; a file goes in the domain it is about, never in a technic
 | `queries/<subject>/` | One file per catalog or row statement (see below) |
 | `tabs/` | Tab ids, kind resolution, open/close/rename actions, the tab refresh button |
 | `agent/` | What an agent does to the user's databases, shared by MCP and the chat: resolving a connection and resource from a target, describing a table, `agentDatabase` (list, describe, `prepareRead`/`prepareWrite` that check a statement before anything runs, and the write's row estimate both approvals show); every result an agent gets back goes through `toToolOutput` (`@tamery/shared/tool-output`, shared with the agent eval), which caps it to JSON within `MCP_CELL_BYTES` per value and `MCP_RESULT_BYTES` per result and marks each cut `truncated` |
+| `schema-notes/` | The schema notes collection and every write to it (`schemaNotes`), and the notes section a prompt context gets |
 | `table/` | Data-grid cells, the table session store, the table and column forms, the read-only results grid the runner and the chat share |
 | `drafts/` | The staged-changes review drawer and discard button the table and visualizer share |
 | `transformers/` | Per-type value display and parsing |
