@@ -1,9 +1,10 @@
 import { chatStream } from '@tamery/ai/features'
+import { AGENT_LIMITS } from '@tamery/ai/limits'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
+import { aiUsage, isAgentDayLimitReached } from '~/lib/ai-usage'
 import { chatPersist } from '~/lib/chat-persist'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
@@ -36,12 +37,22 @@ export const attachStream = orpc
       return
     }
 
+    if (
+      await isAgentDayLimitReached({
+        plan: context.plan,
+        userId: context.user.id,
+      })
+    ) {
+      return
+    }
+
     const restarted = await chatStream.claim({
       chatId: input.chatId,
       connection: await chatPersist.connection({
         connectionResourceId: owned.connectionResourceId,
         userId: context.user.id,
       }),
+      limits: AGENT_LIMITS[context.plan].message,
       messages,
       onFinish: (message) =>
         chatPersist.persistMessage({

@@ -1,10 +1,11 @@
 import { chatStream } from '@tamery/ai/features'
+import { AGENT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
 import { AiFeature } from '@tamery/ai/usage'
 import { validateUIMessages } from 'ai'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
+import { aiUsage, isAgentDayLimitReached } from '~/lib/ai-usage'
 import { chatPersist } from '~/lib/chat-persist'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
@@ -21,6 +22,10 @@ export const stream = orpc
   .errors({
     BAD_REQUEST: { message: 'Invalid messages' },
     CONFLICT: { message: 'This chat is already generating an answer.' },
+    TOO_MANY_REQUESTS: {
+      message:
+        "The agent has reached today's limit for your plan. It frees up over the next 24 hours.",
+    },
   })
   .handler(async function* streamHandler({ context, errors, input }) {
     const messages = await validateUIMessages<AppUIMessage>({
@@ -32,6 +37,15 @@ export const stream = orpc
     const turn = messages.at(-1)
     if (!turn || turn.role === 'system') {
       throw errors.BAD_REQUEST()
+    }
+
+    if (
+      await isAgentDayLimitReached({
+        plan: context.plan,
+        userId: context.user.id,
+      })
+    ) {
+      throw errors.TOO_MANY_REQUESTS()
     }
 
     const { connection, title } = await chatPersist.ensureChat({
@@ -76,6 +90,7 @@ export const stream = orpc
     const str = await chatStream.claim({
       chatId: input.chatId,
       connection,
+      limits: AGENT_LIMITS[context.plan].message,
       messages: history,
       onFinish: (message) =>
         chatPersist.persistMessage({

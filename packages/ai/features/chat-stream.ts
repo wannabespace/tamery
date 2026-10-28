@@ -7,7 +7,7 @@ import { createClient } from 'redis'
 import { v7 } from 'uuid'
 
 import { env } from '../env'
-import { CHAT_TURN_LIMITS } from '../limits'
+import type { AGENT_LIMITS } from '../limits'
 import type { AppUIMessage } from '../message'
 import { models } from '../models/list'
 import type { ChatDataParts } from '../tools'
@@ -69,6 +69,7 @@ const resumable = createResumableUIMessageStream({
 interface ChatStreamInput {
   chatId: string
   connection: ChatConnection
+  limits: (typeof AGENT_LIMITS)[keyof typeof AGENT_LIMITS]['message']
   messages: AppUIMessage[]
   onFinish: (message: AppUIMessage) => Promise<void>
   telemetry?: TelemetryOptions
@@ -87,9 +88,9 @@ export const chatStream = {
       const continued = answer?.role === 'assistant' ? answer : null
       const tokens = continued?.metadata?.tokens ?? 0
       const capped =
-        tokens >= CHAT_TURN_LIMITS.tokens ||
+        tokens >= data.limits.tokens ||
         (continued?.parts ?? []).filter((part) => part.type === 'step-start')
-          .length >= CHAT_TURN_LIMITS.steps
+          .length >= data.limits.steps
 
       const result = streamText({
         abortSignal: abortController.signal,

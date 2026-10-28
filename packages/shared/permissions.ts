@@ -17,15 +17,24 @@ export type Permissions = {
   workspace: ['create']
 }
 
-export const getPermissions = ({
-  subscription,
-  user,
-}: {
+interface PlanInput {
   subscription: { plan: 'pro' } | null
   user: { isAnonymous?: boolean | null }
-}): Rules<Permissions> => {
-  const member = !user.isAnonymous
-  const pro = member && !!subscription
+}
+
+export type Plan = 'guest' | 'free' | 'pro'
+
+export const getPlan = ({ subscription, user }: PlanInput): Plan => {
+  if (user.isAnonymous) {
+    return 'guest'
+  }
+  return subscription ? 'pro' : 'free'
+}
+
+export const getPermissions = (input: PlanInput): Rules<Permissions> => {
+  const plan = getPlan(input)
+  const member = plan !== 'guest'
+  const pro = plan === 'pro'
 
   return {
     ai: {
