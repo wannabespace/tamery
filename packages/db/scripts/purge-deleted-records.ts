@@ -12,8 +12,8 @@ const db = drizzle(DATABASE_URL)
 
 const purged = await db
   .delete(deletedRecords)
-  .where(lt(deletedRecords.deletedAt, sql`now() - interval '30 days'`))
+  .where(lt(deletedRecords.deletedAt, sql`now() - interval '90 days'`))
   .returning({ recordId: deletedRecords.recordId })
 
-console.log(`Purged ${purged.length} deleted records older than 30 days.`)
+console.log(`Purged ${purged.length} deleted records older than 90 days.`)
 await db.$client.end()
