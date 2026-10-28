@@ -1,7 +1,8 @@
 import { connectionSecrets } from '@tamery/connection/secrets'
 import { resourceConnectionString } from '@tamery/connection/utils'
 import { CONNECTION_RESOURCE_ROOT_SYMBOL } from '@tamery/shared/constants'
-import { canEditWorkspace } from '@tamery/shared/workspace'
+import { pick } from '@tamery/shared/utils'
+import { EDITOR_ROLES } from '@tamery/shared/workspace'
 import { Button } from '@tamery/ui/components/button'
 import { HighlightText } from '@tamery/ui/components/custom/highlight'
 import { copy } from '@tamery/ui/lib/copy'
@@ -17,7 +18,7 @@ import { AppContextMenu, AppMenuButton } from '~/components/app-context-menu'
 import { useCollections } from '~/core/collections'
 import { ConnectionResourceLink } from '~/core/connection/connection-resource-link'
 import { useFetchingConfig } from '~/core/connection/fetching'
-import { copyConnection } from '~/core/connection/save'
+import { createConnection } from '~/core/connection/save'
 import { getConnectionStore } from '~/core/connection/stores'
 import type { Connection } from '~/core/connection/sync'
 import { connectionResourcesQueryOptions } from '~/core/queries/connection/resources'
@@ -52,7 +53,13 @@ export const ConnectionCard = ({
   const { workspaces } = useActiveWorkspace()
   const isOnline = useIsOnline()
   const editableWorkspaces = workspaces.filter((workspace) =>
-    canEditWorkspace(workspace.role)
+    EDITOR_ROLES.includes(workspace.role)
+  )
+  const connectionWorkspace = editableWorkspaces.find(
+    (workspace) => workspace.id === connection.workspaceId
+  )
+  const moveTargets = editableWorkspaces.filter(
+    (workspace) => workspace !== connectionWorkspace
   )
   const { data: connectionString } = useLiveQuery({
     query: (q) =>
@@ -146,8 +153,18 @@ export const ConnectionCard = ({
 
   const copyTo = useMutation({
     meta: { event: 'connection_copied' },
-    mutationFn: (workspaceId: string) =>
-      copyConnection(connection, workspaceId),
+    mutationFn: async (workspaceId: string) =>
+      createConnection({
+        ...pick(connection, ['color', 'label', 'provider', 'syncType', 'type']),
+        connectionString: await connectionStringsCollection.utils.decrypt(
+          connection.id
+        ),
+        name:
+          workspaceId === connection.workspaceId
+            ? `${connection.name} copy`
+            : connection.name,
+        workspaceId,
+      }),
     onError: (copyError) => toast.error(copyError.message),
     onSuccess: () => toast.success('Connection copied'),
   })
@@ -162,13 +179,14 @@ export const ConnectionCard = ({
     (isFetching && connectionResourcesNames.length === 0) || refresh.isPending
 
   const items = buildConnectionMenuItems({
-    canEdit: editableWorkspaces.some(
-      (workspace) => workspace.id === connection.workspaceId
-    ),
+    canEdit: !!connectionWorkspace,
     canSend,
     connection,
-    editableWorkspaces,
+    copyTargets: connectionWorkspace
+      ? [connectionWorkspace, ...moveTargets]
+      : moveTargets,
     isOnline,
+    moveTargets,
     onClearPassword: handleClearPassword,
     onCopy: handleCopy,
     onCopyDatabase: getCopyDatabaseAction(
@@ -199,7 +217,7 @@ export const ConnectionCard = ({
             }).href
           )
       : null,
-    onMoveTo: (workspaceId) => moveTo.mutate(workspaceId),
+    onMoveTo: moveTo.mutate,
     onRefresh: () => refresh.mutate(),
     onRemove,
   })

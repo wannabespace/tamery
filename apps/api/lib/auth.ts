@@ -41,15 +41,6 @@ const twoFactorPlugin = twoFactor({ allowPasswordless: true })
 
 const workspaceAccess = createAccessControl(defaultStatements)
 
-const workspaceRoles = {
-  editor: workspaceAccess.newRole({
-    invitation: ['create', 'cancel'],
-    member: ['create', 'update', 'delete'],
-  }),
-  owner: workspaceAccess.newRole(ownerAc.statements),
-  viewer: workspaceAccess.newRole({}),
-} satisfies Record<WorkspaceRole, unknown>
-
 const isOAuthCallback = ({ path }: { path?: string }) =>
   path?.startsWith('/callback/') === true
 
@@ -267,7 +258,6 @@ export const auth = betterAuth({
       },
     }),
     organization({
-      ac: workspaceAccess,
       allowUserToCreateOrganization: false,
       disableOrganizationDeletion: true,
       organizationHooks: {
@@ -306,7 +296,14 @@ export const auth = betterAuth({
           }
         },
       },
-      roles: workspaceRoles,
+      roles: {
+        editor: workspaceAccess.newRole({
+          invitation: ['create', 'cancel'],
+          member: ['create', 'update', 'delete'],
+        }),
+        owner: workspaceAccess.newRole(ownerAc.statements),
+        viewer: workspaceAccess.newRole({}),
+      } satisfies Record<WorkspaceRole, unknown>,
       schema: {
         invitation: {
           fields: {

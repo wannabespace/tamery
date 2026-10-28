@@ -1,7 +1,7 @@
 import { SyncType } from '@tamery/shared/enums/sync-type'
 import { isKeychainLocked } from '@tamery/shared/keychain'
 import { title } from '@tamery/shared/title'
-import { canEditWorkspace } from '@tamery/shared/workspace'
+import { EDITOR_ROLES } from '@tamery/shared/workspace'
 import { Spinner } from '@tamery/ui/components/spinner'
 import { useMutation } from '@tanstack/react-query'
 import { createFileRoute, getRouteApi, redirect } from '@tanstack/react-router'
@@ -37,7 +37,7 @@ export const Route = createFileRoute('/_protected/edit/$connectionId')({
     )
     const workspace =
       connection && collections.workspacesCollection.get(connection.workspaceId)
-    if (!(connection && workspace && canEditWorkspace(workspace.role))) {
+    if (!(connection && workspace && EDITOR_ROLES.includes(workspace.role))) {
       throw redirect({ to: '/' })
     }
     const decrypted = await Result.tryPromise(() =>

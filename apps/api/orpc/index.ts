@@ -23,17 +23,15 @@ export const viaAuth = async <T>(promise: Promise<T>) => {
   try {
     return await promise
   } catch (error) {
-    if (isAPIError(error)) {
-      throw new ORPCError(String(error.status), { message: error.message })
-    }
-    throw error
+    throw isAPIError(error)
+      ? new ORPCError(String(error.status), { message: error.message })
+      : error
   }
 }
 
-export const getWorkspaceSecret = memoize(
-  (workspaceId: string) => workspaceEncryptionKey.get(workspaceId),
-  { maxAge: 5 * 60 * 1000 }
-)
+export const getWorkspaceSecret = memoize(workspaceEncryptionKey.get, {
+  maxAge: 5 * 60 * 1000,
+})
 
 export const decryptConnectionString = async ({
   encryptedText,

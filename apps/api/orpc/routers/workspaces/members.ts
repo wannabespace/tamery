@@ -82,9 +82,7 @@ export const removeMember = orpc
       })
     )
 
-    if (removed) {
-      await syncMembership(removed.member.userId, input.workspaceId)
-    }
+    await syncMembership(removed.member.userId, input.workspaceId)
   })
 
 export const updateMemberRole = orpc

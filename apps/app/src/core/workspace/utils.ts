@@ -1,5 +1,5 @@
 import {
-  canEditWorkspace,
+  EDITOR_ROLES,
   isDefaultWorkspaceMetadata,
 } from '@tamery/shared/workspace'
 import { type } from 'arktype'
@@ -27,7 +27,7 @@ export const workspaceSelection = {
   target: (workspaces: Workspace[]) => {
     const current = workspaceSelection.current(workspaces)
 
-    return current && canEditWorkspace(current.role)
+    return current && EDITOR_ROLES.includes(current.role)
       ? current
       : (workspaces.find((workspace) =>
           isDefaultWorkspaceMetadata(workspace.metadata)

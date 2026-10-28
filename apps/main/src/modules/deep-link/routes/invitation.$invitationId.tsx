@@ -16,12 +16,6 @@ import { OpenStatus } from '../open-status'
 
 const { useParams } = getRouteApi('/invitation/$invitationId')
 
-const AccountButton = () => (
-  <Button variant="outline" render={<Link to="/account" />}>
-    Go to account
-  </Button>
-)
-
 const InvitationPage = () => {
   const { invitationId } = useParams()
   const { data: invitations } = useSuspenseQuery(
@@ -46,7 +40,9 @@ const InvitationPage = () => {
         title="This invitation is no longer open"
         description="It was already answered, canceled, or it expired. Ask for a new one if you still need access."
       >
-        <AccountButton />
+        <Button variant="outline" render={<Link to="/account" />}>
+          Go to account
+        </Button>
       </OpenStatus>
     )
   }
@@ -92,7 +88,9 @@ const InvitationPage = () => {
           </>
         }
       >
-        <AccountButton />
+        <Button variant="outline" render={<Link to="/account" />}>
+          Go to account
+        </Button>
       </OpenStatus>
     )
   }

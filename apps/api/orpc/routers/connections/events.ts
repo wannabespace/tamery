@@ -41,12 +41,8 @@ export const publishConnections = async ({
 }) => {
   const rows = await db.select(syncedColumns).from(connections).where(where)
 
-  if (rows.length === 0) {
-    return
-  }
-
   const resources = await db
-    .select(getColumns(connectionsResources))
+    .select()
     .from(connectionsResources)
     .where(
       inArray(

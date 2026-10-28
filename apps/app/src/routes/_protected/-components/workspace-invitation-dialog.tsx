@@ -16,7 +16,6 @@ import { useSubscription } from 'seitu/react'
 import { toast } from 'sonner'
 
 import {
-  invitationsQueryOptions,
   openedInvitationId,
   useInvitations,
 } from '~/core/workspace/invitations'
@@ -29,7 +28,7 @@ const close = () => openedInvitationId.set(null)
 const settle = () => {
   close()
   return queryClient.invalidateQueries({
-    queryKey: invitationsQueryOptions.queryKey,
+    queryKey: orpc.workspaces.invitations.key(),
   })
 }
 
@@ -48,9 +47,7 @@ export const WorkspaceInvitationDialog = () => {
       orpc.workspaces.acceptInvitation.call({ invitationId }),
     onSettled: settle,
     onSuccess: async ({ workspaceId }) => {
-      if (workspaceId) {
-        workspaceSelection.set(workspaceId)
-      }
+      workspaceSelection.set(workspaceId)
       toast.success(`You joined ${shown?.workspaceName}`)
       await navigate({ to: '/' })
     },

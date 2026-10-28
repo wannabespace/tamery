@@ -27,28 +27,19 @@ export const serializeWorkspaceMetadata = (
 export const isDefaultWorkspaceMetadata = (metadata: string | null) =>
   parseWorkspaceMetadata(metadata).default === true
 
-export const WORKSPACE_ROLES = ['owner', 'editor', 'viewer'] as const
-
-export const workspaceRole = type.enumerated(...WORKSPACE_ROLES)
-
-export type WorkspaceRole = typeof workspaceRole.infer
-
-export const INVITABLE_ROLES = [
-  'editor',
-  'viewer',
-] as const satisfies WorkspaceRole[]
+export const INVITABLE_ROLES = ['editor', 'viewer'] as const
 
 export const invitableRole = type.enumerated(...INVITABLE_ROLES)
 
 export type InvitableRole = typeof invitableRole.infer
 
-export const EDITOR_ROLES = [
-  'owner',
-  'editor',
-] as const satisfies WorkspaceRole[]
+export const WORKSPACE_ROLES = ['owner', ...INVITABLE_ROLES] as const
 
-export const canEditWorkspace = (role: WorkspaceRole) =>
-  EDITOR_ROLES.some((editorRole) => editorRole === role)
+export const workspaceRole = type.enumerated(...WORKSPACE_ROLES)
+
+export type WorkspaceRole = typeof workspaceRole.infer
+
+export const EDITOR_ROLES: readonly WorkspaceRole[] = ['owner', 'editor']
 
 export const describeInvitation = ({
   inviterName,

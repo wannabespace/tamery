@@ -19,8 +19,9 @@ export const buildConnectionMenuItems = ({
   canEdit,
   canSend,
   connection,
-  editableWorkspaces,
+  copyTargets,
   isOnline,
+  moveTargets,
   onClearPassword,
   onCopy,
   onCopyDatabase,
@@ -34,8 +35,9 @@ export const buildConnectionMenuItems = ({
   canEdit: boolean
   canSend: boolean
   connection: Connection
-  editableWorkspaces: Workspace[]
+  copyTargets: Workspace[]
   isOnline: boolean
+  moveTargets: Workspace[]
   onClearPassword: () => void
   onCopy: () => void
   onCopyDatabase: (() => void) | null
@@ -45,99 +47,87 @@ export const buildConnectionMenuItems = ({
   onOpenInNewWindow: (() => void) | null
   onRefresh: () => void
   onRemove: VoidFunction
-}): AppMenuNode[] => {
-  const otherWorkspaces = editableWorkspaces.filter(
-    (workspace) => workspace.id !== connection.workspaceId
-  )
-  const copyTargets = [
-    ...editableWorkspaces.filter(
-      (workspace) => workspace.id === connection.workspaceId
-    ),
-    ...otherWorkspaces,
-  ]
-
-  return [
-    {
-      label: 'Open in New Window',
-      icon: AppWindowIcon,
-      disabled: !onOpenInNewWindow,
-      onSelect: () => onOpenInNewWindow?.(),
-    },
-    { type: 'separator' },
-    {
-      label: 'Edit',
-      icon: PencilEdit01Icon,
-      disabled: !canEdit,
-      onSelect: onEdit,
-    },
-    {
-      label: 'Refresh',
-      icon: Refresh01Icon,
-      disabled: !canSend,
-      onSelect: onRefresh,
-    },
-    {
-      label: 'Copy connection string',
-      icon: Copy01Icon,
-      onSelect: onCopy,
-    },
-    ...(onCopyDatabase
-      ? ([
-          {
-            label: 'Copy database…',
-            icon: DatabaseExportIcon,
-            disabled: !canSend,
-            onSelect: onCopyDatabase,
-          },
-        ] satisfies AppMenuNode[])
-      : []),
-    ...(otherWorkspaces.length === 0
-      ? ([
-          {
-            label: 'Duplicate',
-            icon: Copy02Icon,
-            disabled: !canEdit,
-            onSelect: () => onCopyTo(connection.workspaceId),
-          },
-        ] satisfies AppMenuNode[])
-      : ([
-          {
-            type: 'sub',
-            label: 'Copy to',
-            icon: Copy02Icon,
-            items: copyTargets.map((workspace) => ({
-              label: workspace.name,
-              onSelect: () => onCopyTo(workspace.id),
-            })),
-          },
-          {
-            type: 'sub',
-            label: 'Move to',
-            icon: FolderTransferIcon,
-            disabled: !canEdit || !isOnline,
-            items: otherWorkspaces.map((workspace) => ({
-              label: workspace.name,
-              onSelect: () => onMoveTo(workspace.id),
-            })),
-          },
-        ] satisfies AppMenuNode[])),
-    ...(connection.syncType === SyncType.CloudWithoutSecrets
-      ? ([
-          {
-            label: 'Clear saved credentials',
-            icon: SquareUnlock01Icon,
-            className: 'whitespace-nowrap',
-            onSelect: onClearPassword,
-          },
-        ] satisfies AppMenuNode[])
-      : []),
-    { type: 'separator' },
-    {
-      label: 'Remove',
-      icon: Delete02Icon,
-      variant: 'destructive',
-      disabled: !canEdit,
-      onSelect: onRemove,
-    },
-  ]
-}
+}): AppMenuNode[] => [
+  {
+    label: 'Open in New Window',
+    icon: AppWindowIcon,
+    disabled: !onOpenInNewWindow,
+    onSelect: () => onOpenInNewWindow?.(),
+  },
+  { type: 'separator' },
+  {
+    label: 'Edit',
+    icon: PencilEdit01Icon,
+    disabled: !canEdit,
+    onSelect: onEdit,
+  },
+  {
+    label: 'Refresh',
+    icon: Refresh01Icon,
+    disabled: !canSend,
+    onSelect: onRefresh,
+  },
+  {
+    label: 'Copy connection string',
+    icon: Copy01Icon,
+    onSelect: onCopy,
+  },
+  ...(onCopyDatabase
+    ? ([
+        {
+          label: 'Copy database…',
+          icon: DatabaseExportIcon,
+          disabled: !canSend,
+          onSelect: onCopyDatabase,
+        },
+      ] satisfies AppMenuNode[])
+    : []),
+  ...(moveTargets.length === 0
+    ? ([
+        {
+          label: 'Duplicate',
+          icon: Copy02Icon,
+          disabled: !canEdit,
+          onSelect: () => onCopyTo(connection.workspaceId),
+        },
+      ] satisfies AppMenuNode[])
+    : ([
+        {
+          type: 'sub',
+          label: 'Copy to',
+          icon: Copy02Icon,
+          items: copyTargets.map((workspace) => ({
+            label: workspace.name,
+            onSelect: () => onCopyTo(workspace.id),
+          })),
+        },
+        {
+          type: 'sub',
+          label: 'Move to',
+          icon: FolderTransferIcon,
+          disabled: !canEdit || !isOnline,
+          items: moveTargets.map((workspace) => ({
+            label: workspace.name,
+            onSelect: () => onMoveTo(workspace.id),
+          })),
+        },
+      ] satisfies AppMenuNode[])),
+  ...(connection.syncType === SyncType.CloudWithoutSecrets
+    ? ([
+        {
+          label: 'Clear saved credentials',
+          icon: SquareUnlock01Icon,
+          className: 'whitespace-nowrap',
+          onSelect: onClearPassword,
+        },
+      ] satisfies AppMenuNode[])
+    : []),
+  { type: 'separator' },
+  {
+    label: 'Remove',
+    icon: Delete02Icon,
+    variant: 'destructive',
+    disabled: !canEdit,
+    onSelect: onRemove,
+  },
+]

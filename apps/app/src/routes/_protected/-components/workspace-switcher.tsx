@@ -124,10 +124,7 @@ export const WorkspaceSwitcher = () => {
                 {invitations.map((pending) => (
                   <DropdownMenuItem
                     key={pending.id}
-                    onClick={() => {
-                      setOpen(false)
-                      openedInvitationId.set(pending.id)
-                    }}
+                    onClick={() => openedInvitationId.set(pending.id)}
                   >
                     <HugeiconsIcon icon={Mail01Icon} strokeWidth={2} />
                     <span data-mask className="truncate">
@@ -140,13 +137,12 @@ export const WorkspaceSwitcher = () => {
             </>
           )}
           <DropdownMenuItem
-            onClick={async () => {
-              setOpen(false)
-              await navigate({
+            onClick={() =>
+              navigate({
                 params: { section: 'members' },
                 to: '/settings/$section',
               })
-            }}
+            }
           >
             <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} />
             Invite and manage members

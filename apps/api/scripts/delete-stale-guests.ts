@@ -39,11 +39,9 @@ if (!shouldDelete) {
   process.exit(0)
 }
 
-const guestIds = staleGuests.map((guest) => guest.id)
-
 const context = await auth.$context
 
-for (const id of guestIds) {
+for (const { id } of staleGuests) {
   // oxlint-disable-next-line eslint/no-await-in-loop -- one at a time: each delete cascades to the user's own rows (sessions) and drops their sole-member workspaces with those workspaces' keys
   await context.internalAdapter.deleteUser(id)
 }

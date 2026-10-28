@@ -13,7 +13,7 @@ import {
   isDefaultWorkspaceMetadata,
   serializeWorkspaceMetadata,
 } from '@tamery/shared/workspace'
-import type { Column } from 'drizzle-orm'
+import type { Column, SQL } from 'drizzle-orm'
 import { and, asc, eq, inArray, notInArray, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
@@ -84,28 +84,13 @@ export const ensureDefaultWorkspace = async (userId: string) => {
   })
 }
 
-const memberWorkspaces = (userId: string) =>
+const hasEditorRole = inArray(members.role, EDITOR_ROLES)
+
+const memberWorkspaces = (userId: string, role?: SQL) =>
   db
     .select({ id: members.workspaceId })
     .from(members)
-    .where(eq(members.userId, userId))
-
-const editableWorkspaces = (userId: string) =>
-  db
-    .select({ id: members.workspaceId })
-    .from(members)
-    .where(and(eq(members.userId, userId), inArray(members.role, EDITOR_ROLES)))
-
-const editorIds = (workspaceId: string) =>
-  db
-    .select({ id: members.userId })
-    .from(members)
-    .where(
-      and(
-        eq(members.workspaceId, workspaceId),
-        inArray(members.role, EDITOR_ROLES)
-      )
-    )
+    .where(and(eq(members.userId, userId), role))
 
 export const inMemberWorkspace =
   (userId: string) => (table: { workspaceId: Column }) =>
@@ -113,7 +98,7 @@ export const inMemberWorkspace =
 
 export const inEditableWorkspace =
   (userId: string) => (table: { workspaceId: Column }) =>
-    inArray(table.workspaceId, editableWorkspaces(userId))
+    inArray(table.workspaceId, memberWorkspaces(userId, hasEditorRole))
 
 export const isWorkspaceEditor = async (userId: string, workspaceId: string) =>
   (await db.$count(
@@ -121,7 +106,7 @@ export const isWorkspaceEditor = async (userId: string, workspaceId: string) =>
     and(
       eq(members.userId, userId),
       eq(members.workspaceId, workspaceId),
-      inArray(members.role, EDITOR_ROLES)
+      hasEditorRole
     )
   )) > 0
 
@@ -158,24 +143,28 @@ export const publishToWorkspace = async <TPayload extends object>(
 
 /** A share reads its connection with the workspace's key, so it must not outlive its author's right to edit that workspace. */
 export const revokeNonEditorShares = async (workspaceId: string) => {
-  await db
-    .delete(shares)
-    .where(
-      and(
-        inArray(
-          shares.connectionResourceId,
-          db
-            .select({ id: connectionsResources.id })
-            .from(connectionsResources)
-            .innerJoin(
-              connections,
-              eq(connections.id, connectionsResources.connectionId)
-            )
-            .where(eq(connections.workspaceId, workspaceId))
-        ),
-        notInArray(shares.userId, editorIds(workspaceId))
+  await db.delete(shares).where(
+    and(
+      inArray(
+        shares.connectionResourceId,
+        db
+          .select({ id: connectionsResources.id })
+          .from(connectionsResources)
+          .innerJoin(
+            connections,
+            eq(connections.id, connectionsResources.connectionId)
+          )
+          .where(eq(connections.workspaceId, workspaceId))
+      ),
+      notInArray(
+        shares.userId,
+        db
+          .select({ id: members.userId })
+          .from(members)
+          .where(and(eq(members.workspaceId, workspaceId), hasEditorRole))
       )
     )
+  )
 }
 
 export const lastOwnedSharedWorkspaces = async (userId: string) => {
@@ -186,10 +175,7 @@ export const lastOwnedSharedWorkspaces = async (userId: string) => {
     .where(
       inArray(
         workspaces.id,
-        db
-          .select({ id: members.workspaceId })
-          .from(members)
-          .where(and(eq(members.userId, userId), eq(members.role, 'owner')))
+        memberWorkspaces(userId, eq(members.role, 'owner'))
       )
     )
     .groupBy(workspaces.id, workspaces.name)

@@ -47,11 +47,9 @@ export const acceptInvitation = orpc
       auth.api.acceptInvitation({ body: input, headers })
     )
 
-    if (accepted) {
-      await syncMembership(user.id, accepted.member.organizationId)
-    }
+    await syncMembership(user.id, accepted.member.organizationId)
 
-    return { workspaceId: accepted?.member.organizationId ?? null }
+    return { workspaceId: accepted.member.organizationId }
   })
 
 export const rejectInvitation = orpc

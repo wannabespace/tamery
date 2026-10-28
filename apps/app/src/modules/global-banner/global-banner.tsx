@@ -203,7 +203,7 @@ const GuestBannerContent = ({
   )
 }
 
-const DismissButton = ({ onDismiss }: { onDismiss: () => void }) => (
+const DismissButton = ({ id }: { id: string }) => (
   <Tooltip>
     <TooltipTrigger
       render={
@@ -211,7 +211,7 @@ const DismissButton = ({ onDismiss }: { onDismiss: () => void }) => (
           variant="ghost-tint"
           size="icon-xs"
           aria-label="Dismiss banner"
-          onClick={onDismiss}
+          onClick={() => bannerDismissedValue.set((state) => [...state, id])}
         />
       }
     >
@@ -220,9 +220,6 @@ const DismissButton = ({ onDismiss }: { onDismiss: () => void }) => (
     <TooltipContent side="bottom">Dismiss</TooltipContent>
   </Tooltip>
 )
-
-const dismiss = (key: string) =>
-  bannerDismissedValue.set((state) => [...state, key])
 
 const EditConnectionAction = ({ connectionId }: { connectionId: string }) => (
   <Button
@@ -294,9 +291,7 @@ export const GlobalBanner = () => {
         <Banner key={item.text} className={typeConfig[item.type].className}>
           {typeConfig[item.type].icon}
           <span className="flex-1 leading-none">{item.text}</span>
-          {item.dismissible && (
-            <DismissButton onDismiss={() => dismiss(item.text)} />
-          )}
+          {item.dismissible && <DismissButton id={item.text} />}
         </Banner>
       ))}
       {invitation && (
@@ -322,7 +317,7 @@ export const GlobalBanner = () => {
               data-icon="inline-end"
             />
           </Button>
-          <DismissButton onDismiss={() => dismiss(invitation.id)} />
+          <DismissButton id={invitation.id} />
         </Banner>
       )}
       {isGuest && (

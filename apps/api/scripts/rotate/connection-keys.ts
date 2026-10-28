@@ -7,12 +7,6 @@ import { toError } from '@tamery/shared/utils'
 import { and, eq, isNotNull } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
-// Rotates the per-workspace connection key (workspace_encryption_keys.secret), the inner
-// layer of every connection string. Pure database work under one transaction per
-// workspace: the ORM column types handle the outer ENCRYPTION_SECRET layer, so this
-// decrypts the inner layer with the workspace's old key and re-encrypts it with a fresh
-// one, flipping the key row and its connections together. No env change, no redeploy.
-// Dry run by default; pass --execute. Positional workspace ids scope it (default: all).
 const execute = process.argv.includes('--execute')
 const onlyWorkspaceIds = new Set(
   process.argv.slice(2).filter((arg) => !arg.startsWith('--'))
