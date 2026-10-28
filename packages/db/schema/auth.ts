@@ -105,7 +105,7 @@ export const members = d.snakeCase.table(
   'members',
   {
     ...baseTable,
-    role: d.text().default('member').$type<WorkspaceRole>().notNull(),
+    role: d.text().default('viewer').$type<WorkspaceRole>().notNull(),
     userId: d
       .uuid()
       .notNull()
