@@ -31,6 +31,10 @@ import { connectionResourceToQueryParams } from '~/core/runtime/query'
 import { useTableSessionStore } from '~/core/table/session'
 import { ShareDialog } from '~/modules/share/share-dialog'
 import { ShareMenuItem } from '~/modules/share/share-menu-item'
+import {
+  getShareRequestKey,
+  shareRequests,
+} from '~/modules/share/share-requests'
 
 import { useTableColumnsContext } from '../../lib/columns'
 import { useTablePageStore } from '../../lib/store'
@@ -63,6 +67,11 @@ export const TableToolbar = ({
   const [seedOpen, setSeedOpen] = useState(false)
   const [codeOpen, setCodeOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const shareRequest = useSubscription(shareRequests)
+  const shareKey = getShareRequestKey(connectionResource.id, schema, table)
+  if (shareRequest === shareKey && !shareOpen) {
+    setShareOpen(true)
+  }
   const { data: tablesAndSchemas } = useQuery(
     resourceTablesAndSchemasQueryOptions({ connectionResource })
   )
@@ -207,7 +216,15 @@ export const TableToolbar = ({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <Dialog
+          open={shareOpen}
+          onOpenChange={(open) => {
+            setShareOpen(open)
+            if (!open && shareRequest === shareKey) {
+              shareRequests.set(null)
+            }
+          }}
+        >
           <ShareDialog schema={schema} table={table} />
         </Dialog>
         {isTable && (

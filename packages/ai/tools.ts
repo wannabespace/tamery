@@ -3,6 +3,7 @@ import {
   agentChangeType,
 } from '@tamery/shared/agent-change'
 import type { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { FILTER_OPERATORS } from '@tamery/shared/filters'
 import {
   COLUMN_VALUES_DESCRIPTION,
   EXPLAIN_DESCRIPTION,
@@ -25,6 +26,14 @@ const target = type({
 })
 
 const statement = type({ '...': target, sql: 'string' })
+
+const tableTarget = type({
+  '...': target,
+  schema: type.string.describe('Schema from list_tables'),
+  table: 'string',
+})
+
+const opened = type({ opened: 'boolean' })
 
 const asDatabaseData = ({ output }: { output: unknown }) => ({
   type: 'text' as const,
@@ -50,6 +59,12 @@ export const chatTools = {
     outputSchema: type.unknown,
     toModelOutput: asDatabaseData,
   }),
+  create_share: tool({
+    description:
+      "Open the table's share dialog in Tamery for the user, showing the table as it is now (open it with open_table first to share a filtered view). The user picks the link's settings and saves it; nothing is shared until they do.",
+    inputSchema: tableTarget,
+    outputSchema: opened,
+  }),
   describe_table: tool({
     description:
       'Describe one table or view: its columns (type, nullability, default, enum values), constraints (primary key, foreign keys with what they reference, unique, check) and indexes.',
@@ -66,6 +81,12 @@ export const chatTools = {
     inputSchema: statement,
     outputSchema: resultSetsType,
     toModelOutput: asDatabaseData,
+  }),
+  export_result: tool({
+    description:
+      'Download the rows of a query result already in this chat as a CSV or JSON file for the user. Name the result by the toolCallId of its query or execute call.',
+    inputSchema: type({ format: "'csv' | 'json'", toolCallId: 'string' }),
+    outputSchema: type({ exported: 'number' }),
   }),
   explain: tool({
     description: EXPLAIN_DESCRIPTION,
@@ -85,6 +106,26 @@ export const chatTools = {
     inputSchema: type({ '...': target, schema: 'string | null' }),
     outputSchema: type.unknown,
     toModelOutput: asDatabaseData,
+  }),
+  open_query: tool({
+    description:
+      'Open SQL in a new Query tab in Tamery, for the user to read, change and run. It does not run it.',
+    inputSchema: statement,
+    outputSchema: opened,
+  }),
+  open_table: tool({
+    description:
+      "Open a table in Tamery with filters and a sort, so the user sees and edits its rows in the table view. Filters are ANDed; values are a list (one value for most operators, several for in and notIn, none for isNull and isNotNull). This replaces the table's current filters and sort.",
+    inputSchema: type({
+      '...': tableTarget,
+      filters: type({
+        column: 'string',
+        operator: type.enumerated(...FILTER_OPERATORS),
+        values: 'unknown[]',
+      }).array(),
+      orderBy: type({ column: 'string', direction: "'ASC' | 'DESC'" }).array(),
+    }),
+    outputSchema: opened,
   }),
   propose_change: tool({
     description: PROPOSE_CHANGE_DESCRIPTION,

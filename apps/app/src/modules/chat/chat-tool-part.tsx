@@ -64,11 +64,22 @@ const LABELS: Partial<
     with: 'Read',
   },
   'tool-explain': { plain: 'Read a query plan' },
+  'tool-export_result': {
+    detail: 'format',
+    plain: 'Exported a result',
+    with: 'Exported a result as',
+  },
   'tool-list_connections': { plain: 'Listed connections' },
   'tool-list_tables': {
     detail: 'schema',
     plain: 'Listed tables',
     with: 'Listed tables in',
+  },
+  'tool-open_query': { plain: 'Opened a Query tab' },
+  'tool-open_table': {
+    detail: 'table',
+    plain: 'Opened a table',
+    with: 'Opened',
   },
   'tool-propose_change': {
     detail: 'table',

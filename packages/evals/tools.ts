@@ -222,6 +222,14 @@ const answer = (part: ToolPart): unknown => {
           : `EXPLAIN ${part.input.sql}`
       )
     }
+    case 'tool-create_share':
+    case 'tool-open_query':
+    case 'tool-open_table': {
+      return { opened: true }
+    }
+    case 'tool-export_result': {
+      return { exported: 0 }
+    }
     case 'tool-propose_change': {
       return { review: 'The user has not reviewed it yet.', where: 'table' }
     }

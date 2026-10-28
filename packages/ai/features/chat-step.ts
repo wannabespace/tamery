@@ -28,6 +28,7 @@ const chatInstructions = (connection: ChatConnection) =>
     'Read the schema with list_tables and describe_table before writing SQL, in the dialect of the connection you query. On a database with many tables, find them with search_schema first.',
     'Before writing SQL for a recurring question, look for a saved query with search_saved_queries and build on it.',
     'When a query is slow or the user asks why, read its plan with explain; recommend an index through propose_change, never by running CREATE INDEX.',
+    'To show the user rows they can work with, open the table with open_table (filters and sort) or the SQL with open_query rather than pasting results; export_result downloads a result in this chat, and create_share opens the share dialog for a table.',
     'Before filtering on a value the user named (a status, a category), check its exact spelling with column_values.',
     'When the user names a record or a value, it lives in the data: search the likely tables with case-insensitive partial matches, and ask which one when several rows could match.',
     'A question spanning several connections runs one query per connection; combine the results yourself, matching rows on the keys they share.',

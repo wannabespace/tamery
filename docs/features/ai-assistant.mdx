@@ -26,6 +26,10 @@ When a query is slow, the agent reads its plan and can draft the index that woul
 
 For anything a draft can't hold, the agent writes a statement instead. A statement that changes data or schema never runs on its own. The chat shows it with **Run** and **Decline**, and the agent continues once you choose. The card waits for you when you reload, switch chats or leave agent mode. On PostgreSQL and MySQL the card also says how many rows the database expects it to change. **Run** turns red when the statement removes data.
 
+### In the app
+
+Ask the agent to open things for you: a table with filters and a sort ("show me last week's refunded orders"), SQL in a new Query tab, a download of a result as CSV or JSON, or the share dialog for a table. Opening a table or a query leaves agent mode so you can see it. The share dialog opens filled in, and nothing is shared until you save it.
+
 ## Agent mode
 
 Click **Agent** in the title bar, or press **Cmd+Shift+L** (**Ctrl+Shift+L**), to turn the whole connection into the chat. The Navigator lists the connection's chats, the tabs become your open chats, and the chat takes the full width. Click **Agent** again to go back to your tables.

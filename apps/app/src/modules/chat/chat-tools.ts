@@ -62,6 +62,26 @@ const addReadOutput = async (
       const output = await agentDatabase.columnValues(toolCall.input)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
+    case 'create_share': {
+      const { appActions } = await import('./app-actions')
+      const output = appActions.createShare(toolCall.input)
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
+    case 'export_result': {
+      const { appActions } = await import('./app-actions')
+      const output = appActions.exportResult(chat.messages, toolCall.input)
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
+    case 'open_query': {
+      const { appActions } = await import('./app-actions')
+      const output = appActions.openQuery(toolCall.input)
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
+    case 'open_table': {
+      const { appActions } = await import('./app-actions')
+      const output = appActions.openTable(toolCall.input)
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
     case 'describe_table': {
       const output = await agentDatabase.describeTable(toolCall.input)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
