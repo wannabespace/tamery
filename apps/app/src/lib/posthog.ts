@@ -1,3 +1,4 @@
+import { POSTHOG_API_HOST, POSTHOG_UI_HOST } from '@tamery/shared/posthog'
 import { type } from 'arktype'
 import type { PostHog } from 'posthog-js'
 
@@ -11,8 +12,6 @@ const EXPECTED_ERRORS = [
   'network error',
   'networkerror',
 ]
-// Sync with the CSP `script-src` in `apps/app/index.html`, or the SDK's lazy-loaded scripts are blocked.
-const API_HOST = 'https://e.tamery.app'
 
 const normalizeSegment = (segment: string) => {
   // A tab id carries schema and table names after its kind (`table:public:users`).
@@ -47,7 +46,7 @@ const init = async () => {
     `${window.electron ? 'tamery://app' : location.origin}${getAppPath()}`
 
   const client = posthogJs.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
-    api_host: API_HOST,
+    api_host: POSTHOG_API_HOST,
     before_send: (event) => {
       const isExpectedException =
         event?.event === '$exception' &&
@@ -74,7 +73,7 @@ const init = async () => {
       maskAllInputs: true,
       maskTextSelector: '[data-mask]',
     },
-    ui_host: 'https://eu.posthog.com',
+    ui_host: POSTHOG_UI_HOST,
   })
   client.register({ app: 'app', ...getAppProperties() })
   // PostHog stores an opt-out on its own. Without this, the removed Settings switch stays in effect.
