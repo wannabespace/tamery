@@ -16,7 +16,9 @@ RUN pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --filter @t
 COPY . .
 ARG VITE_PUBLIC_API_URL VITE_PUBLIC_MAIN_URL VITE_PUBLIC_POSTHOG_TOKEN VITE_PUBLIC_PROXY_URL VITE_PUBLIC_SHARE_URL VITE_PUBLIC_WEB_URL
 # Inside the app's folder: at the root, pnpm's verifyDepsBeforeRun would install the whole workspace the filter left out.
-RUN cd apps/app && pnpm exec turbo run build
+# A secret mount, not an ARG, so the PostHog key stays out of the image metadata; without it the build skips the sourcemap upload.
+RUN --mount=type=secret,id=POSTHOG_PERSONAL_API_KEY,env=POSTHOG_PERSONAL_API_KEY \
+  cd apps/app && pnpm exec turbo run build
 
 FROM node:24-slim
 # Same major as the serve catalog entry in pnpm-workspace.yaml.
