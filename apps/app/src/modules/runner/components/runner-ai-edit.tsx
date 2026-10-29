@@ -149,6 +149,14 @@ export const useAiEdit = ({
     requestRef.current = controller
     track(range, false)
     setPhase(pending)
+    const startedAt = performance.now()
+    const captureGenerated = (success: boolean) =>
+      posthog.capture('ai_query_generated', {
+        duration_ms: Math.round(performance.now() - startedAt),
+        kind: pending.kind,
+        success,
+        type: connectionType,
+      })
     try {
       const context = await catalogSummaryFor(model, original)
       const text = await call(
@@ -161,10 +169,12 @@ export const useAiEdit = ({
         controller.signal
       )
       if (requestRef.current === controller) {
+        captureGenerated(true)
         review(original, text, pending.kind === 'fixing')
       }
     } catch (error) {
       if (requestRef.current === controller) {
+        captureGenerated(false)
         toast.error(error instanceof Error ? error.message : String(error))
         closeAndFocus()
       }
