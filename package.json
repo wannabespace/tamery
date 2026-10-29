@@ -20,10 +20,6 @@
     "test:e2e": "turbo run test:e2e",
     "test:start": "turbo run test:start",
     "dev": "bun scripts/run-script.ts dev",
-    "build:main": "turbo run @tamery/main#build",
-    "build:app": "turbo run @tamery/app#build",
-    "build:docs": "turbo run @tamery/docs#build",
-    "build:share": "turbo run @tamery/share#build",
     "build:todesktop": "turbo run @tamery/desktop#build:todesktop",
     "build:cli": "turbo run tamery#build",
     "publish:cli": "cd apps/cli && pnpm publish --access public --no-git-checks",
@@ -56,7 +52,7 @@
     "ultracite": "catalog:"
   },
   "engines": {
-    "bun": ">=1.3.0"
+    "bun": ">=1.4.3"
   },
   "packageManager": "pnpm@12.15.0"
 }
