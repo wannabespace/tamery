@@ -1,0 +1,20 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "steps": {
+    "install": {
+      "commands": [
+        { "src": ".", "dest": "." },
+        "pnpm install --frozen-lockfile --prefer-offline --filter @tamery/docs... --filter ."
+      ]
+    },
+    "build": {
+      "commands": [
+        { "src": ".", "dest": "." },
+        "pnpm exec turbo run @tamery/docs#build"
+      ]
+    }
+  },
+  "deploy": {
+    "startCommand": "cd apps/docs && pnpm run start"
+  }
+}
