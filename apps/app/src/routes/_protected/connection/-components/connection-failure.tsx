@@ -15,8 +15,16 @@ import { useConnectionContext } from '~/core/connection/route'
 import { useGoBack } from '~/hooks/use-go-back'
 import { posthog } from '~/lib/posthog'
 
-const NETWORK_ERROR_CODE =
-  /\b(?:ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ESOCKETTIMEDOUT|ENETUNREACH|EHOSTUNREACH)\b/u
+const NETWORK_ERROR_CODES = [
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ETIMEDOUT',
+  'ESOCKETTIMEDOUT',
+  'ENETUNREACH',
+  'EHOSTUNREACH',
+]
 
 export const ConnectionFailure = ({
   error: thrown,
@@ -37,7 +45,9 @@ export const ConnectionFailure = ({
       )
       posthog.capture('connection_failed', {
         db_type: connection.type,
-        error_code: NETWORK_ERROR_CODE.exec(error.message)?.[0] ?? 'other',
+        error_code:
+          NETWORK_ERROR_CODES.find((code) => error.message.includes(code)) ??
+          'other',
         is_local: isLocalHost(host),
       })
     })

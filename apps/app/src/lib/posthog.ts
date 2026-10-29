@@ -1,14 +1,29 @@
+import { type } from 'arktype'
 import type { PostHog } from 'posthog-js'
 
 let instance: Promise<PostHog> | null = null
 let identity: Parameters<PostHog['identify']> | null = null
 
-const UUID = /[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}/giu
-// A tab id carries schema and table names after its kind (`table:public:users`).
-const TAB_ID_NAMES = /\/(?<kind>[a-z-]+):[^/]*/giu
-const EXPECTED_ERROR = /ResizeObserver loop|failed to fetch|network ?error/iu
+const uuid = type('string.uuid')
+const EXPECTED_ERRORS = [
+  'resizeobserver loop',
+  'failed to fetch',
+  'network error',
+  'networkerror',
+]
 // Sync with the CSP `script-src` in `apps/app/index.html`, or the SDK's lazy-loaded scripts are blocked.
 const API_HOST = 'https://e.tamery.app'
+
+const normalizeSegment = (segment: string) => {
+  // A tab id carries schema and table names after its kind (`table:public:users`).
+  const [kind = segment] = segment.split(':')
+  return uuid.allows(segment) ? ':id' : kind
+}
+
+const isExpectedError = (message: string) => {
+  const lower = message.toLowerCase()
+  return EXPECTED_ERRORS.some((error) => lower.includes(error))
+}
 
 export const getAppProperties = () => ({
   app_version: import.meta.env.VITE_APP_VERSION,
@@ -25,9 +40,7 @@ const init = async () => {
     ])
 
   const getAppPath = () =>
-    history.location.pathname
-      .replaceAll(UUID, ':id')
-      .replaceAll(TAB_ID_NAMES, '/$<kind>')
+    history.location.pathname.split('/').map(normalizeSegment).join('/')
 
   // The window URL is a local file path in Electron, so replay URL triggers and events match this logical URL instead.
   const getAppUrl = () =>
@@ -40,7 +53,7 @@ const init = async () => {
         event?.event === '$exception' &&
         event.properties.$exception_list.some(
           ({ value }: { value: string }) =>
-            EXPECTED_ERROR.test(value) || isConnectionFailure(value)
+            isExpectedError(value) || isConnectionFailure(value)
         )
       if (!event || isExpectedException) {
         return null
