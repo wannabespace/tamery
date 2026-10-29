@@ -17,7 +17,6 @@ setupPortlessEnvs({
   VITE_PUBLIC_SHARE_URL: 'share.local.tamery',
   VITE_PUBLIC_WEB_URL: 'app.local.tamery',
 })
-process.env.VITE_PUBLIC_POSTHOG_HOST ||= 'https://eu.i.posthog.com'
 
 export default defineConfig(({ mode }) => ({
   base: mode === 'desktop' ? './' : '/',

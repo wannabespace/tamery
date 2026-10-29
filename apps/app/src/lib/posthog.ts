@@ -7,6 +7,8 @@ const UUID = /[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}/giu
 // A tab id carries schema and table names after its kind (`table:public:users`).
 const TAB_ID_NAMES = /\/(?<kind>[a-z-]+):[^/]*/giu
 const EXPECTED_ERROR = /ResizeObserver loop|failed to fetch|network ?error/iu
+// Sync with the CSP `script-src` in `apps/app/index.html`, or the SDK's lazy-loaded scripts are blocked.
+const API_HOST = 'https://e.tamery.app'
 
 export const getAppProperties = () => ({
   app_version: import.meta.env.VITE_APP_VERSION,
@@ -32,7 +34,7 @@ const init = async () => {
     `${window.electron ? 'tamery://app' : location.origin}${getAppPath()}`
 
   const client = posthogJs.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
-    api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+    api_host: API_HOST,
     before_send: (event) => {
       const isExpectedException =
         event?.event === '$exception' &&

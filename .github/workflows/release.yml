@@ -38,6 +38,5 @@ jobs:
           VITE_PUBLIC_PROXY_URL: ${{ secrets.PROXY_URL }}
           VITE_PUBLIC_SHARE_URL: ${{ secrets.SHARE_URL }}
           VITE_PUBLIC_POSTHOG_TOKEN: ${{ secrets.POSTHOG_TOKEN }}
-          VITE_PUBLIC_POSTHOG_HOST: ${{ secrets.POSTHOG_HOST }}
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
           VITE_PUBLIC_MAIN_URL: ${{ secrets.MAIN_URL }}
