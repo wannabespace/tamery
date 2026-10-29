@@ -15,9 +15,9 @@ RUN pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --filter @t
   && pnpm rebuild --filter @tamery/app... --filter .
 COPY . .
 ARG VITE_PUBLIC_API_URL VITE_PUBLIC_MAIN_URL VITE_PUBLIC_POSTHOG_TOKEN VITE_PUBLIC_PROXY_URL VITE_PUBLIC_SHARE_URL VITE_PUBLIC_WEB_URL
-# Inside the app's folder: at the root, pnpm's verifyDepsBeforeRun would install the whole workspace the filter left out.
 # Build stage only: the shipped stage below must never declare this secret.
 ARG POSTHOG_PERSONAL_API_KEY
+# Inside the app's folder: at the root, pnpm's verifyDepsBeforeRun would install the whole workspace the filter left out.
 RUN cd apps/app && pnpm exec turbo run build
 
 FROM node:24-slim
