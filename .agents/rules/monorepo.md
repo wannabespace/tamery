@@ -31,7 +31,7 @@ Setup lives in `README.md`, the command list in the root `package.json`. Not obv
 
 ## Deploys
 
-Railway builds are configured in the dashboard only. Each service installs just its app through the variable `RAILPACK_INSTALL_CMD=pnpm install --frozen-lockfile --prefer-offline --filter @tamery/<app>... --filter .`, so the image skips every other app's `node_modules`, and sets `pnpm_config_verify_deps_before_run=false`: without it pnpm 12 checks the whole workspace before every `pnpm run`/`exec` (turbo's tasks included) and installs everything the filter left out. The build command touches only that app (`turbo run check-types --filter=@tamery/<app>`, not the root `check-types`, whose other packages are not installed). Watch patterns must list every workspace folder the app depends on (`pnpm --filter @tamery/<app>... ls --depth -1`), or a change there never redeploys it.
+Railway builds are configured in the dashboard only. Each service installs just its app through the variable `RAILPACK_INSTALL_CMD=pnpm install --frozen-lockfile --prefer-offline --filter @tamery/<app>... --filter .`, so the image skips every other app's `node_modules`. Every build, pre-deploy and start command then runs either inside the app's folder or as `pnpm --filter . run|exec …` at the root: an unfiltered `pnpm run`/`exec` at the root makes pnpm 12's `verifyDepsBeforeRun` install the whole workspace the filter left out. The build command touches only that app (`turbo run check-types --filter=@tamery/<app>`, not the root `check-types`, whose other packages are not installed). Watch patterns must list every workspace folder the app depends on (`pnpm --filter @tamery/<app>... ls --depth -1`), or a change there never redeploys it.
 
 ## Opening the running app in a browser
 
