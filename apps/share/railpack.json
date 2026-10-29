@@ -3,18 +3,30 @@
   "steps": {
     "install": {
       "commands": [
-        { "src": ".", "dest": "." },
+        {
+          "src": ".",
+          "dest": "."
+        },
         "pnpm install --frozen-lockfile --prefer-offline --filter @tamery/share... --filter ."
       ]
     },
     "build": {
       "commands": [
-        { "src": ".", "dest": "." },
+        {
+          "src": ".",
+          "dest": "."
+        },
         "pnpm exec turbo run @tamery/share#build"
-      ]
+      ],
+      "variables": {
+        "pnpm_config_verify_deps_before_run": "false"
+      }
     }
   },
   "deploy": {
-    "startCommand": "cd apps/share && pnpm run start"
+    "startCommand": "cd apps/share && pnpm run start",
+    "variables": {
+      "pnpm_config_verify_deps_before_run": "false"
+    }
   }
 }
