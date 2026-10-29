@@ -134,7 +134,6 @@ catalog:
   redis: ^6.3.0
   resend: ^6.34.1
   seitu: ^1.4.0
-  serve: ^14.2.6
   shadcn: ^4.22.1
   sonner: ^2.0.8
   sql-formatter: ^15.9.0
