@@ -6,7 +6,7 @@
     "build": "vite build",
     "build:desktop": "vite build --mode desktop",
     "start": "serve -s dist -l $PORT",
-    "check-types": "tsc",
+    "check-types": "bun check",
     "test:start": "vite build --mode test && vite preview --mode test",
     "test": "bun test ./src",
     "test:e2e": "playwright test --ui"

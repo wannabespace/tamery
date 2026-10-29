@@ -13,7 +13,7 @@
     "dev": "vite dev",
     "build": "vite build && bun ./scripts/copy-renderer.ts",
     "build:todesktop": "todesktop build",
-    "check-types": "tsc",
+    "check-types": "bun check",
     "test": "bun test ./src",
     "todesktop:afterPack": "./scripts/todesktop-after-pack.cjs",
     "todesktop:beforeInstall": "./scripts/todesktop-before-install.cjs"
