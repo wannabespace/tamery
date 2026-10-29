@@ -25,6 +25,7 @@ import { useFetchSearch, useHighlightQuery } from 'fumadocs-core/search/client'
 import type { SearchResultRecord } from 'fumadocs-core/search/client'
 import { useState } from 'react'
 
+import { SEARCH_KEYWORDS_ANCHOR } from '~/constants'
 import { nav } from '~/lib/nav'
 import { getUserAgent } from '~/utils/user-agent'
 
@@ -162,7 +163,11 @@ export const Search = () => {
                       </CommandShortcut>
                     </CommandItem>
                     {pageRecords
-                      .filter((record) => record.type !== 'page')
+                      .filter(
+                        (record) =>
+                          record.type !== 'page' &&
+                          !record.url.endsWith(`#${SEARCH_KEYWORDS_ANCHOR}`)
+                      )
                       .map((record) => (
                         <CommandItem
                           key={record.id}

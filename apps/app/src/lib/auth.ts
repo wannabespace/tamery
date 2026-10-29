@@ -12,6 +12,7 @@ import {
   isAuthLocation,
   lastLocationStorageValue,
 } from './last-location'
+import { posthog } from './posthog'
 import { API_QUERY_KEY, queryClient } from './query-client'
 import { apiUrl } from './urls'
 
@@ -116,6 +117,7 @@ export const fullSignOut = async () => {
   }
 
   subscriptionsCache.clear()
+  posthog.reset()
   queryClient.removeQueries({ queryKey: [API_QUERY_KEY] })
   await Promise.all([clearDb(), deviceEncryption.reset()])
 }

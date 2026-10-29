@@ -1,7 +1,11 @@
+import { db } from '@tamery/db'
+import { subscriptions } from '@tamery/db/schema'
+import { and, eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
 
 import { env } from '~/env'
 import { sendEmail } from '~/lib/resend'
+import { tamerySubscriptions } from '~/lib/subscription'
 import { orpc } from '~/orpc'
 
 import { subscriptionCreated } from './subscription-created'
@@ -19,6 +23,26 @@ const eventMap = new Map<
 ])
 
 const prices = new Set([env.STRIPE_MONTH_PRICE_ID, env.STRIPE_ANNUAL_PRICE_ID])
+
+// A subscription moved to a custom price in the Stripe dashboard is still ours once we track it.
+const isTamerySubscription = async (subscription: Stripe.Subscription) => {
+  if (subscription.items.data.some((item) => prices.has(item.price.id))) {
+    return true
+  }
+
+  const [existing] = await db
+    .select({ id: subscriptions.id })
+    .from(subscriptions)
+    .where(
+      and(
+        eq(subscriptions.stripeSubscriptionId, subscription.id),
+        tamerySubscriptions
+      )
+    )
+    .limit(1)
+
+  return Boolean(existing)
+}
 
 export const stripe = orpc
   .errors({
@@ -39,7 +63,7 @@ export const stripe = orpc
 
       if (
         subscription.object === 'subscription' &&
-        !subscription.items.data.some((item) => prices.has(item.price.id))
+        !(await isTamerySubscription(subscription))
       ) {
         return true
       }

@@ -69,6 +69,7 @@
   },
   "devDependencies": {
     "@playwright/test": "catalog:",
+    "@posthog/rollup-plugin": "catalog:",
     "@rolldown/plugin-babel": "catalog:",
     "@standard-schema/spec": "catalog:",
     "@tamery/api": "workspace:*",

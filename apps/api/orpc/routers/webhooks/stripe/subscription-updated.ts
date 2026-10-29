@@ -3,8 +3,6 @@ import { subscriptions } from '@tamery/db/schema'
 import { eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
 
-import { env } from '~/env'
-
 export const subscriptionUpdated = async (event: Stripe.Event) => {
   if (event.type !== 'customer.subscription.updated') {
     return
@@ -23,7 +21,7 @@ export const subscriptionUpdated = async (event: Stripe.Event) => {
   }
 
   const period =
-    subscription.items.data[0]?.price.id === env.STRIPE_ANNUAL_PRICE_ID
+    subscription.items.data[0]?.price.recurring?.interval === 'year'
       ? 'yearly'
       : 'monthly'
   const price = subscription.items.data[0]?.price.unit_amount

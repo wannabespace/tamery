@@ -4,8 +4,6 @@ import { eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
 import { v7 } from 'uuid'
 
-import { env } from '~/env'
-
 export const subscriptionCreated = async (event: Stripe.Event) => {
   if (event.type !== 'customer.subscription.created') {
     return
@@ -32,7 +30,7 @@ export const subscriptionCreated = async (event: Stripe.Event) => {
   }
 
   const period =
-    item.price.id === env.STRIPE_ANNUAL_PRICE_ID ? 'yearly' : 'monthly'
+    item.price.recurring?.interval === 'year' ? 'yearly' : 'monthly'
   const price = item.price.unit_amount ? item.price.unit_amount / 100 : 0
   const periodStart = item.current_period_start
     ? new Date(item.current_period_start * 1000)
