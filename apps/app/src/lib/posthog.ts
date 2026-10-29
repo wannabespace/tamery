@@ -54,6 +54,8 @@ const init = async () => {
     // Later defaults stream network bodies into replays, and API responses carry decrypted connection strings.
     defaults: '2026-01-30',
     disable_session_recording: false,
+    // Overrides the project's console log toggle: database errors echo query text and row values.
+    enable_recording_console_log: false,
     get_current_url: getAppUrl,
     session_recording: {
       maskAllInputs: true,
