@@ -37,12 +37,16 @@ const twoFactorPlugin = twoFactor({ allowPasswordless: true })
 
 const providerLabels: Partial<Record<string, string>> = SOCIAL_PROVIDER_LABELS
 
-// Keyed by the request's auth context: better-call hands the same object to the endpoint, its database hooks and the after hooks.
-const signUpRequests = new WeakSet<object>()
+const SIGN_UP_WINDOW_MS = 60_000
+
+const createdWithUser = (
+  user: { createdAt: Date },
+  record: { createdAt: Date }
+) => record.createdAt.getTime() - user.createdAt.getTime() < SIGN_UP_WINDOW_MS
 
 const findUser = (userId: string) =>
   db.query.users.findFirst({
-    columns: { email: true, twoFactorEnabled: true },
+    columns: { createdAt: true, email: true, twoFactorEnabled: true },
     where: { id: { eq: userId } },
   })
 
@@ -100,13 +104,13 @@ export const auth = betterAuth({
     account: {
       create: {
         after: async (account, context) => {
-          if (!context || signUpRequests.has(context.context)) {
+          if (!context) {
             return
           }
 
           const user = await findUser(account.userId)
 
-          if (!user) {
+          if (!user || createdWithUser(user, account)) {
             return
           }
 
@@ -151,11 +155,7 @@ export const auth = betterAuth({
 
           return { data: user }
         },
-        after: async (user, context) => {
-          if (context) {
-            signUpRequests.add(context.context)
-          }
-
+        after: async (user) => {
           await userEncryptionKey.create(user.id).catch(async (error) => {
             console.error(
               `Failed to create user encryption key: ${error instanceof Error ? error.message : error}`,
@@ -306,7 +306,11 @@ export const auth = betterAuth({
             handler: createAuthMiddleware(async (ctx) => {
               const { newSession, session } = ctx.context
 
-              if (!newSession || session || signUpRequests.has(ctx.context)) {
+              if (
+                !newSession ||
+                session ||
+                createdWithUser(newSession.user, newSession.session)
+              ) {
                 return
               }
 
