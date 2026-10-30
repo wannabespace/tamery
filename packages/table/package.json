@@ -7,7 +7,7 @@
     "./constants": "./src/constants.ts"
   },
   "scripts": {
-    "check-types": "tsc"
+    "check-types": "bun check"
   },
   "dependencies": {
     "@tamery/shared": "workspace:*",

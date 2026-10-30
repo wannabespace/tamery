@@ -1,6 +1,9 @@
 import { GithubIcon, GoogleIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { EARLY_ACCESS_ERROR_CODE } from '@tamery/shared/constants'
+import {
+  EARLY_ACCESS_ERROR_CODE,
+  SOCIAL_PROVIDER_LABELS,
+} from '@tamery/shared/constants'
 import { Badge } from '@tamery/ui/components/badge'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
@@ -32,14 +35,14 @@ const SOCIAL_PROVIDERS = [
       <HugeiconsIcon icon={GoogleIcon} strokeWidth={2} className="size-4" />
     ),
     id: 'google',
-    label: 'Google',
+    label: SOCIAL_PROVIDER_LABELS.google,
   },
   {
     icon: (
       <HugeiconsIcon icon={GithubIcon} strokeWidth={2} className="size-4" />
     ),
     id: 'github',
-    label: 'GitHub',
+    label: SOCIAL_PROVIDER_LABELS.github,
   },
 ]
 

@@ -38,7 +38,7 @@
   "type": "module",
   "scripts": {
     "build": "tsdown",
-    "check-types": "tsc",
+    "check-types": "bun check",
     "prepublishOnly": "tsdown"
   },
   "dependencies": {

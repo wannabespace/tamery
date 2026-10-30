@@ -2,7 +2,7 @@
   "name": "@tamery/db",
   "type": "module",
   "scripts": {
-    "check-types": "tsc",
+    "check-types": "bun check",
     "drizzle:generate": "cross-env NODE_ENV=development drizzle-kit generate",
     "drizzle:generate-custom": "cross-env NODE_ENV=development drizzle-kit generate --custom",
     "drizzle:migrate": "cross-env NODE_ENV=development drizzle-kit migrate",
