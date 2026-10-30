@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
+
 import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2'
 import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
@@ -8,7 +10,7 @@ import {
 } from '@tamery/shared/constants'
 import { formatDeviceLabel } from '@tamery/shared/device-label'
 import { getPermissions } from '@tamery/shared/permissions'
-import type { AuthContext, Session } from 'better-auth'
+import type { Session } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { emailHarmony } from 'better-auth-harmony'
 import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api'
@@ -37,7 +39,7 @@ const twoFactorPlugin = twoFactor({ allowPasswordless: true })
 
 const providerLabels: Partial<Record<string, string>> = SOCIAL_PROVIDER_LABELS
 
-const signUpRequests = new WeakSet<AuthContext>()
+const authRequest = new AsyncLocalStorage<{ signUp: boolean }>()
 
 const findUser = (userId: string) =>
   db.query.users.findFirst({
@@ -99,7 +101,7 @@ export const auth = betterAuth({
     account: {
       create: {
         after: async (account, context) => {
-          if (!context || signUpRequests.has(context.context)) {
+          if (!context || authRequest.getStore()?.signUp) {
             return
           }
 
@@ -150,9 +152,11 @@ export const auth = betterAuth({
 
           return { data: user }
         },
-        after: async (user, context) => {
-          if (context) {
-            signUpRequests.add(context.context)
+        after: async (user) => {
+          const request = authRequest.getStore()
+
+          if (request) {
+            request.signUp = true
           }
 
           await userEncryptionKey.create(user.id).catch(async (error) => {
@@ -305,7 +309,7 @@ export const auth = betterAuth({
             handler: createAuthMiddleware(async (ctx) => {
               const { newSession, session } = ctx.context
 
-              if (!newSession || session || signUpRequests.has(ctx.context)) {
+              if (!newSession || session || authRequest.getStore()?.signUp) {
                 return
               }
 
@@ -409,3 +413,6 @@ export const auth = betterAuth({
     },
   },
 })
+
+export const handleAuth = (request: Request) =>
+  authRequest.run({ signUp: false }, () => auth.handler(request))

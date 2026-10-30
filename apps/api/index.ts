@@ -8,7 +8,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 
 import { env, nodeEnv } from './env'
-import { auth } from './lib/auth'
+import { handleAuth } from './lib/auth'
 import { sendEmail } from './lib/resend'
 import { createContext } from './orpc/context'
 import { router } from './orpc/routers'
@@ -175,7 +175,7 @@ const app = new Hono<{
       req.headers.set('origin', 'file://')
     }
 
-    return auth.handler(req)
+    return handleAuth(req)
   })
   .use('/rpc/*', async (c, next) => {
     const { matched, response } = await handler.handle(c.req.raw.clone(), {
