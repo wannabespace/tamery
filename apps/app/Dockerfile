@@ -2,6 +2,8 @@
 # Railway builds this with the repo root as the context.
 
 FROM node:24-slim AS build
+# posthog-cli, which uploads the sourcemaps, reads the system CA store that the slim image leaves out.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=oven/bun:1.4.4 /usr/local/bin/bun /usr/local/bin/bun
 RUN corepack enable
 WORKDIR /app
