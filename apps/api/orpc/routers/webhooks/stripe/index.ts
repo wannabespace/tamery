@@ -4,6 +4,7 @@ import { env } from '~/env'
 import { sendEmail } from '~/lib/resend'
 import { orpc } from '~/orpc'
 
+import { creditsPaid } from './credits-paid'
 import { subscriptionCreated } from './subscription-created'
 import { subscriptionDeleted } from './subscription-deleted'
 import { subscriptionUpdated } from './subscription-updated'
@@ -16,6 +17,7 @@ const eventMap = new Map<
   ['customer.subscription.created', subscriptionCreated],
   ['customer.subscription.deleted', subscriptionDeleted],
   ['customer.subscription.updated', subscriptionUpdated],
+  ['payment_intent.succeeded', creditsPaid],
 ])
 
 const prices = new Set([env.STRIPE_MONTH_PRICE_ID, env.STRIPE_ANNUAL_PRICE_ID])

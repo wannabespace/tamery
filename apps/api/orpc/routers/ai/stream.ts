@@ -2,11 +2,13 @@ import { chatStream } from '@tamery/ai/features'
 import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
 import { AiFeature } from '@tamery/ai/usage'
+import { CHAT_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { validateUIMessages } from 'ai'
 import { type } from 'arktype'
 
-import { aiUsage, isChatBudgetSpent } from '~/lib/ai-usage'
+import { aiUsage } from '~/lib/ai-usage'
 import { chatPersist } from '~/lib/chat-persist'
+import { credits } from '~/lib/credits'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 export const stream = orpc
@@ -22,10 +24,7 @@ export const stream = orpc
   .errors({
     BAD_REQUEST: { message: 'Invalid messages' },
     CONFLICT: { message: 'This chat is already generating an answer.' },
-    TOO_MANY_REQUESTS: {
-      message:
-        "You've used this month's AI chat budget. It renews with your next billing month.",
-    },
+    TOO_MANY_REQUESTS: { message: CHAT_BUDGET_SPENT_MESSAGE },
   })
   .handler(async function* streamHandler({ context, errors, input }) {
     const messages = await validateUIMessages<AppUIMessage>({
@@ -39,12 +38,7 @@ export const stream = orpc
       throw errors.BAD_REQUEST()
     }
 
-    if (
-      await isChatBudgetSpent({
-        periodStart: context.subscription?.periodStart ?? null,
-        userId: context.user.id,
-      })
-    ) {
+    if (!(await credits.canChat(context.user.id))) {
       throw errors.TOO_MANY_REQUESTS()
     }
 

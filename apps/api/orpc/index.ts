@@ -180,7 +180,6 @@ export const permissionsMiddleware = logMiddleware.use(
         ...permix.setupContext(
           getPermissions({ subscription, user: session.user })
         ),
-        subscription,
       },
     })
   })

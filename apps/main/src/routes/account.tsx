@@ -27,6 +27,7 @@ import { authClient } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { AiUsageLink } from '~/modules/ai-usage/ai-usage-link'
 import { BillingLink } from '~/modules/billing/billing-link'
+import { CreditsLink } from '~/modules/credits/credits-link'
 import { SettingsLink } from '~/modules/settings/settings-link'
 import { SupportButton } from '~/modules/support/support-button'
 
@@ -98,6 +99,7 @@ const AccountLayout = () => {
               Subscription
             </SidebarLink>
             <BillingLink />
+            <CreditsLink />
             <AiUsageLink />
             <SettingsLink />
             <SupportButton />

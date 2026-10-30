@@ -4,8 +4,9 @@ import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
-import { aiUsage, isChatBudgetSpent } from '~/lib/ai-usage'
+import { aiUsage } from '~/lib/ai-usage'
 import { chatPersist } from '~/lib/chat-persist'
+import { credits } from '~/lib/credits'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 export const attachStream = orpc
@@ -37,12 +38,7 @@ export const attachStream = orpc
       return
     }
 
-    if (
-      await isChatBudgetSpent({
-        periodStart: context.subscription?.periodStart ?? null,
-        userId: context.user.id,
-      })
-    ) {
+    if (!(await credits.canChat(context.user.id))) {
       return
     }
 

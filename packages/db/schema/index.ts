@@ -40,6 +40,7 @@ export {
   provider,
   syncType,
 } from './connections'
+export { creditAccounts, creditTopUps } from './credits'
 export { earlyAccess } from './early-access'
 export { userEncryptionKeys } from './encryption'
 export {

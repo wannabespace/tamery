@@ -26,6 +26,7 @@ import { Route as LayoutTermsOfServiceRouteImport } from './modules/legal/routes
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as AccountAiUsageRouteImport } from './modules/ai-usage/routes/account/ai-usage'
 import { Route as AccountBillingRouteImport } from './modules/billing/routes/account/billing'
+import { Route as AccountCreditsRouteImport } from './modules/credits/routes/account/credits'
 import { Route as DeepDotshareRouteImport } from './modules/deep-link/routes/deep.share'
 import { Route as DeepDotsignInRouteImport } from './modules/deep-link/routes/deep.sign-in'
 import { Route as LayoutBlogDotindexRouteImport } from './modules/blog/routes/_layout/blog.index'
@@ -115,6 +116,11 @@ const AccountBillingRoute = AccountBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AccountRoute,
 } as any)
+const AccountCreditsRoute = AccountCreditsRouteImport.update({
+  id: '/credits',
+  path: '/credits',
+  getParentRoute: () => AccountRoute,
+} as any)
 const DeepDotshareRoute = DeepDotshareRouteImport.update({
   id: '/deep/share',
   path: '/deep/share',
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/terms-of-service': typeof LayoutTermsOfServiceRoute
   '/account/ai-usage': typeof AccountAiUsageRoute
   '/account/billing': typeof AccountBillingRoute
+  '/account/credits': typeof AccountCreditsRoute
   '/deep/share': typeof DeepDotshareRoute
   '/deep/sign-in': typeof DeepDotsignInRoute
   '/account/': typeof AccountIndexRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/terms-of-service': typeof LayoutTermsOfServiceRoute
   '/account/ai-usage': typeof AccountAiUsageRoute
   '/account/billing': typeof AccountBillingRoute
+  '/account/credits': typeof AccountCreditsRoute
   '/deep/share': typeof DeepDotshareRoute
   '/deep/sign-in': typeof DeepDotsignInRoute
   '/account': typeof AccountIndexRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/_layout/terms-of-service': typeof LayoutTermsOfServiceRoute
   '/account/ai-usage': typeof AccountAiUsageRoute
   '/account/billing': typeof AccountBillingRoute
+  '/account/credits': typeof AccountCreditsRoute
   '/deep/share': typeof DeepDotshareRoute
   '/deep/sign-in': typeof DeepDotsignInRoute
   '/_layout/': typeof LayoutIndexRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/terms-of-service'
     | '/account/ai-usage'
     | '/account/billing'
+    | '/account/credits'
     | '/deep/share'
     | '/deep/sign-in'
     | '/account/'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/terms-of-service'
     | '/account/ai-usage'
     | '/account/billing'
+    | '/account/credits'
     | '/deep/share'
     | '/deep/sign-in'
     | '/account'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
     | '/_layout/terms-of-service'
     | '/account/ai-usage'
     | '/account/billing'
+    | '/account/credits'
     | '/deep/share'
     | '/deep/sign-in'
     | '/_layout/'
@@ -409,6 +421,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountBillingRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/account/credits': {
+      id: '/account/credits'
+      path: '/credits'
+      fullPath: '/account/credits'
+      preLoaderRoute: typeof AccountCreditsRouteImport
+      parentRoute: typeof AccountRoute
+    }
     '/deep/share': {
       id: '/deep/share'
       path: '/deep/share'
@@ -491,6 +510,7 @@ const LayoutRouteWithChildren =
 interface AccountRouteChildren {
   AccountAiUsageRoute: typeof AccountAiUsageRoute
   AccountBillingRoute: typeof AccountBillingRoute
+  AccountCreditsRoute: typeof AccountCreditsRoute
   AccountIndexRoute: typeof AccountIndexRoute
   AccountSettingsIndexRoute: typeof AccountSettingsIndexRoute
 }
@@ -498,6 +518,7 @@ interface AccountRouteChildren {
 const AccountRouteChildren: AccountRouteChildren = {
   AccountAiUsageRoute: AccountAiUsageRoute,
   AccountBillingRoute: AccountBillingRoute,
+  AccountCreditsRoute: AccountCreditsRoute,
   AccountIndexRoute: AccountIndexRoute,
   AccountSettingsIndexRoute: AccountSettingsIndexRoute,
 }

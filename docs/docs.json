@@ -45,7 +45,12 @@
       },
       {
         "group": "Account and billing",
-        "pages": ["account/plans", "account/ai-usage", "account/settings"]
+        "pages": [
+          "account/plans",
+          "account/ai-credits",
+          "account/ai-usage",
+          "account/settings"
+        ]
       }
     ]
   }
