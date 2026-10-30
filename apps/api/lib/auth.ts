@@ -8,7 +8,7 @@ import {
 } from '@tamery/shared/constants'
 import { formatDeviceLabel } from '@tamery/shared/device-label'
 import { getPermissions } from '@tamery/shared/permissions'
-import type { Session } from 'better-auth'
+import type { AuthContext, Session } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { emailHarmony } from 'better-auth-harmony'
 import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api'
@@ -37,16 +37,11 @@ const twoFactorPlugin = twoFactor({ allowPasswordless: true })
 
 const providerLabels: Partial<Record<string, string>> = SOCIAL_PROVIDER_LABELS
 
-const SIGN_UP_WINDOW_MS = 60_000
-
-const createdWithUser = (
-  user: { createdAt: Date },
-  record: { createdAt: Date }
-) => record.createdAt.getTime() - user.createdAt.getTime() < SIGN_UP_WINDOW_MS
+const signUpRequests = new WeakSet<AuthContext>()
 
 const findUser = (userId: string) =>
   db.query.users.findFirst({
-    columns: { createdAt: true, email: true, twoFactorEnabled: true },
+    columns: { email: true, twoFactorEnabled: true },
     where: { id: { eq: userId } },
   })
 
@@ -104,13 +99,13 @@ export const auth = betterAuth({
     account: {
       create: {
         after: async (account, context) => {
-          if (!context) {
+          if (!context || signUpRequests.has(context.context)) {
             return
           }
 
           const user = await findUser(account.userId)
 
-          if (!user || createdWithUser(user, account)) {
+          if (!user) {
             return
           }
 
@@ -155,7 +150,11 @@ export const auth = betterAuth({
 
           return { data: user }
         },
-        after: async (user) => {
+        after: async (user, context) => {
+          if (context) {
+            signUpRequests.add(context.context)
+          }
+
           await userEncryptionKey.create(user.id).catch(async (error) => {
             console.error(
               `Failed to create user encryption key: ${error instanceof Error ? error.message : error}`,
@@ -306,11 +305,7 @@ export const auth = betterAuth({
             handler: createAuthMiddleware(async (ctx) => {
               const { newSession, session } = ctx.context
 
-              if (
-                !newSession ||
-                session ||
-                createdWithUser(newSession.user, newSession.session)
-              ) {
+              if (!newSession || session || signUpRequests.has(ctx.context)) {
                 return
               }
 
