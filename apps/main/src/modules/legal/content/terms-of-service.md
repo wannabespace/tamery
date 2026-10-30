@@ -110,7 +110,7 @@ You agree to indemnify Wannabe Space, LLC from claims arising from your use of t
 
 - You may terminate your account at any time
 - We may terminate accounts that violate these terms
-- Termination results in deletion of your data (some data may be retained for legal obligations)
+- Termination results in deletion of your data. A copy is kept for 90 days in case it was removed by mistake, then erased permanently (some data may be retained longer for legal obligations)
 
 ## 15. Governing Law
 
