@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  oxlint:
+  check:
     runs-on: ubuntu-latest
 
     steps:
@@ -37,8 +37,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Check
+      - name: Lint and format
         run: pnpm run check
+
+      - name: Type-check
+        run: pnpm run check-types
+
+      - name: Test
+        run: pnpm run test
 
   security:
     runs-on: ubuntu-latest
