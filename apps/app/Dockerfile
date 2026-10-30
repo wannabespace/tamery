@@ -2,7 +2,7 @@
 # Railway builds this with the repo root as the context.
 
 FROM node:24-slim AS build
-COPY --from=oven/bun:1 /usr/local/bin/bun /usr/local/bin/bun
+COPY --from=oven/bun:1.4.4 /usr/local/bin/bun /usr/local/bin/bun
 RUN corepack enable
 WORKDIR /app
 
