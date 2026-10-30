@@ -2,6 +2,7 @@ import { once } from 'node:events'
 import { createRequire } from 'node:module'
 import type net from 'node:net'
 
+import { logDriverError } from '@tamery/shared/sanitize-log'
 import { memoize } from 'memoza'
 import type * as mssqlModule from 'mssql'
 
@@ -43,6 +44,6 @@ export const poolConfig = async (
 
 export const getPool = memoize(async (connectionString: string) => {
   const pool = new mssql.ConnectionPool(await poolConfig(connectionString))
-  pool.on('error', console.error)
+  pool.on('error', logDriverError)
   return pool.connect()
 })

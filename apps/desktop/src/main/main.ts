@@ -240,8 +240,10 @@ app.on('ready', () => {
   restrictPermissions()
   createWindow()
 
-  ipcMain.handle('app.openWindow', (_event, route: string) => {
-    createWindow(route)
+  ipcMain.handle('app.openWindow', (event, route: string) => {
+    if (isAppUrl(event.senderFrame?.url ?? '')) {
+      createWindow(route)
+    }
   })
 
   setupProtocolHandler(createWindow)

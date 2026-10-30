@@ -1,8 +1,13 @@
 import { deepRedact } from '@hackylabs/deep-redact'
 
-const URL_PASSWORD = /(?<user>\/\/[^\s/:@]*:)[^\s@]+@/gu
+/** Up to the userinfo's last `@`: a password may hold a raw `@`, a host never does. */
+const URL_PASSWORD = /(?<user>\/\/[^\s/:@]*:)\S*?@(?=[^\s/?#@]*(?:[\s/?#]|$))/gu
 const KEY_VALUE_SECRET =
-  /(?<key>(?:password|pwd|authToken|access_token|token)\s*=\s*)[^\s;&'"]+/giu
+  /(?<key>(?:password|passphrase|pwd|token|authorization|ssh_key|sslpfx|authmechanismproperties)\s*=\s*)[^\s;&'"]+/giu
+const SECRET_TEXT = new RegExp(
+  `${URL_PASSWORD.source}|${KEY_VALUE_SECRET.source}`,
+  'iu'
+)
 
 const redactor = deepRedact({
   caseSensitiveKeyMatch: false,
@@ -25,16 +30,15 @@ const redactor = deepRedact({
     /invalidData/iu,
   ],
   serialise: false,
-  // Strings that embed a connection string (chat text, SQL, driver errors) carry no key to match.
+  // Strings that embed a connection string (chat text, SQL, driver errors) carry no key to match. One test runs every
+  // pattern: deep-redact applies only the first test that matches a string.
   stringTests: [
     {
-      pattern: URL_PASSWORD,
-      replacer: (value, pattern) =>
-        value.replace(pattern, '$<user>[REDACTED]@'),
-    },
-    {
-      pattern: KEY_VALUE_SECRET,
-      replacer: (value, pattern) => value.replace(pattern, '$<key>[REDACTED]'),
+      pattern: SECRET_TEXT,
+      replacer: (value) =>
+        value
+          .replaceAll(URL_PASSWORD, '$<user>[REDACTED]@')
+          .replaceAll(KEY_VALUE_SECRET, '$<key>[REDACTED]'),
     },
   ],
   transformers: {
@@ -51,3 +55,8 @@ const redactor = deepRedact({
 })
 
 export const sanitizeLogData = <T>(data: T): T => redactor(data) as T
+
+/** Logs the message alone: a driver's `error` event also hands over its client, whose fields hold the password. */
+export const logDriverError = (error: Error) => {
+  console.error(sanitizeLogData({ error: error.message }))
+}

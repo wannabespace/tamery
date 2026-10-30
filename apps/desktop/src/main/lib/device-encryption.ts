@@ -7,7 +7,10 @@ import Store from 'electron-store'
 
 const KEY_BYTES = 32
 
-const store = new Store<{ wrappedKey?: string }>({ name: 'encryption-key' })
+const store = new Store<{ wrappedKey?: string }>({
+  configFileMode: 0o600,
+  name: 'encryption-key',
+})
 
 let key: Promise<CryptoKey> | null = null
 let creation: Promise<boolean> | null = null

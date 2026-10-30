@@ -35,4 +35,33 @@ describe('sanitizeLogData', () => {
     expect(text).not.toContain('eyJtoken')
     expect(text).toContain('db.example.com')
   })
+
+  it('redacts every secret a string carries, not only the first kind', () => {
+    const text = logged({
+      error:
+        'postgres://u:hun@ter2@db.example.com/app?ssh_password=SSHPW&ssh_key=PRIVKEY&ssh_passphrase=PP&sslpassphrase=SP&sslpfx=PFX&http_header_authorization=Basic%20AUTH&authMechanismProperties=AWS_SESSION_TOKEN:AWSTOK',
+    })
+    for (const secret of [
+      'hun',
+      'ter2',
+      'SSHPW',
+      'PRIVKEY',
+      'PP',
+      'SP',
+      'PFX',
+      'AUTH',
+      'AWSTOK',
+    ]) {
+      expect(text).not.toContain(secret)
+    }
+    expect(text).toContain('db.example.com/app')
+  })
+
+  it('keeps an email after a connection string', () => {
+    const text = logged({
+      error: 'postgres://u:pw@h failed for me@example.com',
+    })
+    expect(text).not.toContain('pw@')
+    expect(text).toContain('me@example.com')
+  })
 })

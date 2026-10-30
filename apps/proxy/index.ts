@@ -3,7 +3,7 @@ import process from 'node:process'
 
 import { ORPCError } from '@orpc/server'
 import { RPCHandler } from '@orpc/server/fetch'
-import { mongodbGuard } from '@tamery/connection/queries/dialects/mongodb/client'
+import { sshForwarding } from '@tamery/connection/ssh/forwarding'
 import { querySerializer } from '@tamery/query-proxy/serializer'
 import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { Hono } from 'hono'
@@ -12,10 +12,10 @@ import { cors } from 'hono/cors'
 import { env, nodeEnv } from './env'
 import { createContext } from './orpc/context'
 import { router } from './orpc/routers'
-import { guardedConnect } from './public-host'
+import { guardedForwarding } from './public-host'
 import type { AppVariables } from './variables'
 
-mongodbGuard.use(guardedConnect)
+sshForwarding.use(guardedForwarding)
 
 const handler = new RPCHandler(router, {
   interceptors: [
@@ -40,7 +40,7 @@ const handler = new RPCHandler(router, {
         if (error instanceof Error) {
           throw new ORPCError('INTERNAL_SERVER_ERROR', {
             cause: error,
-            message: error.message,
+            message: sanitizeLogData({ message: error.message }).message,
           })
         }
 
@@ -102,8 +102,10 @@ const app = new Hono<{
       status,
       ...(version ? { version } : {}),
       ...(userAgent ? { userAgent } : {}),
-      ...(body === undefined ? {} : { body }),
-      ...sanitizeLogData(logEvent),
+      ...sanitizeLogData({
+        ...logEvent,
+        ...(body === undefined ? {} : { body }),
+      }),
     }
 
     const log = JSON.stringify(

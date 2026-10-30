@@ -8,6 +8,7 @@ import type { ConfirmHostKey } from '@tamery/connection/ssh/host-key'
 import { tunnelForwarding } from '@tamery/connection/ssh/tunnel'
 import { isConnectionError } from '@tamery/shared/connections'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
+import { logDriverError } from '@tamery/shared/sanitize-log'
 
 import type { CopyDatabaseRequest } from './copy-database'
 import { copyDatabase } from './copy-database'
@@ -111,7 +112,7 @@ process.parentPort.on(
 
 process.on('uncaughtException', (error) => {
   if (isConnectionError(error)) {
-    console.error('[Suppressed Connection Error]', error.message)
+    logDriverError(error)
     return
   }
   throw error
@@ -119,10 +120,7 @@ process.on('uncaughtException', (error) => {
 
 process.on('unhandledRejection', (reason) => {
   if (isConnectionError(reason)) {
-    console.error(
-      '[Suppressed Connection Rejection]',
-      reason instanceof Error ? reason.message : reason
-    )
+    logDriverError(reason)
     return
   }
   throw reason

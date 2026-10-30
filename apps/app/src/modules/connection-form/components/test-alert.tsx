@@ -81,7 +81,9 @@ export const TestAlert = ({
     >
       <Alert variant="error">
         <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
-        <AlertTitle>{diagnosis?.title ?? "Couldn't connect"}</AlertTitle>
+        <AlertTitle data-mask>
+          {diagnosis?.title ?? "Couldn't connect"}
+        </AlertTitle>
         <AlertDescription className="select-text">
           <div className="flex flex-col gap-2">
             {answer ? (
@@ -96,7 +98,7 @@ export const TestAlert = ({
                 )}
               </div>
             ) : (
-              diagnosis && <span>{diagnosis.hint}</span>
+              diagnosis && <span data-mask>{diagnosis.hint}</span>
             )}
             {(!diagnosis || showError) && (
               <span data-mask className="font-mono text-xs wrap-anywhere">
