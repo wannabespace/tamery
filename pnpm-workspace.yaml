@@ -43,6 +43,7 @@ catalog:
   '@orpc/server': 2.0.0-beta.45
   '@orpc/tanstack-query': 2.0.0-beta.45
   '@playwright/test': ^1.64.1
+  '@posthog/rollup-plugin': ^1.6.2
   '@react-email/components': ^1.0.10
   '@rolldown/plugin-babel': ^0.2.4
   '@shadcn/react': ^0.3.1
@@ -126,7 +127,8 @@ catalog:
   pg: ^8.23.1
   playwright: ^1.64.1
   portless: ^0.15.9
-  posthog-js: ^1.438.21
+  posthog-js: ^1.438.23
+  posthog-node: ^5.57.2
   react: ^19.3.1
   react-day-picker: ^10.0.2
   react-dom: ^19.3.1
@@ -134,7 +136,6 @@ catalog:
   redis: ^6.3.0
   resend: ^6.34.1
   seitu: ^1.4.0
-  serve: ^14.2.6
   shadcn: ^4.22.1
   sonner: ^2.0.8
   sql-formatter: ^15.9.0
@@ -179,6 +180,7 @@ allowBuilds:
   '@firebase/util': false
   '@google/genai': false
   '@journeyapps/wa-sqlite': true
+  '@posthog/cli': true
   core-js: false
   cpu-features: false
   dtrace-provider: false

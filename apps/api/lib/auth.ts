@@ -25,6 +25,7 @@ import { eq } from 'drizzle-orm'
 import { env, nodeEnv } from '~/env'
 import { userEncryptionKey } from '~/lib/encryption-key'
 import { locateIp } from '~/lib/geo-ip'
+import { posthog } from '~/lib/posthog'
 import { resend, sendEmail } from '~/lib/resend'
 
 import { requireEarlyAccess, requireUserEarlyAccess } from './early-access'
@@ -162,6 +163,12 @@ export const auth = betterAuth({
             )
             await db.delete(users).where(eq(users.id, user.id))
             throw error
+          })
+
+          posthog?.capture({
+            distinctId: user.id,
+            event: 'signed_up',
+            properties: { app: 'api' },
           })
 
           if (resend && !user.isAnonymous) {

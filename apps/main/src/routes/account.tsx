@@ -42,8 +42,8 @@ const AccountLayout = () => {
   })
 
   useEffect(() => {
-    void posthog.identify(user.id)
-  }, [user.id])
+    void posthog.identify(user.id, { email: user.email, name: user.name })
+  }, [user.id, user.email, user.name])
 
   const signOut = async () => {
     void posthog.capture('signed_out')

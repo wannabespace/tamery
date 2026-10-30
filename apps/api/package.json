@@ -7,7 +7,7 @@
     "rotate:connection-keys": "bun run --preload ./lib/unwrap-secrets.ts ./scripts/rotate/connection-keys.ts",
     "rotate:encryption-secret": "bun run --preload ./lib/unwrap-secrets.ts ./scripts/rotate/encryption-secret.ts",
     "rotate:user-key-secret": "bun run --preload ./lib/unwrap-secrets.ts ./scripts/rotate/user-key-secret.ts",
-    "check-types": "tsc",
+    "check-types": "bun check",
     "test:start": "cross-env NODE_ENV=test bun --env-file=.env.test drizzle-kit migrate && cross-env NODE_ENV=test bun --env-file=.env.test run ./index.ts",
     "better-auth:generate": "cross-env NODE_ENV=development pnpx auth generate --output ../../packages/db/schema/auth.ts"
   },
@@ -42,6 +42,7 @@
     "nanoid": "catalog:",
     "permix": "catalog:",
     "pg": "catalog:",
+    "posthog-node": "catalog:",
     "react": "catalog:",
     "redis": "catalog:",
     "resend": "catalog:",

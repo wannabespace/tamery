@@ -4,8 +4,7 @@
   "scripts": {
     "dev": "portless run vite dev",
     "build": "vite build",
-    "start": "bun run .output/server/index.mjs",
-    "check-types": "tsc"
+    "check-types": "bun check"
   },
   "dependencies": {
     "@mdx-js/rollup": "^3.1.0",
