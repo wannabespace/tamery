@@ -1,5 +1,3 @@
-export { PORTS } from './ports'
-
 export const SOCIAL_LINKS = {
   DISCORD: 'https://discord.gg/XweDPUVadR',
   GITHUB: 'https://github.com/wannabespace/tamery',

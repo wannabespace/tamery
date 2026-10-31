@@ -10,7 +10,6 @@ import {
   isInitializeRequest,
   isJSONRPCRequest,
 } from '@modelcontextprotocol/sdk/types.js'
-import { PORTS } from '@tamery/shared/constants'
 import type {
   McpAccess,
   McpCall,
@@ -18,7 +17,7 @@ import type {
   McpStatus,
 } from '@tamery/shared/mcp'
 import { DEFAULT_MCP_ACCESS } from '@tamery/shared/mcp'
-import { LOOPBACK_HOST } from '@tamery/shared/ports'
+import { LOOPBACK_HOST, PORTS } from '@tamery/shared/ports'
 import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { omit, silently, toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
