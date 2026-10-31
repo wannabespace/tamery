@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { once } from 'node:events'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { createServer, Server } from 'node:http'
@@ -10,7 +10,6 @@ import {
   isInitializeRequest,
   isJSONRPCRequest,
 } from '@modelcontextprotocol/sdk/types.js'
-import { PORTS } from '@tamery/shared/constants'
 import type {
   McpAccess,
   McpCall,
@@ -18,15 +17,17 @@ import type {
   McpStatus,
 } from '@tamery/shared/mcp'
 import { DEFAULT_MCP_ACCESS } from '@tamery/shared/mcp'
+import { LOOPBACK_HOST, PORTS } from '@tamery/shared/ports'
+import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { omit, silently, toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
-import Store from 'electron-store'
 
 import { createMcpServer } from './mcp-tools'
+import { createPrivateStore } from './private-store'
 
 const newToken = () => randomBytes(32).toString('base64url')
 
-const store = new Store<{
+const store = createPrivateStore<{
   access: Record<string, McpAccess>
   clients: Record<string, Omit<McpClient, 'name'>>
   enabled: boolean
@@ -45,7 +46,7 @@ const connectionAccess = () => store.get('access')
 
 const MAX_LOGGED_CALLS = 100
 
-const log = new Store<{ calls: McpCall[] }>({
+const log = createPrivateStore<{ calls: McpCall[] }>({
   defaults: { calls: [] },
   name: 'mcp-log',
 })
@@ -95,12 +96,16 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
     res.writeHead(404).end()
     return
   }
-  // A website rebinding its own domain to 127.0.0.1 arrives with its own Host.
-  if (!/^(?:127\.0\.0\.1|localhost)(?::\d+)?$/u.test(req.headers.host ?? '')) {
+  if (!LOOPBACK_HOST.test(req.headers.host ?? '')) {
     res.writeHead(403).end()
     return
   }
-  if (req.headers.authorization !== `Bearer ${store.get('token')}`) {
+  const expected = Buffer.from(`Bearer ${store.get('token')}`)
+  const received = Buffer.from(req.headers.authorization ?? '')
+  if (
+    received.length !== expected.length ||
+    !timingSafeEqual(received, expected)
+  ) {
     res.writeHead(401).end()
     return
   }
@@ -172,7 +177,7 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
     transport.handleRequest(req, res, body)
   )
   if (handled.isErr()) {
-    console.error('[MCP]', handled.error.cause)
+    console.error('[MCP]', sanitizeLogData(handled.error.cause))
     res.destroy()
   }
 }

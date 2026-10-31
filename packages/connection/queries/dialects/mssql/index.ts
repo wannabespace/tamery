@@ -1,3 +1,5 @@
+import { logDriverError } from '@tamery/shared/sanitize-log'
+
 import type { QueryExecutor } from '../..'
 import { handleQueryError } from '../..'
 import { cancel } from '../../cancellation'
@@ -61,7 +63,7 @@ export const query = {
       // `min: 1` keeps the idle reaper off the one connection: reaping it would roll the transaction back and run the next request outside it.
       pool: { max: 1, min: 1 },
     }).connect()
-    session.on('error', console.error)
+    session.on('error', logDriverError)
     const txId = registerTransaction(
       {
         commit: async () => {

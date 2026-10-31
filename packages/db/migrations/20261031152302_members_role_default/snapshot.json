@@ -1,9 +1,9 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "d314ef9b-e843-4aec-a9a7-79fe80b6a8cd",
+  "id": "17c88ed3-47d7-4973-835a-ae2067d6fa84",
   "prevIds": [
-    "4cebe0b6-bdb5-4cdf-97ae-fd7961184bda"
+    "d314ef9b-e843-4aec-a9a7-79fe80b6a8cd"
   ],
   "ddl": [
     {
@@ -1221,7 +1221,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "'member'",
+      "default": "'viewer'",
       "generated": null,
       "identity": null,
       "name": "role",
@@ -3413,6 +3413,96 @@
       "schema": "public",
       "table": "workspaces",
       "entityType": "uniques"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "deleted_records",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "data",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "deleted_records"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "deleted_records"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "record_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "deleted_records"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "table_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "deleted_records"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "deleted_at",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "deleted_records_deleted_at_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "deleted_records"
+    },
+    {
+      "columns": [
+        "table_name",
+        "record_id"
+      ],
+      "nameExplicit": false,
+      "name": "deleted_records_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "deleted_records"
     }
   ],
   "renames": []

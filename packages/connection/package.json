@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "bun test",
-    "check-types": "tsc"
+    "check-types": "bun check"
   },
   "dependencies": {
     "@mongodb-js/shell-bson-parser": "catalog:",

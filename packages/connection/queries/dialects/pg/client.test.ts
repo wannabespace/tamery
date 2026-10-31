@@ -1,5 +1,6 @@
 import { expect, mock, spyOn, test } from 'bun:test'
 
+import { logDriverError } from '@tamery/shared/sanitize-log'
 import { Pool } from 'pg'
 
 import { SSH_DESKTOP_ONLY } from '../../../ssh/params'
@@ -26,7 +27,7 @@ test('both the TLS pool and its plaintext fallback handle idle-client errors', a
     expect(listeners.mock.calls).toHaveLength(2)
     for (const [event, listener] of listeners.mock.calls) {
       expect(event).toBe('error')
-      expect(listener).toBe(console.error)
+      expect(listener).toBe(logDriverError)
     }
     for (const pool of poolQuery.mock.contexts.slice(0, 2)) {
       expect(

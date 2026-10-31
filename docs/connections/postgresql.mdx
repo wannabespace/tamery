@@ -13,6 +13,8 @@ postgresql://user:password@localhost:5432/mydb
 
 Both `postgresql://` and `postgres://` work. The default port is **5432**.
 
+Tamery signs in with the password saved in the connection only. It never reads `PGPASSWORD` or `~/.pgpass` when it connects, so a connection with no password sends none. To use a `.pgpass` entry, pick it from the databases found on this computer when you create the connection.
+
 ## Hosted databases
 
 Copy the connection string from Supabase, Neon, Railway, or wherever your database lives. If it still says `[YOUR-PASSWORD]` or similar, Tamery clears the placeholder and asks for the real password.

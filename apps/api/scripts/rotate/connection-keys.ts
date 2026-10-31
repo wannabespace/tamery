@@ -1,7 +1,12 @@
 import process from 'node:process'
 
 import { db } from '@tamery/db'
-import { connections, workspaceEncryptionKeys } from '@tamery/db/schema'
+import {
+  connections,
+  copies,
+  deletedRecords,
+  workspaceEncryptionKeys,
+} from '@tamery/db/schema'
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
 import { toError } from '@tamery/shared/utils'
 import { and, eq, isNotNull } from 'drizzle-orm'
@@ -13,6 +18,9 @@ const onlyWorkspaceIds = new Set(
 )
 
 const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
+  // Live rows load before the copies, so a connection deleted any time after is still a
+  // live row whose update below misses and aborts the workspace, instead of its copy
+  // being left under the key the transaction replaces.
   const rows = await db
     .select({
       connectionString: connections.connectionString,
@@ -23,6 +31,21 @@ const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
       and(
         eq(connections.workspaceId, workspaceId),
         isNotNull(connections.connectionString)
+      )
+    )
+  const copyRows = await db
+    .select({
+      connectionString: copies
+        .column(connections.connectionString)
+        .mapWith(connections.connectionString),
+      id: deletedRecords.recordId,
+    })
+    .from(deletedRecords)
+    .where(
+      and(
+        copies.of(connections),
+        eq(copies.column(connections.workspaceId), workspaceId),
+        isNotNull(copies.column(connections.connectionString))
       )
     )
 
@@ -45,8 +68,24 @@ const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
     }
   }
 
+  const copyPlaintexts: { id: string; text: string }[] = []
+  for (const copy of copyRows) {
+    try {
+      copyPlaintexts.push({
+        id: copy.id,
+        text: decrypt({ encryptedText: copy.connectionString, secret: oldKey }),
+      })
+    } catch {
+      return {
+        error: `deleted connection ${copy.id} does not decrypt with the workspace's current key`,
+      }
+    }
+  }
+
+  const count = { connections: plaintexts.length + copyPlaintexts.length }
+
   if (!execute) {
-    return { connections: plaintexts.length }
+    return count
   }
 
   const newKey = nanoid()
@@ -55,10 +94,31 @@ const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
     await db.transaction(async (tx) => {
       for (const { id, text } of plaintexts) {
         // oxlint-disable-next-line no-await-in-loop -- one statement per row, each a distinct ciphertext on one tx connection
-        await tx
+        const { rowCount } = await tx
           .update(connections)
           .set({ connectionString: encrypt({ secret: newKey, text }) })
           .where(eq(connections.id, id))
+
+        if (!rowCount) {
+          throw new Error(
+            `connection ${id} was deleted during the run; rerun to rotate its copy`
+          )
+        }
+      }
+
+      for (const { id, text } of copyPlaintexts) {
+        // oxlint-disable-next-line no-await-in-loop -- one statement per row, each a distinct ciphertext on one tx connection
+        await tx
+          .update(deletedRecords)
+          .set({
+            data: copies.replace(
+              connections.connectionString,
+              connections.connectionString.mapToDriverValue(
+                encrypt({ secret: newKey, text })
+              )
+            ),
+          })
+          .where(and(copies.of(connections), eq(deletedRecords.recordId, id)))
       }
 
       await tx
@@ -72,7 +132,7 @@ const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
     }
   }
 
-  return { connections: plaintexts.length }
+  return count
 }
 
 const keyRows = await db

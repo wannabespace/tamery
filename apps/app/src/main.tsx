@@ -97,8 +97,12 @@ const reportSlowNavigation = () => {
   })
 }
 
-router.subscribe('onResolved', ({ toLocation }) => {
+router.subscribe('onResolved', ({ fromLocation, toLocation }) => {
   reportSlowNavigation()
+
+  if (fromLocation?.pathname !== toLocation.pathname) {
+    posthog.capture('$pageview')
+  }
 
   for (const shell of document.querySelectorAll('[data-shell]')) {
     requestAnimationFrame(() => shell.remove())

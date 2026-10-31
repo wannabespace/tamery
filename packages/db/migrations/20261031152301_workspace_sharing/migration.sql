@@ -20,3 +20,5 @@ ALTER TABLE "connections" ADD CONSTRAINT "connections_user_id_users_id_fkey" FOR
 ALTER TABLE "workspace_encryption_keys" ADD CONSTRAINT "workspace_encryption_keys_workspace_id_workspaces_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspaces"("id") ON DELETE CASCADE;--> statement-breakpoint
 -- Synced workspace rows now carry the member's role; a newer updatedAt makes every device's catch-up fetch it.
 UPDATE "workspaces" SET "updated_at" = now();
+--> statement-breakpoint
+CREATE TRIGGER "keep_deleted_record" AFTER DELETE ON "workspace_encryption_keys" FOR EACH ROW EXECUTE FUNCTION "keep_deleted_record"('workspace_id');

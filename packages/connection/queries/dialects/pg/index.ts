@@ -1,3 +1,4 @@
+import { logDriverError } from '@tamery/shared/sanitize-log'
 import type { ClientBase, Pool } from 'pg'
 
 import type { QueryExecutor, TransactionStatus } from '../..'
@@ -105,7 +106,7 @@ export const query = {
     const client = new pg.Client(pool.options)
     await client.connect()
     // An unhandled `error` (the server dropping the connection) would crash the process.
-    client.on('error', console.error)
+    client.on('error', logDriverError)
     const txId = register(client, {
       connectionString,
       ownerId,

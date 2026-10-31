@@ -8,7 +8,7 @@ import { LegalDocument } from '../../legal-document'
 const TermsOfService = () => (
   <LegalDocument
     title="Terms of Service"
-    updatedAt="July 1, 2025"
+    updatedAt="October 28, 2026"
     content={termsOfServiceContent}
   />
 )

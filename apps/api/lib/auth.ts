@@ -1,13 +1,20 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
+
 import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2'
 import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
 import * as schema from '@tamery/db/schema'
-import { AUTH_COOKIE_PREFIX } from '@tamery/shared/constants'
+import {
+  AUTH_COOKIE_PREFIX,
+  SOCIAL_PROVIDER_LABELS,
+} from '@tamery/shared/constants'
+import { formatDeviceLabel } from '@tamery/shared/device-label'
 import {
   invitableRole,
   isDefaultWorkspaceMetadata,
 } from '@tamery/shared/workspace'
 import type { WorkspaceRole } from '@tamery/shared/workspace'
+import type { Session } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { emailHarmony } from 'better-auth-harmony'
 import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api'
@@ -27,6 +34,8 @@ import {
 import { eq } from 'drizzle-orm'
 
 import { env, nodeEnv } from '~/env'
+import { locateIp } from '~/lib/geo-ip'
+import { posthog } from '~/lib/posthog'
 import { resend, sendEmail } from '~/lib/resend'
 
 import { requireEarlyAccess, requireUserEarlyAccess } from './early-access'
@@ -40,6 +49,40 @@ import {
 const twoFactorPlugin = twoFactor({ allowPasswordless: true })
 
 const workspaceAccess = createAccessControl(defaultStatements)
+
+const providerLabels: Partial<Record<string, string>> = SOCIAL_PROVIDER_LABELS
+
+const authRequest = new AsyncLocalStorage<{ signUp: boolean }>()
+
+const findUser = (userId: string) =>
+  db.query.users.findFirst({
+    columns: { email: true, twoFactorEnabled: true },
+    where: { id: { eq: userId } },
+  })
+
+export const sendNewSignInEmail = async ({
+  ipAddress,
+  userAgent,
+  userId,
+}: Pick<Session, 'ipAddress' | 'userAgent' | 'userId'>) => {
+  const user = await findUser(userId)
+
+  if (!user) {
+    return
+  }
+
+  await sendEmail({
+    props: {
+      device: formatDeviceLabel(userAgent ?? ''),
+      ipAddress: ipAddress ?? '',
+      location: locateIp(ipAddress ?? ''),
+      twoFactorEnabled: user.twoFactorEnabled === true,
+    },
+    subject: 'New sign-in to your Tamery account',
+    template: 'NewSignIn',
+    to: user.email,
+  })
+}
 
 const isOAuthCallback = ({ path }: { path?: string }) =>
   path?.startsWith('/callback/') === true
@@ -79,6 +122,30 @@ export const auth = betterAuth({
     usePlural: true,
   }) as ReturnType<typeof drizzleAdapter>,
   databaseHooks: {
+    account: {
+      create: {
+        after: async (account, context) => {
+          if (!context || authRequest.getStore()?.signUp) {
+            return
+          }
+
+          const user = await findUser(account.userId)
+
+          if (!user) {
+            return
+          }
+
+          const provider =
+            providerLabels[account.providerId] ?? account.providerId
+          await sendEmail({
+            props: { provider },
+            subject: `${provider} was connected to your Tamery account`,
+            template: 'SignInMethodLinked',
+            to: user.email,
+          })
+        },
+      },
+    },
     session: {
       create: {
         before: async (session) => {
@@ -110,6 +177,18 @@ export const auth = betterAuth({
           return { data: user }
         },
         after: async (user) => {
+          const request = authRequest.getStore()
+
+          if (request) {
+            request.signUp = true
+          }
+
+          posthog?.capture({
+            distinctId: user.id,
+            event: 'signed_up',
+            properties: { app: 'api' },
+          })
+
           if (resend && !user.isAnonymous) {
             const [firstName = '', ...lastName] = user.name.split(' ')
 
@@ -139,7 +218,17 @@ export const auth = betterAuth({
         },
       },
       update: {
-        after: async (user) => {
+        after: async (user, context) => {
+          if (context?.path.startsWith('/two-factor/')) {
+            const enabled = user.twoFactorEnabled === true
+            await sendEmail({
+              props: { enabled },
+              subject: `Two-factor authentication turned ${enabled ? 'on' : 'off'}`,
+              template: 'TwoFactorChanged',
+              to: user.email,
+            })
+          }
+
           if (nodeEnv !== 'production' || !resend) {
             return
           }
@@ -243,6 +332,19 @@ export const auth = betterAuth({
               )
             }),
             matcher: isOAuthCallback,
+          },
+          // Must run after twoFactor's hook, which clears newSession while a challenge is pending; the global hooks.after runs before plugin hooks.
+          {
+            handler: createAuthMiddleware(async (ctx) => {
+              const { newSession, session } = ctx.context
+
+              if (!newSession || session || authRequest.getStore()?.signUp) {
+                return
+              }
+
+              await sendNewSignInEmail(newSession.session)
+            }),
+            matcher: () => true,
           },
         ],
       },
@@ -386,7 +488,20 @@ export const auth = betterAuth({
       },
     },
     deleteUser: {
+      afterDelete: async (user) => {
+        await Promise.all([
+          sendEmail({
+            subject: 'Your Tamery account was deleted',
+            template: 'AccountDeleted',
+            to: user.email,
+          }),
+          resend?.contacts.remove({ email: user.email }),
+        ])
+      },
       enabled: true,
     },
   },
 })
+
+export const handleAuth = (request: Request) =>
+  authRequest.run({ signUp: false }, () => auth.handler(request))

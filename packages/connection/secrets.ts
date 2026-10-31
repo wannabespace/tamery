@@ -9,10 +9,15 @@ const SSH_SECRET_PARAMS = [
   SSH_PARAMS.passphrase,
 ] as const
 
-/** Sync with the secret params `ssl/*.ts` and `ssh/` read. `sslkey` stays out: the drivers read it as a file path. */
+/**
+ * Sync with the secret params `ssl/*.ts` and `ssh/` read, and the ones ClickHouse (`http_header_*`) and MongoDB take
+ * straight from the string. `sslkey` stays out: the drivers read it as a file path.
+ */
 const SECRET_PARAMS = [
   ...SSH_SECRET_PARAMS,
   'access_token',
+  'authmechanismproperties',
+  'http_header_authorization',
   'sslpassword',
   'sslpassphrase',
   'sslpfx',
@@ -69,6 +74,7 @@ export const connectionSecrets = {
   strip: (connectionString: string) => {
     const url = getUrl(connectionString)
     url.password = ''
+    url.hash = ''
     for (const param of SECRET_PARAMS) {
       if (url.searchParams.has(param)) {
         url.searchParams.set(param, '')

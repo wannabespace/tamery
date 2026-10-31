@@ -14,7 +14,7 @@ You choose what reaches Tamery's cloud when you create a connection:
 | Sync type | Stored in the cloud |
 | --- | --- |
 | **Full** | The complete connection string, encrypted. |
-| **No password** | Connection details without the password, SSH secrets, SSL key secrets, or access token. |
+| **No password** | Connection details without the password, SSH secrets, SSL key secrets, access token, `Authorization` header, or MongoDB `authMechanismProperties`. |
 | **Metadata only** | Name, engine, label, and color. No connection string. |
 
 Synced connection strings are encrypted with a workspace key. They are decrypted on Tamery's server when another device retrieves them, then sent over HTTPS. This is not end-to-end encryption.
@@ -25,7 +25,7 @@ Synced connection strings are encrypted with a workspace key. They are decrypted
 - **Web with `tamery proxy`:** the computer running the proxy connects to the database.
 - **Web without a local proxy:** Tamery's cloud proxy connects to public database servers and handles the query and its results.
 
-The cloud proxy cannot reach private addresses or open SQLite and certificate files on your computer. Use desktop or the local proxy for those. Connections whose secrets stay on your device also need desktop or the local proxy.
+The cloud proxy cannot reach private addresses, open SQLite and certificate files on your computer, or sign in to MongoDB with AWS, OIDC or Kerberos credentials. Use desktop or the local proxy for those. Connections whose secrets stay on your device also need desktop or the local proxy.
 
 ### Cloud proxy IP addresses
 

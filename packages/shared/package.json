@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check-types": "tsc",
+    "check-types": "bun check",
     "test": "bun test"
   },
   "dependencies": {
@@ -17,7 +17,8 @@
     "kysely": "catalog:",
     "nanoid": "catalog:",
     "permix": "catalog:",
-    "sf-symbols-typescript": "catalog:"
+    "sf-symbols-typescript": "catalog:",
+    "ua-parser-js": "catalog:"
   },
   "devDependencies": {
     "@types/d3-dsv": "catalog:"

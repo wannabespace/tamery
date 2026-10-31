@@ -34,6 +34,7 @@ const envType = type({
   MIN_DESKTOP_VERSION: type('string').pipe(Number),
   MISTRAL_API_KEY: 'string',
   OPENROUTER_API_KEY: 'string',
+  POSTHOG_TOKEN: 'string?',
   PROXY_SHARED_SECRET: 'string',
   REDIS_URL: 'string',
   RESEND_API_KEY: 'string',

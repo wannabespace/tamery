@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer'
 import * as crypto from 'node:crypto'
 
 const ALGORITHM = 'aes-256-gcm'
+const AUTH_TAG_LENGTH = 16
 const IV_LENGTH = 12
 const KEY_LENGTH = 32
 const SALT_LENGTH = 16
@@ -40,11 +41,14 @@ export const decrypt = ({
     const encrypted = Buffer.from(encryptedBase64, 'hex')
     const salt = Buffer.from(saltBase64, 'hex')
 
-    const authTag = encrypted.subarray(-16)
-    const ciphertext = encrypted.subarray(0, -16)
+    const authTag = encrypted.subarray(-AUTH_TAG_LENGTH)
+    const ciphertext = encrypted.subarray(0, -AUTH_TAG_LENGTH)
 
     const key = crypto.pbkdf2Sync(secret, salt, 1, KEY_LENGTH, 'sha256')
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
+    // Without the length, GCM accepts a truncated tag, which a forger can guess.
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv, {
+      authTagLength: AUTH_TAG_LENGTH,
+    })
     decipher.setAuthTag(authTag)
 
     return Buffer.concat([

@@ -27,7 +27,7 @@ export const ConnectionFailure = ({
       <IconEmpty
         variant="destructive"
         icon={Alert02Icon}
-        title={diagnosis?.title ?? "Couldn't connect"}
+        title={<span data-mask>{diagnosis?.title ?? "Couldn't connect"}</span>}
         description={
           <span data-mask className="flex flex-col gap-2 select-text">
             {diagnosis ? (

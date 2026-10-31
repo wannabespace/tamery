@@ -4,8 +4,7 @@
   "scripts": {
     "dev": "portless run vite dev",
     "build": "vite build",
-    "start": "bun run .output/server/index.mjs",
-    "check-types": "tsc"
+    "check-types": "bun check"
   },
   "dependencies": {
     "@mdx-js/rollup": "^3.1.0",
@@ -31,8 +30,7 @@
     "react-dom": "catalog:",
     "react-qr-code": "catalog:",
     "remark-gfm": "^4.0.0",
-    "sonner": "catalog:",
-    "ua-parser-js": "catalog:"
+    "sonner": "catalog:"
   },
   "devDependencies": {
     "@hugeicons/core-free-icons": "catalog:",
