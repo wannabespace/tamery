@@ -18,6 +18,8 @@ import { useSubscription } from 'seitu/react'
 import { posthog } from '~/lib/posthog'
 import { transparentBackgroundValue } from '~/lib/transparent-background'
 
+import { AppIconRow } from './app-icon-row'
+
 const THEMES: { label: string; value: Theme }[] = [
   { label: 'System', value: 'system' },
   { label: 'Light', value: 'light' },
@@ -75,6 +77,7 @@ export const AppearanceSettings = () => {
           />
         </SettingsRow>
       )}
+      {window.electron && <AppIconRow />}
     </SettingsGroup>
   )
 }

@@ -76,7 +76,6 @@ export const Route = createRootRoute({
       { charSet: 'utf-8' },
       { title: 'Tamery Docs' },
       { content: 'width=device-width, initial-scale=1', name: 'viewport' },
-      { content: '#0a0a0a', name: 'theme-color' },
       { content: '1475164F19E362EBC46DEE1D9813275A', name: 'msvalidate.01' },
     ],
   }),

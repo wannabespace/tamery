@@ -45,6 +45,7 @@ export const getRouter = () => {
     defaultPreload: 'intent',
     // TanStack Query owns data freshness; the router must not serve its own cached loader results.
     defaultPreloadStaleTime: 0,
+    notFoundMode: 'root',
     routeTree,
     scrollRestoration: true,
   })

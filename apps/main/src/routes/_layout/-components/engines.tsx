@@ -1,11 +1,7 @@
-import { engines, Provider } from '@tamery/shared/enums/connection-type'
 import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 
 import { Reveal } from '~/components/reveal'
-
-const shownEngines = engines.filter(
-  ({ provider }) => provider !== Provider.MongoDBAtlas
-)
+import { shownEngines } from '~/utils/engines'
 
 export const Engines = () => (
   <section

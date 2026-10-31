@@ -176,6 +176,7 @@ catalog:
   '@types/mdx': ^2.0.14
   sharp: ^0.35.5
   schema-dts: ^2.1.0
+  takumi-js: ^2.19.0
 allowBuilds:
   '@firebase/util': false
   '@google/genai': false

@@ -19,7 +19,6 @@ export const homeHead = () => ({
   ...seo({
     title: `Tamery - ${SEO.title}`,
     description: SEO.description,
-    image: '/og-image.png',
     path: '/',
   }),
   scripts: [

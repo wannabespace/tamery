@@ -31,9 +31,7 @@ const BlogPostPage = () => {
           <Badge className="w-fit" variant="secondary">
             {post.engine}
           </Badge>
-          <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-            {post.title}
-          </h1>
+          <h1 className="text-3xl text-balance sm:text-4xl">{post.title}</h1>
           <div className="text-muted-foreground flex items-center gap-2 text-sm">
             <span>{BLOG_AUTHOR}</span>
             <span aria-hidden>·</span>
@@ -70,6 +68,7 @@ export const Route = createFileRoute('/_layout/blog/$slug')({
       return {}
     }
     const pageUrl = `${SITE_URL}/blog/${post.slug}`
+    const imagePath = `/blog/${post.slug}/og.png`
     const structuredData = {
       '@context': 'https://schema.org',
       '@graph': [
@@ -81,7 +80,7 @@ export const Route = createFileRoute('/_layout/blog/$slug')({
           dateModified: post.publishedAt,
           author: { '@type': 'Person', name: BLOG_AUTHOR },
           publisher: { '@id': `${SITE_URL}/#org` },
-          image: `${SITE_URL}/og-image.png`,
+          image: `${SITE_URL}${imagePath}`,
           mainEntityOfPage: pageUrl,
         },
         {
@@ -107,8 +106,8 @@ export const Route = createFileRoute('/_layout/blog/$slug')({
       ...seo({
         title: `${post.title} - Tamery`,
         description: post.description,
-        image: '/og-image.png',
         path: `/blog/${post.slug}`,
+        image: imagePath,
         article: { publishedTime: post.publishedAt, author: BLOG_AUTHOR },
       }),
       scripts: [

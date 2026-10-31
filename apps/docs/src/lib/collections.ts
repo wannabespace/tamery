@@ -8,6 +8,7 @@ export const docs = defineDocs({
   docs: {
     async: true,
     files: ['**/*.mdx'],
+    lastModified: true,
     // Shiki output hides each fence's language class; the kit's CodeBlock highlights instead.
     mdxOptions: applyMdxPreset({
       rehypeCodeOptions: false,

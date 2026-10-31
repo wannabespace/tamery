@@ -21,7 +21,7 @@ export const OrdersHeader = ({
       <div
         key={column.id}
         className={cn(
-          'flex h-full shrink-0 items-center gap-1.5 border-r py-1 pl-2',
+          'flex h-full shrink-0 items-center gap-1.5 border-r py-1 pl-2 first:pl-3',
           action ? 'pr-1' : 'pr-2',
           column.width
         )}
