@@ -8,9 +8,11 @@ CREATE TABLE "deleted_records" (
 --> statement-breakpoint
 CREATE INDEX "deleted_records_deleted_at_index" ON "deleted_records" ("deleted_at");--> statement-breakpoint
 CREATE FUNCTION "keep_deleted_record"() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+	old_row jsonb := to_jsonb(OLD);
 BEGIN
 	INSERT INTO "deleted_records" ("table_name", "record_id", "data")
-	VALUES (TG_TABLE_NAME, (to_jsonb(OLD) ->> TG_ARGV[0])::uuid, to_jsonb(OLD))
+	VALUES (TG_TABLE_NAME, (old_row ->> TG_ARGV[0])::uuid, old_row)
 	ON CONFLICT ("table_name", "record_id") DO UPDATE SET "data" = EXCLUDED."data", "deleted_at" = EXCLUDED."deleted_at";
 	RETURN NULL;
 END;

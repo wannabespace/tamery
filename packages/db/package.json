@@ -6,7 +6,8 @@
     "drizzle:generate": "cross-env NODE_ENV=development drizzle-kit generate",
     "drizzle:generate-custom": "cross-env NODE_ENV=development drizzle-kit generate --custom",
     "drizzle:migrate": "cross-env NODE_ENV=development drizzle-kit migrate",
-    "purge-deleted-records": "bun scripts/purge-deleted-records.ts"
+    "purge-deleted-records": "bun scripts/purge-deleted-records.ts",
+    "test": "bun test"
   },
   "dependencies": {
     "@tamery/shared": "workspace:*",

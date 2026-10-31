@@ -1,3 +1,4 @@
+import { eq, getTableName, sql } from 'drizzle-orm'
 import * as d from 'drizzle-orm/pg-core'
 
 // Filled only by the `keep_deleted_record` trigger (see its migration), never by app code.
@@ -15,3 +16,12 @@ export const deletedRecords = d.snakeCase.table(
     d.index().on(t.deletedAt),
   ]
 )
+
+// A copy holds each column's raw driver value (ciphertext stays encrypted) under its database name.
+export const copies = {
+  column: (column: d.PgColumn) =>
+    sql<string>`(${deletedRecords.data} ->> ${column.name})`,
+  of: (table: d.PgTable) => eq(deletedRecords.tableName, getTableName(table)),
+  replace: (column: d.PgColumn, value: string) =>
+    sql`jsonb_set(${deletedRecords.data}, ${`{${column.name}}`}::text[], to_jsonb(${value}::text))`,
+}

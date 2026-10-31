@@ -1,7 +1,7 @@
 import process from 'node:process'
 
 import { db } from '@tamery/db'
-import { deletedRecords } from '@tamery/db/schema'
+import { copies, deletedRecords } from '@tamery/db/schema'
 import { resolveKeyring } from '@tamery/db/utils'
 import { Result } from 'better-result'
 import { getColumnTable, getTableName, sql } from 'drizzle-orm'
@@ -36,11 +36,12 @@ export const runColumnKeyRotation = async ({
   const keyring = resolveKeyring(secrets)
   const counts = await Promise.all(
     columns.flatMap(({ cipher, id }) => {
-      const tableName = getTableName(getColumnTable(cipher))
+      const sourceTable = getColumnTable(cipher)
+      const tableName = getTableName(sourceTable)
       const table = sql.identifier(tableName)
       const cipherColumn = sql.identifier(cipher.name)
       const idColumn = sql.identifier(id.name)
-      const copyCipher = sql`${deletedRecords.data} ->> ${cipher.name}`
+      const copyCipher = copies.column(cipher)
 
       const reencryptPage = async (
         source: CipherSource,
@@ -95,9 +96,9 @@ export const runColumnKeyRotation = async ({
         {
           label: `deleted ${tableName}.${cipher.name}`,
           select: (afterId) =>
-            sql`select ${deletedRecords.recordId} as id, ${copyCipher} as cipher from ${deletedRecords} where ${deletedRecords.tableName} = ${tableName} and ${copyCipher} is not null ${afterId === null ? sql`` : sql`and ${deletedRecords.recordId} > ${afterId}`} order by ${deletedRecords.recordId} limit ${BATCH_SIZE}`,
+            sql`select ${deletedRecords.recordId} as id, ${copyCipher} as cipher from ${deletedRecords} where ${copies.of(sourceTable)} and ${copyCipher} is not null ${afterId === null ? sql`` : sql`and ${deletedRecords.recordId} > ${afterId}`} order by ${deletedRecords.recordId} limit ${BATCH_SIZE}`,
           update: (row) =>
-            sql`update ${deletedRecords} set ${sql.identifier(deletedRecords.data.name)} = jsonb_set(${deletedRecords.data}, ${`{${cipher.name}}`}::text[], to_jsonb(${row.newCipher}::text)) where ${deletedRecords.tableName} = ${tableName} and ${deletedRecords.recordId} = ${row.id} and ${copyCipher} = ${row.cipher}`,
+            sql`update ${deletedRecords} set ${sql.identifier(deletedRecords.data.name)} = ${copies.replace(cipher, row.newCipher)} where ${copies.of(sourceTable)} and ${deletedRecords.recordId} = ${row.id} and ${copyCipher} = ${row.cipher}`,
         },
       ]
 
