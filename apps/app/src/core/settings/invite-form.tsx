@@ -44,7 +44,7 @@ export const InviteForm = ({
       <Input
         type="email"
         aria-label="Email"
-        placeholder="Email of a Tamery user"
+        placeholder="Email"
         value={email}
         disabled={disabled}
         onChange={(event) => setEmail(event.target.value)}

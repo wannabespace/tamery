@@ -17,24 +17,24 @@ export const members = orpc
   .input(workspaceInput)
   .handler(async ({ context: { headers, user }, input }) => {
     const query = { organizationId: input.workspaceId }
-    const [{ members: rows }, invitations] = await Promise.all([
-      viaAuth(auth.api.listMembers({ headers, query })),
-      viaAuth(auth.api.listInvitations({ headers, query })),
-    ])
-    const now = new Date()
+    const { members: rows } = await viaAuth(
+      auth.api.listMembers({ headers, query })
+    )
     const canManage = rows.some(
       (row) =>
         row.userId === user.id &&
         MEMBER_MANAGER_ROLES.includes(workspaceRole.assert(row.role))
     )
+    const invitations = canManage
+      ? await viaAuth(auth.api.listInvitations({ headers, query }))
+      : []
+    const now = new Date()
 
     return {
       invitations: invitations
         .filter(
           (invitation) =>
-            canManage &&
-            invitation.status === 'pending' &&
-            invitation.expiresAt > now
+            invitation.status === 'pending' && invitation.expiresAt > now
         )
         .map(({ email, id, role }) => ({
           email,
