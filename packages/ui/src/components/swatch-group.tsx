@@ -25,7 +25,7 @@ const SwatchGroupItem = ({
     data-slot="swatch-group-item"
     data-size={size}
     className={cn(
-      `focus-visible:focus-ring ring-offset-background data-pressed:ring-foreground/40 inline-flex items-center justify-center transition-all outline-none hover:scale-110 disabled:pointer-events-none disabled:opacity-50 data-pressed:ring-2 data-pressed:ring-offset-2 data-[size=default]:size-5 data-[size=default]:rounded-full data-[size=lg]:size-10 data-[size=lg]:rounded-xl`,
+      `focus-visible:focus-ring ring-offset-background data-[size=default]:data-pressed:ring-foreground/40 data-[size=lg]:data-pressed:ring-primary inline-flex items-center justify-center transition-all outline-none disabled:pointer-events-none disabled:opacity-50 data-pressed:ring-2 data-pressed:ring-offset-2 data-[size=default]:size-5 data-[size=default]:rounded-full data-[size=default]:hover:scale-110 data-[size=lg]:size-9 data-[size=lg]:overflow-hidden data-[size=lg]:rounded-[22.5%]`,
       className
     )}
     {...props}

@@ -9,6 +9,17 @@ const ICONS = { blue, dark, light }
 
 type AppIcon = keyof typeof ICONS
 
+// Sync with the icon grid in the PNGs: a 412px body inset 50px into 512px, the rest is padding and shadow.
+const ICON_BODY = { height: 412, width: 412, x: 50, y: 50 }
+
+const previews = () =>
+  Object.fromEntries(
+    Object.entries(ICONS).map(([icon, url]) => [
+      icon,
+      nativeImage.createFromDataURL(url).crop(ICON_BODY).toDataURL(),
+    ])
+  ) as Record<AppIcon, string>
+
 const store = new Store<{ icon: AppIcon }>({
   defaults: { icon: 'light' },
   name: 'app-icon',
@@ -34,7 +45,7 @@ export const restoreAppIcon = () => {
 }
 
 export const appIcon = {
-  get: () => ({ icon: store.get('icon'), previews: ICONS }),
+  get: () => ({ icon: store.get('icon'), previews: previews() }),
   set: (icon: AppIcon) => {
     store.set('icon', icon)
     setIcon(icon)
