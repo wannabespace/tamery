@@ -1,9 +1,16 @@
 import { DatabaseIcon, PlusSignIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@tamery/ui/components/tooltip'
 import { cn } from '@tamery/ui/lib/utils'
 
 import { Link } from '~/components/link'
+import { useIsViewOnlyWorkspace } from '~/core/workspace/hooks'
+import { VIEW_ONLY_MESSAGE } from '~/core/workspace/utils'
 
 const GhostRow = ({
   nameWidth,
@@ -68,9 +75,29 @@ export const Empty = () => (
       Add a connection and it shows up here — open it in one click.
     </p>
 
-    <Button className="mt-5" render={<Link to="/create" />}>
-      <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4" />
-      New connection
-    </Button>
+    <NewConnectionButton />
   </div>
 )
+
+const NewConnectionButton = () => {
+  const viewOnly = useIsViewOnlyWorkspace()
+
+  return (
+    <Tooltip disabled={!viewOnly}>
+      <TooltipTrigger
+        render={
+          <Button
+            className="mt-5"
+            disabled={viewOnly}
+            focusableWhenDisabled
+            render={viewOnly ? undefined : <Link to="/create" />}
+          />
+        }
+      >
+        <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4" />
+        New connection
+      </TooltipTrigger>
+      <TooltipContent>{VIEW_ONLY_MESSAGE}</TooltipContent>
+    </Tooltip>
+  )
+}

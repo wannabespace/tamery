@@ -142,7 +142,12 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
                       variant="outline"
                       focusableWhenDisabled
                       disabled={!isOnline || isSoleOwner || leave.isPending}
-                      onClick={() => leave.mutate()}
+                      onClick={() =>
+                        setConfirmation({
+                          action: 'leave',
+                          member: { id: member.id, name: workspace.name },
+                        })
+                      }
                     />
                   }
                 >
@@ -172,11 +177,15 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
       <MemberConfirmDialog
         confirmation={confirmation}
         onCancel={() => setConfirmation(null)}
-        onConfirm={({ action, member }) =>
-          action === 'remove'
-            ? remove.mutate(member.id)
-            : updateRole.mutate({ memberId: member.id, role: 'viewer' })
-        }
+        onConfirm={({ action, member }) => {
+          if (action === 'leave') {
+            leave.mutate()
+          } else if (action === 'remove') {
+            remove.mutate(member.id)
+          } else {
+            updateRole.mutate({ memberId: member.id, role: 'viewer' })
+          }
+        }}
       />
       {canManage && data.invitations.length > 0 && (
         <SettingsGroup title="Invitations">
@@ -184,7 +193,7 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
             <SettingsRow
               key={invitation.id}
               title={<span data-mask>{invitation.email}</span>}
-              description={`Invited as ${invitation.role}`}
+              description={`Invited as ${capitalCase(invitation.role)}`}
             >
               <IconButton
                 icon={Cancel01Icon}

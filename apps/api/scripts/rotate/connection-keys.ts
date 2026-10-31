@@ -19,7 +19,7 @@ const onlyWorkspaceIds = new Set(
 
 const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
   // Live rows load before the copies, so a connection deleted any time after is still a
-  // live row whose update below misses and aborts the workspace, instead of its copy
+  // live row the locked re-read below misses, aborting the workspace, instead of its copy
   // being left under the key the transaction replaces.
   const rows = await db
     .select({
@@ -49,7 +49,7 @@ const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
       )
     )
 
-  const plaintexts: { id: string; text: string }[] = []
+  const plaintexts: { encryptedText: string; id: string; text: string }[] = []
   for (const row of rows) {
     if (!row.connectionString) {
       continue
@@ -58,6 +58,7 @@ const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
     const encryptedText = row.connectionString
     try {
       plaintexts.push({
+        encryptedText,
         id: row.id,
         text: decrypt({ encryptedText, secret: oldKey }),
       })
@@ -92,18 +93,40 @@ const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
 
   try {
     await db.transaction(async (tx) => {
+      // Locked and compared with what was decrypted: an edit, or a move into or out of the workspace since, would end up under the wrong key.
+      const locked = await tx
+        .select({
+          connectionString: connections.connectionString,
+          id: connections.id,
+        })
+        .from(connections)
+        .where(
+          and(
+            eq(connections.workspaceId, workspaceId),
+            isNotNull(connections.connectionString)
+          )
+        )
+        .for('update')
+      const unchanged =
+        locked.length === plaintexts.length &&
+        plaintexts.every(({ encryptedText, id }) =>
+          locked.some(
+            (row) => row.id === id && row.connectionString === encryptedText
+          )
+        )
+
+      if (!unchanged) {
+        throw new Error(
+          "the workspace's connections were edited, moved or deleted during the run; rerun to rotate them"
+        )
+      }
+
       for (const { id, text } of plaintexts) {
         // oxlint-disable-next-line no-await-in-loop -- one statement per row, each a distinct ciphertext on one tx connection
-        const { rowCount } = await tx
+        await tx
           .update(connections)
           .set({ connectionString: encrypt({ secret: newKey, text }) })
           .where(eq(connections.id, id))
-
-        if (!rowCount) {
-          throw new Error(
-            `connection ${id} was deleted during the run; rerun to rotate its copy`
-          )
-        }
       }
 
       for (const { id, text } of copyPlaintexts) {

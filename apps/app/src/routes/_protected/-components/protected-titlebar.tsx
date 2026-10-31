@@ -39,7 +39,10 @@ import { useConnectionResourceLinkParams } from '~/core/connection/use-connectio
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { connectionResourcesQueryOptions } from '~/core/queries/connection/resources'
 import { checkOrUpgrade, usePermissions } from '~/core/user/permissions'
-import { useActiveWorkspace } from '~/core/workspace/hooks'
+import {
+  useActiveWorkspace,
+  useIsViewOnlyWorkspace,
+} from '~/core/workspace/hooks'
 import { queryClient } from '~/lib/query-client'
 import { CommandPaletteButton } from '~/modules/actions-center/command-palette-button'
 import { OpenInWeb } from '~/modules/open-in-web/open-in-web'
@@ -164,6 +167,7 @@ const ConnectionsDropdown = ({
   const atGuestLimit = !usePermissions().check('connection.create', {
     count: groups.length,
   })
+  const viewOnly = useIsViewOnlyWorkspace()
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -243,8 +247,13 @@ const ConnectionsDropdown = ({
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className={atGuestLimit ? 'opacity-50' : undefined}
+          disabled={viewOnly}
           render={
-            <Link to="/create" activateOn="click" disabled={atGuestLimit} />
+            <Link
+              to="/create"
+              activateOn="click"
+              disabled={atGuestLimit || viewOnly}
+            />
           }
           onClick={() =>
             checkOrUpgrade('connection.create', { count: groups.length })
@@ -256,6 +265,11 @@ const ConnectionsDropdown = ({
             className="size-4 shrink-0"
           />
           Add new connection
+          {viewOnly && (
+            <span className="text-muted-foreground ml-auto text-xs">
+              View only
+            </span>
+          )}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

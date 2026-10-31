@@ -10,7 +10,7 @@ import {
 import { useState } from 'react'
 
 export interface MemberConfirmation {
-  action: 'demote' | 'remove'
+  action: 'demote' | 'leave' | 'remove'
   member: { id: string; name: string }
 }
 
@@ -20,6 +20,12 @@ const COPY = {
       'can still open and query its connections, but the shares they made of its tables stop working.',
     title: 'Make Viewer',
     verb: 'Make viewer',
+  },
+  leave: {
+    consequence:
+      'and its connections disappear from all your devices, and the shares you made of its tables stop working. Rejoining takes a new invitation.',
+    title: 'Leave Workspace',
+    verb: 'Leave',
   },
   remove: {
     consequence:

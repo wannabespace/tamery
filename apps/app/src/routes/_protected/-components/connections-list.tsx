@@ -29,7 +29,14 @@ import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { isShortcutAvailable } from '~/core/keyboard/shortcuts'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import { checkOrUpgrade, usePermissions } from '~/core/user/permissions'
-import { useActiveWorkspace } from '~/core/workspace/hooks'
+import {
+  useActiveWorkspace,
+  useIsViewOnlyWorkspace,
+} from '~/core/workspace/hooks'
+import {
+  checkCanAddConnection,
+  VIEW_ONLY_MESSAGE,
+} from '~/core/workspace/utils'
 
 import { ConnectionCard } from './connection-card'
 import { Empty } from './connections-empty'
@@ -88,12 +95,14 @@ export const ConnectionsList = () => {
     },
   })
 
-  const canCreate = usePermissions().check('connection.create', {
+  const viewOnly = useIsViewOnlyWorkspace()
+  const withinPlan = usePermissions().check('connection.create', {
     count: data.length,
   })
+  const canCreate = !viewOnly && withinPlan
   const navigate = useNavigate()
   useShortcut('newConnection', () => {
-    if (checkOrUpgrade('connection.create', { count: data.length })) {
+    if (checkCanAddConnection(data.length)) {
       void navigate({ to: '/create' })
     }
   })
@@ -253,7 +262,9 @@ export const ConnectionsList = () => {
               />
               New connection
             </TooltipTrigger>
-            <TooltipContent>New connection</TooltipContent>
+            <TooltipContent>
+              {viewOnly ? VIEW_ONLY_MESSAGE : 'New connection'}
+            </TooltipContent>
           </Tooltip>
         </div>
       ) : (

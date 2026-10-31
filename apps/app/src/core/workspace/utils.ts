@@ -4,8 +4,18 @@ import {
 } from '@tamery/shared/workspace'
 import { type } from 'arktype'
 import { createWebStorageValue } from 'seitu/web'
+import { toast } from 'sonner'
+
+import { getCollections } from '~/core/collections'
+import { checkOrUpgrade } from '~/core/user/permissions'
 
 import type { Workspace } from './sync'
+
+export const VIEW_ONLY_MESSAGE =
+  'You can only view this workspace. Switch to one you can edit to add a connection.'
+
+export const isViewOnly = (workspace: Workspace | null) =>
+  !!workspace && !EDITOR_ROLES.includes(workspace.role)
 
 export const workspaceSelection = {
   current: (workspaces: Workspace[]) =>
@@ -27,13 +37,26 @@ export const workspaceSelection = {
   target: (workspaces: Workspace[]) => {
     const current = workspaceSelection.current(workspaces)
 
-    return current && EDITOR_ROLES.includes(current.role)
-      ? current
-      : (workspaces.find((workspace) =>
+    return isViewOnly(current)
+      ? (workspaces.find((workspace) =>
           isDefaultWorkspaceMetadata(workspace.metadata)
         ) ?? null)
+      : current
   },
   set: (workspaceId: string) => {
     workspaceSelection.id.set(workspaceId)
   },
+}
+
+export const checkCanAddConnection = (count: number) => {
+  if (
+    isViewOnly(
+      workspaceSelection.current(getCollections().workspacesCollection.toArray)
+    )
+  ) {
+    toast.error(VIEW_ONLY_MESSAGE)
+    return false
+  }
+
+  return checkOrUpgrade('connection.create', { count })
 }

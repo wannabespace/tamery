@@ -17,6 +17,7 @@ import { eq } from 'drizzle-orm'
 
 import { env } from '~/env'
 import { redis } from '~/lib/redis'
+import { isWorkspaceEditor } from '~/lib/workspace'
 import { decryptConnectionString, orpc } from '~/orpc'
 
 import { proxySecretMiddleware } from './proxy-secret'
@@ -58,7 +59,7 @@ export const shares = {
     .errors({ ...shareAccessErrors, ...shareUnlockErrors })
     .handler(async ({ errors, input }) => {
       const share = await db.query.shares.findFirst({
-        columns: { connectionResourceId: false, userId: false },
+        columns: { connectionResourceId: false },
         where: { id: { eq: input.id } },
         with: {
           connectionResource: {
@@ -82,7 +83,9 @@ export const shares = {
         !share ||
         !connection?.connectionString ||
         connection.syncType !== SyncType.Cloud ||
-        (share.expiresAt && share.expiresAt <= new Date())
+        (share.expiresAt && share.expiresAt <= new Date()) ||
+        // Revoking a demoted author's shares can race their creation, so the author's role is checked on every read too.
+        !(await isWorkspaceEditor(share.userId, connection.workspaceId))
       ) {
         throw errors.NOT_FOUND()
       }
@@ -121,7 +124,12 @@ export const shares = {
         }
       }
 
-      const { connectionResource, passwordHash: _passwordHash, ...rest } = share
+      const {
+        connectionResource,
+        passwordHash: _passwordHash,
+        userId: _userId,
+        ...rest
+      } = share
 
       return {
         ...rest,

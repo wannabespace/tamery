@@ -16,11 +16,14 @@ import { OpenStatus } from '../open-status'
 
 const { useParams } = getRouteApi('/invitation/$invitationId')
 
+// Answering removes the invitation from the list, so a refetch on window focus would replace "You joined" with "no longer open".
+const invitationsQueryOptions = orpc.workspaces.invitations.queryOptions({
+  staleTime: 'static',
+})
+
 const InvitationPage = () => {
   const { invitationId } = useParams()
-  const { data: invitations } = useSuspenseQuery(
-    orpc.workspaces.invitations.queryOptions()
-  )
+  const { data: invitations } = useSuspenseQuery(invitationsQueryOptions)
   const invitation = invitations.find(({ id }) => id === invitationId)
   const join = useMutation({
     meta: { event: 'workspace_invitation_accepted' },
@@ -38,7 +41,7 @@ const InvitationPage = () => {
     return (
       <OpenStatus
         title="This invitation is no longer open"
-        description="It was already answered, canceled, or it expired. Ask for a new one if you still need access."
+        description="It was answered, canceled or expired, or it was sent to another email than the one you're signed in with. Ask for a new one if you still need access."
       >
         <Button variant="outline" render={<Link to="/account" />}>
           Go to account
@@ -133,9 +136,6 @@ export const Route = createFileRoute('/invitation/$invitationId')({
     }
   },
   loader: async ({ context }) => {
-    await context.queryClient.query({
-      ...orpc.workspaces.invitations.queryOptions(),
-      staleTime: 'static',
-    })
+    await context.queryClient.query(invitationsQueryOptions)
   },
 })

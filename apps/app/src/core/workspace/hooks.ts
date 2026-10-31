@@ -3,7 +3,7 @@ import { useSubscription } from 'seitu/react'
 
 import { useCollections } from '~/core/collections'
 
-import { workspaceSelection } from './utils'
+import { isViewOnly, workspaceSelection } from './utils'
 
 export const useActiveWorkspace = () => {
   const { workspacesCollection } = useCollections()
@@ -15,3 +15,6 @@ export const useActiveWorkspace = () => {
 
   return { data: workspaceSelection.resolve(workspaces, activeId), workspaces }
 }
+
+export const useIsViewOnlyWorkspace = () =>
+  isViewOnly(useActiveWorkspace().data)

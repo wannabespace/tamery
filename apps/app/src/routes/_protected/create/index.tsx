@@ -11,7 +11,7 @@ import { posthog } from '~/lib/posthog'
 import { ConnectionPage } from '~/modules/connection-form/components/connection-page'
 
 const CreateConnectionPage = () => {
-  const { workspaces } = useActiveWorkspace()
+  const { data: activeWorkspace, workspaces } = useActiveWorkspace()
   const router = useRouter()
 
   return (
@@ -42,7 +42,11 @@ const CreateConnectionPage = () => {
           syncType,
           type: connection.type,
         })
-        toast.success('Connection created')
+        toast.success(
+          workspace.id === activeWorkspace?.id
+            ? 'Connection created'
+            : `Connection created in ${workspace.name}, since you can only view ${activeWorkspace?.name}`
+        )
       }}
     />
   )
