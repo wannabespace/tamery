@@ -3,20 +3,23 @@ import process from 'node:process'
 import { db } from '@tamery/db'
 import {
   connections,
+  copies,
+  deletedRecords,
   members,
   userEncryptionKeys,
   users,
 } from '@tamery/db/schema'
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
 import { toError } from '@tamery/shared/utils'
-import { and, asc, eq, inArray, isNotNull } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
 // Rotates the per-user connection key (user_encryption_keys.secret), the inner
 // layer of every connection string. Pure database work under one transaction per
-// user: the ORM column types handle the outer ENCRYPTION_SECRET layer, so this
-// decrypts the inner layer with the user's old key and re-encrypts it with a fresh
-// one, flipping the key row and its connections together. No env change, no redeploy.
+// user: the ORM column type handles the outer ENCRYPTION_SECRET layer, for the
+// `deleted_records` copies too, so this decrypts the inner layer with the user's
+// old key and re-encrypts it with a fresh one, flipping the key row, its
+// connections and their copies together. No env change, no redeploy.
 // Dry run by default; pass --execute. Positional user ids scope it (default: all).
 const execute = process.argv.includes('--execute')
 const onlyUserIds = new Set(
@@ -29,8 +32,21 @@ const ownerMembers = await db
   .where(eq(members.role, 'owner'))
   .orderBy(asc(members.createdAt))
 
+const deletedOwnerMembers = await db
+  .select({
+    userId: copies.column(members.userId),
+    workspaceId: copies.column(members.workspaceId),
+  })
+  .from(deletedRecords)
+  .where(and(copies.of(members), eq(copies.column(members.role), 'owner')))
+  .orderBy(sql`${copies.column(members.createdAt)}::timestamptz`)
+
+// Live owners first: a deleted owner copy only decides a workspace that no longer has one.
 const workspaceOwner = new Map<string, string>()
-for (const { userId, workspaceId } of ownerMembers) {
+for (const { userId, workspaceId } of [
+  ...ownerMembers,
+  ...deletedOwnerMembers,
+]) {
   if (!workspaceOwner.has(workspaceId)) {
     workspaceOwner.set(workspaceId, userId)
   }
@@ -46,28 +62,46 @@ for (const [workspaceId, userId] of workspaceOwner) {
   }
 }
 
+// Live rows load before the copies, so a connection deleted any time after is still a
+// live row whose update in rotateUser misses and aborts that user, instead of its copy
+// being left under the key the transaction replaces.
+const liveConnections = Object.groupBy(
+  await db
+    .select({
+      connectionString: connections.connectionString,
+      id: connections.id,
+      workspaceId: connections.workspaceId,
+    })
+    .from(connections)
+    .where(isNotNull(connections.connectionString)),
+  (connection) => connection.workspaceId
+)
+const deletedConnections = Object.groupBy(
+  await db
+    .select({
+      connectionString: copies
+        .column(connections.connectionString)
+        .mapWith(connections.connectionString),
+      id: deletedRecords.recordId,
+      workspaceId: copies.column(connections.workspaceId),
+    })
+    .from(deletedRecords)
+    .where(
+      and(
+        copies.of(connections),
+        isNotNull(copies.column(connections.connectionString))
+      )
+    ),
+  (connection) => connection.workspaceId
+)
+
 const rotateUser = async (
   userId: string,
   oldKey: string,
   workspaceIds: string[]
 ) => {
-  const rows = workspaceIds.length
-    ? await db
-        .select({
-          connectionString: connections.connectionString,
-          id: connections.id,
-        })
-        .from(connections)
-        .where(
-          and(
-            inArray(connections.workspaceId, workspaceIds),
-            isNotNull(connections.connectionString)
-          )
-        )
-    : []
-
   const plaintexts: { id: string; text: string }[] = []
-  for (const row of rows) {
+  for (const row of workspaceIds.flatMap((id) => liveConnections[id] ?? [])) {
     if (!row.connectionString) {
       continue
     }
@@ -85,8 +119,26 @@ const rotateUser = async (
     }
   }
 
+  const copyPlaintexts: { id: string; text: string }[] = []
+  for (const copy of workspaceIds.flatMap(
+    (id) => deletedConnections[id] ?? []
+  )) {
+    try {
+      copyPlaintexts.push({
+        id: copy.id,
+        text: decrypt({ encryptedText: copy.connectionString, secret: oldKey }),
+      })
+    } catch {
+      return {
+        error: `deleted connection ${copy.id} does not decrypt with the user's current key`,
+      }
+    }
+  }
+
+  const count = { connections: plaintexts.length + copyPlaintexts.length }
+
   if (!execute) {
-    return { connections: plaintexts.length }
+    return count
   }
 
   const newKey = nanoid()
@@ -95,10 +147,31 @@ const rotateUser = async (
     await db.transaction(async (tx) => {
       for (const { id, text } of plaintexts) {
         // oxlint-disable-next-line no-await-in-loop -- one statement per row, each a distinct ciphertext on one tx connection
-        await tx
+        const { rowCount } = await tx
           .update(connections)
           .set({ connectionString: encrypt({ secret: newKey, text }) })
           .where(eq(connections.id, id))
+
+        if (!rowCount) {
+          throw new Error(
+            `connection ${id} was deleted during the run; rerun to rotate its copy`
+          )
+        }
+      }
+
+      for (const { id, text } of copyPlaintexts) {
+        // oxlint-disable-next-line no-await-in-loop -- one statement per row, each a distinct ciphertext on one tx connection
+        await tx
+          .update(deletedRecords)
+          .set({
+            data: copies.replace(
+              connections.connectionString,
+              connections.connectionString.mapToDriverValue(
+                encrypt({ secret: newKey, text })
+              )
+            ),
+          })
+          .where(and(copies.of(connections), eq(deletedRecords.recordId, id)))
       }
 
       await tx
@@ -112,7 +185,7 @@ const rotateUser = async (
     }
   }
 
-  return { connections: plaintexts.length }
+  return count
 }
 
 const keyRows = await db

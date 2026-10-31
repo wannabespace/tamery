@@ -128,7 +128,7 @@ export const createMcpServer = (
     'create_connection',
     {
       annotations: { destructiveHint: false, readOnlyHint: false },
-      description: `Save a new database connection in Tamery from a connection string. Tamery tests it first and saves it only if it connects. Put a database in the string's path to open it as the connection's first resource. The new connection's access is "${DEFAULT_MCP_ACCESS}". Existing connections cannot be edited or removed through MCP, and SQLite files (but not Turso or Cloudflare D1 databases) and strings with an SSH tunnel (ssh_* params) are refused.`,
+      description: `Save a new database connection in Tamery from a connection string. Tamery tests it first and saves it only if it connects. Put a database in the string's path to open it as the connection's first resource. The new connection's access is "${DEFAULT_MCP_ACCESS}". Existing connections cannot be edited or removed through MCP, and SQLite files (but not Turso or Cloudflare D1 databases), strings with an SSH tunnel (ssh_* params) and MongoDB logins that use the machine's AWS, OIDC or Kerberos credentials are refused.`,
       inputSchema: {
         connectionString: z
           .string()
@@ -147,10 +147,19 @@ export const createMcpServer = (
     },
     (args, { signal }) =>
       runLogged('create_connection', { detail: args.name }, async () => {
+        const { usesMachineCredentials, usesSsh } = describeConnectionString(
+          args.connectionString
+        )
         // A tunnel would let the agent make Tamery read any key file on disk and raise host-key dialogs.
-        if (describeConnectionString(args.connectionString).usesSsh) {
+        if (usesSsh) {
           throw new Error(
             'Connections through an SSH tunnel cannot be created through MCP. Ask the user to add this one in Tamery.'
+          )
+        }
+        // The driver would send the user's own AWS, cloud or Kerberos credentials to the host the agent names.
+        if (usesMachineCredentials) {
+          throw new Error(
+            'Connections that sign in with AWS, OIDC or Kerberos credentials cannot be created through MCP. Ask the user to add this one in Tamery.'
           )
         }
         // A SQLite file would let the agent make Tamery open any database on disk with Tamery's own file access. The renderer formats the string as `type`, so `type` alone decides it is SQLite, and the executor opens a file for an empty host alone.

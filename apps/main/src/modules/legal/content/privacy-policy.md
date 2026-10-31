@@ -20,7 +20,7 @@ AI conversation history is stored both locally on your device and synced to our 
 
 ### Analytics
 
-Anonymized usage events collected via PostHog (EU servers). In the app, session recording is enabled with all database inputs and data masked. Our website sends page views and account actions (such as sign-in, downloads and plan changes) to PostHog without cookies or device storage and without session recording, and additionally uses DataFast for aggregated traffic analytics (page views, referrers, campaign sources).
+Usage events collected via PostHog (EU servers), linked to your account's ID, email and name. Events carry counts and categories only, never passwords, connection strings, query text or database contents. In the app, session recording is enabled with all database inputs and data masked. Our website sends page views and account actions (such as sign-in, downloads and plan changes) to PostHog without cookies or device storage and without session recording, and additionally uses DataFast for aggregated traffic analytics (page views, referrers, campaign sources).
 
 ## 3. What We Never Store
 
@@ -66,7 +66,7 @@ We implement reasonable security measures, but no system is fully secure. **We d
 
 - **View / Export**: Access your personal data and request a copy
 - **Update**: Modify your profile at any time
-- **Delete**: Permanently delete your account and all associated data
+- **Delete**: Delete your account and all associated data (erased permanently after 90 days, see Data Retention)
 - **Remove connections**: Delete individual connection entries
 - **Password sync**: Control whether connection passwords are synced to cloud
 
@@ -74,6 +74,7 @@ We implement reasonable security measures, but no system is fully secure. **We d
 
 - Account data retained while your account is active
 - Session tokens expire automatically
+- Deleted data (your account, workspaces, connections, saved queries, chats and shares) is kept for 90 days in case it was removed by mistake, then erased permanently
 - Analytics retained for service improvement
 - Full deletion available on request
 

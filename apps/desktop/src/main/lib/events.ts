@@ -103,7 +103,7 @@ export const electron = {
   },
 }
 
-const registerHandlers = (
+export const registerHandlers = (
   prefix: string,
   value: unknown,
   isAppUrl: (url: string) => boolean

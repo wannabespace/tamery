@@ -7,12 +7,12 @@ import { MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH } from '@tamery/shared/constants'
 import type { UpdatesStatus } from '@tamery/shared/updates'
 import { Result } from 'better-result'
 import type { Rectangle } from 'electron'
-import { app, BrowserWindow, ipcMain, screen, session, shell } from 'electron'
+import { app, BrowserWindow, screen, session, shell } from 'electron'
 import Store from 'electron-store'
 
 import { restoreAppIcon } from './lib/app-icon'
 import { setupProtocolHandler } from './lib/deep-link'
-import { initElectronEvents } from './lib/events'
+import { initElectronEvents, registerHandlers } from './lib/events'
 import { restoreMcpServer } from './lib/mcp'
 import { buildMenu } from './lib/menu'
 import { queryProcess } from './lib/query-process'
@@ -242,9 +242,13 @@ app.on('ready', () => {
   restrictPermissions()
   createWindow()
 
-  ipcMain.handle('app.openWindow', (_event, route: string) => {
-    createWindow(route)
-  })
+  registerHandlers(
+    'app.openWindow',
+    (route: string) => {
+      createWindow(route)
+    },
+    isAppUrl
+  )
 
   setupProtocolHandler(createWindow)
 

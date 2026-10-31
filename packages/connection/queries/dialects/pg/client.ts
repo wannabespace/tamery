@@ -1,13 +1,14 @@
 import { createRequire } from 'node:module'
 
+import { logDriverError } from '@tamery/shared/sanitize-log'
 import { Result } from 'better-result'
 import { memoize } from 'memoza'
 import type { PoolConfig } from 'pg'
 import type * as PgModule from 'pg'
 
+import { forwarding } from '../../../forwarding'
 import { getDriverConfig } from '../../../parse-connection-string'
 import { readSSLFiles } from '../../../read-ssl-files'
-import { sshForwarding } from '../../../ssh/forwarding'
 import { defaultSSLConfig, parseSSLConfig } from '../../../ssl/pg'
 
 export const pg = createRequire(import.meta.url)('pg') as typeof PgModule
@@ -40,7 +41,7 @@ const connect = (options: PoolConfig) =>
     catch: (error) => error,
     try: async () => {
       const pool = new pg.Pool(options)
-      pool.on('error', console.error)
+      pool.on('error', logDriverError)
       await pool.query('SELECT 1')
       return pool
     },
@@ -52,14 +53,18 @@ const refusesTls = (error: unknown) =>
   error.message === 'The server does not support SSL connections'
 
 export const getPool = memoize(async (connectionString: string) => {
-  const { searchParams, ...config } = getDriverConfig(connectionString)
+  const { password, searchParams, ...config } =
+    getDriverConfig(connectionString)
   const ssl = parseSSLConfig(searchParams)
-  const tunnel = await sshForwarding.of(connectionString)
+  const tunnel = await forwarding.of(connectionString)
   const conf: PoolConfig = {
     ...config,
     ...(tunnel && { stream: tunnel.socket }),
     connectionTimeoutMillis: 30_000,
     max: 1,
+    // Only a function keeps pg from falling back to `PGPASSWORD` and `~/.pgpass`, handing the user's stored password to
+    // whatever host the string names (an MCP agent's included).
+    password: () => password ?? '',
     // A database can default this off, making `\'` close a string: `readsOnly`, the tokenizer and Kysely's `sql.lit` all assume it is on.
     options: '-c standard_conforming_strings=on',
     ssl:

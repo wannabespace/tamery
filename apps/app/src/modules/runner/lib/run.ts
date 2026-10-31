@@ -153,6 +153,36 @@ const runOne = async ({
   }
 }
 
+const captureQueryRun = ({
+  dialect,
+  failed,
+  ran,
+  results,
+  statements,
+  stopped,
+}: {
+  dialect: string | undefined
+  failed: boolean
+  ran: { duration: number }[]
+  results: RunnerResult[]
+  statements: number
+  stopped: boolean
+}) =>
+  posthog.capture('query_run', {
+    duration_ms: Math.round(
+      ran.reduce((total, { duration }) => total + duration, 0)
+    ),
+    failed,
+    rows: results.reduce(
+      (total, { set }) => total + (set?.rows.length ?? 0),
+      0
+    ),
+    statements,
+    stopped,
+    success: !failed && !stopped,
+    type: dialect,
+  })
+
 export const runStatements = async ({
   connectionResource,
   statements,
@@ -247,11 +277,13 @@ export const runStatements = async ({
     ran.map((entry) => ({ ...entry, error: entry.error?.message ?? null }))
   )
   const dialect = params?.dialect
-  posthog.capture('query_run', {
+  captureQueryRun({
+    dialect,
     failed: failedAt !== undefined,
+    ran,
+    results: run.results,
     statements: statements.length,
     stopped: signal.aborted,
-    type: dialect,
   })
   // The pool sees none of an open transaction's writes and would wait on its locks; closing it refreshes instead.
   if (dialect && !runnerTransaction.state(tab).get()) {

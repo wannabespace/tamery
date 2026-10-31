@@ -2,7 +2,7 @@
   "name": "@tamery/ai",
   "type": "module",
   "scripts": {
-    "check-types": "tsc",
+    "check-types": "bun check",
     "test": "bun test"
   },
   "dependencies": {

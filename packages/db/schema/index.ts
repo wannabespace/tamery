@@ -40,6 +40,7 @@ export {
   provider,
   syncType,
 } from './connections'
+export { copies, deletedRecords } from './deleted-records'
 export { earlyAccess } from './early-access'
 export { userEncryptionKeys } from './encryption'
 export {
