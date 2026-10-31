@@ -151,6 +151,7 @@ contextBridge.exposeInMainWorld('electron', {
     onUpdatesStatus: (onMessage) => onEvent('updates-status', onMessage),
     onUrlOpened: (onMessage) => onEvent('url-opened', onMessage),
   },
+  appIcon: namespaceBridge('appIcon', ['get', 'set']),
   connectionLinks: namespaceBridge('connectionLinks', [
     'isDefault',
     'setDefault',

@@ -8,6 +8,7 @@ import type { IpcMainInvokeEvent } from 'electron'
 import { app, ipcMain, nativeTheme } from 'electron'
 
 import type { CopyDatabaseRequest } from '../copy-database'
+import { appIcon } from './app-icon'
 import { popupNativeContextMenu } from './context-menu'
 import { connectionLinks } from './deep-link'
 import { deviceEncryption } from './device-encryption'
@@ -49,6 +50,7 @@ export const electron = {
       nativeTheme.themeSource = theme
     },
   },
+  appIcon,
   connectionLinks,
   copyDatabase: {
     cancel: queryProcess.cancelCopy,

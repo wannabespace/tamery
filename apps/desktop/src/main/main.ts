@@ -10,6 +10,7 @@ import type { Rectangle } from 'electron'
 import { app, BrowserWindow, ipcMain, screen, session, shell } from 'electron'
 import Store from 'electron-store'
 
+import { restoreAppIcon } from './lib/app-icon'
 import { setupProtocolHandler } from './lib/deep-link'
 import { initElectronEvents } from './lib/events'
 import { restoreMcpServer } from './lib/mcp'
@@ -118,6 +119,7 @@ export const createWindow = (route?: string) => {
   })
 
   mainWindow = win
+  restoreAppIcon()
 
   const bounds = store.get('bounds')
 
