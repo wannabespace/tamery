@@ -4,8 +4,8 @@ import { BlockList, connect } from 'node:net'
 
 import { ORPCError } from '@orpc/server'
 import { connectionParts } from '@tamery/connection/connection-parts'
+import type { Destination, Forwarding } from '@tamery/connection/forwarding'
 import { readConnectionString } from '@tamery/connection/parse-connection-string'
-import type { Forwarding } from '@tamery/connection/ssh/forwarding'
 import { SSH_DESKTOP_ONLY } from '@tamery/connection/ssh/params'
 import { tunnelSocket } from '@tamery/connection/ssh/socket'
 import { describeConnectionString } from '@tamery/connection/utils'
@@ -62,15 +62,16 @@ const publicAddresses = async (
   return [first, ...rest]
 }
 
-const guardedConnect = async ({
-  host,
-  port,
-}: {
-  host: string
-  port: number
-}) => {
+const guardedConnect = async ({ host, port }: Destination) => {
   const [address] = await publicAddresses(host)
-  return connect({ family: address.family, host: address.address, port })
+  // Set here: the facade `tunnelSocket` hands the driver makes its own `setKeepAlive` and `setNoDelay` calls no-ops.
+  return connect({
+    family: address.family,
+    host: address.address,
+    keepAlive: true,
+    noDelay: true,
+    port,
+  })
 }
 
 /**

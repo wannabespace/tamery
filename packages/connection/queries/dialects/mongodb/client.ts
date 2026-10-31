@@ -6,7 +6,7 @@ import { Result } from 'better-result'
 import { memoize } from 'memoza'
 import type * as Mongo from 'mongodb'
 
-import { sshForwarding } from '../../../ssh/forwarding'
+import { forwarding } from '../../../forwarding'
 import { deleteSshParams } from '../../../ssh/params'
 import { socksProxy } from '../../../ssh/socks'
 
@@ -22,7 +22,7 @@ export const { parse: parseShellValue } =
 const DEFAULT_SERVER_SELECTION_TIMEOUT_MS = 10_000
 
 export const getClient = memoize(async (connectionString: string) => {
-  const forwarding = await sshForwarding.of(connectionString)
+  const tunnel = await forwarding.of(connectionString)
   const url = new SafeURL(connectionString)
   deleteSshParams(url.searchParams)
   const setsOwnTimeout = [...url.searchParams.keys()].some(
@@ -36,7 +36,7 @@ export const getClient = memoize(async (connectionString: string) => {
   }
   // The driver dials every member itself, so a tunnel or the cloud proxy's guard must reach them as a SOCKS proxy, not one forwarded socket.
   const proxy =
-    forwarding && (await socksProxy((target) => forwarding.socketTo(target)))
+    tunnel && (await socksProxy((target) => tunnel.socketTo(target)))
   const client = new mongodb.MongoClient(url.toString(), {
     appName: 'Tamery',
     ...proxy?.options,

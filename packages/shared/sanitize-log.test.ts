@@ -57,6 +57,18 @@ describe('sanitizeLogData', () => {
     expect(text).toContain('db.example.com/app')
   })
 
+  it.each([
+    [
+      'a query value holding a semicolon',
+      'mysql://h/db?ssh_password=prefix;SECRET&x=1',
+    ],
+    ['a percent-encoded param name', 'mysql://h/db?%73sh_key=SECRET'],
+    ['an Authorization header', 'Authorization: Bearer SECRET'],
+    ['an Authorization value with its scheme', 'authorization=Basic SECRET'],
+  ])('redacts %s', (_case, error) => {
+    expect(logged({ error })).not.toContain('SECRET')
+  })
+
   it('keeps an email after a connection string', () => {
     const text = logged({
       error: 'postgres://u:pw@h failed for me@example.com',

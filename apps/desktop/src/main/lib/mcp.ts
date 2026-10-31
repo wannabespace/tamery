@@ -22,19 +22,18 @@ import { LOOPBACK_HOST } from '@tamery/shared/ports'
 import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { omit, silently, toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
-import Store from 'electron-store'
 
 import { createMcpServer } from './mcp-tools'
+import { createPrivateStore } from './private-store'
 
 const newToken = () => randomBytes(32).toString('base64url')
 
-const store = new Store<{
+const store = createPrivateStore<{
   access: Record<string, McpAccess>
   clients: Record<string, Omit<McpClient, 'name'>>
   enabled: boolean
   token: string
 }>({
-  configFileMode: 0o600,
   defaults: {
     access: {},
     clients: {},
@@ -48,8 +47,7 @@ const connectionAccess = () => store.get('access')
 
 const MAX_LOGGED_CALLS = 100
 
-const log = new Store<{ calls: McpCall[] }>({
-  configFileMode: 0o600,
+const log = createPrivateStore<{ calls: McpCall[] }>({
   defaults: { calls: [] },
   name: 'mcp-log',
 })

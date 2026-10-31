@@ -1,13 +1,30 @@
 import { deepRedact } from '@hackylabs/deep-redact'
 
+import { decodeURIComponentOrRaw } from './utils'
+
 /** Up to the userinfo's last `@`: a password may hold a raw `@`, a host never does. */
 const URL_PASSWORD = /(?<user>\/\/[^\s/:@]*:)\S*?@(?=[^\s/?#@]*(?:[\s/?#]|$))/gu
-const KEY_VALUE_SECRET =
-  /(?<key>(?:password|passphrase|pwd|token|authorization|ssh_key|sslpfx|authmechanismproperties)\s*=\s*)[^\s;&'"]+/giu
-const SECRET_TEXT = new RegExp(
-  `${URL_PASSWORD.source}|${KEY_VALUE_SECRET.source}`,
-  'iu'
-)
+const SECRET_NAME =
+  /password|passphrase|pwd|token|authorization|ssh_key|sslpfx|authmechanismproperties/iu
+/** A query value runs to the next `&` or `#`: a `;` or a quote is part of it. */
+const QUERY_PARAM = /(?<key>[?&](?<name>[^\s&#=]+)=)[^\s&#]*/gu
+const AUTHORIZATION =
+  /(?<key>authorization\s*[:=]\s*(?:(?:basic|bearer|digest|negotiate)\s+)?)[^\s;&'"]+/giu
+/** `Server=h;Password=p` and the like, outside a URL. */
+const KEY_VALUE = /(?<key>(?<name>[\w%-]+)\s*=\s*)[^\s;&'"]+/gu
+const MAY_HOLD_SECRET = /[:=]/u
+
+/** The name is decoded first: a driver reads `%73sh_key` as `ssh_key`. */
+const redactWhenSecret = (match: string, key: string, name: string) =>
+  SECRET_NAME.test(decodeURIComponentOrRaw(name)) ? `${key}[REDACTED]` : match
+
+export const redactSecrets = (text: string) =>
+  text
+    .replaceAll(URL_PASSWORD, '$<user>[REDACTED]@')
+    .replaceAll(QUERY_PARAM, redactWhenSecret)
+    // Before `KEY_VALUE`, which would stop at the space in `Basic abc` and leave `abc`.
+    .replaceAll(AUTHORIZATION, '$<key>[REDACTED]')
+    .replaceAll(KEY_VALUE, redactWhenSecret)
 
 const redactor = deepRedact({
   caseSensitiveKeyMatch: false,
@@ -30,17 +47,8 @@ const redactor = deepRedact({
     /invalidData/iu,
   ],
   serialise: false,
-  // Strings that embed a connection string (chat text, SQL, driver errors) carry no key to match. One test runs every
-  // pattern: deep-redact applies only the first test that matches a string.
-  stringTests: [
-    {
-      pattern: SECRET_TEXT,
-      replacer: (value) =>
-        value
-          .replaceAll(URL_PASSWORD, '$<user>[REDACTED]@')
-          .replaceAll(KEY_VALUE_SECRET, '$<key>[REDACTED]'),
-    },
-  ],
+  // One test runs every pattern: deep-redact applies only the first test that matches a string.
+  stringTests: [{ pattern: MAY_HOLD_SECRET, replacer: redactSecrets }],
   transformers: {
     byConstructor: {
       // Unconverted, an Error is logged as-is: a validation error's `invalidData` holds the whole raw input.

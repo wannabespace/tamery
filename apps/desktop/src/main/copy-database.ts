@@ -11,10 +11,10 @@ import type { Readable } from 'node:stream'
 import { Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
+import type { Forwarding } from '@tamery/connection/forwarding'
+import { forwarding } from '@tamery/connection/forwarding'
 import { getDriverConfig } from '@tamery/connection/parse-connection-string'
 import { getPool } from '@tamery/connection/queries/dialects/pg/client'
-import type { Forwarding } from '@tamery/connection/ssh/forwarding'
-import { sshForwarding } from '@tamery/connection/ssh/forwarding'
 import { getLibpqSslMode } from '@tamery/connection/ssl/pg'
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import { silently, toError } from '@tamery/shared/utils'
@@ -43,9 +43,9 @@ const KEEPALIVES =
   '--dbname=keepalives_idle=10 keepalives_interval=5 keepalives_count=3'
 
 /** libpq dials a TCP port, while a tunnel opens none, so the copy gets a loopback listener for its length. */
-const listenLocally = async (forwarding: Forwarding) => {
+const listenLocally = async (tunnel: Forwarding) => {
   const server = createServer((local) => {
-    void silently(() => pipeline(local, forwarding.socket(), local))
+    void silently(() => pipeline(local, tunnel.socket(), local))
   })
   await once(server.listen(0, '127.0.0.1'), 'listening')
   // A TCP server listening on a port answers with AddressInfo, never a pipe name.
@@ -73,8 +73,8 @@ const openEndpoint = async (connectionString: string) => {
       "SELECT system_identifier || '/' || current_database() AS database FROM pg_control_system()"
     )
   )
-  const forwarding = await sshForwarding.of(connectionString)
-  const local = forwarding ? await listenLocally(forwarding) : null
+  const tunnel = await forwarding.of(connectionString)
+  const local = tunnel ? await listenLocally(tunnel) : null
   const sslMode = getLibpqSslMode(pool.options.ssl, searchParams.get('sslmode'))
   return {
     [Symbol.dispose]: () => local?.close(),

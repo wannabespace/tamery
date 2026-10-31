@@ -3,9 +3,9 @@ import process from 'node:process'
 
 import { ORPCError } from '@orpc/server'
 import { RPCHandler } from '@orpc/server/fetch'
-import { sshForwarding } from '@tamery/connection/ssh/forwarding'
+import { forwarding } from '@tamery/connection/forwarding'
 import { querySerializer } from '@tamery/query-proxy/serializer'
-import { sanitizeLogData } from '@tamery/shared/sanitize-log'
+import { redactSecrets, sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 
@@ -15,7 +15,7 @@ import { router } from './orpc/routers'
 import { guardedForwarding } from './public-host'
 import type { AppVariables } from './variables'
 
-sshForwarding.use(guardedForwarding)
+forwarding.use(guardedForwarding)
 
 const handler = new RPCHandler(router, {
   interceptors: [
@@ -40,7 +40,7 @@ const handler = new RPCHandler(router, {
         if (error instanceof Error) {
           throw new ORPCError('INTERNAL_SERVER_ERROR', {
             cause: error,
-            message: sanitizeLogData({ message: error.message }).message,
+            message: redactSecrets(error.message),
           })
         }
 

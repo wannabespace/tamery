@@ -6,9 +6,9 @@ import { memoize } from 'memoza'
 import type { PoolConfig } from 'pg'
 import type * as PgModule from 'pg'
 
+import { forwarding } from '../../../forwarding'
 import { getDriverConfig } from '../../../parse-connection-string'
 import { readSSLFiles } from '../../../read-ssl-files'
-import { sshForwarding } from '../../../ssh/forwarding'
 import { defaultSSLConfig, parseSSLConfig } from '../../../ssl/pg'
 
 export const pg = createRequire(import.meta.url)('pg') as typeof PgModule
@@ -56,7 +56,7 @@ export const getPool = memoize(async (connectionString: string) => {
   const { password, searchParams, ...config } =
     getDriverConfig(connectionString)
   const ssl = parseSSLConfig(searchParams)
-  const tunnel = await sshForwarding.of(connectionString)
+  const tunnel = await forwarding.of(connectionString)
   const conf: PoolConfig = {
     ...config,
     ...(tunnel && { stream: tunnel.socket }),

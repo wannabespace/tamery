@@ -5,7 +5,7 @@ import { messagesFromPartRows } from '@tamery/ai/message'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { chats, chatsMessages, chatsMessagesParts } from '@tamery/db/schema'
-import { sanitizeLogData } from '@tamery/shared/sanitize-log'
+import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { silently } from '@tamery/shared/utils'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 
@@ -207,7 +207,7 @@ export const chatPersist = {
       const [updated] = await db
         .update(chats)
         // Titles are stored in plaintext, and one summarizing a pasted connection string would carry its password.
-        .set(sanitizeLogData({ title }))
+        .set({ title: redactSecrets(title) })
         .where(
           and(
             eq(chats.id, data.chatId),

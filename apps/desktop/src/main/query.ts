@@ -1,9 +1,9 @@
 import '@tamery/shared/arktype-config'
 import process from 'node:process'
 
+import { forwarding } from '@tamery/connection/forwarding'
 import type { QueryExecutor } from '@tamery/connection/queries'
 import { resetTransactions } from '@tamery/connection/queries/transactions'
-import { sshForwarding } from '@tamery/connection/ssh/forwarding'
 import type { ConfirmHostKey } from '@tamery/connection/ssh/host-key'
 import { tunnelForwarding } from '@tamery/connection/ssh/tunnel'
 import { isConnectionError } from '@tamery/shared/connections'
@@ -71,7 +71,7 @@ const perform = async (
   return null
 }
 
-sshForwarding.use((connectionString) =>
+forwarding.use((connectionString) =>
   tunnelForwarding(connectionString, (prompt) => {
     const hostKeyId = nextHostKeyId
     nextHostKeyId += 1
