@@ -22,8 +22,10 @@ import {
 import { isMac } from '@tamery/ui/lib/os'
 import type { Theme } from '@tamery/ui/theme-store'
 import { themeStore, useTheme } from '@tamery/ui/theme-store'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
+import { toast } from 'sonner'
 
 import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
@@ -35,9 +37,9 @@ const THEMES: { label: string; value: Theme }[] = [
   { label: 'Dark', value: 'dark' },
 ]
 
-type AppIcon = Parameters<
-  NonNullable<typeof window.electron>['appIcon']['set']
->[0]
+type AppIcon = Awaited<
+  ReturnType<NonNullable<typeof window.electron>['appIcon']['get']>
+>
 
 const APP_ICONS: { label: string; value: AppIcon }[] = [
   { label: 'Light', value: 'light' },
@@ -50,28 +52,44 @@ const APP_ICON_QUERY_KEY = ['app-icon']
 const hasVibrancy = !!window.electron && isMac
 
 const AppIconRow = () => {
-  const { data } = useQuery({
+  const { data: icon } = useQuery({
     queryFn: () => window.electron?.appIcon.get(),
     queryKey: APP_ICON_QUERY_KEY,
   })
+  const { data: previews } = useQuery({
+    queryFn: () => window.electron?.appIcon.previews(),
+    queryKey: ['app-icon-previews'],
+  })
+  const { mutate } = useMutation({
+    meta: { event: 'app_icon_changed' },
+    mutationFn: async (next: AppIcon) =>
+      await window.electron?.appIcon.set(next),
+    onError: (error) => toast.error(error.message),
+    onSuccess: (_, next) => queryClient.setQueryData(APP_ICON_QUERY_KEY, next),
+  })
+
+  useEffect(
+    () =>
+      window.electron?.app.onFocusChange((isFocused) => {
+        if (isFocused) {
+          void queryClient.invalidateQueries({ queryKey: APP_ICON_QUERY_KEY })
+        }
+      }),
+    []
+  )
 
   return (
     <SettingsRow
       title="App icon"
       description={`The icon Tamery shows in the ${isMac ? 'Dock' : 'taskbar'}.`}
     >
-      {data && (
+      {icon && previews && (
         <SwatchGroup
           aria-label="App icon"
-          value={[data.icon]}
+          value={[icon]}
           onValueChange={([next]) => {
             if (next) {
-              queryClient.setQueryData(APP_ICON_QUERY_KEY, {
-                ...data,
-                icon: next,
-              })
-              void window.electron?.appIcon.set(next)
-              posthog.capture('app_icon_changed', { icon: next })
+              mutate(next)
             }
           }}
         >
@@ -79,12 +97,12 @@ const AppIconRow = () => {
             <Tooltip key={value}>
               <TooltipTrigger
                 render={
-                  <SwatchGroupItem size="lg" value={value} aria-label={label}>
-                    <img
-                      src={data.previews[value]}
-                      alt=""
-                      className="size-full"
-                    />
+                  <SwatchGroupItem
+                    variant="picture"
+                    value={value}
+                    aria-label={label}
+                  >
+                    <img src={previews[value]} alt="" className="size-full" />
                   </SwatchGroupItem>
                 }
               />

@@ -10,7 +10,7 @@ import type { Rectangle } from 'electron'
 import { app, BrowserWindow, screen, session, shell } from 'electron'
 import Store from 'electron-store'
 
-import { restoreAppIcon } from './lib/app-icon'
+import { restoreDockIcon, windowIcon } from './lib/app-icon'
 import { setupProtocolHandler } from './lib/deep-link'
 import { initElectronEvents, registerHandlers } from './lib/events'
 import { restoreMcpServer } from './lib/mcp'
@@ -95,6 +95,7 @@ export const createWindow = (route?: string) => {
   const win = new BrowserWindow({
     focusable: true,
     height,
+    icon: windowIcon(),
     minHeight: MIN_WINDOW_HEIGHT,
     minWidth: MIN_WINDOW_WIDTH,
     titleBarStyle: 'hidden',
@@ -119,7 +120,6 @@ export const createWindow = (route?: string) => {
   })
 
   mainWindow = win
-  restoreAppIcon()
 
   const bounds = store.get('bounds')
 
@@ -240,6 +240,7 @@ export const createWindow = (route?: string) => {
 
 app.on('ready', () => {
   restrictPermissions()
+  restoreDockIcon()
   createWindow()
 
   registerHandlers(
