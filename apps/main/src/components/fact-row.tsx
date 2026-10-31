@@ -3,13 +3,11 @@ import { HugeiconsIcon } from '@hugeicons/react'
 
 import { Reveal } from '~/components/reveal'
 
-export interface Fact {
-  description: string
-  icon: IconSvgElement
-  title: string
-}
-
-export const FactRow = ({ facts }: { facts: Fact[] }) => (
+export const FactRow = ({
+  facts,
+}: {
+  facts: { description: string; icon: IconSvgElement; title: string }[]
+}) => (
   <Reveal className="mt-10 grid gap-8 sm:grid-cols-3 sm:gap-0">
     {facts.map((fact) => (
       <div

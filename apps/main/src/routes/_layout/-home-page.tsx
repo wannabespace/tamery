@@ -1,4 +1,6 @@
-import { Explore, Query, Share } from '~/modules/features/features'
+import { Explore } from '~/modules/features/explore'
+import { Query } from '~/modules/features/query'
+import { Share } from '~/modules/features/share'
 import { Pricing } from '~/modules/pricing/pricing'
 
 import { Agents } from './-components/agents'

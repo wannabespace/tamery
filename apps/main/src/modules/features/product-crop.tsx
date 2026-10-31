@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 export const ProductCrop = ({
   children,
   className,
-  stage = false,
+  stage,
 }: {
   children: ReactNode
   className?: string

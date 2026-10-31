@@ -1,4 +1,8 @@
-import { SOCIAL_LINKS } from '@tamery/shared/constants'
+import {
+  BREW_INSTALL_COMMAND,
+  DOCS_URL,
+  SOCIAL_LINKS,
+} from '@tamery/shared/constants'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { publishedPosts } from '~/modules/blog/posts'
@@ -23,7 +27,7 @@ export const Route = createFileRoute('/llms.txt')({
 - Supported databases: PostgreSQL, TimescaleDB, MySQL, MariaDB, Microsoft SQL Server (MSSQL), Oracle, ClickHouse, MongoDB (including Atlas), SQLite, Turso, Cloudflare D1
 - Platforms: macOS (Apple Silicon and Intel), Windows, Linux (DEB, RPM, AppImage), web
 - Open source under AGPL-3.0: ${SOCIAL_LINKS.GITHUB}
-- Install via Homebrew: \`brew install --cask tamery\`
+- Install via Homebrew: \`${BREW_INSTALL_COMMAND}\`
 
 ## Pages
 
@@ -40,8 +44,8 @@ ${posts.join('\n')}
 
 ## Docs
 
-- [Documentation](https://docs.tamery.app): Setup, connections, features, CLI and MCP
-- [Docs for LLMs](https://docs.tamery.app/llms.txt): The documentation index in llms.txt format
+- [Documentation](${DOCS_URL}): Setup, connections, features, CLI and MCP
+- [Docs for LLMs](${DOCS_URL}/llms.txt): The documentation index in llms.txt format
 
 ## Links
 
