@@ -12,7 +12,8 @@ export const usePlayback = (autoplay: boolean) => {
 
   const play = () => {
     if (reduceMotion) {
-      controls.set('shown')
+      // controls.set() never reaches the variant children, so the final frame is played instantly instead.
+      void controls.start('shown', { duration: 0 })
       return
     }
     if (performance.now() - lastPlayedAt.current < REPLAY_COOLDOWN_MS) {

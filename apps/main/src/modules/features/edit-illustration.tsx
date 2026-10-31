@@ -55,20 +55,20 @@ export const EditIllustration = () => (
       ))}
       <motion.div
         variants={pop(PROMPT_AT, 4)}
-        className="bg-popover ring-foreground/4 my-1.5 mr-3 ml-3 flex h-10 items-center gap-2 rounded-xl pr-1.5 pl-3 font-sans text-sm shadow-lg ring"
+        className="bg-popover ring-foreground/4 @container mx-2 my-1.5 flex h-10 items-center gap-2 rounded-xl pr-1.5 pl-3 font-sans text-sm shadow-lg ring"
       >
         <HugeiconsIcon
           icon={SparklesIcon}
           strokeWidth={2}
           className="text-primary size-4 shrink-0"
         />
-        <span className="min-w-0 flex-1 overflow-hidden whitespace-pre">
+        <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-pre">
           <Typed at={TYPE_AT} step={TYPE_STEP} text={PROMPT} />
         </span>
         <motion.span
           inert
           variants={appear(REWRITE_AT + 0.3)}
-          className="flex shrink-0 gap-1"
+          className="hidden shrink-0 gap-1 @2xs:flex"
         >
           <Button variant="ghost-muted" size="xs">
             Reject

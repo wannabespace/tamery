@@ -92,7 +92,10 @@ const MenuLink = ({
   const id = useId()
 
   return (
-    <NavigationMenuLink render={renderDestination(destination, title, id)}>
+    <NavigationMenuLink
+      closeOnClick
+      render={renderDestination(destination, title, id)}
+    >
       <span className="bg-background ring-foreground/6 flex size-8 shrink-0 items-center justify-center rounded-lg shadow-xs ring">
         <HugeiconsIcon
           icon={icon}
