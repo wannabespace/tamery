@@ -6,19 +6,18 @@ import {
   AccordionTrigger,
 } from '@tamery/ui/components/accordion'
 
+import { Chapter } from '~/components/chapter'
 import { Reveal } from '~/components/reveal'
-import { SectionHeading } from '~/components/section-heading'
 
 import { FAQ_QUESTIONS } from './faq-questions'
 
 export const Faq = () => (
-  <section
+  <Chapter
     id="faq"
-    aria-labelledby="faq-heading"
-    className="mx-auto grid max-w-6xl scroll-mt-24 gap-10 px-4 py-20 sm:px-6 md:grid-cols-[1fr_2fr]"
-  >
-    <Reveal>
-      <SectionHeading id="faq-heading" eyebrow="FAQ" title="Questions.">
+    label="FAQ"
+    title="Questions."
+    description={
+      <>
         Anything else? Ask us on{' '}
         <a
           href={SOCIAL_LINKS.DISCORD}
@@ -28,9 +27,10 @@ export const Faq = () => (
           Discord
         </a>
         .
-      </SectionHeading>
-    </Reveal>
-    <Reveal>
+      </>
+    }
+  >
+    <Reveal className="mt-12">
       <Accordion>
         {FAQ_QUESTIONS.map(({ answer, question }) => (
           <AccordionItem key={question} value={question}>
@@ -40,5 +40,5 @@ export const Faq = () => (
         ))}
       </Accordion>
     </Reveal>
-  </section>
+  </Chapter>
 )

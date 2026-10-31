@@ -24,7 +24,7 @@ const TYPE_STEP = 0.03
 const CONVERT_AT = TYPE_AT + SENTENCE.length * TYPE_STEP + 0.25
 
 export const FilterIllustration = () => (
-  <ProductCrop>
+  <ProductCrop stage>
     <div className="flex items-center gap-2 border-b px-3 py-2">
       <div className="bg-input ring-foreground/4 relative flex min-h-8 min-w-0 flex-1 items-center gap-1 rounded-xl py-0.75 pr-1.5 pl-2 shadow-xs ring">
         <HugeiconsIcon

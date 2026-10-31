@@ -15,7 +15,9 @@ export const Route = createFileRoute('/llms.txt')({
             : link
         })
 
-        return new Response(['# Tamery docs', '', ...links].join('\n'))
+        return new Response(['# Tamery docs', '', ...links].join('\n'), {
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        })
       },
     },
   },

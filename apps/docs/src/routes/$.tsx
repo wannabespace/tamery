@@ -1,4 +1,5 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
+import type { Graph } from 'schema-dts'
 
 import { DocsScreen } from '~/components/docs-screen'
 import { SITE_URL, WEB_URL } from '~/constants'
@@ -24,12 +25,54 @@ const DocsRoute = () => {
 
 export const Route = createFileRoute('/$')({
   component: DocsRoute,
-  head: ({ params }) => {
+  loader: async ({ params }) => {
+    const { lastModified } = await getDocsPage(params._splat).data.load()
+    return { lastModified }
+  },
+  head: ({ loaderData, params }) => {
     const page = getDocsPage(params._splat)
     const pageUrl = `${SITE_URL}${page.url}`
-    const title =
-      page.url === '/' ? 'Tamery Docs' : `${page.data.title} · Tamery Docs`
+    const isIndex = page.url === '/'
+    const title = isIndex ? 'Tamery Docs' : `${page.data.title} · Tamery Docs`
     const description = page.data.description ?? ''
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'TechArticle',
+          headline: page.data.title,
+          description,
+          url: pageUrl,
+          image: OG_IMAGE_URL,
+          ...(loaderData?.lastModified && {
+            dateModified: loaderData.lastModified.toISOString(),
+          }),
+          publisher: {
+            '@type': 'Organization',
+            name: 'Tamery',
+            url: WEB_URL,
+            logo: `${WEB_URL}/logo.png`,
+          },
+        },
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            {
+              '@type': 'ListItem',
+              position: 1,
+              name: 'Docs',
+              item: `${SITE_URL}/`,
+            },
+            {
+              '@type': 'ListItem',
+              position: 2,
+              name: page.data.title,
+              item: pageUrl,
+            },
+          ],
+        },
+      ],
+    } satisfies Graph
 
     return {
       links: [{ href: pageUrl, rel: 'canonical' }],
@@ -42,7 +85,7 @@ export const Route = createFileRoute('/$')({
         { content: description, name: 'twitter:description' },
         { content: OG_IMAGE_URL, name: 'twitter:image' },
         {
-          content: page.url === '/' ? 'website' : 'article',
+          content: isIndex ? 'website' : 'article',
           property: 'og:type',
         },
         { content: 'Tamery', property: 'og:site_name' },
@@ -53,7 +96,14 @@ export const Route = createFileRoute('/$')({
         { content: '1200', property: 'og:image:width' },
         { content: '630', property: 'og:image:height' },
       ],
+      scripts: isIndex
+        ? []
+        : [
+            {
+              children: JSON.stringify(structuredData),
+              type: 'application/ld+json',
+            },
+          ],
     }
   },
-  loader: ({ params }) => getDocsPage(params._splat).data.preload(),
 })

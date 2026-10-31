@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as LlmsChar91DotChar93txtRouteImport } from './routes/llms[.]txt'
 import { Route as OpenRouteImport } from './modules/deep-link/routes/open'
+import { Route as SitemapChar91DotChar93xmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthEarlyAccessRouteImport } from './routes/_auth/early-access'
 import { Route as AuthEmailCodeRouteImport } from './routes/_auth/email-code'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
@@ -31,6 +33,7 @@ import { Route as DeepDotsignInRouteImport } from './modules/deep-link/routes/de
 import { Route as LayoutBlogDotindexRouteImport } from './modules/blog/routes/_layout/blog.index'
 import { Route as LayoutBlogDotslugRouteImport } from './modules/blog/routes/_layout/blog.$slug'
 import { Route as AccountSettingsIndexRouteImport } from './modules/settings/routes/account/settings/index'
+import { Route as BlogDotslugDotogChar91DotChar93pngRouteImport } from './modules/blog/routes/blog.$slug.og[.]png'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
@@ -45,11 +48,22 @@ const AccountRoute = AccountRouteImport.update({
   path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LlmsChar91DotChar93txtRoute = LlmsChar91DotChar93txtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OpenRoute = OpenRouteImport.update({
   id: '/open',
   path: '/open',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapChar91DotChar93xmlRoute =
+  SitemapChar91DotChar93xmlRouteImport.update({
+    id: '/sitemap.xml',
+    path: '/sitemap.xml',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthEarlyAccessRoute = AuthEarlyAccessRouteImport.update({
   id: '/early-access',
   path: '/early-access',
@@ -140,11 +154,19 @@ const AccountSettingsIndexRoute = AccountSettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => AccountRoute,
 } as any)
+const BlogDotslugDotogChar91DotChar93pngRoute =
+  BlogDotslugDotogChar91DotChar93pngRouteImport.update({
+    id: '/blog/$slug/og.png',
+    path: '/blog/$slug/og.png',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
   '/account': typeof AccountRouteWithChildren
+  '/llms.txt': typeof LlmsChar91DotChar93txtRoute
   '/open': typeof OpenRoute
+  '/sitemap.xml': typeof SitemapChar91DotChar93xmlRoute
   '/early-access': typeof AuthEarlyAccessRoute
   '/email-code': typeof AuthEmailCodeRoute
   '/sign-in': typeof AuthSignInRoute
@@ -160,12 +182,15 @@ export interface FileRoutesByFullPath {
   '/deep/sign-in': typeof DeepDotsignInRoute
   '/account/': typeof AccountIndexRoute
   '/blog/$slug': typeof LayoutBlogDotslugRoute
+  '/blog/$slug/og.png': typeof BlogDotslugDotogChar91DotChar93pngRoute
   '/blog/': typeof LayoutBlogDotindexRoute
   '/account/settings/': typeof AccountSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof LayoutIndexRoute
+  '/llms.txt': typeof LlmsChar91DotChar93txtRoute
   '/open': typeof OpenRoute
+  '/sitemap.xml': typeof SitemapChar91DotChar93xmlRoute
   '/early-access': typeof AuthEarlyAccessRoute
   '/email-code': typeof AuthEmailCodeRoute
   '/sign-in': typeof AuthSignInRoute
@@ -181,6 +206,7 @@ export interface FileRoutesByTo {
   '/deep/sign-in': typeof DeepDotsignInRoute
   '/account': typeof AccountIndexRoute
   '/blog/$slug': typeof LayoutBlogDotslugRoute
+  '/blog/$slug/og.png': typeof BlogDotslugDotogChar91DotChar93pngRoute
   '/blog': typeof LayoutBlogDotindexRoute
   '/account/settings': typeof AccountSettingsIndexRoute
 }
@@ -189,7 +215,9 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/_layout': typeof LayoutRouteWithChildren
   '/account': typeof AccountRouteWithChildren
+  '/llms.txt': typeof LlmsChar91DotChar93txtRoute
   '/open': typeof OpenRoute
+  '/sitemap.xml': typeof SitemapChar91DotChar93xmlRoute
   '/_auth/early-access': typeof AuthEarlyAccessRoute
   '/_auth/email-code': typeof AuthEmailCodeRoute
   '/_auth/sign-in': typeof AuthSignInRoute
@@ -206,6 +234,7 @@ export interface FileRoutesById {
   '/_layout/': typeof LayoutIndexRoute
   '/account/': typeof AccountIndexRoute
   '/_layout/blog/$slug': typeof LayoutBlogDotslugRoute
+  '/blog/$slug/og.png': typeof BlogDotslugDotogChar91DotChar93pngRoute
   '/_layout/blog/': typeof LayoutBlogDotindexRoute
   '/account/settings/': typeof AccountSettingsIndexRoute
 }
@@ -214,7 +243,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/account'
+    | '/llms.txt'
     | '/open'
+    | '/sitemap.xml'
     | '/early-access'
     | '/email-code'
     | '/sign-in'
@@ -230,12 +261,15 @@ export interface FileRouteTypes {
     | '/deep/sign-in'
     | '/account/'
     | '/blog/$slug'
+    | '/blog/$slug/og.png'
     | '/blog/'
     | '/account/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/llms.txt'
     | '/open'
+    | '/sitemap.xml'
     | '/early-access'
     | '/email-code'
     | '/sign-in'
@@ -251,6 +285,7 @@ export interface FileRouteTypes {
     | '/deep/sign-in'
     | '/account'
     | '/blog/$slug'
+    | '/blog/$slug/og.png'
     | '/blog'
     | '/account/settings'
   id:
@@ -258,7 +293,9 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/_layout'
     | '/account'
+    | '/llms.txt'
     | '/open'
+    | '/sitemap.xml'
     | '/_auth/early-access'
     | '/_auth/email-code'
     | '/_auth/sign-in'
@@ -275,6 +312,7 @@ export interface FileRouteTypes {
     | '/_layout/'
     | '/account/'
     | '/_layout/blog/$slug'
+    | '/blog/$slug/og.png'
     | '/_layout/blog/'
     | '/account/settings/'
   fileRoutesById: FileRoutesById
@@ -283,9 +321,12 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   LayoutRoute: typeof LayoutRouteWithChildren
   AccountRoute: typeof AccountRouteWithChildren
+  LlmsChar91DotChar93txtRoute: typeof LlmsChar91DotChar93txtRoute
   OpenRoute: typeof OpenRoute
+  SitemapChar91DotChar93xmlRoute: typeof SitemapChar91DotChar93xmlRoute
   DeepDotshareRoute: typeof DeepDotshareRoute
   DeepDotsignInRoute: typeof DeepDotsignInRoute
+  BlogDotslugDotogChar91DotChar93pngRoute: typeof BlogDotslugDotogChar91DotChar93pngRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -311,11 +352,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsChar91DotChar93txtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/open': {
       id: '/open'
       path: '/open'
       fullPath: '/open'
       preLoaderRoute: typeof OpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapChar91DotChar93xmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth/early-access': {
@@ -444,6 +499,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountSettingsIndexRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/blog/$slug/og.png': {
+      id: '/blog/$slug/og.png'
+      path: '/blog/$slug/og.png'
+      fullPath: '/blog/$slug/og.png'
+      preLoaderRoute: typeof BlogDotslugDotogChar91DotChar93pngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -509,19 +571,24 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   LayoutRoute: LayoutRouteWithChildren,
   AccountRoute: AccountRouteWithChildren,
+  LlmsChar91DotChar93txtRoute: LlmsChar91DotChar93txtRoute,
   OpenRoute: OpenRoute,
+  SitemapChar91DotChar93xmlRoute: SitemapChar91DotChar93xmlRoute,
   DeepDotshareRoute: DeepDotshareRoute,
   DeepDotsignInRoute: DeepDotsignInRoute,
+  BlogDotslugDotogChar91DotChar93pngRoute:
+    BlogDotslugDotogChar91DotChar93pngRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

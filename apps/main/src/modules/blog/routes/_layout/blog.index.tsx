@@ -13,9 +13,7 @@ const authorInitials = BLOG_AUTHOR.split(' ')
 const BlogPage = () => (
   <main className="mx-auto w-full max-w-6xl px-5 pt-16 pb-28 sm:px-6 sm:pt-24">
     <header className="mb-14 flex flex-col gap-4 sm:mb-20">
-      <h1 className="text-5xl font-semibold tracking-tight text-balance sm:text-6xl">
-        Blog
-      </h1>
+      <h1 className="text-5xl text-balance sm:text-6xl">Blog</h1>
       <p className="text-muted-foreground max-w-xl text-lg text-pretty">
         Updates, deep dives, and how-tos from the people building Tamery.
       </p>
@@ -37,7 +35,7 @@ const BlogPage = () => (
               </time>
               <span className="text-muted-foreground">{post.engine}</span>
             </div>
-            <h2 className="text-foreground text-xl font-semibold tracking-tight text-pretty">
+            <h2 className="text-foreground text-xl text-pretty">
               {post.title}
             </h2>
             <p className="text-muted-foreground text-pretty">
@@ -65,7 +63,6 @@ export const Route = createFileRoute('/_layout/blog/')({
       title: 'Blog - Tamery',
       description:
         'Updates, deep dives, and how-tos from the people building Tamery, the AI database client.',
-      image: '/og-image.png',
       path: '/blog',
     }),
 })

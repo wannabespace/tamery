@@ -3,7 +3,7 @@ import { motion, useMotionValue, useTransform } from 'motion/react'
 import { useRef } from 'react'
 
 import { ProductCrop } from './product-crop'
-import { EASE } from './variants'
+import { EASE, REWIND } from './variants'
 
 const CARD_WIDTH = 112
 const HEADER_HEIGHT = 24
@@ -64,7 +64,7 @@ const Edge = ({
       fill="none"
       strokeWidth={1.5}
       variants={{
-        hidden: { pathLength: 0 },
+        hidden: { pathLength: 0, transition: REWIND },
         shown: {
           pathLength: 1,
           transition: { delay: 0.5, duration: 0.6, ease: EASE },
@@ -90,11 +90,11 @@ const TableCard = ({
     dragMomentum={false}
     whileDrag={{ scale: 1.04 }}
     variants={{
-      hidden: { opacity: 0, scale: 0.94 },
+      hidden: { opacity: 0, scale: 0.94, transition: REWIND },
       shown: {
         opacity: 1,
         scale: 1,
-        transition: { delay, duration: 0.3, ease: EASE },
+        transition: { delay, duration: 0.4, ease: EASE },
       },
     }}
     // oxlint-disable-next-line shadcn/no-inline-styles -- each card's start and drag offset are per-card numbers
@@ -117,14 +117,14 @@ const TableCard = ({
 
 export const SchemaIllustration = () => {
   const ref = useRef<HTMLDivElement>(null)
-  const users = useCard('users', ['id', 'email', 'plan'], 20, 24)
+  const users = useCard('users', ['id', 'email', 'plan'], 20, 20)
   const orders = useCard(
     'orders',
     ['id', 'user_id', 'total', 'status'],
-    184,
-    64
+    176,
+    48
   )
-  const items = useCard('order_items', ['order_id', 'product_id'], 36, 132)
+  const items = useCard('order_items', ['order_id', 'product_id'], 336, 24)
 
   return (
     <ProductCrop>
@@ -142,7 +142,7 @@ export const SchemaIllustration = () => {
           </defs>
           <rect width="100%" height="100%" fill="url(#schema-dots)" />
           <Edge from={users} fromColumn="id" to={orders} toColumn="user_id" />
-          <Edge from={items} fromColumn="order_id" to={orders} toColumn="id" />
+          <Edge from={orders} fromColumn="id" to={items} toColumn="order_id" />
         </svg>
         {[users, orders, items].map((card, index) => (
           <TableCard

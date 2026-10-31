@@ -5,7 +5,7 @@ import { ThemeToggle } from '@tamery/ui/components/custom/theme-toggle'
 
 export const ThemeButton = () => (
   <ThemeToggle
-    side="bottom"
+    side="top"
     render={
       <Button variant="ghost-muted" size="icon-sm" aria-label="Appearance" />
     }

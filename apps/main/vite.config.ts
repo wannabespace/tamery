@@ -17,7 +17,11 @@ setupPortlessEnvs({
 
 export default defineConfig(({ command }) => ({
   plugins: [
-    { enforce: 'pre', ...mdx({ remarkPlugins: [remarkGfm] }) },
+    // `include` keeps it off `.md?raw` imports (the legal pages), which it would otherwise compile into a component.
+    {
+      enforce: 'pre',
+      ...mdx({ include: /\.mdx$/u, remarkPlugins: [remarkGfm] }),
+    },
     tailwindcss(),
     tanstackStart({
       router: {
@@ -33,7 +37,8 @@ export default defineConfig(({ command }) => ({
         ]),
       },
     }),
-    nitro({ preset: 'bun' }),
+    // Without `!unwasm` Nitro hands Takumi its WebAssembly build instead of the native binding.
+    nitro({ exportConditions: ['!unwasm'], preset: 'bun' }),
     react(),
     babel({
       presets: [reactCompilerPreset()],
@@ -43,6 +48,8 @@ export default defineConfig(({ command }) => ({
     tsconfigPaths: true,
   },
   ssr: {
+    // Takumi's native addon cannot be inlined; Nitro resolves it from node_modules.
+    external: ['takumi-js'],
     // Build externals load a second React through base-ui's CJS require; dev's module runner cannot inline CJS React.
     noExternal: command === 'build' ? true : [],
   },

@@ -3,8 +3,8 @@ import { Tabs, TabsList, TabsTrigger } from '@tamery/ui/components/tabs'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { Chapter } from '~/components/chapter'
 import { Reveal } from '~/components/reveal'
-import { SectionHeading } from '~/components/section-heading'
 import { useSubscription } from '~/hooks/use-subscription'
 import { authClient } from '~/lib/auth'
 import { HOBBY_PLAN, PRO_PLAN } from '~/utils/pricing'
@@ -26,27 +26,21 @@ export const Pricing = () => {
   const [period, setPeriod] = useState<Period>('monthly')
 
   return (
-    <section
+    <Chapter
       id="pricing"
-      aria-labelledby="pricing-heading"
-      className="mx-auto max-w-6xl scroll-mt-24 px-4 py-20 sm:px-6"
-    >
-      <Reveal className="flex flex-col items-start gap-6">
-        <SectionHeading
-          id="pricing-heading"
-          eyebrow="Pricing"
-          title="Start free."
-        >
-          Upgrade when you outgrow it.
-        </SectionHeading>
+      label="Pricing"
+      title="Start free."
+      subtitle="Upgrade when you outgrow it."
+      actions={
         <Tabs value={period} onValueChange={setPeriod}>
           <TabsList aria-label="Billing period">
             <TabsTrigger value="monthly">Monthly</TabsTrigger>
             <TabsTrigger value="yearly">Yearly, 2 months free</TabsTrigger>
           </TabsList>
         </Tabs>
-      </Reveal>
-      <Reveal className="mt-10 grid gap-4 lg:grid-cols-3">
+      }
+    >
+      <Reveal className="mt-16 grid gap-4 lg:grid-cols-3">
         <PlanCard
           name={HOBBY_PLAN.name}
           description={HOBBY_PLAN.description}
@@ -94,14 +88,10 @@ export const Pricing = () => {
           description="Tamery for your whole team, on your terms"
           features={ENTERPRISE_FEATURES}
           includes={PRO_PLAN.name}
-          price={
-            <span className="text-4xl leading-none font-semibold tracking-tight">
-              Custom
-            </span>
-          }
+          price={<span className="text-4xl leading-none">Custom</span>}
           action={<ContactSalesDialog />}
         />
       </Reveal>
-    </section>
+    </Chapter>
   )
 }

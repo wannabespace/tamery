@@ -30,7 +30,8 @@
     "react-dom": "catalog:",
     "react-qr-code": "catalog:",
     "remark-gfm": "^4.0.0",
-    "sonner": "catalog:"
+    "sonner": "catalog:",
+    "takumi-js": "catalog:"
   },
   "devDependencies": {
     "@hugeicons/core-free-icons": "catalog:",

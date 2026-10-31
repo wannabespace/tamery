@@ -4,11 +4,8 @@ import type { OS } from '@tamery/shared/os'
 import { Linux } from '@tamery/ui/components/icons/linux'
 import type { ReactNode } from 'react'
 
-import { HomebrewInstall } from './homebrew-install'
-
 export interface DownloadPlatform {
   files: { label: string; link: string }[]
-  footer?: ReactNode
   icon: ReactNode
   os: OS
 }
@@ -22,7 +19,6 @@ export const DOWNLOAD_PLATFORMS: DownloadPlatform[] = [
       },
       { label: 'Intel', link: 'https://download.tamery.app/mac/dmg/x64' },
     ],
-    footer: <HomebrewInstall />,
     icon: <HugeiconsIcon icon={AppleIcon} strokeWidth={2} />,
     os: 'macos',
   },
