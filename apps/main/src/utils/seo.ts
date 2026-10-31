@@ -1,38 +1,25 @@
 export const SITE_URL = 'https://tamery.app'
 
-const absoluteUrl = (pathOrUrl: string) => {
-  if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
-    return pathOrUrl
-  }
-  return `${SITE_URL}${pathOrUrl.startsWith('/') ? '' : '/'}${pathOrUrl}`
-}
-
 export const seo = ({
   title,
   description,
-  keywords,
-  image,
-  path = '/',
+  path,
+  image = '/og-image.png',
   article,
 }: {
   title: string
   description?: string
+  path: string
   image?: string
-  keywords?: string
-  path?: string
   article?: { publishedTime: string; author: string }
 }) => {
-  const pageUrl = absoluteUrl(path)
-  const imageUrl = image ? absoluteUrl(image) : undefined
+  const pageUrl = `${SITE_URL}${path}`
+  const imageUrl = `${SITE_URL}${image}`
 
   const meta = [
     { title },
     ...(description ? [{ content: description, name: 'description' }] : []),
-    ...(keywords ? [{ content: keywords, name: 'keywords' }] : []),
-    {
-      content: imageUrl ? 'summary_large_image' : 'summary',
-      name: 'twitter:card',
-    },
+    { content: 'summary_large_image', name: 'twitter:card' },
     { content: '@tamery_app', name: 'twitter:site' },
     { content: '@letstri', name: 'twitter:creator' },
     { content: pageUrl, name: 'twitter:url' },
@@ -40,7 +27,7 @@ export const seo = ({
     ...(description
       ? [{ content: description, name: 'twitter:description' }]
       : []),
-    ...(imageUrl ? [{ content: imageUrl, name: 'twitter:image' }] : []),
+    { content: imageUrl, name: 'twitter:image' },
     { content: article ? 'article' : 'website', property: 'og:type' },
     ...(article
       ? [
@@ -58,15 +45,11 @@ export const seo = ({
     ...(description
       ? [{ content: description, property: 'og:description' }]
       : []),
-    ...(imageUrl
-      ? [
-          { content: imageUrl, property: 'og:image' },
-          { content: 'image/png', property: 'og:image:type' },
-          { content: '1200', property: 'og:image:width' },
-          { content: '630', property: 'og:image:height' },
-          { content: title, property: 'og:image:alt' },
-        ]
-      : []),
+    { content: imageUrl, property: 'og:image' },
+    { content: 'image/png', property: 'og:image:type' },
+    { content: '1200', property: 'og:image:width' },
+    { content: '630', property: 'og:image:height' },
+    { content: title, property: 'og:image:alt' },
   ]
 
   const links = [{ href: pageUrl, rel: 'canonical' }]

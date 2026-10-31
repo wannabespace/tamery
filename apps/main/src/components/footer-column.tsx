@@ -7,8 +7,8 @@ export const FooterColumn = ({
   title: string
   children: ReactNode
 }) => (
-  <div className="flex flex-col gap-3">
-    <h2 className="text-foreground text-sm font-medium">{title}</h2>
+  <div className="flex flex-col gap-3 text-sm">
+    <h2 className="font-medium">{title}</h2>
     {children}
   </div>
 )

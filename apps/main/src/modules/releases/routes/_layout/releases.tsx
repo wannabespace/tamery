@@ -27,9 +27,7 @@ const ReleasesPage = () => {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-16 sm:px-6 sm:pt-24">
       <header className="mb-16 flex max-w-2xl flex-col gap-4">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-          Releases
-        </h1>
+        <h1 className="text-3xl text-balance sm:text-4xl">Releases</h1>
         <p className="text-muted-foreground text-base text-pretty sm:text-lg">
           New features, fixes and improvements in every version of Tamery.
         </p>
@@ -80,9 +78,7 @@ const ReleasesPage = () => {
               {index === 0 && <Badge variant="secondary">Latest</Badge>}
             </div>
             <article className="flex max-w-3xl min-w-0 flex-col gap-4">
-              <h2 className="text-2xl font-semibold tracking-tight">
-                {release.name || release.tagName}
-              </h2>
+              <h2 className="text-2xl">{release.name || release.tagName}</h2>
               {release.body && (
                 <Response variant="document" mode="static">
                   {release.body}
@@ -103,7 +99,6 @@ export const Route = createFileRoute('/_layout/releases')({
       title: 'Releases - Tamery',
       description:
         'View the latest Tamery releases, changelogs, and version history. Stay up to date with new features and improvements.',
-      image: '/og-image.png',
       path: '/releases',
     }),
   loader: async () => {

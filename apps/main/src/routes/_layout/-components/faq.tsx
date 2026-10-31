@@ -15,22 +15,29 @@ export const Faq = () => (
   <section
     id="faq"
     aria-labelledby="faq-heading"
-    className="mx-auto grid max-w-6xl scroll-mt-24 gap-10 px-4 py-20 sm:px-6 md:grid-cols-[1fr_2fr]"
+    className="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 sm:py-24"
   >
     <Reveal>
-      <SectionHeading id="faq-heading" eyebrow="FAQ" title="Questions.">
-        Anything else? Ask us on{' '}
-        <a
-          href={SOCIAL_LINKS.DISCORD}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Discord
-        </a>
-        .
-      </SectionHeading>
+      <SectionHeading
+        id="faq-heading"
+        label="FAQ"
+        title="Questions."
+        description={
+          <>
+            Anything else? Ask us on{' '}
+            <a
+              href={SOCIAL_LINKS.DISCORD}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Discord
+            </a>
+            .
+          </>
+        }
+      />
     </Reveal>
-    <Reveal>
+    <Reveal className="mt-12">
       <Accordion>
         {FAQ_QUESTIONS.map(({ answer, question }) => (
           <AccordionItem key={question} value={question}>

@@ -5,9 +5,10 @@ import { useHomePath } from '~/hooks/use-home-path'
 
 import { Brand } from './brand'
 import { FooterColumn } from './footer-column'
+import { ThemeButton } from './theme-button'
 
 const linkClassName =
-  'text-muted-foreground hover:text-foreground text-sm transition-colors'
+  'text-muted-foreground hover:text-foreground transition-colors'
 
 const COMMUNITY_LINKS = [
   { href: SOCIAL_LINKS.GITHUB, label: 'GitHub' },
@@ -21,16 +22,16 @@ export const Footer = () => {
   const home = useHomePath()
 
   return (
-    <footer className="bg-muted sticky bottom-0 -mt-8">
-      <div className="mx-auto w-full max-w-6xl px-4 pt-32 pb-10 sm:px-6">
-        <div className="grid grid-cols-2 gap-10 md:grid-cols-[2fr_1fr_1fr_1fr]">
-          <div className="col-span-2 flex flex-col gap-3 md:col-span-1">
-            <Brand to={home} />
-            <p className="text-muted-foreground max-w-xs text-sm text-pretty">
-              The AI database client for Postgres, MySQL, MariaDB, SQL Server,
-              Oracle, ClickHouse, MongoDB, SQLite, Turso and Cloudflare D1.
-            </p>
-          </div>
+    <footer className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+      <div className="grid gap-x-6 gap-y-12 border-t pt-12 pb-16 md:grid-cols-12">
+        <div className="flex flex-col gap-4 md:col-span-4">
+          <Brand to={home} />
+          <p className="text-muted-foreground max-w-xs text-sm text-pretty">
+            The AI database client for Postgres, MySQL, MariaDB, SQL Server,
+            Oracle, ClickHouse, MongoDB, SQLite, Turso and Cloudflare D1.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-10 sm:grid-cols-4 md:col-span-8">
           <FooterColumn title="Product">
             <Link to="/download" className={linkClassName}>
               Download
@@ -41,12 +42,14 @@ export const Footer = () => {
             <Link to="/releases" className={linkClassName}>
               Releases
             </Link>
-            <Link to="/blog" className={linkClassName}>
-              Blog
-            </Link>
+          </FooterColumn>
+          <FooterColumn title="Resources">
             <a href={DOCS_URL} className={linkClassName}>
               Docs
             </a>
+            <Link to="/blog" className={linkClassName}>
+              Blog
+            </Link>
           </FooterColumn>
           <FooterColumn title="Community">
             {COMMUNITY_LINKS.map(({ href, label }) => (
@@ -70,9 +73,12 @@ export const Footer = () => {
             </Link>
           </FooterColumn>
         </div>
-        <p className="text-muted-foreground mt-16 text-xs">
+      </div>
+      <div className="flex items-center justify-between border-t py-6">
+        <p className="text-muted-foreground text-xs">
           © {COPYRIGHT_YEAR} Tamery
         </p>
+        <ThemeButton />
       </div>
     </footer>
   )

@@ -29,24 +29,26 @@ export const Pricing = () => {
     <section
       id="pricing"
       aria-labelledby="pricing-heading"
-      className="mx-auto max-w-6xl scroll-mt-24 px-4 py-20 sm:px-6"
+      className="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 sm:py-24"
     >
-      <Reveal className="flex flex-col items-start gap-6">
+      <Reveal>
         <SectionHeading
           id="pricing-heading"
-          eyebrow="Pricing"
+          label="Pricing"
           title="Start free."
+          actions={
+            <Tabs value={period} onValueChange={setPeriod}>
+              <TabsList aria-label="Billing period">
+                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                <TabsTrigger value="yearly">Yearly, 2 months free</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          }
         >
           Upgrade when you outgrow it.
         </SectionHeading>
-        <Tabs value={period} onValueChange={setPeriod}>
-          <TabsList aria-label="Billing period">
-            <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            <TabsTrigger value="yearly">Yearly, 2 months free</TabsTrigger>
-          </TabsList>
-        </Tabs>
       </Reveal>
-      <Reveal className="mt-10 grid gap-4 lg:grid-cols-3">
+      <Reveal className="mt-16 grid gap-4 lg:grid-cols-3">
         <PlanCard
           name={HOBBY_PLAN.name}
           description={HOBBY_PLAN.description}
@@ -94,11 +96,7 @@ export const Pricing = () => {
           description="Tamery for your whole team, on your terms"
           features={ENTERPRISE_FEATURES}
           includes={PRO_PLAN.name}
-          price={
-            <span className="text-4xl leading-none font-semibold tracking-tight">
-              Custom
-            </span>
-          }
+          price={<span className="text-4xl leading-none">Custom</span>}
           action={<ContactSalesDialog />}
         />
       </Reveal>

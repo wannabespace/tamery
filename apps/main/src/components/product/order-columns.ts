@@ -19,4 +19,4 @@ export const ORDER_COLUMNS: OrderColumn[] = [
 ]
 
 export const orderCellClass =
-  'flex h-full shrink-0 items-center gap-1 border-r px-2 text-xs tabular-nums'
+  'flex h-full shrink-0 items-center gap-1 border-r px-2 text-xs tabular-nums first:pl-3'

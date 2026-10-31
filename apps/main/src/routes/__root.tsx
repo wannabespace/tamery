@@ -20,7 +20,8 @@ import { SEO } from '~/constants'
 import { ErrorPage } from '~/error-page'
 import { authClient, sessionQueryOptions } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
-import { seo, SITE_URL } from '~/utils/seo'
+import { NotFoundPage } from '~/not-found-page'
+import { SITE_URL } from '~/utils/seo'
 
 import appCss from '@tamery/ui/globals.css?url'
 
@@ -117,48 +118,39 @@ export const Route = createRootRouteWithContext<{
 
     return { session: data }
   },
-  head: () => {
-    // Links are not deduplicated across routes: a canonical here would sit beside every page's own.
-    const { meta } = seo({
-      title: `Tamery - ${SEO.title}`,
-      description: SEO.description,
-      image: '/og-image.png',
-      path: '/',
-    })
-
-    return {
-      meta: [
-        { charSet: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        ...meta,
-        { name: 'apple-mobile-web-app-title', content: 'Tamery' },
-        { name: 'theme-color', content: '#0a0a0a' },
-      ],
-      links: [
-        { rel: 'stylesheet', href: appCss },
-        {
-          rel: 'icon',
-          type: 'image/png',
-          href: '/favicon-96x96.png',
-          sizes: '96x96',
-        },
-        { rel: 'shortcut icon', href: '/favicon.ico' },
-        {
-          rel: 'apple-touch-icon',
-          href: '/apple-touch-icon.png',
-          sizes: '180x180',
-        },
-        { rel: 'manifest', href: '/site.webmanifest' },
-      ],
-      scripts: [
-        {
-          type: 'application/ld+json',
-          children: JSON.stringify(structuredData),
-        },
-        ...(import.meta.env.DEV ? [] : analyticsScripts),
-      ],
-    }
-  },
+  // Every tag here shows on pages without their own `seo()` (auth, account, 404), so nothing page-specific belongs in it.
+  head: () => ({
+    meta: [
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: 'Tamery' },
+      { name: 'apple-mobile-web-app-title', content: 'Tamery' },
+    ],
+    links: [
+      { rel: 'stylesheet', href: appCss },
+      {
+        rel: 'icon',
+        type: 'image/png',
+        href: '/favicon-96x96.png',
+        sizes: '96x96',
+      },
+      { rel: 'shortcut icon', href: '/favicon.ico' },
+      {
+        rel: 'apple-touch-icon',
+        href: '/apple-touch-icon.png',
+        sizes: '180x180',
+      },
+      { rel: 'manifest', href: '/site.webmanifest' },
+    ],
+    scripts: [
+      {
+        type: 'application/ld+json',
+        children: JSON.stringify(structuredData),
+      },
+      ...(import.meta.env.DEV ? [] : analyticsScripts),
+    ],
+  }),
   component: RootComponent,
   errorComponent: (props) => <ErrorPage {...props} />,
+  notFoundComponent: NotFoundPage,
 })
