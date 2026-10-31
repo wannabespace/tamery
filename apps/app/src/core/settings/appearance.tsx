@@ -9,7 +9,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tamery/ui/components/select'
+import {
+  SwatchGroup,
+  SwatchGroupItem,
+} from '@tamery/ui/components/swatch-group'
 import { Switch } from '@tamery/ui/components/switch'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@tamery/ui/components/tooltip'
 import { isMac } from '@tamery/ui/lib/os'
 import type { Theme } from '@tamery/ui/theme-store'
 import { themeStore, useTheme } from '@tamery/ui/theme-store'
@@ -41,7 +50,7 @@ const APP_ICON_QUERY_KEY = ['app-icon']
 const hasVibrancy = !!window.electron && isMac
 
 const AppIconRow = () => {
-  const { data: icon } = useQuery({
+  const { data } = useQuery({
     queryFn: () => window.electron?.appIcon.get(),
     queryKey: APP_ICON_QUERY_KEY,
   })
@@ -51,28 +60,39 @@ const AppIconRow = () => {
       title="App icon"
       description={`The icon Tamery shows in the ${isMac ? 'Dock' : 'taskbar'}.`}
     >
-      <Select
-        items={APP_ICONS}
-        value={icon ?? null}
-        onValueChange={(next) => {
-          if (next) {
-            queryClient.setQueryData(APP_ICON_QUERY_KEY, next)
-            void window.electron?.appIcon.set(next)
-            posthog.capture('app_icon_changed', { icon: next })
-          }
-        }}
-      >
-        <SelectTrigger size="sm" aria-label="App icon" className="w-28">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent size="sm">
+      {data && (
+        <SwatchGroup
+          aria-label="App icon"
+          value={[data.icon]}
+          onValueChange={([next]) => {
+            if (next) {
+              queryClient.setQueryData(APP_ICON_QUERY_KEY, {
+                ...data,
+                icon: next,
+              })
+              void window.electron?.appIcon.set(next)
+              posthog.capture('app_icon_changed', { icon: next })
+            }
+          }}
+        >
           {APP_ICONS.map(({ label, value }) => (
-            <SelectItem key={value} value={value}>
-              {label}
-            </SelectItem>
+            <Tooltip key={value}>
+              <TooltipTrigger
+                render={
+                  <SwatchGroupItem size="lg" value={value} aria-label={label}>
+                    <img
+                      src={data.previews[value]}
+                      alt=""
+                      className="size-full"
+                    />
+                  </SwatchGroupItem>
+                }
+              />
+              <TooltipContent side="bottom">{label}</TooltipContent>
+            </Tooltip>
           ))}
-        </SelectContent>
-      </Select>
+        </SwatchGroup>
+      )}
     </SettingsRow>
   )
 }

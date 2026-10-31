@@ -34,7 +34,7 @@ export const restoreAppIcon = () => {
 }
 
 export const appIcon = {
-  get: () => store.get('icon'),
+  get: () => ({ icon: store.get('icon'), previews: ICONS }),
   set: (icon: AppIcon) => {
     store.set('icon', icon)
     setIcon(icon)
