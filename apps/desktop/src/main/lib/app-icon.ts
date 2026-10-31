@@ -39,17 +39,15 @@ export const windowIcon = () => {
   return icon === 'light' ? undefined : image(icon)
 }
 
-let previews: Record<AppIcon, string> | undefined
-
 export const appIcon = {
   get: storedIcon,
   previews: () =>
-    (previews ??= Object.fromEntries(
+    Object.fromEntries(
       Object.entries(ICONS).map(([icon, url]) => [
         icon,
         nativeImage.createFromDataURL(url).crop(ICON_BODY).toDataURL(),
       ])
-    ) as Record<AppIcon, string>),
+    ) as Record<AppIcon, string>,
   set: (icon: AppIcon) => {
     if (!isAppIcon(icon)) {
       throw new Error('Unknown app icon')
