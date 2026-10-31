@@ -1,9 +1,12 @@
-export { PORTS } from './ports'
-
 export const SOCIAL_LINKS = {
   DISCORD: 'https://discord.gg/XweDPUVadR',
   GITHUB: 'https://github.com/wannabespace/tamery',
   TWITTER: 'https://x.com/tamery_app',
+} as const
+
+export const SOCIAL_PROVIDER_LABELS = {
+  github: 'GitHub',
+  google: 'Google',
 } as const
 
 export const RELEASES_URL = 'https://tamery.app/releases' as const

@@ -6,10 +6,11 @@ import { ORPCError, os, ValidationError } from '@orpc/server'
 import { RPCHandler } from '@orpc/server/fetch'
 import { createQueryRouter } from '@tamery/query-proxy'
 import { querySerializer } from '@tamery/query-proxy/serializer'
-import { PORTS } from '@tamery/shared/constants'
+import { LOCAL_PROXY_URL, LOOPBACK_HOST, PORTS } from '@tamery/shared/ports'
 import { consola } from 'consola'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { HTTPException } from 'hono/http-exception'
 
 import { requireSession } from '~/session'
 
@@ -110,6 +111,12 @@ export const proxyCommand = command({
     })
 
     const app = new Hono()
+      .use((c, next) => {
+        if (!LOOPBACK_HOST.test(c.req.header('host') ?? '')) {
+          throw new HTTPException(403)
+        }
+        return next()
+      })
       .use(
         cors({
           credentials: true,
@@ -154,7 +161,7 @@ export const proxyCommand = command({
       () => {
         consola.box({
           message: [
-            `Listening on http://127.0.0.1:${PORTS.LOCAL_PROXY}`,
+            `Listening on ${LOCAL_PROXY_URL}`,
             `Signed in as ${session.user.email}`,
             '',
             'The web app will automatically route connections through this proxy.',

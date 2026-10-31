@@ -1,3 +1,4 @@
+import { formatDeviceLabel } from '@tamery/shared/device-label'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -17,8 +18,6 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { orpc } from '~/lib/orpc'
-
-import { formatDeviceLabel } from './device-label'
 
 export const SessionItem = ({
   id,

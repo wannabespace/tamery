@@ -3,7 +3,7 @@ import { rowObjects } from '@tamery/connection/queries'
 import { toQueryPayload } from '@tamery/connection/queries/kysely'
 import { describeConnectionString } from '@tamery/connection/utils'
 import type { Dialect, SqlDialect } from '@tamery/shared/enums/connection-type'
-import { PORTS } from '@tamery/shared/ports'
+import { LOCAL_PROXY_URL } from '@tamery/shared/ports'
 import { silently } from '@tamery/shared/utils'
 import type {
   CompiledQuery,
@@ -85,9 +85,7 @@ export const createDialectProvider = (
     }
 
     if (config.type === 'proxy') {
-      const client = createProxyClient(
-        proxy.url || `http://localhost:${PORTS.LOCAL_PROXY}`
-      )
+      const client = createProxyClient(proxy.url || LOCAL_PROXY_URL)
       return {
         input: { connectionString: options.connectionString },
         kind: 'proxy' as const,

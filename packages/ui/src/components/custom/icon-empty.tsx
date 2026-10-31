@@ -22,7 +22,7 @@ export const IconEmpty = ({
   description: ReactNode
   icon: IconSvgElement
   size?: ComponentProps<typeof Empty>['size']
-  title: string
+  title: ReactNode
   variant?: ComponentProps<typeof EmptyMedia>['variant']
 }) => (
   <Empty size={size} className="min-h-0 flex-1 overflow-y-auto">
