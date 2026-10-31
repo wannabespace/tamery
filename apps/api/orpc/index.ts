@@ -4,7 +4,6 @@ import { decrypt } from '@tamery/shared/crypto-node'
 import type { Permissions } from '@tamery/shared/permissions'
 import { getPermissions } from '@tamery/shared/permissions'
 import { isAPIError } from 'better-auth/api'
-import { memoize } from 'memoza'
 import { createPermix } from 'permix/orpc'
 
 import { auth } from '~/lib/auth'
@@ -25,29 +24,56 @@ const CONFLICT_CODES: ReadonlySet<string> = new Set([
   'USER_IS_ALREADY_INVITED_TO_THIS_ORGANIZATION',
 ])
 
+// Better Auth's own wording says "organization"; these are the answers the workspaces procedures can reach.
+const WORKSPACE_ERROR_MESSAGES: Partial<Record<string, string>> = {
+  INVITATION_LIMIT_REACHED: 'This workspace has too many open invitations.',
+  INVITATION_NOT_FOUND:
+    'This invitation is no longer open. Ask for a new one if you still need access.',
+  INVITER_IS_NO_LONGER_A_MEMBER_OF_THE_ORGANIZATION:
+    'The person who invited you has left the workspace. Ask for a new invitation.',
+  MEMBER_NOT_FOUND: 'They are no longer a member of this workspace.',
+  ORGANIZATION_MEMBERSHIP_LIMIT_REACHED: 'This workspace is full.',
+  ORGANIZATION_NOT_FOUND: 'Workspace not found',
+  USER_IS_ALREADY_A_MEMBER_OF_THIS_ORGANIZATION:
+    'They are already a member of this workspace.',
+  USER_IS_ALREADY_INVITED_TO_THIS_ORGANIZATION:
+    'They are already invited to this workspace.',
+  YOU_ARE_NOT_A_MEMBER_OF_THIS_ORGANIZATION:
+    'You are not a member of this workspace.',
+  YOU_ARE_NOT_ALLOWED_TO_CANCEL_THIS_INVITATION:
+    'Only admins and owners can cancel invitations.',
+  YOU_ARE_NOT_ALLOWED_TO_DELETE_THIS_MEMBER:
+    'Only admins and owners can remove members, and only owners can remove an owner.',
+  YOU_ARE_NOT_ALLOWED_TO_INVITE_USER_WITH_THIS_ROLE:
+    'Only owners can invite with this role.',
+  YOU_ARE_NOT_ALLOWED_TO_INVITE_USERS_TO_THIS_ORGANIZATION:
+    'Only admins and owners can invite people.',
+  YOU_ARE_NOT_ALLOWED_TO_UPDATE_THIS_MEMBER:
+    'Only admins and owners can change roles, and only owners can change an owner’s role or make someone an owner.',
+  YOU_ARE_NOT_THE_RECIPIENT_OF_THE_INVITATION:
+    'This invitation was sent to another email. Sign in with that one to answer it.',
+  YOU_CANNOT_LEAVE_THE_ORGANIZATION_AS_THE_ONLY_OWNER:
+    'Make another member an owner first: a workspace always keeps one.',
+  YOU_CANNOT_LEAVE_THE_ORGANIZATION_WITHOUT_AN_OWNER:
+    'Make another member an owner first: a workspace always keeps one.',
+}
+
 export const viaAuth = async <T>(promise: Promise<T>) => {
   try {
     return await promise
   } catch (error) {
-    throw isAPIError(error)
-      ? new ORPCError(
-          CONFLICT_CODES.has(error.body?.code ?? '')
-            ? 'CONFLICT'
-            : String(error.status),
-          {
-            message: error.message
-              .replaceAll('organization', 'workspace')
-              .replaceAll('Organization', 'Workspace')
-              .replace('User is', 'They are'),
-          }
-        )
-      : error
+    if (!isAPIError(error)) {
+      throw error
+    }
+
+    const code = error.body?.code ?? ''
+
+    throw new ORPCError(
+      CONFLICT_CODES.has(code) ? 'CONFLICT' : String(error.status),
+      { message: WORKSPACE_ERROR_MESSAGES[code] ?? error.message }
+    )
   }
 }
-
-export const getWorkspaceSecret = memoize(workspaceEncryptionKey.get, {
-  maxAge: 5 * 60 * 1000,
-})
 
 export const decryptConnectionString = async ({
   encryptedText,
@@ -55,7 +81,11 @@ export const decryptConnectionString = async ({
 }: {
   encryptedText: string
   workspaceId: string
-}) => decrypt({ encryptedText, secret: await getWorkspaceSecret(workspaceId) })
+}) =>
+  decrypt({
+    encryptedText,
+    secret: await workspaceEncryptionKey.get(workspaceId),
+  })
 
 const getSession = (headers: Headers) => auth.api.getSession({ headers })
 
@@ -114,7 +144,6 @@ export const authMiddleware = logMiddleware.use(
       context: {
         ...session,
         decryptConnectionString,
-        getWorkspaceSecret,
       },
     })
   })
@@ -184,7 +213,6 @@ export const permissionsMiddleware = logMiddleware.use(
       context: {
         ...session,
         decryptConnectionString,
-        getWorkspaceSecret,
         ...permix.setupContext(
           getPermissions({ subscription, user: session.user })
         ),

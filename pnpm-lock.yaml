@@ -821,9 +821,6 @@ importers:
       hono:
         specifier: 'catalog:'
         version: 4.13.13
-      memoza:
-        specifier: 'catalog:'
-        version: 1.4.0
       mmdb-lib:
         specifier: 'catalog:'
         version: 3.0.3

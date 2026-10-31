@@ -4,6 +4,7 @@ import { decrypt } from '@tamery/shared/crypto-node'
 import { and, eq } from 'drizzle-orm'
 
 import { encryptConnectionString } from '~/lib/connection-string'
+import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { inEditableWorkspace, publishToWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
@@ -39,7 +40,7 @@ export const update = orpc
         throw errors.NOT_FOUND()
       }
 
-      const secret = await context.getWorkspaceSecret(found.workspaceId)
+      const secret = await workspaceEncryptionKey.lock(tx, found.workspaceId)
 
       const connectionString =
         changes.connectionString ??

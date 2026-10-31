@@ -5,7 +5,10 @@ import {
 } from '@tamery/db/schema'
 import { eq } from 'drizzle-orm'
 
-import { inEditableWorkspace, publishToWorkspace } from '~/lib/workspace'
+import {
+  getEditableResourceWorkspaceId,
+  publishToWorkspace,
+} from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
@@ -23,20 +26,12 @@ export const update = orpc
   .handler(async ({ context, errors, input }) => {
     const { id, ...changes } = input
 
-    const found = await db.query.connectionsResources.findFirst({
-      columns: {
-        id: true,
-      },
-      where: {
-        connection: { RAW: inEditableWorkspace(context.user.id) },
-        id: {
-          eq: input.id,
-        },
-      },
-      with: { connection: { columns: { workspaceId: true } } },
-    })
+    const workspaceId = await getEditableResourceWorkspaceId(
+      context.user.id,
+      id
+    )
 
-    if (!found?.connection) {
+    if (!workspaceId) {
       throw errors.NOT_FOUND()
     }
 
@@ -52,7 +47,7 @@ export const update = orpc
       })
     }
 
-    await publishToWorkspace(publisher, found.connection.workspaceId, {
+    await publishToWorkspace(publisher, workspaceId, {
       type: 'update',
       value: resource,
     })

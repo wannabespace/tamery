@@ -52,8 +52,8 @@ export interface ConnectionResource extends BaseTable {
 
 export const createConnectionsCollection = (
   connectionStrings: ConnectionStringsCollection
-) => {
-  const collection = createCollection(
+) =>
+  createCollection(
     persistedCollectionOptions({
       ...syncCollectionOptions<Connection>({
         events: async ({ signal, write }) => {
@@ -77,6 +77,11 @@ export const createConnectionsCollection = (
               await prepareConnectionToCloud(connectionStrings, row)
             ),
         },
+        onSyncedDelete: (id) => {
+          if (connectionStrings.has(id)) {
+            connectionStrings.delete(id)
+          }
+        },
         sync: ({ rows, signal }) =>
           orpc.connections.sync.call(rows, { signal }),
       }),
@@ -84,18 +89,6 @@ export const createConnectionsCollection = (
       schemaVersion: PERSISTED_SCHEMA_VERSION,
     })
   )
-
-  collection.subscribeChanges((changes) => {
-    for (const change of changes) {
-      const { id } = change.value
-      if (change.type === 'delete' && connectionStrings.has(id)) {
-        connectionStrings.delete(id)
-      }
-    }
-  })
-
-  return collection
-}
 
 export const createConnectionsResourcesCollection = () =>
   createCollection(

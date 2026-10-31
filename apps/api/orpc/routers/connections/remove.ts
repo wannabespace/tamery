@@ -3,7 +3,11 @@ import { connections } from '@tamery/db/schema'
 import { type } from 'arktype'
 import { and, eq } from 'drizzle-orm'
 
-import { inEditableWorkspace, publishToWorkspace } from '~/lib/workspace'
+import {
+  inEditableWorkspace,
+  inMemberWorkspace,
+  publishToWorkspace,
+} from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
@@ -33,7 +37,15 @@ export const remove = orpc
       return
     }
 
-    if (await db.$count(connections, eq(connections.id, id))) {
+    if (
+      await db.$count(
+        connections,
+        and(
+          eq(connections.id, id),
+          inMemberWorkspace(context.user.id)(connections)
+        )
+      )
+    ) {
       throw errors.FORBIDDEN()
     }
 

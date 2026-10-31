@@ -95,6 +95,8 @@ export interface SyncCollectionConfig<T extends { updatedAt: Date }> {
     signal: AbortSignal
   }) => Promise<SyncMessage<T>[]>
   mutations?: ServerMutations<T>
+  /** Runs only for a delete the server confirmed, never for an optimistic one that may still roll back. */
+  onSyncedDelete?: (key: string) => void
 }
 
 export const syncCollectionOptions = <T extends { updatedAt: Date }>(
@@ -113,6 +115,7 @@ export const syncCollectionOptions = <T extends { updatedAt: Date }>(
       const writeItem = (item: SyncMessage<T>) => {
         if (item.type === 'delete') {
           write({ key: item.key, type: 'delete' })
+          config.onSyncedDelete?.(item.key)
           return
         }
         // Always an upsert: `push` may already have written the row as synced,

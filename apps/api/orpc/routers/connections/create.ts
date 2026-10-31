@@ -5,6 +5,7 @@ import { type } from 'arktype'
 import { and, eq, ne } from 'drizzle-orm'
 
 import { encryptConnectionString } from '~/lib/connection-string'
+import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import {
   ensureDefaultWorkspace,
   isWorkspaceEditor,
@@ -36,7 +37,6 @@ export const create = orpc
 
     const workspaceId =
       input.workspaceId ?? (await ensureDefaultWorkspace(context.user.id))
-    const workspaceSecret = await context.getWorkspaceSecret(workspaceId)
 
     // Excludes its own id, or an outbox replay of a lost response counts its own row and fails.
     const count = await db.$count(
@@ -48,20 +48,22 @@ export const create = orpc
       throw errors.FORBIDDEN()
     }
 
-    const [inserted] = await db
-      .insert(connections)
-      .values({
-        ...input,
-        connectionString: encryptConnectionString({
-          connectionString: input.connectionString,
-          secret: workspaceSecret,
-          syncType: input.syncType,
-        }),
-        userId: context.user.id,
-        workspaceId,
-      })
-      .onConflictDoNothing()
-      .returning(syncedColumns)
+    const [inserted] = await db.transaction(async (tx) =>
+      tx
+        .insert(connections)
+        .values({
+          ...input,
+          connectionString: encryptConnectionString({
+            connectionString: input.connectionString,
+            secret: await workspaceEncryptionKey.lock(tx, workspaceId),
+            syncType: input.syncType,
+          }),
+          userId: context.user.id,
+          workspaceId,
+        })
+        .onConflictDoNothing()
+        .returning(syncedColumns)
+    )
 
     if (inserted) {
       await publishToWorkspace(publisher, workspaceId, {

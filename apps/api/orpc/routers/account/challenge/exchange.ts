@@ -6,54 +6,47 @@ import { type } from 'arktype'
 import { eq } from 'drizzle-orm'
 
 import { auth, sendNewSignInEmail } from '~/lib/auth'
+import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { ensureDefaultWorkspace } from '~/lib/workspace'
-import { getWorkspaceSecret, orpc } from '~/orpc'
+import { orpc } from '~/orpc'
 
 import { codeChallengeRedis } from './code-challenge'
 
 const adoptAnonymousUser = async (anonymousUserId: string, userId: string) => {
   const workspaceId = await ensureDefaultWorkspace(userId)
-  const [secret, guestConnections] = await Promise.all([
-    getWorkspaceSecret(workspaceId),
-    db
+
+  await db.transaction(async (tx) => {
+    const guestConnections = await tx
       .select({
         connectionString: connections.connectionString,
         id: connections.id,
         workspaceId: connections.workspaceId,
       })
       .from(connections)
-      .where(eq(connections.userId, anonymousUserId)),
-  ])
-  const reencrypted = await Promise.all(
-    guestConnections.flatMap(({ connectionString, id, workspaceId: from }) =>
-      connectionString
-        ? [
-            getWorkspaceSecret(from).then((guestSecret) => ({
-              connectionString: encrypt({
-                secret,
-                text: decrypt({
-                  encryptedText: connectionString,
-                  secret: guestSecret,
-                }),
-              }),
-              id,
-            })),
-          ]
-        : []
-    )
-  )
+      .where(eq(connections.userId, anonymousUserId))
+      .for('update')
+    const secret = await workspaceEncryptionKey.lock(tx, workspaceId)
 
-  await db.transaction(async (tx) => {
     await tx
       .update(connections)
       .set({ userId, workspaceId })
       .where(eq(connections.userId, anonymousUserId))
     await Promise.all(
-      reencrypted.map(({ connectionString, id }) =>
-        tx
-          .update(connections)
-          .set({ connectionString })
-          .where(eq(connections.id, id))
+      guestConnections.map(
+        async ({ connectionString, id, workspaceId: from }) =>
+          connectionString &&
+          tx
+            .update(connections)
+            .set({
+              connectionString: encrypt({
+                secret,
+                text: decrypt({
+                  encryptedText: connectionString,
+                  secret: await workspaceEncryptionKey.lock(tx, from),
+                }),
+              }),
+            })
+            .where(eq(connections.id, id))
       )
     )
     await tx

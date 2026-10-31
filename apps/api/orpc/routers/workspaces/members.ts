@@ -1,4 +1,8 @@
-import { invitableRole, workspaceRole } from '@tamery/shared/workspace'
+import {
+  invitableRole,
+  MEMBER_MANAGER_ROLES,
+  workspaceRole,
+} from '@tamery/shared/workspace'
 import { type } from 'arktype'
 
 import { auth } from '~/lib/auth'
@@ -18,12 +22,19 @@ export const members = orpc
       viaAuth(auth.api.listInvitations({ headers, query })),
     ])
     const now = new Date()
+    const canManage = rows.some(
+      (row) =>
+        row.userId === user.id &&
+        MEMBER_MANAGER_ROLES.includes(workspaceRole.assert(row.role))
+    )
 
     return {
       invitations: invitations
         .filter(
           (invitation) =>
-            invitation.status === 'pending' && invitation.expiresAt > now
+            canManage &&
+            invitation.status === 'pending' &&
+            invitation.expiresAt > now
         )
         .map(({ email, id, role }) => ({
           email,

@@ -205,15 +205,6 @@ export const auth = betterAuth({
       },
       delete: {
         before: async (user) => {
-          const [lastOwned] = await lastOwnedSharedWorkspaces(user.id)
-
-          if (lastOwned) {
-            throw APIError.from('BAD_REQUEST', {
-              code: 'LAST_WORKSPACE_OWNER',
-              message: `Make another member an owner of ${lastOwned} before deleting your account.`,
-            })
-          }
-
           await deleteSoleMemberWorkspaces(user.id)
         },
       },
@@ -363,37 +354,17 @@ export const auth = betterAuth({
       allowUserToCreateOrganization: false,
       disableOrganizationDeletion: true,
       organizationHooks: {
-        beforeCreateInvitation: async ({
-          invitation,
-          organization: workspace,
-        }) => {
-          const [row, invitee] = await Promise.all([
-            db.query.workspaces.findFirst({
-              columns: { metadata: true },
-              where: { id: { eq: workspace.id } },
-            }),
-            db.query.users.findFirst({
-              columns: { id: true },
-              where: {
-                email: { eq: invitation.email },
-                isAnonymous: { OR: [{ eq: false }, { isNull: true }] },
-              },
-            }),
-          ])
+        beforeCreateInvitation: async ({ organization: workspace }) => {
+          const row = await db.query.workspaces.findFirst({
+            columns: { metadata: true },
+            where: { id: { eq: workspace.id } },
+          })
 
           if (row && isDefaultWorkspaceMetadata(row.metadata)) {
             throw APIError.from('FORBIDDEN', {
               code: 'PERSONAL_WORKSPACE',
               message:
                 'Your Personal workspace can’t be shared. Create a workspace to invite people.',
-            })
-          }
-
-          if (!invitee) {
-            throw APIError.from('NOT_FOUND', {
-              code: 'USER_NOT_FOUND',
-              message:
-                'No Tamery account uses this email. Ask them to sign up first.',
             })
           }
         },
@@ -497,6 +468,17 @@ export const auth = betterAuth({
           }),
           resend?.contacts.remove({ email: user.email }),
         ])
+      },
+      // Not the database delete hook: Better Auth deletes the user's sessions and accounts before that one runs, so refusing there would sign them out of an account it keeps.
+      beforeDelete: async (user) => {
+        const [lastOwned] = await lastOwnedSharedWorkspaces(user.id)
+
+        if (lastOwned) {
+          throw APIError.from('BAD_REQUEST', {
+            code: 'LAST_WORKSPACE_OWNER',
+            message: `Make another member an owner of ${lastOwned} before deleting your account.`,
+          })
+        }
       },
       enabled: true,
     },

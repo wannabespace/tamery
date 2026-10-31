@@ -31,8 +31,8 @@ export const WorkspaceInvitation = ({
         workspace as {ROLE_WITH_ARTICLE[role]}, so you can use its connections.
       </Text>
       <Text>
-        Open the invitation to join. It also waits for you in Tamery&apos;s
-        workspace menu.
+        Open the invitation and sign in with this email address to join. It also
+        waits for you in Tamery&apos;s workspace menu.
       </Text>
     </Section>
     <Section className="mb-5">

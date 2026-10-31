@@ -93,20 +93,29 @@ const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
 
   try {
     await db.transaction(async (tx) => {
-      // Locked and compared with what was decrypted: an edit, or a move into or out of the workspace since, would end up under the wrong key.
-      const locked = await tx
-        .select({
-          connectionString: connections.connectionString,
-          id: connections.id,
-        })
-        .from(connections)
-        .where(
-          and(
-            eq(connections.workspaceId, workspaceId),
-            isNotNull(connections.connectionString)
+      const lockRows = () =>
+        tx
+          .select({
+            connectionString: connections.connectionString,
+            id: connections.id,
+          })
+          .from(connections)
+          .where(
+            and(
+              eq(connections.workspaceId, workspaceId),
+              isNotNull(connections.connectionString)
+            )
           )
-        )
+          .for('update')
+
+      // Rows, then the key, then the rows again: writers take the row before the key (`workspaceEncryptionKey.lock`), so the other order deadlocks, and only the read after the key lock sees a string a create or move wrote under the old key while this waited. That read is compared with what was decrypted, so an edit, move or delete since aborts the run.
+      await lockRows()
+      await tx
+        .select({ workspaceId: workspaceEncryptionKeys.workspaceId })
+        .from(workspaceEncryptionKeys)
+        .where(eq(workspaceEncryptionKeys.workspaceId, workspaceId))
         .for('update')
+      const locked = await lockRows()
       const unchanged =
         locked.length === plaintexts.length &&
         plaintexts.every(({ encryptedText, id }) =>

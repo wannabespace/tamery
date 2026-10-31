@@ -2,8 +2,9 @@ import { db } from '@tamery/db'
 import { connections } from '@tamery/db/schema'
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
 import { type } from 'arktype'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 
+import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import {
   inEditableWorkspace,
   isWorkspaceEditor,
@@ -49,10 +50,8 @@ export const move = orpc
         throw errors.FORBIDDEN()
       }
 
-      const [from, to] = await Promise.all([
-        context.getWorkspaceSecret(found.workspaceId),
-        context.getWorkspaceSecret(input.workspaceId),
-      ])
+      const from = await workspaceEncryptionKey.lock(tx, found.workspaceId)
+      const to = await workspaceEncryptionKey.lock(tx, input.workspaceId)
 
       await tx
         .update(connections)
@@ -90,6 +89,11 @@ export const move = orpc
         userIds: sourceMembers.filter((id) => !targetMembers.includes(id)),
         where,
       }),
-      publishConnections({ type: 'insert', userIds: targetMembers, where }),
+      // Scoped to the target: a later move may already have taken the row on, and its members are not these.
+      publishConnections({
+        type: 'insert',
+        userIds: targetMembers,
+        where: sql`${where} and ${eq(connections.workspaceId, input.workspaceId)}`,
+      }),
     ])
   })

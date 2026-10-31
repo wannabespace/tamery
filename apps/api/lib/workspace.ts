@@ -100,6 +100,28 @@ export const inEditableWorkspace =
   (userId: string) => (table: { workspaceId: Column }) =>
     inArray(table.workspaceId, memberWorkspaces(userId, hasEditorRole))
 
+export const getEditableResourceWorkspaceId = async (
+  userId: string,
+  resourceId: string
+) => {
+  const [row] = await db
+    .select({ workspaceId: connections.workspaceId })
+    .from(connectionsResources)
+    .innerJoin(
+      connections,
+      eq(connections.id, connectionsResources.connectionId)
+    )
+    .where(
+      and(
+        eq(connectionsResources.id, resourceId),
+        inEditableWorkspace(userId)(connections)
+      )
+    )
+    .limit(1)
+
+  return row?.workspaceId ?? null
+}
+
 export const isWorkspaceEditor = async (userId: string, workspaceId: string) =>
   (await db.$count(
     members,
