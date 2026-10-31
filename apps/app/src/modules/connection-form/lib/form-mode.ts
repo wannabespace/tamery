@@ -24,6 +24,14 @@ type Secret = SecretParam | 'password'
 
 const SECRETS: Record<Secret, { field: string; message: string }> = {
   access_token: { field: 'options', message: 'Enter the access token' },
+  authmechanismproperties: {
+    field: 'options',
+    message: 'Enter the authMechanismProperties',
+  },
+  http_header_authorization: {
+    field: 'options',
+    message: 'Enter the Authorization header',
+  },
   password: { field: 'password', message: 'Enter the password' },
   ssh_key: { field: 'ssh.privateKey', message: 'Paste the SSH private key' },
   ssh_passphrase: {

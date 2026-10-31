@@ -1,3 +1,4 @@
+import { logDriverError } from '@tamery/shared/sanitize-log'
 import { drizzle } from 'drizzle-orm/node-postgres'
 
 import { env } from './env'
@@ -20,4 +21,4 @@ export const db = drizzle(env.DATABASE_URL, {
 })
 
 // An idle client's network error is emitted on the pool; unhandled, it kills the process.
-db.$client.on('error', console.error)
+db.$client.on('error', logDriverError)

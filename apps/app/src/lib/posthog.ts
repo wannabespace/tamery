@@ -31,12 +31,17 @@ export const getAppProperties = () => ({
 })
 
 const init = async () => {
-  const [{ default: posthogJs }, { isConnectionFailure }, { history }] =
-    await Promise.all([
-      import('posthog-js'),
-      import('@tamery/connection/diagnose'),
-      import('./last-location'),
-    ])
+  const [
+    { default: posthogJs },
+    { isConnectionFailure },
+    { sanitizeLogData },
+    { history },
+  ] = await Promise.all([
+    import('posthog-js'),
+    import('@tamery/connection/diagnose'),
+    import('@tamery/shared/sanitize-log'),
+    import('./last-location'),
+  ])
 
   const getAppPath = () =>
     history.location.pathname.split('/').map(normalizeSegment).join('/')
@@ -57,21 +62,31 @@ const init = async () => {
       if (!event || isExpectedException) {
         return null
       }
+      if (event.event === '$exception') {
+        event.properties.$exception_list = sanitizeLogData(
+          event.properties.$exception_list
+        )
+      }
       event.properties.$current_url = getAppUrl()
       event.properties.$pathname = getAppPath()
       return event
     },
     capture_dead_clicks: true,
     capture_pageview: false,
-    // Later defaults stream network bodies into replays, and API responses carry decrypted connection strings.
     defaults: '2026-01-30',
     disable_session_recording: false,
     // Overrides the project's console log toggle: database errors echo query text and row values.
     enable_recording_console_log: false,
     get_current_url: getAppUrl,
+    // Autocapture's `$el_text` would carry connection, table and column names.
+    mask_all_text: true,
     session_recording: {
       maskAllInputs: true,
       maskTextSelector: '[data-mask]',
+      // Pinned off: the project's own network-capture setting would otherwise record bodies, and `connections.resolve`
+      // answers with decrypted connection strings.
+      recordBody: false,
+      recordHeaders: false,
     },
     ui_host: POSTHOG_UI_HOST,
   })

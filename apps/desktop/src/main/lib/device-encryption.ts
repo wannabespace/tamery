@@ -3,11 +3,14 @@ import { KEYCHAIN_LOCKED_ERROR } from '@tamery/shared/keychain'
 import { silently } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import { safeStorage } from 'electron'
-import Store from 'electron-store'
+
+import { createPrivateStore } from './private-store'
 
 const KEY_BYTES = 32
 
-const store = new Store<{ wrappedKey?: string }>({ name: 'encryption-key' })
+const store = createPrivateStore<{ wrappedKey?: string }>({
+  name: 'encryption-key',
+})
 
 let key: Promise<CryptoKey> | null = null
 let creation: Promise<boolean> | null = null

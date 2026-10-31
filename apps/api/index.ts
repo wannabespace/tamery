@@ -80,11 +80,13 @@ const app = new Hono<{
         ) {
           return origin
         }
-        return (origin.startsWith('https://') &&
-          origin.endsWith('.tamery.app')) ||
+        const isTamery =
+          (origin.startsWith('https://') && origin.endsWith('.tamery.app')) ||
           allowedOrigins.includes(origin)
-          ? origin
-          : null
+        // The share site renders other people's rows and calls the API only from its server: a script injected there
+        // must not reach `connections.list` with the viewer's session.
+        const isShareSite = URL.parse(origin)?.hostname.startsWith('share.')
+        return isTamery && !isShareSite ? origin : null
       },
     })
   )
