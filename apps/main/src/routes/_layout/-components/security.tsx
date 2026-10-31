@@ -7,6 +7,7 @@ import {
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { SYNC_TYPE_LABELS, SyncType } from '@tamery/shared/enums/sync-type'
 import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 import {
   Table,
@@ -18,18 +19,16 @@ import { Tabs, TabsList, TabsTrigger } from '@tamery/ui/components/tabs'
 import { cn } from '@tamery/ui/lib/utils'
 import { useRef, useState } from 'react'
 
+import { Chapter } from '~/components/chapter'
 import { DocsLink } from '~/components/docs-link'
 import { FactRow } from '~/components/fact-row'
 import { Reveal } from '~/components/reveal'
-import { SectionHeading } from '~/components/section-heading'
 import { posthog } from '~/lib/posthog'
 import { pageCardClass, stageClass } from '~/utils/card'
 
 import { useLoop } from './use-loop'
 
-const SYNC_TYPES = ['Full', 'No password', 'Metadata only'] as const
-
-type SyncType = (typeof SYNC_TYPES)[number]
+const SYNC_TYPES = Object.values(SyncType)
 
 const FIELDS: {
   encrypted?: boolean
@@ -37,29 +36,29 @@ const FIELDS: {
   syncedIn: SyncType[]
   value: string
 }[] = [
-  { label: 'Name', syncedIn: [...SYNC_TYPES], value: 'storefront' },
+  { label: 'Name', syncedIn: SYNC_TYPES, value: 'storefront' },
   {
     encrypted: true,
     label: 'Host',
-    syncedIn: ['Full', 'No password'],
+    syncedIn: [SyncType.Cloud, SyncType.CloudWithoutSecrets],
     value: 'db.acme.io',
   },
   {
     encrypted: true,
     label: 'User',
-    syncedIn: ['Full', 'No password'],
+    syncedIn: [SyncType.Cloud, SyncType.CloudWithoutSecrets],
     value: 'admin',
   },
   {
     encrypted: true,
     label: 'Password',
-    syncedIn: ['Full'],
+    syncedIn: [SyncType.Cloud],
     value: '••••••••••••',
   },
   {
     encrypted: true,
     label: 'SSH key',
-    syncedIn: ['Full'],
+    syncedIn: [SyncType.Cloud],
     value: 'id_ed25519',
   },
 ]
@@ -67,9 +66,9 @@ const FIELDS: {
 const FACTS = [
   {
     description:
-      'Connection strings are encrypted before they sync. On desktop the key sits in the keychain.',
+      'Strings are encrypted on your device, the key in the desktop keychain. Synced ones use a workspace key, not end to end.',
     icon: SquareLock02Icon,
-    title: 'Encrypted on your device',
+    title: 'Encrypted at rest',
   },
   {
     description:
@@ -90,7 +89,7 @@ const SyncCard = () => {
   const ref = useRef<HTMLDivElement>(null)
   const cycled = useLoop(ref, CYCLE_MS)
   const [picked, setPicked] = useState<SyncType | null>(null)
-  const syncType = picked ?? SYNC_TYPES[cycled ?? 0] ?? 'Full'
+  const syncType = picked ?? SYNC_TYPES[cycled ?? 0] ?? SyncType.Cloud
 
   return (
     <div ref={ref} className={cn(pageCardClass, 'overflow-hidden')}>
@@ -109,7 +108,7 @@ const SyncCard = () => {
           <TabsList aria-label="Sync type">
             {SYNC_TYPES.map((type) => (
               <TabsTrigger key={type} value={type}>
-                {type}
+                {SYNC_TYPE_LABELS[type]}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -149,32 +148,24 @@ const SyncCard = () => {
 }
 
 export const Security = () => (
-  <section
+  <Chapter
     id="security"
-    aria-labelledby="security-heading"
-    className="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 sm:py-24"
+    number="05"
+    label="Security"
+    title="Your connections on every device."
+    subtitle="You decide if passwords sync."
+    description="Tamery keeps your connections in its cloud, so every device you sign in on has them. Per connection, store everything, everything but the secrets, or just the name."
+    actions={
+      <DocsLink path="/connections/security" source="security">
+        Where your data goes
+      </DocsLink>
+    }
   >
-    <Reveal>
-      <SectionHeading
-        id="security-heading"
-        number="05"
-        label="Security"
-        title="Your connections on every device."
-        description="Tamery keeps your connections in its cloud, so every device you sign in on has them. Per connection, store everything, everything but the secrets, or just the name."
-        actions={
-          <DocsLink path="/connections/security" source="security">
-            Where your data goes
-          </DocsLink>
-        }
-      >
-        You decide if passwords sync.
-      </SectionHeading>
-    </Reveal>
     <Reveal className={cn(stageClass, 'mt-12 px-2 py-6 sm:px-12 sm:py-16')}>
       <div className="mx-auto max-w-2xl rounded-2xl shadow-xl">
         <SyncCard />
       </div>
     </Reveal>
     <FactRow facts={FACTS} />
-  </section>
+  </Chapter>
 )

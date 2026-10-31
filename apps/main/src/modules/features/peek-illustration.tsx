@@ -50,6 +50,7 @@ export const PeekIllustration = () => (
               <OrderCell id={id} order={order} />
               {id === 'user_id' && (
                 <Button
+                  inert
                   variant="ghost-faint"
                   size="icon-2xs"
                   className="ml-auto"

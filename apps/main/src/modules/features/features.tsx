@@ -7,10 +7,10 @@ import {
   Wrench01Icon,
 } from '@hugeicons/core-free-icons'
 
+import { Chapter } from '~/components/chapter'
 import { DocsLink } from '~/components/docs-link'
 import { FactRow } from '~/components/fact-row'
 import { Reveal } from '~/components/reveal'
-import { SectionHeading } from '~/components/section-heading'
 
 import { AskIllustration } from './ask-illustration'
 import { EditIllustration } from './edit-illustration'
@@ -20,31 +20,20 @@ import { PeekIllustration } from './peek-illustration'
 import { SchemaIllustration } from './schema-illustration'
 import { ShareIllustration } from './share-illustration'
 
-const sectionClassName =
-  'mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 sm:py-24'
-
 export const Explore = () => (
-  <section
+  <Chapter
     id="features"
-    aria-labelledby="explore-heading"
-    className={sectionClassName}
+    number="01"
+    label="Explore"
+    title="Browse tables like a spreadsheet."
+    subtitle="Or just say which rows you want."
+    description="Type a sentence and AI turns it into filters you can still edit. Follow any foreign key without leaving the table, and see every relation on one diagram."
+    actions={
+      <DocsLink path="/features/table-browser" source="features">
+        The table browser
+      </DocsLink>
+    }
   >
-    <Reveal>
-      <SectionHeading
-        id="explore-heading"
-        number="01"
-        label="Explore"
-        title="Browse tables like a spreadsheet."
-        description="Type a sentence and AI turns it into filters you can still edit. Follow any foreign key without leaving the table, and see every relation on one diagram."
-        actions={
-          <DocsLink path="/features/table-browser" source="features">
-            The table browser
-          </DocsLink>
-        }
-      >
-        Or just say which rows you want.
-      </SectionHeading>
-    </Reveal>
     <Reveal className="mt-12">
       <FeatureStage className="h-80">
         <FilterIllustration />
@@ -66,7 +55,7 @@ export const Explore = () => (
         <SchemaIllustration />
       </FeatureCard>
     </Reveal>
-  </section>
+  </Chapter>
 )
 
 const QUERY_FACTS = [
@@ -91,27 +80,19 @@ const QUERY_FACTS = [
 ]
 
 export const Query = () => (
-  <section
+  <Chapter
     id="query"
-    aria-labelledby="query-heading"
-    className={sectionClassName}
+    number="02"
+    label="Query"
+    title="Write SQL, or have AI write it."
+    subtitle="Help that knows your schema."
+    description="Completion knows your tables, columns and the values they take. The editor's AI sees your schema, so you never paste it."
+    actions={
+      <DocsLink path="/features/query-editor#get-ai-help" source="features">
+        AI in the editor
+      </DocsLink>
+    }
   >
-    <Reveal>
-      <SectionHeading
-        id="query-heading"
-        number="02"
-        label="Query"
-        title="Write SQL, or have AI write it."
-        description="Completion knows your tables, columns and the values they take. The editor's AI sees your schema, so you never paste it."
-        actions={
-          <DocsLink path="/features/query-editor#get-ai-help" source="features">
-            AI in the editor
-          </DocsLink>
-        }
-      >
-        Help that knows your schema.
-      </SectionHeading>
-    </Reveal>
     <Reveal className="mt-12 grid gap-x-6 gap-y-12 md:grid-cols-3">
       <FeatureStage className="md:col-span-2">
         <AskIllustration />
@@ -126,7 +107,7 @@ export const Query = () => (
       </FeatureCard>
     </Reveal>
     <FactRow facts={QUERY_FACTS} />
-  </section>
+  </Chapter>
 )
 
 const SHARE_FACTS = [
@@ -151,32 +132,24 @@ const SHARE_FACTS = [
 ]
 
 export const Share = () => (
-  <section
+  <Chapter
     id="share"
-    aria-labelledby="share-heading"
-    className={sectionClassName}
+    number="04"
+    label="Share"
+    title="Send a table, not a screenshot."
+    subtitle="One link, no account needed."
+    description="Send anyone a read-only link to a table, with your filters, columns and sort."
+    actions={
+      <DocsLink path="/features/sharing" source="features">
+        How sharing works
+      </DocsLink>
+    }
   >
-    <Reveal>
-      <SectionHeading
-        id="share-heading"
-        number="04"
-        label="Share"
-        title="Send a table, not a screenshot."
-        description="Send anyone a read-only link to a table, with your filters, columns and sort."
-        actions={
-          <DocsLink path="/features/sharing" source="features">
-            How sharing works
-          </DocsLink>
-        }
-      >
-        One link, no account needed.
-      </SectionHeading>
-    </Reveal>
     <Reveal className="mt-12">
       <FeatureStage className="h-96">
         <ShareIllustration />
       </FeatureStage>
     </Reveal>
     <FactRow facts={SHARE_FACTS} />
-  </section>
+  </Chapter>
 )

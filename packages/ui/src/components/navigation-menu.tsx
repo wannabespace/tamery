@@ -1,6 +1,7 @@
 import { NavigationMenu as NavigationMenuPrimitive } from '@base-ui/react/navigation-menu'
 import { ArrowDown01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { buttonVariants } from '@tamery/ui/components/button.utils'
 import { cn } from '@tamery/ui/lib/utils'
 
 const NavigationMenuPositioner = ({
@@ -67,8 +68,6 @@ const NavigationMenuItem = ({
   />
 )
 
-const navigationMenuTriggerClassName = `text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:focus-ring data-popup-open:bg-accent data-popup-open:text-foreground inline-flex h-7 items-center gap-1 rounded-lg px-3 text-sm font-medium transition-colors outline-none`
-
 const NavigationMenuTrigger = ({
   className,
   children,
@@ -76,7 +75,11 @@ const NavigationMenuTrigger = ({
 }: NavigationMenuPrimitive.Trigger.Props) => (
   <NavigationMenuPrimitive.Trigger
     data-slot="navigation-menu-trigger"
-    className={cn(navigationMenuTriggerClassName, 'group', className)}
+    className={cn(
+      buttonVariants({ size: 'sm', variant: 'ghost-muted' }),
+      'group',
+      className
+    )}
     {...props}
   >
     {children}
@@ -84,6 +87,7 @@ const NavigationMenuTrigger = ({
       icon={ArrowDown01Icon}
       strokeWidth={2}
       aria-hidden
+      data-icon="inline-end"
       className="size-3 transition-transform duration-200 group-data-popup-open:rotate-180"
     />
   </NavigationMenuPrimitive.Trigger>
@@ -124,5 +128,4 @@ export {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  navigationMenuTriggerClassName,
 }

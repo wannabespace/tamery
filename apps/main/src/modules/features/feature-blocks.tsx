@@ -6,8 +6,6 @@ import { useRef } from 'react'
 import { DocsLink } from '~/components/docs-link'
 import { pageCardClass, stageClass } from '~/utils/card'
 
-import { OnStageContext } from './product-crop'
-
 const REPLAY_COOLDOWN_MS = 2500
 
 const usePlayback = (autoplay: boolean) => {
@@ -57,14 +55,12 @@ export const FeatureStage = ({
   children: ReactNode
   className?: string
 }) => (
-  <OnStageContext value>
-    <motion.div
-      {...usePlayback(true)}
-      className={cn(stageClass, 'group h-112 select-none', className)}
-    >
-      {children}
-    </motion.div>
-  </OnStageContext>
+  <motion.div
+    {...usePlayback(true)}
+    className={cn(stageClass, 'group h-112 select-none', className)}
+  >
+    {children}
+  </motion.div>
 )
 
 export const FeatureCard = ({

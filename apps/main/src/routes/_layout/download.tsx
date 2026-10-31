@@ -11,12 +11,11 @@ import {
   ItemMedia,
   ItemTitle,
 } from '@tamery/ui/components/item'
-import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, getRouteApi } from '@tanstack/react-router'
 
 import type { DownloadPlatform } from '~/components/download-files'
 import { DOWNLOAD_PLATFORMS } from '~/components/download-files'
-import { orpc } from '~/lib/orpc'
+import { useLatestVersion } from '~/hooks/use-latest-version'
 import { posthog } from '~/lib/posthog'
 import { seo } from '~/utils/seo'
 
@@ -28,8 +27,7 @@ const captureDownload = (platform: DownloadPlatform, file: string) =>
   posthog.capture('app_downloaded', { file, os: platform.os })
 
 const PrimaryDownload = ({ platform }: { platform?: DownloadPlatform }) => {
-  const { data: releases } = useQuery(orpc.releases.queryOptions())
-  const latest = releases?.[0]
+  const version = useLatestVersion()
   const file = platform?.files[0]
 
   if (!platform || !file) {
@@ -67,7 +65,7 @@ const PrimaryDownload = ({ platform }: { platform?: DownloadPlatform }) => {
         Download for {osMap[platform.os].label}
       </Button>
       <p className="text-muted-foreground mt-3 text-xs">
-        {latest && `Version ${latest.name || latest.tagName} · `}
+        {version && `Version ${version} · `}
         {file.label}
       </p>
     </>

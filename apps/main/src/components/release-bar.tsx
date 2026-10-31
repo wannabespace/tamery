@@ -1,15 +1,13 @@
 import { ArrowRight02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 
-import { orpc } from '~/lib/orpc'
+import { useLatestVersion } from '~/hooks/use-latest-version'
 
 export const ReleaseBar = () => {
-  const { data: releases } = useQuery(orpc.releases.queryOptions())
-  const latest = releases?.[0]
+  const version = useLatestVersion()
 
-  if (!latest) {
+  if (!version) {
     return null
   }
 
@@ -18,7 +16,7 @@ export const ReleaseBar = () => {
       to="/releases"
       className="bg-muted text-foreground group flex h-10 items-center justify-center gap-1.5 px-4 text-sm"
     >
-      Tamery {latest.name || latest.tagName} is out
+      Tamery {version} is out
       <span className="text-muted-foreground group-hover:text-foreground transition-colors">
         See what’s new
       </span>

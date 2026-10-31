@@ -1,4 +1,4 @@
-import { silently } from '@tamery/shared/utils'
+import { silently, sleep } from '@tamery/shared/utils'
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 
 import { Footer } from '~/components/footer'
@@ -6,6 +6,8 @@ import { Navbar } from '~/components/navbar'
 import { ReleaseBar } from '~/components/release-bar'
 import { orpc } from '~/lib/orpc'
 import { getOSIsomorphic } from '~/utils/os'
+
+const RELEASE_BAR_WAIT_MS = 500
 
 const MainLayout = () => (
   <div className="flex min-h-dvh flex-col overflow-x-clip">
@@ -23,12 +25,15 @@ export const Route = createFileRoute('/_layout')({
   loader: async ({ context }) => {
     const [os] = await Promise.all([
       getOSIsomorphic(),
-      silently(() =>
-        context.queryClient.query({
-          ...orpc.releases.queryOptions(),
-          staleTime: 'static',
-        })
-      ),
+      Promise.race([
+        silently(() =>
+          context.queryClient.query({
+            ...orpc.releases.queryOptions(),
+            staleTime: 'static',
+          })
+        ),
+        sleep(RELEASE_BAR_WAIT_MS),
+      ]),
     ])
     return os
   },

@@ -25,11 +25,13 @@ const TYPE_AT = PROMPT_AT + 0.25
 const TYPE_STEP = 0.035
 const REWRITE_AT = TYPE_AT + PROMPT.length * TYPE_STEP + 0.25
 
-const Line = ({ index }: { index: number }) => {
-  const line = LINES[index]
-  if (!line) {
-    return null
-  }
+const Line = ({
+  index,
+  line,
+}: {
+  index: number
+  line: (typeof LINES)[number]
+}) => {
   const [keyword, rest] = line.code
   return (
     <motion.div
@@ -48,8 +50,8 @@ const Line = ({ index }: { index: number }) => {
 export const EditIllustration = () => (
   <ProductCrop className="min-w-0">
     <div className="py-3 font-mono text-sm/7">
-      {LINES.slice(0, FIRST_ADDED).map((_, index) => (
-        <Line key={index} index={index} />
+      {LINES.slice(0, FIRST_ADDED).map((line, index) => (
+        <Line key={index} index={index} line={line} />
       ))}
       <motion.div
         variants={pop(PROMPT_AT, 4)}
@@ -64,6 +66,7 @@ export const EditIllustration = () => (
           <Typed at={TYPE_AT} step={TYPE_STEP} text={PROMPT} />
         </span>
         <motion.span
+          inert
           variants={appear(REWRITE_AT + 0.3)}
           className="flex shrink-0 gap-1"
         >
@@ -73,8 +76,8 @@ export const EditIllustration = () => (
           <Button size="xs">Accept</Button>
         </motion.span>
       </motion.div>
-      {LINES.slice(FIRST_ADDED).map((_, index) => (
-        <Line key={index} index={FIRST_ADDED + index} />
+      {LINES.slice(FIRST_ADDED).map((line, index) => (
+        <Line key={index} index={FIRST_ADDED + index} line={line} />
       ))}
     </div>
   </ProductCrop>

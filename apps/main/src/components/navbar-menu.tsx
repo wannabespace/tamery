@@ -25,13 +25,13 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@tamery/ui/components/navigation-menu'
-import { useQuery } from '@tanstack/react-query'
 import type { LinkProps } from '@tanstack/react-router'
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
+import { useId } from 'react'
 
 import { useHomePath } from '~/hooks/use-home-path'
-import { orpc } from '~/lib/orpc'
+import { useLatestVersion } from '~/hooks/use-latest-version'
 import { posthog } from '~/lib/posthog'
 import { shownEngines } from '~/utils/engines'
 
@@ -40,13 +40,18 @@ type Destination =
   | { href: string }
   | { hash?: string; to: LinkProps['to'] }
 
-const renderDestination = (destination: Destination, label: string) => {
+const renderDestination = (
+  destination: Destination,
+  label: string,
+  descriptionId: string
+) => {
   if ('docs' in destination) {
     return (
       <a
         href={`${DOCS_URL}${destination.docs}`}
-        aria-label={label}
         onClick={() => posthog.capture('docs_opened', { source: 'navbar' })}
+        aria-label={label}
+        aria-describedby={descriptionId}
       />
     )
   }
@@ -54,13 +59,21 @@ const renderDestination = (destination: Destination, label: string) => {
     return (
       <a
         href={destination.href}
-        aria-label={label}
         target="_blank"
         rel="noopener noreferrer"
+        aria-label={label}
+        aria-describedby={descriptionId}
       />
     )
   }
-  return <Link to={destination.to} hash={destination.hash} aria-label={label} />
+  return (
+    <Link
+      to={destination.to}
+      hash={destination.hash}
+      aria-label={label}
+      aria-describedby={descriptionId}
+    />
+  )
 }
 
 const MenuLink = ({
@@ -75,26 +88,30 @@ const MenuLink = ({
   destination: Destination
   icon: IconSvgElement
   title: string
-}) => (
-  <NavigationMenuLink render={renderDestination(destination, title)}>
-    <span className="bg-background ring-foreground/6 flex size-8 shrink-0 items-center justify-center rounded-lg shadow-xs ring">
-      <HugeiconsIcon
-        icon={icon}
-        strokeWidth={2}
-        className="text-muted-foreground size-4"
-      />
-    </span>
-    <span className="flex min-w-0 flex-col gap-0.5">
-      <span className="flex items-center gap-2 font-medium">
-        {title}
-        {aside}
+}) => {
+  const id = useId()
+
+  return (
+    <NavigationMenuLink render={renderDestination(destination, title, id)}>
+      <span className="bg-background ring-foreground/6 flex size-8 shrink-0 items-center justify-center rounded-lg shadow-xs ring">
+        <HugeiconsIcon
+          icon={icon}
+          strokeWidth={2}
+          className="text-muted-foreground size-4"
+        />
       </span>
-      <span className="text-muted-foreground text-xs text-pretty">
-        {description}
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="flex items-center gap-2 font-medium">
+          {title}
+          {aside}
+        </span>
+        <span id={id} className="text-muted-foreground text-xs text-pretty">
+          {description}
+        </span>
       </span>
-    </span>
-  </NavigationMenuLink>
-)
+    </NavigationMenuLink>
+  )
+}
 
 const ProductPanel = () => {
   const home = useHomePath()
@@ -160,8 +177,7 @@ const ProductPanel = () => {
 }
 
 const ResourcesPanel = () => {
-  const { data: releases } = useQuery(orpc.releases.queryOptions())
-  const latest = releases?.[0]
+  const version = useLatestVersion()
 
   return (
     <div className="flex w-76 flex-col gap-0.5">
@@ -181,11 +197,7 @@ const ResourcesPanel = () => {
         icon={GitBranchIcon}
         title="Releases"
         description="What changed in every version."
-        aside={
-          latest && (
-            <Badge variant="secondary">{latest.name || latest.tagName}</Badge>
-          )
-        }
+        aside={version && <Badge variant="secondary">{version}</Badge>}
         destination={{ to: '/releases' }}
       />
       <MenuLink

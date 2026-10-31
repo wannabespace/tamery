@@ -10,7 +10,7 @@ import { revealRight, rise } from './variants'
 const REFRESHED_ORDER = '58307'
 
 export const ShareIllustration = () => (
-  <ProductCrop className="bg-body">
+  <ProductCrop stage className="bg-body">
     <div className="text-muted-foreground flex h-8 items-center gap-2 border-b px-3 text-xs">
       <AppLogo className="text-primary size-3.5" />
       <motion.span variants={revealRight(0.1, 0.45)}>
