@@ -1,17 +1,11 @@
 import { db } from '@tamery/db'
-import {
-  connections,
-  members,
-  queries,
-  sessions,
-  workspaces,
-} from '@tamery/db/schema'
+import { connections, members, queries, workspaces } from '@tamery/db/schema'
 import { challenge } from '@tamery/shared/challenge'
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
 import { type } from 'arktype'
 import { eq, inArray } from 'drizzle-orm'
 
-import { auth } from '~/lib/auth'
+import { auth, sendNewSignInEmail } from '~/lib/auth'
 import { ensureDefaultWorkspace } from '~/lib/workspace'
 import { getWorkspaceSecret, orpc } from '~/orpc'
 
@@ -126,18 +120,18 @@ export const exchange = orpc
     }
 
     const context = await auth.$context
-    const { token, id } = await context.internalAdapter.createSession(
-      data.userId
+    // Outside a better-auth endpoint createSession sees no request headers; the new-sign-in email reads the device from these.
+    const session = await context.internalAdapter.createSession(
+      data.userId,
+      false,
+      {
+        ipAddress: headers.get('x-real-ip'),
+        userAgent: headers.get('User-Agent'),
+      }
     )
     await Promise.all([
       codeChallengeRedis.delete(input.codeChallenge),
-      db
-        .update(sessions)
-        .set({
-          ipAddress: headers.get('X-Forwarded-For'),
-          userAgent: headers.get('User-Agent'),
-        })
-        .where(eq(sessions.id, id)),
+      !data.newUser && sendNewSignInEmail(session),
     ])
-    return { newUser: data.newUser, token }
+    return { newUser: data.newUser, token: session.token }
   })

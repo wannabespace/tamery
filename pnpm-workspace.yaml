@@ -26,6 +26,7 @@ catalog:
   '@hugeicons/core-free-icons': ^4.3.5
   '@hugeicons/react': ^1.1.10
   '@infisical/sdk': ^5.0.2
+  '@ip-location-db/dbip-city-mmdb': ^2.3.2026060513
   '@mistralai/mistralai': ^3.1.0
   '@modelcontextprotocol/sdk': ^1.32.1
   '@mongodb-js/mongodb-constants': ^0.34.3
@@ -109,6 +110,7 @@ catalog:
   kysely: ^0.29.7
   lru-cache: ^11.5.3
   memoza: ^1.4.0
+  mmdb-lib: ^3.0.3
   monaco-editor: ^0.57.0
   mongodb: ^7.7.0
   motion: ^14.6.0
@@ -134,7 +136,6 @@ catalog:
   redis: ^6.3.0
   resend: ^6.34.1
   seitu: ^1.4.0
-  serve: ^14.2.6
   shadcn: ^4.22.1
   sonner: ^2.0.8
   sql-formatter: ^15.9.0

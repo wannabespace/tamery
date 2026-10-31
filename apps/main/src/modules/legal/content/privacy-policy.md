@@ -66,7 +66,7 @@ We implement reasonable security measures, but no system is fully secure. **We d
 
 - **View / Export**: Access your personal data and request a copy
 - **Update**: Modify your profile at any time
-- **Delete**: Permanently delete your account and all associated data
+- **Delete**: Delete your account and all associated data (erased permanently after 90 days, see Data Retention)
 - **Remove connections**: Delete individual connection entries
 - **Password sync**: Control whether connection passwords are synced to cloud
 
@@ -74,6 +74,7 @@ We implement reasonable security measures, but no system is fully secure. **We d
 
 - Account data retained while your account is active
 - Session tokens expire automatically
+- Deleted data (your account, workspaces, connections, saved queries, chats and shares) is kept for 90 days in case it was removed by mistake, then erased permanently
 - Analytics retained for service improvement
 - Full deletion available on request
 
