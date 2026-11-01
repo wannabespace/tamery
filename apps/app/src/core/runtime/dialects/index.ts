@@ -6,7 +6,6 @@ import { Kysely } from 'kysely'
 import { memoize } from 'memoza'
 
 import type { Database as ClickhouseDatabase } from './clickhouse/schema'
-import type { DialectOptions } from './driver'
 import { createKyselyDriver } from './driver'
 import { mongodbDialect } from './mongodb'
 import type { Database as MssqlDatabase } from './mssql/schema'
@@ -14,6 +13,7 @@ import type { Database as MysqlDatabase } from './mysql/schema'
 import type { Database as OracleDatabase } from './oracle/schema'
 import type { Database as PostgresDatabase } from './postgres/schema'
 import type { Database as SqliteDatabase } from './sqlite/schema'
+import type { DialectOptions } from './transport'
 
 const createDialect = <Database>(dialect: SqlDialect) =>
   memoize(

@@ -98,12 +98,17 @@ export const useHasAccount = () =>
 export const isSignedIn = async () => !!(await getSessionUser())
 
 export const fullSignOut = async () => {
-  const [{ cleanCollections }, { clearDb }, { subscriptionsCache }] =
-    await Promise.all([
-      import('~/core/collections'),
-      import('./sync'),
-      import('~/core/user/use-subscription'),
-    ])
+  const [
+    { cleanCollections },
+    { clearDb },
+    { subscriptionsCache },
+    { clearBridgePairing },
+  ] = await Promise.all([
+    import('~/core/collections'),
+    import('./sync'),
+    import('~/core/user/use-subscription'),
+    import('~/core/runtime/bridge/pairing'),
+  ])
 
   // Before the session is revoked: a sync loop still running reconnects into a 401.
   await cleanCollections()
@@ -117,6 +122,8 @@ export const fullSignOut = async () => {
   }
 
   subscriptionsCache.clear()
+  // The bridge stays signed in as this account, so the next one to sign in here must pair its own.
+  clearBridgePairing()
   posthog.reset()
   queryClient.removeQueries({ queryKey: [API_QUERY_KEY] })
   await Promise.all([clearDb(), deviceEncryption.reset()])

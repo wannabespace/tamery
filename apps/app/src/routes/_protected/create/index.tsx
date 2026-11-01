@@ -3,6 +3,8 @@ import { title } from '@tamery/shared/title'
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { toast } from 'sonner'
 
+import { getCollections } from '~/core/collections'
+import { canQueryConnection } from '~/core/connection/fetching'
 import { createConnection } from '~/core/connection/save'
 import { permix } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
@@ -16,18 +18,19 @@ const CreateConnectionPage = () => {
   return (
     <ConnectionPage
       mode={{ kind: 'create' }}
-      onSave={async (connection, { open, origin, syncType }) => {
+      onSave={async (connection, { origin, syncType, testFailed }) => {
         if (!activeWorkspace) {
           throw new Error('Workspace is still loading. Please try again.')
         }
 
-        const { resourceId } = await createConnection({
+        const { id, resourceId } = await createConnection({
           ...connection,
           syncType,
           workspaceId: activeWorkspace.id,
         })
+        const saved = getCollections().connectionsCollection.get(id)
 
-        await (open
+        await (!testFailed && saved && canQueryConnection(saved)
           ? router.navigate({
               params: { resourceId },
               to: '/connection/$resourceId',

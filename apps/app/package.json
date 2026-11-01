@@ -72,6 +72,7 @@
     "@rolldown/plugin-babel": "catalog:",
     "@standard-schema/spec": "catalog:",
     "@tamery/api": "workspace:*",
+    "@tamery/cli": "workspace:*",
     "@tamery/configs": "workspace:*",
     "@tamery/connection": "workspace:*",
     "@tamery/proxy": "workspace:*",

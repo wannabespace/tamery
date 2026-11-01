@@ -1,0 +1,66 @@
+---
+title: 'Reach a bridge on another computer'
+sidebarTitle: 'Remote bridge'
+description: 'Put Tailscale Serve, Cloudflare Tunnel or a reverse proxy in front of tamery bridge to run queries on a server from your browser.'
+keywords: ['tunnel', 'reverse proxy', 'server', 'vps', 'caddy', 'cloudflared']
+---
+
+The bridge listens only on `127.0.0.1`, so other computers can't reach it directly. To use a bridge on a server or another computer, run a tunnel or reverse proxy **on that same computer**, give it an HTTPS address, and pass that address to `tamery bridge --public-url`. The web app connects only to `127.0.0.1` or an `https://` address.
+
+Reaching the address is not enough to use the bridge: a browser needs a pairing code, which works once and expires after 10 minutes.
+
+A request through a tunnel without `--public-url` gets an error that tells you which address to set.
+
+## Tailscale Serve
+
+Tailscale Serve gives the bridge an HTTPS address that only devices on your tailnet can open. The encryption ends on the bridge's computer, so nothing in between sees your queries.
+
+1. On the bridge's computer, run:
+
+   ```bash
+   tailscale serve --bg 26380
+   tamery bridge --public-url https://<machine>.<tailnet>.ts.net
+   ```
+
+   The first time, Tailscale asks you to turn on HTTPS for your tailnet.
+
+2. Open the pairing link in a browser on a device in the same tailnet.
+
+## Cloudflare Tunnel
+
+1. On the bridge's computer, start a tunnel to the bridge's port:
+
+   ```bash
+   cloudflared tunnel --url http://127.0.0.1:26380
+   ```
+
+2. Start the bridge with the address `cloudflared` printed:
+
+   ```bash
+   tamery bridge --public-url https://<name>.trycloudflare.com
+   ```
+
+That address changes every time. A named tunnel with your own hostname works the same way and keeps it.
+
+Know two limits before you use it:
+
+- Cloudflare ends any request after 100 seconds, so a query that runs longer fails.
+- Cloudflare decrypts the traffic on its servers. It can see your queries, their results, and the secrets you enter for **No password** and **Metadata only** connections, which go to the bridge once. If that matters, use Tailscale Serve.
+
+## Caddy
+
+On a server with a domain pointing at it, Caddy gets a certificate on its own. Add this to the `Caddyfile` on the bridge's computer:
+
+```text
+db-box.example.com {
+  reverse_proxy 127.0.0.1:26380
+}
+```
+
+Then start the bridge:
+
+```bash
+tamery bridge --public-url https://db-box.example.com
+```
+
+Any other reverse proxy works the same way, as long as it runs on the bridge's computer, serves HTTPS, and forwards the original `Host` header.

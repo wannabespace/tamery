@@ -1,19 +1,16 @@
 {
   "extends": "@tamery/configs/ts/base.json",
   "compilerOptions": {
-    "paths": {
-      "~/*": ["./src/*"]
-    },
-    "noEmit": true,
+    "composite": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./.types",
     "strictNullChecks": true
   },
   "references": [
     {
       "path": "../api"
-    },
-    {
-      "path": "../proxy"
     }
   ],
-  "include": ["."]
+  "include": [".", "package.json"]
 }

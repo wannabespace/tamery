@@ -3,6 +3,7 @@ import type {
   Provider,
 } from '@tamery/shared/enums/connection-type'
 import type { SyncType } from '@tamery/shared/enums/sync-type'
+import { silently } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import { v7 } from 'uuid'
 
@@ -14,6 +15,7 @@ import type {
 import { findResource } from '~/core/connection/resources'
 import { rememberOpenedResource } from '~/core/connection/stores'
 import type { Connection } from '~/core/connection/sync'
+import { bridge } from '~/core/runtime/bridge/bridge'
 
 export interface ConnectionDetails {
   color?: string | null
@@ -90,6 +92,8 @@ export const saveConnectionString = async ({
     }
   })
   write()
+  // Never awaited: an unreachable bridge must not hold up the save, and it asks again on its next query.
+  void silently(() => bridge.saveSecrets(connectionId))
 
   const settle = async () => {
     const persisted = await Result.tryPromise(() => tx.isPersisted.promise)

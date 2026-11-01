@@ -1,9 +1,7 @@
 import type { QueryExecuteResult } from '@tamery/connection/queries'
 import { rowObjects } from '@tamery/connection/queries'
 import { toQueryPayload } from '@tamery/connection/queries/kysely'
-import { describeConnectionString } from '@tamery/connection/utils'
 import type { Dialect, SqlDialect } from '@tamery/shared/enums/connection-type'
-import { LOCAL_PROXY_URL } from '@tamery/shared/ports'
 import { silently } from '@tamery/shared/utils'
 import type {
   CompiledQuery,
@@ -13,38 +11,8 @@ import type {
   TransactionSettings,
 } from 'kysely'
 
-import { getCollections } from '~/core/collections'
-import { fetchingConfig } from '~/core/connection/fetching-config'
-import { getConnectionStore } from '~/core/connection/stores'
-import { createProxyClient, orpcProxy } from '~/lib/orpc'
-
-export interface DialectOptions {
-  connectionString: string
-  connectionId?: string
-  resourceId?: string
-  resultSets?: { maxRows: number }
-  signal?: AbortSignal
-  /** Runs every query in this open transaction or session instead of the pool. */
-  txId?: string
-  log?: (params: {
-    promise: Promise<{
-      result: unknown
-      duration: number
-    }>
-    query: string
-    values?: unknown[]
-  }) => void
-}
-
-const getCloudProxyInput = (options: DialectOptions) => {
-  if (options.resourceId) {
-    return { resourceId: options.resourceId }
-  }
-  if (options.connectionId) {
-    return { connectionId: options.connectionId }
-  }
-  return { connectionString: options.connectionString }
-}
+import { createTransport } from './transport'
+import type { DialectOptions } from './transport'
 
 interface QueryPayload {
   query: string
@@ -60,64 +28,22 @@ export const createDialectProvider = (
   dialect: Dialect,
   options: DialectOptions
 ) => {
-  const { connectionsCollection, connectionsResourcesCollection } =
-    getCollections()
-  const resource = options.resourceId
-    ? connectionsResourcesCollection.get(options.resourceId)
-    : null
-  const connectionId = options.connectionId || resource?.connectionId
-  const connection = connectionId
-    ? (connectionsCollection.get(connectionId) ?? null)
-    : null
-
+  const transport = createTransport(dialect, options)
   const maxRows = options.resultSets?.maxRows
-  const resolveTransport = () => {
-    const proxy = connectionId
-      ? getConnectionStore(connectionId).get().proxy
-      : { enabled: false, url: null }
-    const config = fetchingConfig(connection, {
-      connectionString: describeConnectionString(options.connectionString),
-      proxy,
-    })
-
-    if (!config.canSend) {
-      throw new Error(config.reason ?? 'This connection is still loading.')
-    }
-
-    if (config.type === 'proxy') {
-      const client = createProxyClient(proxy.url || LOCAL_PROXY_URL)
-      return {
-        input: { connectionString: options.connectionString },
-        kind: 'proxy' as const,
-        proxy: client[dialect],
-      }
-    }
-
-    const electron = window.electron?.query[dialect]
-    if (electron) {
-      return { electron, kind: 'electron' as const }
-    }
-
-    return {
-      input: getCloudProxyInput(options),
-      kind: 'proxy' as const,
-      proxy: orpcProxy.query[dialect],
-    }
-  }
 
   return {
     beginTransaction(settings: TransactionSettings) {
-      const t = resolveTransport()
-      if (t.kind === 'electron') {
-        return t.electron.beginTransaction({
-          connectionString: options.connectionString,
-          ...settings,
-        })
-      }
-      return t.proxy.beginTransaction({ ...t.input, ...settings })
+      return transport.open((t) =>
+        t.kind === 'electron'
+          ? t.electron.beginTransaction({
+              connectionString: options.connectionString,
+              ...settings,
+            })
+          : t.proxy.beginTransaction({ ...t.input, ...settings })
+      )
     },
     cancel(queryId: string) {
-      const t = resolveTransport()
+      const t = transport.current()
       if (t.kind === 'electron') {
         return t.electron.cancel({
           connectionString: options.connectionString,
@@ -127,13 +53,15 @@ export const createDialectProvider = (
       return t.proxy.cancel({ ...t.input, queryId })
     },
     commitTransaction(params: { txId: string }) {
-      const t = resolveTransport()
-      return t.kind === 'electron'
-        ? t.electron.commitTransaction(params)
-        : t.proxy.commitTransaction(params)
+      const t = transport.pinned(params.txId)
+      return (
+        t.kind === 'electron'
+          ? t.electron.commitTransaction(params)
+          : t.proxy.commitTransaction(params)
+      ).finally(() => transport.release(params.txId))
     },
     execute(payload: QueryPayload) {
-      const t = resolveTransport()
+      const t = transport.current()
       return t.kind === 'electron'
         ? t.electron.execute({
             connectionString: options.connectionString,
@@ -143,29 +71,38 @@ export const createDialectProvider = (
         : t.proxy.execute({ ...t.input, ...payload, maxRows })
     },
     executeTransaction(params: TxQueryPayload) {
-      const t = resolveTransport()
+      const t = transport.pinned(params.txId)
       const payload = { ...params, maxRows }
       return t.kind === 'electron'
         ? t.electron.executeTransaction(payload)
         : t.proxy.executeTransaction(payload)
     },
     openSession() {
-      const t = resolveTransport()
-      return t.kind === 'electron'
-        ? t.electron.openSession({ connectionString: options.connectionString })
-        : t.proxy.openSession(t.input)
+      return transport.open((t) =>
+        t.kind === 'electron'
+          ? t.electron.openSession({
+              connectionString: options.connectionString,
+            })
+          : t.proxy.openSession(t.input)
+      )
     },
     rollbackTransaction(params: { txId: string }) {
-      const t = resolveTransport()
-      return t.kind === 'electron'
-        ? t.electron.rollbackTransaction(params)
-        : t.proxy.rollbackTransaction(params)
+      const t = transport.pinned(params.txId)
+      return (
+        t.kind === 'electron'
+          ? t.electron.rollbackTransaction(params)
+          : t.proxy.rollbackTransaction(params)
+      ).finally(() => transport.release(params.txId))
     },
-    transactionStatus(params: { txId: string }) {
-      const t = resolveTransport()
-      return t.kind === 'electron'
+    async transactionStatus(params: { txId: string }) {
+      const t = transport.pinned(params.txId)
+      const status = await (t.kind === 'electron'
         ? t.electron.transactionStatus(params)
-        : t.proxy.transactionStatus(params)
+        : t.proxy.transactionStatus(params))
+      if (status === 'ended') {
+        transport.release(params.txId)
+      }
+      return status
     },
   }
 }

@@ -10,6 +10,7 @@ export const resolve = orpc
     const connection = await db.query.connections.findFirst({
       columns: {
         connectionString: true,
+        isPasswordExists: true,
         updatedAt: true,
         workspaceId: true,
       },
@@ -38,6 +39,7 @@ export const resolve = orpc
 
     return {
       connectionString,
+      isPasswordExists: connection.isPasswordExists,
       status: 'modified' as const,
       updatedAt: connection.updatedAt,
     }

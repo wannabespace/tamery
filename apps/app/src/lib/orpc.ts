@@ -4,11 +4,9 @@ import type { InferRouterInputs, InferRouterOutputs } from '@orpc/server'
 import { createTanstackQueryUtils } from '@orpc/tanstack-query'
 import type * as apiOrpc from '@tamery/api/orpc/routers'
 import type * as proxyOrpc from '@tamery/proxy/orpc/routers'
-import type * as queryProxy from '@tamery/query-proxy'
 import { querySerializer } from '@tamery/query-proxy/serializer'
 import { isConnectionError } from '@tamery/shared/connections'
 import { PROXY_ERROR_MESSAGE } from '@tamery/shared/constants'
-import { memoize } from 'memoza'
 
 import { handleError } from '~/utils/error'
 
@@ -88,41 +86,3 @@ export const orpcProxy = createORPCClient(
 
 export type ORPCInputs = InferRouterInputs<typeof apiOrpc.router>
 export type ORPCOutputs = InferRouterOutputs<typeof apiOrpc.router>
-
-export const createProxyClient = memoize(
-  (origin: string): queryProxy.ORPCRouter =>
-    createORPCClient(
-      new RPCLink({
-        fetch: (url, init) =>
-          globalThis.fetch(url, {
-            ...init,
-            credentials: 'include',
-          }),
-        headers: () => {
-          const token = bearerToken.get()
-          return {
-            Authorization: token ? `Bearer ${token}` : undefined,
-          }
-        },
-        interceptors: [
-          async (options) => {
-            try {
-              return await options.next()
-            } catch (error) {
-              if (error instanceof ORPCError) {
-                throw error
-              }
-
-              if (error instanceof Error && isConnectionError(error)) {
-                throw new Error(PROXY_ERROR_MESSAGE, { cause: error })
-              }
-
-              throw error
-            }
-          },
-        ],
-        origin,
-        serializer: querySerializer,
-      })
-    )
-)

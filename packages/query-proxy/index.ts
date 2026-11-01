@@ -1,12 +1,15 @@
-import type { BuilderWithMiddlewares, RouterClient } from '@orpc/server'
+import type {
+  BuilderWithMiddlewares,
+  Context,
+  ErrorMap,
+  MergedContext,
+  RouterClient,
+} from '@orpc/server'
 import { type } from '@orpc/server'
 import type { QueryExecutor } from '@tamery/connection/queries'
 import { executors } from '@tamery/connection/queries/executors'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
 import type { AnyFunction, Prettify } from '@tamery/shared/utils'
-
-// oxlint-disable-next-line ts/no-explicit-any
-export type AnyBuilder = BuilderWithMiddlewares<any, any, any>
 
 type Params<
   T extends AnyFunction,
@@ -17,31 +20,38 @@ type Params<
     : P
 >
 
-type ConnectionInput =
+export type ConnectionInput =
   | { connectionString: string }
-  | { connectionId: string }
+  | { connectionId: string; resourceName?: string | null }
   | { resourceId: string }
 
-type HandlerContext<T extends AnyBuilder> = Parameters<
-  Parameters<T['handler']>[0]
->[0]['context']
+/** Generic over the builder's parts, not the builder, so the error map a caller declares reaches its clients' types. */
+type QueryBuilder<
+  TInitial extends Context,
+  TInjected extends Context,
+  TErrors extends ErrorMap,
+> = BuilderWithMiddlewares<TInitial, TInjected, TErrors>
 
-interface Resolvers<T extends AnyBuilder> {
+interface Resolvers<TContext> {
   connectionString: (
     input: ConnectionInput,
-    context: HandlerContext<T>
+    context: TContext
   ) => string | Promise<string>
   /** Who a transaction belongs to, so a leaked `txId` cannot drive another user's transaction. */
-  owner: (context: HandlerContext<T>) => string
+  owner: (context: TContext) => string
 }
 
 // A proxy serves many users at once; one unbounded result would hold its memory for all of them.
 const MAX_ROWS = 100_000
 
-const createQueryDialect = <T extends AnyBuilder>(
+const createQueryDialect = <
+  TInitial extends Context,
+  TInjected extends Context,
+  TErrors extends ErrorMap,
+>(
   dialect: QueryExecutor,
-  orpc: T,
-  resolve: Resolvers<T>
+  orpc: QueryBuilder<TInitial, TInjected, TErrors>,
+  resolve: Resolvers<MergedContext<TInitial, TInjected>>
 ) =>
   ({
     beginTransaction: orpc
@@ -108,9 +118,13 @@ const createQueryDialect = <T extends AnyBuilder>(
       ),
   }) satisfies Record<keyof QueryExecutor, unknown>
 
-export const createQueryRouter = <T extends AnyBuilder>(
-  orpc: T,
-  resolve: Resolvers<T>
+export const createQueryRouter = <
+  TInitial extends Context,
+  TInjected extends Context,
+  TErrors extends ErrorMap,
+>(
+  orpc: QueryBuilder<TInitial, TInjected, TErrors>,
+  resolve: Resolvers<MergedContext<TInitial, TInjected>>
 ) =>
   ({
     clickhouse: createQueryDialect(executors.clickhouse, orpc, resolve),

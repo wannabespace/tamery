@@ -14,8 +14,8 @@ import type { Connection, ConnectionResource } from '~/core/connection/sync'
 import { getConnectionStringToShow } from '~/core/connection/utils'
 
 import { dialects } from './dialects'
-import type { DialectOptions } from './dialects/driver'
 import type { MongoDatabase } from './dialects/mongodb'
+import type { DialectOptions } from './dialects/transport'
 import { logQuery } from './log'
 import { watchForSlowQuery } from './slow-queries'
 
