@@ -94,7 +94,7 @@ export const mcpSource: McpSource = {
     ) {
       throw new Error(GUEST_CONNECTIONS_MESSAGE)
     }
-    const workspace = workspaceSelection.current(workspacesCollection.toArray)
+    const workspace = workspaceSelection.target(workspacesCollection.toArray)
     if (!workspace) {
       throw new Error('Tamery is still loading. Try again in a moment.')
     }

@@ -71,6 +71,8 @@ export const saveConnectionString = async ({
   const existingResource = findResource(connectionId, resource)
   const resourceId = existingResource?.id ?? v7()
 
+  // Before mutateOffline: in a tab that is not the outbox leader, commit runs push synchronously, and push reads the string.
+  write()
   const tx = mutateOffline(() => {
     if (writeRow) {
       // An empty password on a device that never had it means "not known here", not "none": clearing the flag would stop every device asking for it.
@@ -91,7 +93,6 @@ export const saveConnectionString = async ({
       })
     }
   })
-  write()
   // Never awaited: an unreachable bridge must not hold up the save, and it asks again on its next query.
   void silently(() => bridge.saveSecrets(connectionId))
 

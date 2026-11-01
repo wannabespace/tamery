@@ -5,103 +5,55 @@ import {
   connections,
   copies,
   deletedRecords,
-  members,
-  userEncryptionKeys,
-  users,
+  workspaceEncryptionKeys,
 } from '@tamery/db/schema'
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
 import { toError } from '@tamery/shared/utils'
-import { and, asc, eq, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, isNotNull } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
-// Rotates the per-user connection key (user_encryption_keys.secret), the inner
-// layer of every connection string. Pure database work under one transaction per
-// user: the ORM column type handles the outer ENCRYPTION_SECRET layer, for the
-// `deleted_records` copies too, so this decrypts the inner layer with the user's
-// old key and re-encrypts it with a fresh one, flipping the key row, its
-// connections and their copies together. No env change, no redeploy.
-// Dry run by default; pass --execute. Positional user ids scope it (default: all).
 const execute = process.argv.includes('--execute')
-const onlyUserIds = new Set(
+const onlyWorkspaceIds = new Set(
   process.argv.slice(2).filter((arg) => !arg.startsWith('--'))
 )
 
-const ownerMembers = await db
-  .select({ userId: members.userId, workspaceId: members.workspaceId })
-  .from(members)
-  .where(eq(members.role, 'owner'))
-  .orderBy(asc(members.createdAt))
+const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
+  const selectRows = (executor: Pick<typeof db, 'select'>) =>
+    executor
+      .select({
+        connectionString: connections.connectionString,
+        id: connections.id,
+      })
+      .from(connections)
+      .where(
+        and(
+          eq(connections.workspaceId, workspaceId),
+          isNotNull(connections.connectionString)
+        )
+      )
 
-const deletedOwnerMembers = await db
-  .select({
-    userId: copies.column(members.userId),
-    workspaceId: copies.column(members.workspaceId),
-  })
-  .from(deletedRecords)
-  .where(and(copies.of(members), eq(copies.column(members.role), 'owner')))
-  .orderBy(sql`${copies.column(members.createdAt)}::timestamptz`)
-
-// Live owners first: a deleted owner copy only decides a workspace that no longer has one.
-const workspaceOwner = new Map<string, string>()
-for (const { userId, workspaceId } of [
-  ...ownerMembers,
-  ...deletedOwnerMembers,
-]) {
-  if (!workspaceOwner.has(workspaceId)) {
-    workspaceOwner.set(workspaceId, userId)
-  }
-}
-
-const ownedWorkspaces = new Map<string, string[]>()
-for (const [workspaceId, userId] of workspaceOwner) {
-  const owned = ownedWorkspaces.get(userId)
-  if (owned) {
-    owned.push(workspaceId)
-  } else {
-    ownedWorkspaces.set(userId, [workspaceId])
-  }
-}
-
-// Live rows load before the copies, so a connection deleted any time after is still a
-// live row whose update in rotateUser misses and aborts that user, instead of its copy
-// being left under the key the transaction replaces.
-const liveConnections = Object.groupBy(
-  await db
-    .select({
-      connectionString: connections.connectionString,
-      id: connections.id,
-      workspaceId: connections.workspaceId,
-    })
-    .from(connections)
-    .where(isNotNull(connections.connectionString)),
-  (connection) => connection.workspaceId
-)
-const deletedConnections = Object.groupBy(
-  await db
+  // Live rows load before the copies, so a connection deleted any time after is still a
+  // live row the locked re-read below misses, aborting the workspace, instead of its copy
+  // being left under the key the transaction replaces.
+  const rows = await selectRows(db)
+  const copyRows = await db
     .select({
       connectionString: copies
         .column(connections.connectionString)
         .mapWith(connections.connectionString),
       id: deletedRecords.recordId,
-      workspaceId: copies.column(connections.workspaceId),
     })
     .from(deletedRecords)
     .where(
       and(
         copies.of(connections),
+        eq(copies.column(connections.workspaceId), workspaceId),
         isNotNull(copies.column(connections.connectionString))
       )
-    ),
-  (connection) => connection.workspaceId
-)
+    )
 
-const rotateUser = async (
-  userId: string,
-  oldKey: string,
-  workspaceIds: string[]
-) => {
-  const plaintexts: { id: string; text: string }[] = []
-  for (const row of workspaceIds.flatMap((id) => liveConnections[id] ?? [])) {
+  const plaintexts: { encryptedText: string; id: string; text: string }[] = []
+  for (const row of rows) {
     if (!row.connectionString) {
       continue
     }
@@ -109,20 +61,19 @@ const rotateUser = async (
     const encryptedText = row.connectionString
     try {
       plaintexts.push({
+        encryptedText,
         id: row.id,
         text: decrypt({ encryptedText, secret: oldKey }),
       })
     } catch {
       return {
-        error: `connection ${row.id} does not decrypt with the user's current key`,
+        error: `connection ${row.id} does not decrypt with the workspace's current key`,
       }
     }
   }
 
   const copyPlaintexts: { id: string; text: string }[] = []
-  for (const copy of workspaceIds.flatMap(
-    (id) => deletedConnections[id] ?? []
-  )) {
+  for (const copy of copyRows) {
     try {
       copyPlaintexts.push({
         id: copy.id,
@@ -130,7 +81,7 @@ const rotateUser = async (
       })
     } catch {
       return {
-        error: `deleted connection ${copy.id} does not decrypt with the user's current key`,
+        error: `deleted connection ${copy.id} does not decrypt with the workspace's current key`,
       }
     }
   }
@@ -145,18 +96,34 @@ const rotateUser = async (
 
   try {
     await db.transaction(async (tx) => {
+      // Rows, then the key, then the rows again: writers take the row before the key (`workspaceEncryptionKey.getLocked`), so the other order deadlocks, and only the read after the key lock sees a string a create or move wrote under the old key while this waited. That read is compared with what was decrypted, so an edit, move or delete since aborts the run.
+      await selectRows(tx).for('update')
+      await tx
+        .select({ workspaceId: workspaceEncryptionKeys.workspaceId })
+        .from(workspaceEncryptionKeys)
+        .where(eq(workspaceEncryptionKeys.workspaceId, workspaceId))
+        .for('update')
+      const locked = await selectRows(tx).for('update')
+      const unchanged =
+        locked.length === plaintexts.length &&
+        plaintexts.every(({ encryptedText, id }) =>
+          locked.some(
+            (row) => row.id === id && row.connectionString === encryptedText
+          )
+        )
+
+      if (!unchanged) {
+        throw new Error(
+          "the workspace's connections were edited, moved or deleted during the run; rerun to rotate them"
+        )
+      }
+
       for (const { id, text } of plaintexts) {
         // oxlint-disable-next-line no-await-in-loop -- one statement per row, each a distinct ciphertext on one tx connection
-        const { rowCount } = await tx
+        await tx
           .update(connections)
           .set({ connectionString: encrypt({ secret: newKey, text }) })
           .where(eq(connections.id, id))
-
-        if (!rowCount) {
-          throw new Error(
-            `connection ${id} was deleted during the run; rerun to rotate its copy`
-          )
-        }
       }
 
       for (const { id, text } of copyPlaintexts) {
@@ -175,9 +142,9 @@ const rotateUser = async (
       }
 
       await tx
-        .update(userEncryptionKeys)
+        .update(workspaceEncryptionKeys)
         .set({ secret: newKey })
-        .where(eq(userEncryptionKeys.userId, userId))
+        .where(eq(workspaceEncryptionKeys.workspaceId, workspaceId))
     })
   } catch (error) {
     return {
@@ -190,31 +157,26 @@ const rotateUser = async (
 
 const keyRows = await db
   .select({
-    secret: userEncryptionKeys.secret,
-    userId: userEncryptionKeys.userId,
+    secret: workspaceEncryptionKeys.secret,
+    workspaceId: workspaceEncryptionKeys.workspaceId,
   })
-  .from(userEncryptionKeys)
-  .innerJoin(users, eq(users.id, userEncryptionKeys.userId))
+  .from(workspaceEncryptionKeys)
 
 let rotated = 0
 let reEncrypted = 0
 const failures: string[] = []
 
-for (const { secret, userId } of keyRows) {
-  if (onlyUserIds.size && !onlyUserIds.has(userId)) {
+for (const { secret, workspaceId } of keyRows) {
+  if (onlyWorkspaceIds.size && !onlyWorkspaceIds.has(workspaceId)) {
     continue
   }
 
-  // oxlint-disable-next-line no-await-in-loop -- sequential by design: each user's transaction settles before the next
-  const result = await rotateUser(
-    userId,
-    secret,
-    ownedWorkspaces.get(userId) ?? []
-  )
+  // oxlint-disable-next-line no-await-in-loop -- sequential by design: each workspace's transaction settles before the next
+  const result = await rotateWorkspace(workspaceId, secret)
 
   if ('error' in result) {
-    failures.push(`${userId}: ${result.error}`)
-    console.error(`✗ ${userId}: ${result.error}`)
+    failures.push(`${workspaceId}: ${result.error}`)
+    console.error(`✗ ${workspaceId}: ${result.error}`)
     continue
   }
 
@@ -224,12 +186,14 @@ for (const { secret, userId } of keyRows) {
 
 console.log(
   execute
-    ? `Rotated ${rotated} user key(s); re-encrypted ${reEncrypted} connection string(s).`
-    : `Dry run: ${rotated} user key(s) ready to rotate, ${reEncrypted} connection string(s) verified decryptable. Re-run with --execute to apply.`
+    ? `Rotated ${rotated} workspace key(s); re-encrypted ${reEncrypted} connection string(s).`
+    : `Dry run: ${rotated} workspace key(s) ready to rotate, ${reEncrypted} connection string(s) verified decryptable. Re-run with --execute to apply.`
 )
 
 if (failures.length) {
-  console.error(`${failures.length} user(s) skipped; resolve before rerunning.`)
+  console.error(
+    `${failures.length} workspace(s) skipped; resolve before rerunning.`
+  )
   process.exit(1)
 }
 

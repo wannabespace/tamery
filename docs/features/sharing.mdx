@@ -9,7 +9,7 @@ A share is a link like `share.tamery.app/…` that shows one table's rows to any
 
 ## Share a table
 
-Sharing needs a Tamery account and a connection synced with **Full** (see [Security](/connections/security)), since Tamery's servers read the rows from your database each time the link refreshes.
+Sharing needs a Tamery account and a connection synced with **Full** (see [Security](/connections/security)), since Tamery's servers read the rows from your database each time the link refreshes. In a [shared workspace](/features/workspaces#share-a-workspace), viewers can't share its tables: **Share** shows **Editors only**.
 
 1. Open the table and set it up the way you want it seen: filters, hidden columns, column order and sort.
 2. Open the **⋯** menu in the table toolbar and choose **Share**.
@@ -37,7 +37,7 @@ Choose **Share** in the same menu to copy a link or change it. The dialog opens 
 
 **Manage shares** in the dialog, or **Shares** in the account menu, opens [share.tamery.app](https://share.tamery.app), which lists every shared link once you sign in there with your Tamery account. A share whose rows stopped loading for viewers is marked there. Viewers of such a link see that the database is not answering, with **Try again** to load the rows once it is back. When only a later batch of rows fails, viewers keep the rows they have and get **Try again** at the bottom of the table. Click **Stop sharing** to turn a link off for everyone.
 
-Deleting a connection stops sharing its tables.
+Deleting a connection stops sharing its tables. In a [shared workspace](/features/workspaces#leave-or-remove-someone), your shares of its connections also stop when you leave it, are removed, or become a viewer.
 
 ## Limits
 

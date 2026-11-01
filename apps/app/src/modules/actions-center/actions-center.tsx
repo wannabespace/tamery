@@ -48,8 +48,8 @@ import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list
 import { openTab } from '~/core/tabs/actions'
 import { tableTabId } from '~/core/tabs/ids'
 import { schemaGroups } from '~/core/tabs/kinds'
-import { checkOrUpgrade } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
+import { checkCanAddConnection } from '~/core/workspace/utils'
 import { globalHooks } from '~/lib/global-hooks'
 import { posthog } from '~/lib/posthog'
 import { chatCommands } from '~/modules/chat/commands'
@@ -401,9 +401,8 @@ export const ActionsCenter = () => {
           ['new', 'create', 'database'],
           DatabaseAddIcon,
           () =>
-            checkOrUpgrade('connection.create', {
-              count: connectionsCollection.size,
-            }) && router.navigate({ to: '/create' })
+            checkCanAddConnection(connectionsCollection.size) &&
+            router.navigate({ to: '/create' })
         ),
         ...connections,
       ],

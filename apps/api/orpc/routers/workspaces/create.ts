@@ -2,6 +2,7 @@ import { db } from '@tamery/db'
 import { members, workspaces } from '@tamery/db/schema'
 import { type } from 'arktype'
 
+import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { workspaceSlug } from '~/lib/workspace'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
@@ -30,8 +31,9 @@ export const create = orpc
         userId: context.user.id,
         workspaceId: row.id,
       })
+      await workspaceEncryptionKey.create(row.id, tx)
 
-      return row
+      return { ...row, role: 'owner' as const }
     })
 
     publisher.publish(context.user.id, {

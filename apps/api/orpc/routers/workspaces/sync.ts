@@ -1,16 +1,23 @@
 import { db } from '@tamery/db'
-import { members, workspaces, workspacesSelectSchema } from '@tamery/db/schema'
+import { members, workspaces } from '@tamery/db/schema'
 import { type } from 'arktype'
 import { addSeconds } from 'date-fns'
 import type { SQL } from 'drizzle-orm'
-import { and, eq, gte, inArray, notInArray, or } from 'drizzle-orm'
+import { and, eq, gte, inArray, notInArray, or, sql } from 'drizzle-orm'
 
 import { authMiddleware, orpc } from '~/orpc'
-import { createSyncOutputSchema, syncDiff } from '~/orpc/lib/sync'
+import { syncDiff } from '~/orpc/lib/sync'
 
-const output = createSyncOutputSchema(workspacesSelectSchema).array()
+import { output as eventOutput } from './events'
 
-const memberWorkspaces = (userId: string, filter?: SQL) =>
+const output = eventOutput.array()
+
+const updatedAt =
+  sql<Date>`greatest(${workspaces.updatedAt}, ${members.updatedAt})`.mapWith(
+    workspaces.updatedAt
+  )
+
+export const workspaceRows = (userId: string, filter?: SQL) =>
   db
     .select({
       createdAt: workspaces.createdAt,
@@ -18,8 +25,9 @@ const memberWorkspaces = (userId: string, filter?: SQL) =>
       logo: workspaces.logo,
       metadata: workspaces.metadata,
       name: workspaces.name,
+      role: members.role,
       slug: workspaces.slug,
-      updatedAt: workspaces.updatedAt,
+      updatedAt,
     })
     .from(workspaces)
     .innerJoin(members, eq(members.workspaceId, workspaces.id))
@@ -52,15 +60,15 @@ export const sync = orpc
             )
             .then((rows) => rows.map((row) => row.id)),
         new: (excludeIds) =>
-          memberWorkspaces(userId, notInArray(workspaces.id, excludeIds)),
+          workspaceRows(userId, notInArray(workspaces.id, excludeIds)),
         updated: (items) =>
-          memberWorkspaces(
+          workspaceRows(
             userId,
             or(
               ...items.map((item) =>
                 and(
                   eq(workspaces.id, item.id),
-                  gte(workspaces.updatedAt, addSeconds(item.updatedAt, 1))
+                  gte(updatedAt, addSeconds(item.updatedAt, 1))
                 )
               )
             )

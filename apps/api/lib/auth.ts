@@ -9,7 +9,11 @@ import {
   SOCIAL_PROVIDER_LABELS,
 } from '@tamery/shared/constants'
 import { formatDeviceLabel } from '@tamery/shared/device-label'
-import { getPermissions } from '@tamery/shared/permissions'
+import {
+  invitableRole,
+  isDefaultWorkspaceMetadata,
+} from '@tamery/shared/workspace'
+import type { WorkspaceRole } from '@tamery/shared/workspace'
 import type { Session } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { emailHarmony } from 'better-auth-harmony'
@@ -22,20 +26,29 @@ import {
   organization,
   twoFactor,
 } from 'better-auth/plugins'
+import { createAccessControl } from 'better-auth/plugins/access'
+import {
+  defaultStatements,
+  ownerAc,
+} from 'better-auth/plugins/organization/access'
 import { eq } from 'drizzle-orm'
 
 import { env, nodeEnv } from '~/env'
-import { userEncryptionKey } from '~/lib/encryption-key'
 import { locateIp } from '~/lib/geo-ip'
 import { posthog } from '~/lib/posthog'
 import { resend, sendEmail } from '~/lib/resend'
 
 import { requireEarlyAccess, requireUserEarlyAccess } from './early-access'
 import { redisMemoize } from './redis'
-import { getSubscription } from './subscription'
-import { ensureDefaultWorkspace } from './workspace'
+import {
+  deleteSoleMemberWorkspaces,
+  ensureDefaultWorkspace,
+  getLastOwnedSharedWorkspaceName,
+} from './workspace'
 
 const twoFactorPlugin = twoFactor({ allowPasswordless: true })
+
+const workspaceAccess = createAccessControl(defaultStatements)
 
 const providerLabels: Partial<Record<string, string>> = SOCIAL_PROVIDER_LABELS
 
@@ -92,6 +105,17 @@ export const auth = betterAuth({
   appName: 'Tamery',
   basePath: '/auth',
   baseURL: env.API_URL,
+  // Membership changes go through the workspaces oRPC procedures only: they sync members' devices and revoke shares, which these endpoints would skip.
+  disabledPaths: [
+    '/organization/accept-invitation',
+    '/organization/cancel-invitation',
+    '/organization/invite-member',
+    '/organization/leave',
+    '/organization/reject-invitation',
+    '/organization/remove-member',
+    '/organization/update',
+    '/organization/update-member-role',
+  ],
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema,
@@ -159,15 +183,6 @@ export const auth = betterAuth({
             request.signUp = true
           }
 
-          await userEncryptionKey.create(user.id).catch(async (error) => {
-            console.error(
-              `Failed to create user encryption key: ${error instanceof Error ? error.message : error}`,
-              error instanceof Error && error.cause ? error.cause : undefined
-            )
-            await db.delete(users).where(eq(users.id, user.id))
-            throw error
-          })
-
           posthog?.capture({
             distinctId: user.id,
             event: 'signed_up',
@@ -187,6 +202,9 @@ export const auth = betterAuth({
             })
           }
         },
+      },
+      delete: {
+        before: (user) => deleteSoleMemberWorkspaces(user.id),
       },
       update: {
         after: async (user, context) => {
@@ -331,12 +349,33 @@ export const auth = betterAuth({
       },
     }),
     organization({
-      allowUserToCreateOrganization: async (user) =>
-        getPermissions({
-          subscription: await getSubscription(user.id),
-          user: { isAnonymous: user.isAnonymous },
-        }).workspace.create === true,
+      allowUserToCreateOrganization: false,
       disableOrganizationDeletion: true,
+      organizationHooks: {
+        beforeCreateInvitation: async ({ organization: workspace }) => {
+          const row = await db.query.workspaces.findFirst({
+            columns: { metadata: true },
+            where: { id: { eq: workspace.id } },
+          })
+
+          if (row && isDefaultWorkspaceMetadata(row.metadata)) {
+            throw APIError.from('FORBIDDEN', {
+              code: 'PERSONAL_WORKSPACE',
+              message:
+                'Your Personal workspace can’t be shared. Create a workspace to invite people.',
+            })
+          }
+        },
+      },
+      roles: {
+        admin: workspaceAccess.newRole({
+          invitation: ['create', 'cancel'],
+          member: ['create', 'update', 'delete'],
+        }),
+        editor: workspaceAccess.newRole({}),
+        owner: workspaceAccess.newRole(ownerAc.statements),
+        viewer: workspaceAccess.newRole({}),
+      } satisfies Record<WorkspaceRole, unknown>,
       schema: {
         invitation: {
           fields: {
@@ -356,6 +395,25 @@ export const auth = betterAuth({
             activeOrganizationId: 'activeWorkspaceId',
           },
         },
+      },
+      sendInvitationEmail: async ({
+        email,
+        id,
+        inviter,
+        organization: workspace,
+        role,
+      }) => {
+        await sendEmail({
+          props: {
+            inviterName: inviter.user.name,
+            role: invitableRole.assert(role),
+            url: `${env.MAIN_URL}/invitation/${id}`,
+            workspaceName: workspace.name,
+          },
+          subject: `${inviter.user.name} invited you to ${workspace.name} on Tamery`,
+          template: 'WorkspaceInvitation',
+          to: email,
+        })
       },
     }),
     lastLoginMethod(),
@@ -408,6 +466,17 @@ export const auth = betterAuth({
           }),
           resend?.contacts.remove({ email: user.email }),
         ])
+      },
+      // Not the database delete hook: Better Auth deletes the user's sessions and accounts before that one runs, so refusing there would sign them out of an account it keeps.
+      beforeDelete: async (user) => {
+        const lastOwned = await getLastOwnedSharedWorkspaceName(user.id)
+
+        if (lastOwned) {
+          throw APIError.from('BAD_REQUEST', {
+            code: 'LAST_WORKSPACE_OWNER',
+            message: `Make another member an owner of ${lastOwned} before deleting your account.`,
+          })
+        }
       },
       enabled: true,
     },

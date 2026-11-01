@@ -30,6 +30,11 @@ import { isShortcutAvailable } from '~/core/keyboard/shortcuts'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import { checkOrUpgrade, usePermissions } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
+import {
+  checkCanAddConnection,
+  isViewOnly,
+  VIEW_ONLY_MESSAGE,
+} from '~/core/workspace/utils'
 
 import { ConnectionCard } from './connection-card'
 import { Empty } from './connections-empty'
@@ -88,12 +93,13 @@ export const ConnectionsList = () => {
     },
   })
 
-  const canCreate = usePermissions().check('connection.create', {
-    count: data.length,
-  })
+  const viewOnly = isViewOnly(activeWorkspace)
+  const canCreate =
+    usePermissions().check('connection.create', { count: data.length }) &&
+    !viewOnly
   const navigate = useNavigate()
   useShortcut('newConnection', () => {
-    if (checkOrUpgrade('connection.create', { count: data.length })) {
+    if (checkCanAddConnection(data.length)) {
       void navigate({ to: '/create' })
     }
   })
@@ -253,7 +259,9 @@ export const ConnectionsList = () => {
               />
               New connection
             </TooltipTrigger>
-            <TooltipContent>New connection</TooltipContent>
+            <TooltipContent>
+              {viewOnly ? VIEW_ONLY_MESSAGE : 'New connection'}
+            </TooltipContent>
           </Tooltip>
         </div>
       ) : (

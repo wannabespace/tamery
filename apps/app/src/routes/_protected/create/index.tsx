@@ -8,26 +8,29 @@ import { canQueryConnection } from '~/core/connection/fetching'
 import { createConnection } from '~/core/connection/save'
 import { permix } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
+import { workspaceSelection } from '~/core/workspace/utils'
 import { posthog } from '~/lib/posthog'
 import { ConnectionPage } from '~/modules/connection-form/components/connection-page'
 
 const CreateConnectionPage = () => {
-  const { data: activeWorkspace } = useActiveWorkspace()
+  const { data: activeWorkspace, workspaces } = useActiveWorkspace()
   const router = useRouter()
 
   return (
     <ConnectionPage
       mode={{ kind: 'create' }}
       onSave={async (connection, { origin, syncType, testFailed }) => {
-        if (!activeWorkspace) {
+        const workspace = workspaceSelection.target(workspaces)
+        if (!workspace) {
           throw new Error('Workspace is still loading. Please try again.')
         }
 
         const { id, resourceId } = await createConnection({
           ...connection,
           syncType,
-          workspaceId: activeWorkspace.id,
+          workspaceId: workspace.id,
         })
+        workspaceSelection.set(workspace.id)
         const saved = getCollections().connectionsCollection.get(id)
 
         await (!testFailed && saved && canQueryConnection(saved)
@@ -42,7 +45,11 @@ const CreateConnectionPage = () => {
           syncType,
           type: connection.type,
         })
-        toast.success('Connection created')
+        toast.success(
+          workspace.id === activeWorkspace?.id
+            ? 'Connection created'
+            : `Connection created in ${workspace.name}, since you can only view ${activeWorkspace?.name}`
+        )
       }}
     />
   )

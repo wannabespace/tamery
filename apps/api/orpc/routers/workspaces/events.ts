@@ -1,4 +1,5 @@
 import { workspacesSelectSchema } from '@tamery/db/schema'
+import { workspaceRole } from '@tamery/shared/workspace'
 
 import {
   createEventsEndpoint,
@@ -6,7 +7,9 @@ import {
   createSyncPublisher,
 } from '~/orpc/lib/sync'
 
-const output = createSyncOutputSchema(workspacesSelectSchema)
+export const output = createSyncOutputSchema(
+  workspacesSelectSchema.merge({ role: workspaceRole })
+)
 
 export const publisher = createSyncPublisher(
   output,
