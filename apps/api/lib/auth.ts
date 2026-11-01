@@ -43,7 +43,7 @@ import { redisMemoize } from './redis'
 import {
   deleteSoleMemberWorkspaces,
   ensureDefaultWorkspace,
-  lastOwnedSharedWorkspaces,
+  getLastOwnedSharedWorkspaceName,
 } from './workspace'
 
 const twoFactorPlugin = twoFactor({ allowPasswordless: true })
@@ -204,9 +204,7 @@ export const auth = betterAuth({
         },
       },
       delete: {
-        before: async (user) => {
-          await deleteSoleMemberWorkspaces(user.id)
-        },
+        before: (user) => deleteSoleMemberWorkspaces(user.id),
       },
       update: {
         after: async (user, context) => {
@@ -471,7 +469,7 @@ export const auth = betterAuth({
       },
       // Not the database delete hook: Better Auth deletes the user's sessions and accounts before that one runs, so refusing there would sign them out of an account it keeps.
       beforeDelete: async (user) => {
-        const [lastOwned] = await lastOwnedSharedWorkspaces(user.id)
+        const lastOwned = await getLastOwnedSharedWorkspaceName(user.id)
 
         if (lastOwned) {
           throw APIError.from('BAD_REQUEST', {

@@ -9,8 +9,8 @@ import {
 import { cn } from '@tamery/ui/lib/utils'
 
 import { Link } from '~/components/link'
-import { useIsViewOnlyWorkspace } from '~/core/workspace/hooks'
-import { VIEW_ONLY_MESSAGE } from '~/core/workspace/utils'
+import { useActiveWorkspace } from '~/core/workspace/hooks'
+import { isViewOnly, VIEW_ONLY_MESSAGE } from '~/core/workspace/utils'
 
 const GhostRow = ({
   nameWidth,
@@ -80,7 +80,7 @@ export const Empty = () => (
 )
 
 const NewConnectionButton = () => {
-  const viewOnly = useIsViewOnlyWorkspace()
+  const viewOnly = isViewOnly(useActiveWorkspace().data)
 
   return (
     <Tooltip disabled={!viewOnly}>

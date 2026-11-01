@@ -19,14 +19,11 @@ export const remove = orpc
     FORBIDDEN: { message: 'Only editors can remove connections.' },
   })
   .handler(async ({ context, errors, input: { id } }) => {
+    const where = eq(connections.id, id)
+
     const [removed] = await db
       .delete(connections)
-      .where(
-        and(
-          eq(connections.id, id),
-          inEditableWorkspace(context.user.id)(connections)
-        )
-      )
+      .where(and(where, inEditableWorkspace(context.user.id)(connections)))
       .returning({ workspaceId: connections.workspaceId })
 
     if (removed) {
@@ -40,10 +37,7 @@ export const remove = orpc
     if (
       await db.$count(
         connections,
-        and(
-          eq(connections.id, id),
-          inMemberWorkspace(context.user.id)(connections)
-        )
+        and(where, inMemberWorkspace(context.user.id)(connections))
       )
     ) {
       throw errors.FORBIDDEN()

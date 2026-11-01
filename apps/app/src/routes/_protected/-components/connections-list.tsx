@@ -29,12 +29,10 @@ import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { isShortcutAvailable } from '~/core/keyboard/shortcuts'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import { checkOrUpgrade, usePermissions } from '~/core/user/permissions'
-import {
-  useActiveWorkspace,
-  useIsViewOnlyWorkspace,
-} from '~/core/workspace/hooks'
+import { useActiveWorkspace } from '~/core/workspace/hooks'
 import {
   checkCanAddConnection,
+  isViewOnly,
   VIEW_ONLY_MESSAGE,
 } from '~/core/workspace/utils'
 
@@ -95,11 +93,10 @@ export const ConnectionsList = () => {
     },
   })
 
-  const viewOnly = useIsViewOnlyWorkspace()
-  const withinPlan = usePermissions().check('connection.create', {
-    count: data.length,
-  })
-  const canCreate = !viewOnly && withinPlan
+  const viewOnly = isViewOnly(activeWorkspace)
+  const canCreate =
+    usePermissions().check('connection.create', { count: data.length }) &&
+    !viewOnly
   const navigate = useNavigate()
   useShortcut('newConnection', () => {
     if (checkCanAddConnection(data.length)) {

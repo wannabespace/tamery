@@ -157,11 +157,7 @@ export const publishToWorkspace = async <TPayload extends object>(
   publisher: Publisher<Record<string, TPayload>>,
   workspaceId: string,
   payload: TPayload
-) => {
-  await publishToUsers(publisher, await workspaceMemberIds(workspaceId), [
-    payload,
-  ])
-}
+) => publishToUsers(publisher, await workspaceMemberIds(workspaceId), [payload])
 
 /** A share reads its connection with the workspace's key, so it must not outlive its author's right to edit that workspace. */
 export const revokeNonEditorShares = async (workspaceId: string) => {
@@ -189,8 +185,8 @@ export const revokeNonEditorShares = async (workspaceId: string) => {
   )
 }
 
-export const lastOwnedSharedWorkspaces = async (userId: string) => {
-  const rows = await db
+export const getLastOwnedSharedWorkspaceName = async (userId: string) => {
+  const [row] = await db
     .select({ name: workspaces.name })
     .from(workspaces)
     .innerJoin(members, eq(members.workspaceId, workspaces.id))
@@ -207,23 +203,23 @@ export const lastOwnedSharedWorkspaces = async (userId: string) => {
         sql`count(*) filter (where ${members.role} = 'owner') = 1`
       )
     )
+    .limit(1)
 
-  return rows.map((row) => row.name)
+  return row?.name ?? null
 }
 
 export const deleteSoleMemberWorkspaces = async (userId: string) => {
-  const soleMember = db
-    .select({ id: members.workspaceId })
-    .from(members)
-    .groupBy(members.workspaceId)
-    .having(sql`count(*) = 1`)
-
-  await db
-    .delete(workspaces)
-    .where(
-      and(
-        inArray(workspaces.id, memberWorkspaces(userId)),
-        inArray(workspaces.id, soleMember)
+  await db.delete(workspaces).where(
+    and(
+      inArray(workspaces.id, memberWorkspaces(userId)),
+      inArray(
+        workspaces.id,
+        db
+          .select({ id: members.workspaceId })
+          .from(members)
+          .groupBy(members.workspaceId)
+          .having(sql`count(*) = 1`)
       )
     )
+  )
 }

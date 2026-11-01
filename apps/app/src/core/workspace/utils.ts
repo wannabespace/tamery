@@ -38,9 +38,7 @@ export const workspaceSelection = {
     const current = workspaceSelection.current(workspaces)
 
     return isViewOnly(current)
-      ? (workspaces.find((workspace) =>
-          isDefaultWorkspaceMetadata(workspace.metadata)
-        ) ?? null)
+      ? workspaceSelection.resolve(workspaces, null)
       : current
   },
   set: (workspaceId: string) => {

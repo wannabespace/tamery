@@ -9,11 +9,7 @@ export const openedInvitationId = createStore<string | null>(null)
 export const useInvitations = () => {
   const isAnonymous = useIsAnonymous()
   const { data = [] } = useQuery(
-    orpc.workspaces.invitations.queryOptions({
-      enabled: !isAnonymous,
-      // Nothing pushes a new invitation, so an open app finds it when the window regains focus.
-      staleTime: 0,
-    })
+    orpc.workspaces.invitations.queryOptions({ enabled: !isAnonymous })
   )
 
   return data

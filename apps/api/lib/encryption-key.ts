@@ -1,9 +1,9 @@
+import type { relations } from '@tamery/db'
 import { db } from '@tamery/db'
 import { workspaceEncryptionKeys } from '@tamery/db/schema'
 import { eq } from 'drizzle-orm'
+import type { NodePgTransaction } from 'drizzle-orm/node-postgres'
 import { nanoid } from 'nanoid'
-
-type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 const select = (executor: Pick<typeof db, 'select'>, workspaceId: string) =>
   executor
@@ -12,10 +12,7 @@ const select = (executor: Pick<typeof db, 'select'>, workspaceId: string) =>
     .where(eq(workspaceEncryptionKeys.workspaceId, workspaceId))
     .limit(1)
 
-const secretOrThrow = (
-  [row]: { secret: string }[],
-  workspaceId: string
-): string => {
+const secretOrThrow = ([row]: { secret: string }[], workspaceId: string) => {
   if (!row) {
     throw new Error(`No encryption key for workspace ${workspaceId}`)
   }
@@ -35,7 +32,10 @@ export const workspaceEncryptionKey = {
   /**
    * The key a write encrypts under, held until `tx` ends so a rotation cannot replace it under the write. Lock the connection rows first: the rotation locks rows, then the key, and the other order deadlocks with it.
    */
-  async getLocked(tx: Transaction, workspaceId: string) {
+  async getLocked(
+    tx: NodePgTransaction<typeof relations>,
+    workspaceId: string
+  ) {
     return secretOrThrow(
       await select(tx, workspaceId).for('share'),
       workspaceId

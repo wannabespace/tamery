@@ -10,7 +10,6 @@ import {
 } from '@tanstack/react-router'
 
 import { orpc } from '~/lib/orpc'
-import { handleError } from '~/utils/error'
 
 import { OpenStatus } from '../open-status'
 
@@ -28,12 +27,10 @@ const InvitationPage = () => {
   const join = useMutation({
     meta: { event: 'workspace_invitation_accepted' },
     mutationFn: () => orpc.workspaces.acceptInvitation.call({ invitationId }),
-    onError: handleError,
   })
   const decline = useMutation({
     meta: { event: 'workspace_invitation_declined' },
     mutationFn: () => orpc.workspaces.rejectInvitation.call({ invitationId }),
-    onError: handleError,
   })
   const pending = join.isPending || decline.isPending
 

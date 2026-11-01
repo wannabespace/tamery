@@ -39,10 +39,8 @@ import { useConnectionResourceLinkParams } from '~/core/connection/use-connectio
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { connectionResourcesQueryOptions } from '~/core/queries/connection/resources'
 import { checkOrUpgrade, usePermissions } from '~/core/user/permissions'
-import {
-  useActiveWorkspace,
-  useIsViewOnlyWorkspace,
-} from '~/core/workspace/hooks'
+import { useActiveWorkspace } from '~/core/workspace/hooks'
+import { isViewOnly } from '~/core/workspace/utils'
 import { queryClient } from '~/lib/query-client'
 import { CommandPaletteButton } from '~/modules/actions-center/command-palette-button'
 import { OpenInWeb } from '~/modules/open-in-web/open-in-web'
@@ -72,12 +70,14 @@ const ConnectionSubMenu = ({
   currentResourceId,
   onRemove,
   onNavigate,
+  viewOnly,
 }: {
   group: ConnectionGroup
   lastResource: ConnectionResource
   currentResourceId: string | undefined
   onRemove: (connection: Connection) => void
   onNavigate: () => void
+  viewOnly: boolean
 }) => {
   const navigate = useNavigate()
   const lastResourceLink = useConnectionResourceLinkParams(lastResource.id)
@@ -136,6 +136,7 @@ const ConnectionSubMenu = ({
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
+          disabled={viewOnly}
           onClick={() => onRemove(connection)}
         >
           <HugeiconsIcon
@@ -144,6 +145,11 @@ const ConnectionSubMenu = ({
             className="size-4"
           />
           Remove
+          {viewOnly && (
+            <span className="text-muted-foreground ml-auto text-xs">
+              View only
+            </span>
+          )}
         </DropdownMenuItem>
       </DropdownMenuSubContent>
     </DropdownMenuSub>
@@ -167,7 +173,7 @@ const ConnectionsDropdown = ({
   const atGuestLimit = !usePermissions().check('connection.create', {
     count: groups.length,
   })
-  const viewOnly = useIsViewOnlyWorkspace()
+  const viewOnly = isViewOnly(useActiveWorkspace().data)
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -241,6 +247,7 @@ const ConnectionsDropdown = ({
               currentResourceId={currentResourceId}
               onRemove={onRemove}
               onNavigate={() => setOpen(false)}
+              viewOnly={viewOnly}
             />
           )
         })}

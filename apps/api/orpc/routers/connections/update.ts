@@ -23,7 +23,7 @@ export const update = orpc
   .handler(async ({ context, errors, input }) => {
     const { id, ...changes } = input
 
-    const connection = await db.transaction(async (tx) => {
+    const [connection] = await db.transaction(async (tx) => {
       // Locked until the write lands: a move committing in between would leave this string under the old workspace's key.
       const [found] = await tx
         .select()
@@ -50,7 +50,7 @@ export const update = orpc
         (found.connectionString &&
           decrypt({ encryptedText: found.connectionString, secret }))
 
-      const [updated] = await tx
+      return tx
         .update(connections)
         .set({
           ...changes,
@@ -62,8 +62,6 @@ export const update = orpc
         })
         .where(eq(connections.id, id))
         .returning(syncedColumns)
-
-      return updated
     })
 
     if (!connection) {

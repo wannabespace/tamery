@@ -18,21 +18,24 @@ const onlyWorkspaceIds = new Set(
 )
 
 const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
+  const selectRows = (executor: Pick<typeof db, 'select'>) =>
+    executor
+      .select({
+        connectionString: connections.connectionString,
+        id: connections.id,
+      })
+      .from(connections)
+      .where(
+        and(
+          eq(connections.workspaceId, workspaceId),
+          isNotNull(connections.connectionString)
+        )
+      )
+
   // Live rows load before the copies, so a connection deleted any time after is still a
   // live row the locked re-read below misses, aborting the workspace, instead of its copy
   // being left under the key the transaction replaces.
-  const rows = await db
-    .select({
-      connectionString: connections.connectionString,
-      id: connections.id,
-    })
-    .from(connections)
-    .where(
-      and(
-        eq(connections.workspaceId, workspaceId),
-        isNotNull(connections.connectionString)
-      )
-    )
+  const rows = await selectRows(db)
   const copyRows = await db
     .select({
       connectionString: copies
@@ -93,29 +96,14 @@ const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
 
   try {
     await db.transaction(async (tx) => {
-      const lockRows = () =>
-        tx
-          .select({
-            connectionString: connections.connectionString,
-            id: connections.id,
-          })
-          .from(connections)
-          .where(
-            and(
-              eq(connections.workspaceId, workspaceId),
-              isNotNull(connections.connectionString)
-            )
-          )
-          .for('update')
-
       // Rows, then the key, then the rows again: writers take the row before the key (`workspaceEncryptionKey.getLocked`), so the other order deadlocks, and only the read after the key lock sees a string a create or move wrote under the old key while this waited. That read is compared with what was decrypted, so an edit, move or delete since aborts the run.
-      await lockRows()
+      await selectRows(tx).for('update')
       await tx
         .select({ workspaceId: workspaceEncryptionKeys.workspaceId })
         .from(workspaceEncryptionKeys)
         .where(eq(workspaceEncryptionKeys.workspaceId, workspaceId))
         .for('update')
-      const locked = await lockRows()
+      const locked = await selectRows(tx).for('update')
       const unchanged =
         locked.length === plaintexts.length &&
         plaintexts.every(({ encryptedText, id }) =>

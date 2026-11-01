@@ -23,10 +23,8 @@ import { workspaceSelection } from '~/core/workspace/utils'
 import { orpc } from '~/lib/orpc'
 import { queryClient } from '~/lib/query-client'
 
-const close = () => openedInvitationId.set(null)
-
 const settle = () => {
-  close()
+  openedInvitationId.set(null)
   return queryClient.invalidateQueries({
     queryKey: orpc.workspaces.invitations.key(),
   })
@@ -63,7 +61,7 @@ export const WorkspaceInvitationDialog = () => {
   return (
     <Dialog
       open={!!invitation}
-      onOpenChange={(open) => !open && close()}
+      onOpenChange={(open) => !open && openedInvitationId.set(null)}
       onOpenChangeComplete={(open) => !open && setShown(null)}
     >
       {shown && (

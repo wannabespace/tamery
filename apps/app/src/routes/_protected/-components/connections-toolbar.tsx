@@ -21,11 +21,9 @@ import {
 import { useSubscription } from 'seitu/react'
 
 import { Link } from '~/components/link'
-import { useIsViewOnlyWorkspace } from '~/core/workspace/hooks'
-import {
-  checkCanAddConnection,
-  VIEW_ONLY_MESSAGE,
-} from '~/core/workspace/utils'
+import { checkOrUpgrade } from '~/core/user/permissions'
+import { useActiveWorkspace } from '~/core/workspace/hooks'
+import { isViewOnly, VIEW_ONLY_MESSAGE } from '~/core/workspace/utils'
 import { plural } from '~/utils/plural'
 
 import {
@@ -38,7 +36,7 @@ import {
 export const ConnectionsToolbar = ({ count }: { count: number }) => {
   const sort = useSubscription(sortValue)
   const grouping = useSubscription(groupValue)
-  const viewOnly = useIsViewOnlyWorkspace()
+  const viewOnly = isViewOnly(useActiveWorkspace().data)
 
   return (
     <div className="flex items-center justify-between gap-4">
@@ -104,7 +102,7 @@ export const ConnectionsToolbar = ({ count }: { count: number }) => {
                     <Link
                       to="/create"
                       onClick={(event) => {
-                        if (!checkCanAddConnection(count)) {
+                        if (!checkOrUpgrade('connection.create', { count })) {
                           event.preventDefault()
                         }
                       }}

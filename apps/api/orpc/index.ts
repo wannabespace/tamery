@@ -24,7 +24,6 @@ const CONFLICT_CODES: ReadonlySet<string> = new Set([
   'USER_IS_ALREADY_INVITED_TO_THIS_ORGANIZATION',
 ])
 
-// Better Auth's own wording says "organization"; these are the answers the workspaces procedures can reach.
 const WORKSPACE_ERROR_MESSAGES: Partial<Record<string, string>> = {
   INVITATION_LIMIT_REACHED: 'This workspace has too many open invitations.',
   INVITATION_NOT_FOUND:
