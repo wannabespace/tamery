@@ -11,7 +11,6 @@ import { anonymous, bearer, lastLoginMethod, organization, twoFactor } from 'bet
 import { eq } from 'drizzle-orm'
 
 import { env, nodeEnv } from '~/env'
-import { userEncryptionKey } from '~/lib/encryption-key'
 import { resend, sendEmail } from '~/lib/resend'
 
 import { redisMemoize } from './redis'
@@ -112,16 +111,15 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async user => {
-          await userEncryptionKey.create(user.id).catch(async error => {
+          // Creates the default workspace with its encryption key; without a key the user cannot store connections.
+          await ensureDefaultWorkspace(user.id).catch(async error => {
             console.error(
-              `Failed to create user encryption key: ${error instanceof Error ? error.message : error}`,
+              `Failed to create default workspace: ${error instanceof Error ? error.message : error}`,
               error instanceof Error && error.cause ? error.cause : undefined,
             )
             await db.delete(users).where(eq(users.id, user.id))
             throw error
           })
-
-          await ensureDefaultWorkspace(user.id)
 
           if (resend) {
             const [firstName, ...lastName] = user.name.split(' ')

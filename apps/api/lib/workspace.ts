@@ -1,5 +1,5 @@
 import { db } from '@conar/db'
-import { members, workspaces } from '@conar/db/schema'
+import { members, workspaceEncryptionKeys, workspaces } from '@conar/db/schema'
 import { and, asc, eq, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
@@ -43,6 +43,10 @@ export const ensureDefaultWorkspace = async (userId: string) =>
       .returning({ id: workspaces.id })
 
     await tx.insert(members).values({ role: 'owner', userId, workspaceId: workspace!.id })
+    // Same as Tamery's ensureDefaultWorkspace: every workspace gets its own key at creation.
+    await tx
+      .insert(workspaceEncryptionKeys)
+      .values({ secret: nanoid(), workspaceId: workspace!.id })
 
     return workspace!.id
   })

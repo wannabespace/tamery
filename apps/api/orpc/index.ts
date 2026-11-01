@@ -9,16 +9,19 @@ import { eq } from 'drizzle-orm'
 import { memoize } from 'memoza'
 
 import { auth } from '~/lib/auth'
-import { userEncryptionKey } from '~/lib/encryption-key'
+import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { redis } from '~/lib/redis'
 
 import type { Context } from './context'
 
 export const orpc = os.$context<Context>()
 
-export const getUserSecret = memoize((userId: string) => userEncryptionKey.get(userId), {
-  maxAge: 5 * 60 * 1000,
-}) // 5 minutes
+export const getUserSecret = memoize(
+  (userId: string) => workspaceEncryptionKey.getForUser(userId),
+  {
+    maxAge: 5 * 60 * 1000,
+  },
+) // 5 minutes
 
 async function getSession(headers: Headers) {
   const session = await auth.api.getSession({ headers })
