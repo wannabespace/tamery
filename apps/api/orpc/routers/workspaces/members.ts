@@ -6,14 +6,14 @@ import {
 import { type } from 'arktype'
 
 import { auth } from '~/lib/auth'
-import { orpc, workspaceAuthMiddleware } from '~/orpc'
+import { accountMiddleware, orpc } from '~/orpc'
 
 import { syncMembership } from './membership'
 
 const workspaceInput = type({ workspaceId: 'string.uuid.v7' })
 
 export const members = orpc
-  .use(workspaceAuthMiddleware)
+  .use(accountMiddleware)
   .input(workspaceInput)
   .handler(async ({ context: { headers, user }, input }) => {
     const query = { organizationId: input.workspaceId }
@@ -50,7 +50,7 @@ export const members = orpc
   })
 
 export const invite = orpc
-  .use(workspaceAuthMiddleware)
+  .use(accountMiddleware)
   .input(
     workspaceInput.merge({
       email: 'string.email',
@@ -69,14 +69,14 @@ export const invite = orpc
   })
 
 export const cancelInvitation = orpc
-  .use(workspaceAuthMiddleware)
+  .use(accountMiddleware)
   .input(type({ invitationId: 'string' }))
   .handler(async ({ context: { headers }, input }) => {
     await auth.api.cancelInvitation({ body: input, headers })
   })
 
 export const removeMember = orpc
-  .use(workspaceAuthMiddleware)
+  .use(accountMiddleware)
   .input(workspaceInput.merge({ memberId: 'string' }))
   .handler(async ({ context: { headers }, input }) => {
     const removed = await auth.api.removeMember({
@@ -91,7 +91,7 @@ export const removeMember = orpc
   })
 
 export const updateMemberRole = orpc
-  .use(workspaceAuthMiddleware)
+  .use(accountMiddleware)
   .input(
     workspaceInput.merge({
       memberId: 'string',
@@ -112,7 +112,7 @@ export const updateMemberRole = orpc
   })
 
 export const leave = orpc
-  .use(workspaceAuthMiddleware)
+  .use(accountMiddleware)
   .input(workspaceInput)
   .handler(async ({ context: { headers, user }, input }) => {
     await auth.api.leaveOrganization({

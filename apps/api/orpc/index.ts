@@ -123,29 +123,13 @@ export const authMiddleware = logMiddleware.use(
 
     context.addLogData({ userId: session.user.id })
 
-    return next({
-      context: {
-        ...session,
-        decryptConnectionString,
-      },
-    })
-  })
-)
-
-export const accountMiddleware = authMiddleware.use(({ context, next }) => {
-  if (context.user.isAnonymous) {
-    throw new ORPCError('FORBIDDEN', {
-      message: 'Sign in with an account to continue.',
-    })
-  }
-
-  return next()
-})
-
-export const workspaceAuthMiddleware = accountMiddleware.use(
-  async ({ next }) => {
     try {
-      return await next()
+      return await next({
+        context: {
+          ...session,
+          decryptConnectionString,
+        },
+      })
     } catch (error) {
       if (!isAPIError(error)) {
         throw error
@@ -158,8 +142,18 @@ export const workspaceAuthMiddleware = accountMiddleware.use(
         { message: WORKSPACE_ERROR_MESSAGES[code] ?? error.message }
       )
     }
-  }
+  })
 )
+
+export const accountMiddleware = authMiddleware.use(({ context, next }) => {
+  if (context.user.isAnonymous) {
+    throw new ORPCError('FORBIDDEN', {
+      message: 'Sign in with an account to continue.',
+    })
+  }
+
+  return next()
+})
 
 export const optionalAuthMiddleware = logMiddleware.use(
   orpc.middleware(async ({ context, next }) => {

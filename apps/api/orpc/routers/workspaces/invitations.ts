@@ -5,14 +5,14 @@ import { type } from 'arktype'
 import { inArray } from 'drizzle-orm'
 
 import { auth } from '~/lib/auth'
-import { orpc, workspaceAuthMiddleware } from '~/orpc'
+import { accountMiddleware, orpc } from '~/orpc'
 
 import { syncMembership } from './membership'
 
 const invitationInput = type({ invitationId: 'string' })
 
 export const invitations = orpc
-  .use(workspaceAuthMiddleware)
+  .use(accountMiddleware)
   .handler(async ({ context: { headers } }) => {
     const now = new Date()
     const all = await auth.api.listUserInvitations({ headers })
@@ -40,7 +40,7 @@ export const invitations = orpc
   })
 
 export const acceptInvitation = orpc
-  .use(workspaceAuthMiddleware)
+  .use(accountMiddleware)
   .input(invitationInput)
   .handler(async ({ context: { headers, user }, input }) => {
     const accepted = await auth.api.acceptInvitation({ body: input, headers })
@@ -51,7 +51,7 @@ export const acceptInvitation = orpc
   })
 
 export const rejectInvitation = orpc
-  .use(workspaceAuthMiddleware)
+  .use(accountMiddleware)
   .input(invitationInput)
   .handler(async ({ context: { headers }, input }) => {
     await auth.api.rejectInvitation({ body: input, headers })
