@@ -25,7 +25,7 @@ const adoptAnonymousUser = async (anonymousUserId: string, userId: string) => {
       .from(connections)
       .where(eq(connections.userId, anonymousUserId))
       .for('update')
-    const secret = await workspaceEncryptionKey.lock(tx, workspaceId)
+    const secret = await workspaceEncryptionKey.getLocked(tx, workspaceId)
 
     await tx
       .update(connections)
@@ -42,7 +42,7 @@ const adoptAnonymousUser = async (anonymousUserId: string, userId: string) => {
                 secret,
                 text: decrypt({
                   encryptedText: connectionString,
-                  secret: await workspaceEncryptionKey.lock(tx, from),
+                  secret: await workspaceEncryptionKey.getLocked(tx, from),
                 }),
               }),
             })

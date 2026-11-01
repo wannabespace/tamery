@@ -6,27 +6,25 @@ import {
 import { type } from 'arktype'
 
 import { auth } from '~/lib/auth'
-import { accountMiddleware, orpc, viaAuth } from '~/orpc'
+import { orpc, workspaceAuthMiddleware } from '~/orpc'
 
 import { syncMembership } from './membership'
 
 const workspaceInput = type({ workspaceId: 'string.uuid.v7' })
 
 export const members = orpc
-  .use(accountMiddleware)
+  .use(workspaceAuthMiddleware)
   .input(workspaceInput)
   .handler(async ({ context: { headers, user }, input }) => {
     const query = { organizationId: input.workspaceId }
-    const { members: rows } = await viaAuth(
-      auth.api.listMembers({ headers, query })
-    )
+    const { members: rows } = await auth.api.listMembers({ headers, query })
     const canManage = rows.some(
       (row) =>
         row.userId === user.id &&
         MEMBER_MANAGER_ROLES.includes(workspaceRole.assert(row.role))
     )
     const invitations = canManage
-      ? await viaAuth(auth.api.listInvitations({ headers, query }))
+      ? await auth.api.listInvitations({ headers, query })
       : []
     const now = new Date()
 
@@ -52,7 +50,7 @@ export const members = orpc
   })
 
 export const invite = orpc
-  .use(accountMiddleware)
+  .use(workspaceAuthMiddleware)
   .input(
     workspaceInput.merge({
       email: 'string.email',
@@ -60,44 +58,40 @@ export const invite = orpc
     })
   )
   .handler(async ({ context: { headers }, input }) => {
-    await viaAuth(
-      auth.api.createInvitation({
-        body: {
-          email: input.email,
-          organizationId: input.workspaceId,
-          role: input.role,
-        },
-        headers,
-      })
-    )
+    await auth.api.createInvitation({
+      body: {
+        email: input.email,
+        organizationId: input.workspaceId,
+        role: input.role,
+      },
+      headers,
+    })
   })
 
 export const cancelInvitation = orpc
-  .use(accountMiddleware)
+  .use(workspaceAuthMiddleware)
   .input(type({ invitationId: 'string' }))
   .handler(async ({ context: { headers }, input }) => {
-    await viaAuth(auth.api.cancelInvitation({ body: input, headers }))
+    await auth.api.cancelInvitation({ body: input, headers })
   })
 
 export const removeMember = orpc
-  .use(accountMiddleware)
+  .use(workspaceAuthMiddleware)
   .input(workspaceInput.merge({ memberId: 'string' }))
   .handler(async ({ context: { headers }, input }) => {
-    const removed = await viaAuth(
-      auth.api.removeMember({
-        body: {
-          memberIdOrEmail: input.memberId,
-          organizationId: input.workspaceId,
-        },
-        headers,
-      })
-    )
+    const removed = await auth.api.removeMember({
+      body: {
+        memberIdOrEmail: input.memberId,
+        organizationId: input.workspaceId,
+      },
+      headers,
+    })
 
     await syncMembership(removed.member.userId, input.workspaceId)
   })
 
 export const updateMemberRole = orpc
-  .use(accountMiddleware)
+  .use(workspaceAuthMiddleware)
   .input(
     workspaceInput.merge({
       memberId: 'string',
@@ -105,29 +99,25 @@ export const updateMemberRole = orpc
     })
   )
   .handler(async ({ context: { headers }, input }) => {
-    const member = await viaAuth(
-      auth.api.updateMemberRole({
-        body: {
-          memberId: input.memberId,
-          organizationId: input.workspaceId,
-          role: input.role,
-        },
-        headers,
-      })
-    )
+    const member = await auth.api.updateMemberRole({
+      body: {
+        memberId: input.memberId,
+        organizationId: input.workspaceId,
+        role: input.role,
+      },
+      headers,
+    })
 
     await syncMembership(member.userId, input.workspaceId)
   })
 
 export const leave = orpc
-  .use(accountMiddleware)
+  .use(workspaceAuthMiddleware)
   .input(workspaceInput)
   .handler(async ({ context: { headers, user }, input }) => {
-    await viaAuth(
-      auth.api.leaveOrganization({
-        body: { organizationId: input.workspaceId },
-        headers,
-      })
-    )
+    await auth.api.leaveOrganization({
+      body: { organizationId: input.workspaceId },
+      headers,
+    })
     await syncMembership(user.id, input.workspaceId)
   })

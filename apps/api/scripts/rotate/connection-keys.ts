@@ -108,7 +108,7 @@ const rotateWorkspace = async (workspaceId: string, oldKey: string) => {
           )
           .for('update')
 
-      // Rows, then the key, then the rows again: writers take the row before the key (`workspaceEncryptionKey.lock`), so the other order deadlocks, and only the read after the key lock sees a string a create or move wrote under the old key while this waited. That read is compared with what was decrypted, so an edit, move or delete since aborts the run.
+      // Rows, then the key, then the rows again: writers take the row before the key (`workspaceEncryptionKey.getLocked`), so the other order deadlocks, and only the read after the key lock sees a string a create or move wrote under the old key while this waited. That read is compared with what was decrypted, so an edit, move or delete since aborts the run.
       await lockRows()
       await tx
         .select({ workspaceId: workspaceEncryptionKeys.workspaceId })

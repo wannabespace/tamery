@@ -40,7 +40,10 @@ export const update = orpc
         throw errors.NOT_FOUND()
       }
 
-      const secret = await workspaceEncryptionKey.lock(tx, found.workspaceId)
+      const secret = await workspaceEncryptionKey.getLocked(
+        tx,
+        found.workspaceId
+      )
 
       const connectionString =
         changes.connectionString ??

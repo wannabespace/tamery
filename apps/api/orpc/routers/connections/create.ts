@@ -55,7 +55,7 @@ export const create = orpc
           ...input,
           connectionString: encryptConnectionString({
             connectionString: input.connectionString,
-            secret: await workspaceEncryptionKey.lock(tx, workspaceId),
+            secret: await workspaceEncryptionKey.getLocked(tx, workspaceId),
             syncType: input.syncType,
           }),
           userId: context.user.id,

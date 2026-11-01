@@ -35,7 +35,7 @@ export const workspaceEncryptionKey = {
   /**
    * The key a write encrypts under, held until `tx` ends so a rotation cannot replace it under the write. Lock the connection rows first: the rotation locks rows, then the key, and the other order deadlocks with it.
    */
-  async lock(tx: Transaction, workspaceId: string) {
+  async getLocked(tx: Transaction, workspaceId: string) {
     return secretOrThrow(
       await select(tx, workspaceId).for('share'),
       workspaceId

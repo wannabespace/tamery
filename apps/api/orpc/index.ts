@@ -58,23 +58,6 @@ const WORKSPACE_ERROR_MESSAGES: Partial<Record<string, string>> = {
     'Make another member an owner first: a workspace always keeps one.',
 }
 
-export const viaAuth = async <T>(promise: Promise<T>) => {
-  try {
-    return await promise
-  } catch (error) {
-    if (!isAPIError(error)) {
-      throw error
-    }
-
-    const code = error.body?.code ?? ''
-
-    throw new ORPCError(
-      CONFLICT_CODES.has(code) ? 'CONFLICT' : String(error.status),
-      { message: WORKSPACE_ERROR_MESSAGES[code] ?? error.message }
-    )
-  }
-}
-
 export const decryptConnectionString = async ({
   encryptedText,
   workspaceId,
@@ -158,6 +141,25 @@ export const accountMiddleware = authMiddleware.use(({ context, next }) => {
 
   return next()
 })
+
+export const workspaceAuthMiddleware = accountMiddleware.use(
+  async ({ next }) => {
+    try {
+      return await next()
+    } catch (error) {
+      if (!isAPIError(error)) {
+        throw error
+      }
+
+      const code = error.body?.code ?? ''
+
+      throw new ORPCError(
+        CONFLICT_CODES.has(code) ? 'CONFLICT' : String(error.status),
+        { message: WORKSPACE_ERROR_MESSAGES[code] ?? error.message }
+      )
+    }
+  }
+)
 
 export const optionalAuthMiddleware = logMiddleware.use(
   orpc.middleware(async ({ context, next }) => {

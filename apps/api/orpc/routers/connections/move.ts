@@ -50,8 +50,8 @@ export const move = orpc
         throw errors.FORBIDDEN()
       }
 
-      const from = await workspaceEncryptionKey.lock(tx, found.workspaceId)
-      const to = await workspaceEncryptionKey.lock(tx, input.workspaceId)
+      const from = await workspaceEncryptionKey.getLocked(tx, found.workspaceId)
+      const to = await workspaceEncryptionKey.getLocked(tx, input.workspaceId)
 
       await tx
         .update(connections)
