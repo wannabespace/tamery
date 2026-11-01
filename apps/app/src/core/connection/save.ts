@@ -93,12 +93,11 @@ export const saveConnectionString = async ({
       })
     }
   })
-  // Never awaited: an unreachable bridge must not hold up the save, and it asks again on its next query.
-  void silently(() => bridge.saveSecrets(connectionId))
-
   const settle = async () => {
     const persisted = await Result.tryPromise(() => tx.isPersisted.promise)
     if (persisted.isOk()) {
+      // After the server holds the row, which the bridge checks first. Never awaited: an unreachable bridge must not hold up the save.
+      void silently(() => bridge.saveSecrets(connectionId))
       if (resource && resource !== stored?.defaultResourceName) {
         rememberOpenedResource(connectionId, resource)
       }

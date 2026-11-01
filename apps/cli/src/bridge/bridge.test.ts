@@ -8,6 +8,7 @@ import { createORPCClient } from '@orpc/client'
 import { RPCLink } from '@orpc/client/fetch'
 import { querySerializer } from '@tamery/query-proxy/serializer'
 import { bridgeKey } from '@tamery/shared/bridge'
+import { sleep } from '@tamery/shared/utils'
 
 import type { BridgeRouter } from './router'
 
@@ -24,10 +25,14 @@ Object.assign(process.env, {
 fs.writeFileSync(path.join(home, 'bridge.key'), 'test-key')
 
 const ids = {
+  certificate: '0190a1b2-0000-7000-8000-000000000006',
+  tunnel: '0190a1b2-0000-7000-8000-000000000008',
   full: '0190a1b2-0000-7000-8000-000000000001',
   gone: '0190a1b2-0000-7000-8000-000000000004',
+  machineLogin: '0190a1b2-0000-7000-8000-000000000005',
   metadataOnly: '0190a1b2-0000-7000-8000-000000000002',
   noPassword: '0190a1b2-0000-7000-8000-000000000003',
+  unresolved: '0190a1b2-0000-7000-8000-000000000007',
 }
 
 const databaseFile = path.join(home, 'test.db')
@@ -41,17 +46,41 @@ const modified = (connectionString: string, isPasswordExists = false) => ({
   updatedAt: new Date(),
 })
 
+const certificateString =
+  'postgresql://user:secret@db.internal:5432/app?sslkey=/home/me/.ssh/id_rsa'
+const tunnelString =
+  'postgresql://user:secret@db.internal:5432/app?ssh_host=bastion.example.com&ssh_user=deploy&ssh_auth=agent'
+const machineLoginString =
+  'mongodb://db.example.com/app?authMechanism=MONGODB-AWS'
+
 const serverCopies: Record<string, unknown> = {
+  [ids.certificate]: modified(certificateString),
+  [ids.tunnel]: modified(tunnelString),
   [ids.full]: modified(sqliteString),
   [ids.gone]: { status: 'not-found' },
+  [ids.machineLogin]: modified(machineLoginString),
   [ids.metadataOnly]: { status: 'unchanged' },
   [ids.noPassword]: modified('postgresql://user:@db.internal:5432/app', true),
+  [ids.unresolved]: { status: 'unchanged' },
 }
 let apiDown = false
+let attestDown = false
+const attested: string[] = []
 
 void mock.module('../api', () => ({
   account: {},
   api: {
+    account: {
+      bridge: {
+        attest: ({ nonce }: { nonce: string }) => {
+          if (attestDown) {
+            return Promise.reject(new Error('fetch failed'))
+          }
+          attested.push(nonce)
+          return Promise.resolve()
+        },
+      },
+    },
     connections: {
       resolve: ({ id }: { id: string }) =>
         apiDown
@@ -64,7 +93,9 @@ void mock.module('../api', () => ({
 const { createRouter } = await import('./router')
 const { serveBridge } = await import('./server')
 const { pairings } = await import('./pairings')
+const { approvals } = await import('./approvals')
 const { vault } = await import('../vault')
+const { configFiles } = await import('../config-files')
 
 const server = serveBridge({
   port: 0,
@@ -86,12 +117,28 @@ const createClient = (secret: string | null): BridgeRouter =>
     })
   )
 
-const pair = () =>
+/** Plays the person at the terminal: answers the next request to arrive. */
+const answer = async (allowed: boolean) => {
+  while (approvals.waiting().length === 0) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- waiting for the request to arrive
+    await sleep(10)
+  }
+  const [request] = approvals.waiting()
+  approvals.decide(request?.id ?? '', allowed)
+}
+
+const requestAccess = (overrides: { userId?: string } = {}) =>
   createClient(null).bridge.pair({
-    code: pairings.issueCode(),
     label: 'Test browser',
+    nonce: bridgeKey.nonce(),
     userId: USER_ID,
+    ...overrides,
   })
+
+const pair = async () => {
+  const [pairing] = await Promise.all([requestAccess(), answer(true)])
+  return pairing
+}
 
 const expectError = async (call: Promise<unknown>, code: string) => {
   const error = await call.then(
@@ -145,20 +192,34 @@ describe('requests', () => {
 })
 
 describe('pairing', () => {
-  test('a code pairs once', async () => {
-    const code = pairings.issueCode()
-    const input = { code, label: '', userId: USER_ID }
-    await createClient(null).bridge.pair(input)
-    await expectError(createClient(null).bridge.pair(input), 'INVALID_CODE')
+  test('a browser allowed at the terminal is paired, its nonce attested to Tamery', async () => {
+    const before = attested.length
+    const pairing = await pair()
+    expect(attested.length).toBe(before + 1)
+    expect(pairings.getHash(pairing.browserId)).toBe(
+      bridgeKey.hash(pairing.secret)
+    )
   })
 
-  test('a browser signed in to another account is refused and the code survives', async () => {
-    const code = pairings.issueCode()
-    await expectError(
-      createClient(null).bridge.pair({ code, label: '', userId: 'someone' }),
-      'OTHER_ACCOUNT'
-    )
-    expect(pairings.isCode(code)).toBe(true)
+  test('a declined browser gets nothing', async () => {
+    const before = pairings.count()
+    await Promise.all([expectError(requestAccess(), 'DECLINED'), answer(false)])
+    expect(pairings.count()).toBe(before)
+  })
+
+  test('a browser signed in to another account is refused before anyone is asked', async () => {
+    await expectError(requestAccess({ userId: 'someone' }), 'OTHER_ACCOUNT')
+    expect(approvals.waiting()).toHaveLength(0)
+  })
+
+  test('a request Tamery cannot attest is refused before anyone is asked', async () => {
+    attestDown = true
+    try {
+      await expectError(requestAccess(), 'NOT_ATTESTED')
+    } finally {
+      attestDown = false
+    }
+    expect(approvals.waiting()).toHaveLength(0)
   })
 
   test('hello proves the bridge holds the browser key', async () => {
@@ -187,6 +248,22 @@ describe('pairing', () => {
     )
   })
 
+  test('unpairing from another process reaches the running bridge', async () => {
+    const before = fs.readFileSync(configFiles.pairings, 'utf-8')
+    const { secret } = await pair()
+    fs.writeFileSync(configFiles.pairings, before)
+    await expectError(createClient(secret).bridge.unpair(), 'UNAUTHORIZED')
+    configFiles.remove(configFiles.pairings)
+    try {
+      await expectError(
+        createClient(paired.secret).bridge.unpair(),
+        'UNAUTHORIZED'
+      )
+    } finally {
+      fs.writeFileSync(configFiles.pairings, before)
+    }
+  })
+
   test('an unpaired browser is refused from then on', async () => {
     const { secret } = await pair()
     await createClient(secret).bridge.unpair()
@@ -201,12 +278,95 @@ describe('pairing', () => {
 })
 
 describe('connections', () => {
-  test('a Full connection runs from the server copy', async () => {
-    const { result } = await createClient(paired.secret).query.sqlite.execute({
+  test('a synced SQLite file runs only once its path is saved on the bridge', async () => {
+    const client = createClient(paired.secret)
+    const run = () =>
+      client.query.sqlite.execute({
+        connectionId: ids.full,
+        query: 'select 1 as one',
+      })
+    await expectError(run(), 'UNCONFIRMED')
+    await client.bridge.saveSecrets({
       connectionId: ids.full,
-      query: 'select 1 as one',
+      connectionString: `sqlite://${path.join(home, 'other.db')}`,
     })
+    await expectError(run(), 'UNCONFIRMED')
+    await client.bridge.saveSecrets({
+      connectionId: ids.full,
+      connectionString: sqliteString,
+    })
+    const { result } = await run()
     expect(JSON.stringify(result)).toContain('one')
+  })
+
+  test('a synced certificate file or machine login is refused until saved on the bridge', async () => {
+    const client = createClient(paired.secret)
+    await expectError(
+      client.query.postgres.execute({
+        connectionId: ids.certificate,
+        query: 'select 1',
+      }),
+      'UNCONFIRMED'
+    )
+    await expectError(
+      client.query.mongodb.execute({
+        connectionId: ids.machineLogin,
+        query: 'db.users.find()',
+      }),
+      'UNCONFIRMED'
+    )
+    await client.bridge.saveSecrets({
+      connectionId: ids.machineLogin,
+      connectionString:
+        'mongodb://elsewhere.example.com/app?authMechanism=MONGODB-AWS',
+    })
+    await expectError(
+      client.query.mongodb.execute({
+        connectionId: ids.machineLogin,
+        query: 'db.users.find()',
+      }),
+      'UNCONFIRMED'
+    )
+  })
+
+  test("a synced SSH tunnel is refused until saved on the bridge, since it uses this computer's keys", async () => {
+    await expectError(
+      createClient(paired.secret).query.postgres.execute({
+        connectionId: ids.tunnel,
+        query: 'select 1',
+      }),
+      'UNCONFIRMED'
+    )
+  })
+
+  test('secrets are saved only for a connection Tamery confirms', async () => {
+    const client = createClient(paired.secret)
+    await expectError(
+      client.bridge.saveSecrets({
+        connectionId: ids.gone,
+        connectionString: sqliteString,
+      }),
+      'NOT_FOUND'
+    )
+    await expect(
+      client.bridge.saveSecrets({
+        connectionId: '6f1c2b3a-0000-4000-8000-000000000001',
+        connectionString: sqliteString,
+      })
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+    apiDown = true
+    try {
+      await expect(
+        client.bridge.saveSecrets({
+          connectionId: ids.unresolved,
+          connectionString: sqliteString,
+        })
+      ).rejects.toThrow()
+    } finally {
+      apiDown = false
+    }
+    expect(await vault.connection(ids.gone)).toBeNull()
+    expect(await vault.connection(ids.unresolved)).toBeNull()
   })
 
   test('a Metadata only connection asks for everything, then runs from the saved copy', async () => {

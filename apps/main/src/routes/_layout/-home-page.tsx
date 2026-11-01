@@ -4,6 +4,7 @@ import { Share } from '~/modules/features/share'
 import { Pricing } from '~/modules/pricing/pricing'
 
 import { Agents } from './-components/agents'
+import { Bridge } from './-components/bridge'
 import { Engines } from './-components/engines'
 import { Faq } from './-components/faq'
 import { GetStarted } from './-components/get-started'
@@ -19,6 +20,7 @@ export const HomePage = () => (
     <Agents />
     <Share />
     <Security />
+    <Bridge />
     <Pricing />
     <Faq />
     <GetStarted />

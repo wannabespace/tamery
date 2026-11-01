@@ -2,10 +2,10 @@ import { FolderOpenIcon } from '@hugeicons/core-free-icons'
 import { DEFAULT_PORTS } from '@tamery/connection/connection-parts'
 import { isLocalHost } from '@tamery/connection/hosts'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
+import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { FieldGroup } from '@tamery/ui/components/field'
-import { useSubscription } from 'seitu/react'
 
-import { bridgePairing } from '~/core/runtime/bridge/pairing'
+import { useActivePairing } from '~/core/runtime/bridge/pairing'
 import { posthog } from '~/lib/posthog'
 
 import type {
@@ -27,7 +27,7 @@ export const ConnectionFields = ({
   values: Pick<ConnectionFormValues, 'host' | 'provider' | 'type'>
 }) => {
   const sqliteFile = isSqliteFile(values)
-  const bridge = useSubscription(bridgePairing)
+  const bridge = useActivePairing()
 
   return (
     <>
@@ -88,7 +88,7 @@ export const ConnectionFields = ({
           ) : (
             <>
               The file opens on the computer running{' '}
-              <code className="font-mono">tamery bridge</code>.
+              <InlineCode>tamery bridge</InlineCode>.
             </>
           )}
         </Footnote>

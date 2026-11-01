@@ -5,7 +5,7 @@ import { getCollections } from '~/core/collections'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import { bridge } from '~/core/runtime/bridge/bridge'
 import type { BridgePairing } from '~/core/runtime/bridge/pairing'
-import { bridgePairing, getBridgeRoute } from '~/core/runtime/bridge/pairing'
+import { getActivePairing, getBridgeRoute } from '~/core/runtime/bridge/pairing'
 import { orpcProxy } from '~/lib/orpc'
 
 export interface DialectOptions {
@@ -65,7 +65,7 @@ export const createTransport = (dialect: Dialect, options: DialectOptions) => {
       throw new Error(config.reason ?? 'This connection is still loading.')
     }
 
-    const pairing = bridgePairing.get()
+    const pairing = getActivePairing()
     if (pairing && connectionId) {
       return { connectionId, pairing, via: 'bridge' }
     }

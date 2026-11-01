@@ -7,15 +7,31 @@ keywords: ['reference', 'options', 'arguments', 'usage', 'login']
 
 `tamery --help` (`-h`) lists every command. `tamery --version` (`-v`) prints the version.
 
+## tamery login
+
+```bash
+tamery login
+```
+
+Opens the browser to sign this computer in to your Tamery account, and prints the link in case it opens somewhere you are not looking. The link expires after 5 minutes. Confirm only if the page shows the code the terminal printed. If the computer is already signed in, it says which account.
+
+## tamery whoami
+
+```bash
+tamery whoami
+```
+
+Prints the account this computer is signed in to, or says it isn't signed in.
+
 ## tamery bridge
 
 ```bash
 tamery bridge
 ```
 
-Lets the web app run your connections on this computer until you press **Ctrl+C**. If the computer isn't signed in yet, it opens the browser to sign in first. [Tamery CLI](/cli/overview#run-the-bridge) walks through pairing.
+Lets the web app run your connections on this computer until you press **Ctrl+C**. If the computer isn't signed in yet, it signs in first, as `tamery login` does. [Tamery CLI](/cli/overview#run-the-bridge) walks through pairing.
 
-It prints the account, the address it listens on, a pairing link and code, a line for each browser that pairs, and requests it refused because of a wrong host or origin.
+It prints the account, the address it listens on and a link to connect a browser. When a browser clicks **Connect**, it asks you whether to allow it. It also reports requests it refused because of a wrong host or origin.
 
 | Flag | Use |
 | --- | --- |
@@ -24,13 +40,28 @@ It prints the account, the address it listens on, a pairing link and code, a lin
 
 If the port is taken, usually by another bridge, it says so and exits. Stop the other one or pass `--port`.
 
+## tamery bridge approve
+
+```bash
+tamery bridge approve
+```
+
+Answers for a bridge that runs without a terminal to ask in: a service, a container, a detached session, or output sent to a file. When `tamery bridge` runs in a terminal you can see, you don't need it: the question appears there.
+
+1. Keep the bridge running.
+2. On the same computer, run `tamery bridge approve`. It waits for a browser.
+3. In the web app, click **Connect** in **Settings → Bridge**.
+4. Answer the question in the `approve` terminal.
+
+The order of steps 2 and 3 doesn't matter, as long as you answer within 2 minutes of clicking **Connect**.
+
 ## tamery bridge unpair-all
 
 ```bash
 tamery bridge unpair-all
 ```
 
-Disconnects every paired browser. Each one needs a new pairing link from `tamery bridge`. Saved secrets stay.
+Disconnects every paired browser, also from a bridge that is already running. Each one needs to be allowed again. Saved secrets stay.
 
 ## tamery logout
 

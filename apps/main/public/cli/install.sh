@@ -38,6 +38,9 @@ resolve_version() {
     version=$(curl -fsSL https://registry.npmjs.org/-/package/tamery/dist-tags | sed -n 's/.*"latest": *"\([^"]*\)".*/\1/p')
   fi
   [ -n "$version" ] || fail "could not look up the latest version. Check your connection, or set TAMERY_VERSION."
+  # The version lands in the download URL, checksums.txt's included: a `..` in it would fetch both from another release.
+  printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' ||
+    fail "$version is not a version number."
 }
 
 sha256() {

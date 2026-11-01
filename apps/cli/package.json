@@ -2,7 +2,7 @@
   "name": "@tamery/cli",
   "version": "0.1.0",
   "private": true,
-  "description": "Tamery CLI: run the Tamery web app's queries on your own computer.",
+  "description": "Tamery from your terminal.",
   "keywords": [
     "cli",
     "clickhouse",
@@ -32,8 +32,7 @@
   "scripts": {
     "build": "bun scripts/build.ts",
     "check-types": "bun check",
-    "dev": "bun --watch src/index.ts bridge",
-    "tamery": "bun src/index.ts",
+    "tamery": "bun --use-system-ca src/index.ts",
     "test": "bun test"
   },
   "devDependencies": {
@@ -41,6 +40,7 @@
     "@clickhouse/client": "catalog:",
     "@libsql/client": "catalog:",
     "@mongodb-js/shell-bson-parser": "catalog:",
+    "@mongodb-js/socksv5": "catalog:",
     "@orpc/client": "catalog:",
     "@orpc/server": "catalog:",
     "@tamery/api": "workspace:*",
@@ -57,6 +57,8 @@
     "oracledb": "catalog:",
     "pg": "catalog:",
     "portless": "catalog:",
+    "ssh-config": "catalog:",
+    "ssh2": "catalog:",
     "typescript": "catalog:"
   }
 }

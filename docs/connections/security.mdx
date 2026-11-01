@@ -45,7 +45,7 @@ Encryption between Tamery and your database depends on the connection's SSL sett
 
 ## SSH tunnels
 
-SSH tunnels run on desktop only. Tamery checks the server's host key and asks before trusting an unknown one. A changed key is refused.
+SSH tunnels run on desktop and on the computer running `tamery bridge`. Tamery checks the server's host key and asks before trusting an unknown one, the bridge in its terminal. A changed key is refused.
 
 You can use your SSH agent, a key file, a pasted private key, or a password. `~/.ssh/config` is supported; `ProxyJump` and `ProxyCommand` are not.
 

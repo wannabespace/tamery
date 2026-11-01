@@ -1,6 +1,7 @@
 import { BRIDGE_URL } from '@tamery/shared/bridge'
 import { Alert, AlertDescription } from '@tamery/ui/components/alert'
 import { Button } from '@tamery/ui/components/button'
+import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
 import {
   SettingsGroup,
@@ -16,7 +17,7 @@ import { bridge } from '~/core/runtime/bridge/bridge'
 import { parseBridgeUrl } from '~/core/runtime/bridge/client'
 import type { PairingLink } from '~/lib/pairing-link'
 
-/** Opening a pairing link only fills this in: pressing Pair is the consent, and the first request the bridge sees. */
+/** Opening the bridge's link only fills this in: Connect is the first request the bridge sees, and the terminal answers it. */
 export const PairForm = ({
   link,
   replaces,
@@ -24,12 +25,14 @@ export const PairForm = ({
   link: PairingLink | null
   replaces: string | null
 }) => {
-  const [url, setUrl] = useState(link?.url ?? BRIDGE_URL)
-  const [code, setCode] = useState(link?.code ?? '')
-  const origin = parseBridgeUrl(url)
+  const [url, setUrl] = useState(link?.url ?? '')
+  // An empty field is the default, so clearing it is the reset.
+  const target = url.trim() || BRIDGE_URL
+  const origin = parseBridgeUrl(target)
   const { error, isPending, mutate } = useMutation({
-    mutationFn: () => bridge.pair({ code, url, via: link ? 'link' : 'manual' }),
-    onSuccess: (pairing) => toast.success(`Paired with ${pairing.name}`),
+    mutationFn: () =>
+      bridge.pair({ url: target, via: link ? 'link' : 'manual' }),
+    onSuccess: (pairing) => toast.success(`Connected to ${pairing.name}`),
   })
 
   return (
@@ -40,7 +43,7 @@ export const PairForm = ({
         mutate()
       }}
     >
-      <SettingsGroup title="Pair this browser">
+      <SettingsGroup title="Connect this browser">
         <SettingsRow
           title="Bridge URL"
           description={
@@ -53,7 +56,7 @@ export const PairForm = ({
                 .
               </>
             ) : (
-              'Another computer needs an https:// address.'
+              'Use http://127.0.0.1 with a port, or an https:// address for another computer.'
             )
           }
         >
@@ -62,19 +65,27 @@ export const PairForm = ({
             variant="code"
             aria-label="Bridge URL"
             className="w-56"
+            placeholder={BRIDGE_URL}
             value={url}
             onChange={(event) => setUrl(event.target.value)}
           />
         </SettingsRow>
         <SettingsRow
-          title="Pairing code"
+          title="Allow it at the bridge"
           description={
             <>
-              Printed by{' '}
-              <code className="text-foreground font-mono text-xs">
-                tamery bridge
-              </code>
-              , valid for 10 minutes.
+              {isPending ? (
+                <>
+                  Waiting for you to allow this browser in the terminal running{' '}
+                  <InlineCode>tamery bridge</InlineCode>.
+                </>
+              ) : (
+                <>
+                  Connect asks the terminal running{' '}
+                  <InlineCode>tamery bridge</InlineCode>, or{' '}
+                  <InlineCode>tamery bridge approve</InlineCode>.
+                </>
+              )}
               {replaces && (
                 <>
                   {' '}
@@ -84,17 +95,8 @@ export const PairForm = ({
             </>
           }
         >
-          <Input
-            data-mask
-            variant="code"
-            aria-label="Pairing code"
-            autoComplete="off"
-            className="w-40"
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-          />
-          <Button type="submit" disabled={isPending || !origin || !code.trim()}>
-            <LoadingContent loading={isPending}>Pair</LoadingContent>
+          <Button type="submit" disabled={isPending || !origin}>
+            <LoadingContent loading={isPending}>Connect</LoadingContent>
           </Button>
         </SettingsRow>
       </SettingsGroup>

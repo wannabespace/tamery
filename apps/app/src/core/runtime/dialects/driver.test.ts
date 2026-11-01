@@ -43,7 +43,7 @@ mock.module('~/core/runtime/bridge/bridge', () => ({
   bridge: { client: () => ({ query: { postgres: bridge } }) },
 }))
 mock.module('~/core/runtime/bridge/pairing', () => ({
-  bridgePairing: { get: () => (state.route ? pairing : null) },
+  getActivePairing: () => (state.route ? pairing : null),
   getBridgeRoute: () => state.route,
 }))
 Object.assign(globalThis, { window: {} })
@@ -140,15 +140,27 @@ test('dialect caches reuse equal inputs with fresh log callbacks', async () => {
   expect(log).toHaveBeenCalledTimes(1)
 })
 
-test('the web app never sends an SSH connection string anywhere', () => {
+const sshString =
+  'postgres://user:password@db.internal/db?ssh_host=bastion&ssh_auth=key&ssh_key=secret'
+
+test('an SSH connection runs on the bridge by id, its string never sent', async () => {
   state.route = paired
+  await createDialectProvider(Dialect.Postgres, {
+    connectionString: sshString,
+    resourceId: 'resource',
+  }).execute(select)
+  expect(bridge.execute).toHaveBeenCalledTimes(1)
+  expect(JSON.stringify(bridge.execute.mock.calls)).not.toContain('ssh_key')
+  expect(cloud.execute).not.toHaveBeenCalled()
+})
+
+test('without a bridge, the web app never sends an SSH connection string anywhere', () => {
   expect(() =>
     createDialectProvider(Dialect.Postgres, {
-      connectionString:
-        'postgres://user:password@db.internal/db?ssh_host=bastion&ssh_auth=key&ssh_key=secret',
+      connectionString: sshString,
       resourceId: 'resource',
     }).execute(select)
-  ).toThrow('SSH tunnels run in the Tamery desktop app')
+  ).toThrow('SSH tunnels run in the Tamery desktop app or through')
   expect(bridge.execute).not.toHaveBeenCalled()
   expect(cloud.execute).not.toHaveBeenCalled()
 })

@@ -1,4 +1,4 @@
-import { SSH_DESKTOP_ONLY } from './ssh/params'
+import { SSH_ELSEWHERE } from './ssh/params'
 import type { tunnelSocket } from './ssh/socket'
 import { describeConnectionString } from './utils'
 
@@ -16,15 +16,15 @@ export interface Forwarding {
 
 let getForwarding = (connectionString: string): Promise<Forwarding | null> => {
   if (describeConnectionString(connectionString).usesSsh) {
-    throw new Error(SSH_DESKTOP_ONLY)
+    throw new Error(SSH_ELSEWHERE)
   }
   return Promise.resolve(null)
 }
 
 /**
- * Where every dialect client but Oracle and libsql gets its sockets. The desktop database process plugs SSH tunnels in,
- * resolving once the session is open (an unknown host key's prompt included) so a driver's connect timeout never runs
- * while the prompt is up; the cloud proxy plugs in its public-host guard. Nothing else imports ssh2, so the CLI and
+ * Where every dialect client but Oracle and libsql gets its sockets. The desktop database process and the bridge plug SSH
+ * tunnels in, resolving once the session is open (an unknown host key's prompt included) so a driver's connect timeout
+ * never runs while the prompt is up; the cloud proxy plugs in its public-host guard. Nothing else imports ssh2, so the
  * proxies never load it.
  */
 export const forwarding = {

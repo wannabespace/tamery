@@ -46,7 +46,6 @@ import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcuts } from '~/core/keyboard/use-shortcuts'
 import { getQueryLanguage } from '~/core/runtime/language'
 import { checkOrUpgrade } from '~/core/user/permissions'
-import { RunsOn } from '~/modules/bridge/runs-on'
 import { formatSql } from '~/utils/formatter'
 
 import type { RunnerActions } from '../lib/actions'
@@ -348,7 +347,6 @@ export const Runner = () => {
               </Tooltip>
             )}
             <TransactionControls disabled={running} />
-            <RunsOn />
             <div className="ml-auto flex shrink-0 items-center gap-1">
               {isSqlDialect(dialect) && (
                 <ToolbarButton label="Format" onClick={() => actions.format()}>

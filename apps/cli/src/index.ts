@@ -8,16 +8,16 @@ import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { toError } from '@tamery/shared/utils'
 
 import { pairings } from './bridge/pairings'
+import { approve } from './commands/approve'
 import { bridge } from './commands/bridge'
+import { login } from './commands/login'
 import { logout } from './commands/logout'
+import { whoami } from './commands/whoami'
 import { env } from './env'
 import { HELP } from './help'
 import { paint } from './paint'
 
 const MAX_PORT = 65_535
-
-/** Commands people may still type from older versions or other tools. */
-const REPLACED_BY_BRIDGE = new Set(['login', 'proxy'])
 
 const run = () => {
   const { positionals, values } = parseArgs({
@@ -43,18 +43,27 @@ const run = () => {
     }
     return bridge({ port, publicUrl: values['public-url'] })
   }
+  if (command === 'bridge approve') {
+    return approve()
+  }
   if (command === 'bridge unpair-all') {
     pairings.reset()
     return log.success(
       `Every browser is unpaired. Pair again with ${paint.accent('tamery bridge')}.`
     )
   }
+  if (command === 'login') {
+    return login()
+  }
   if (command === 'logout') {
     return logout()
   }
-  if (REPLACED_BY_BRIDGE.has(command)) {
+  if (command === 'whoami') {
+    return whoami()
+  }
+  if (command === 'proxy') {
     throw new Error(
-      `Run ${paint.accent('tamery bridge')}: it signs in when needed and lets the web app use this computer.`
+      `${paint.accent('tamery proxy')} is now ${paint.accent('tamery bridge')}.`
     )
   }
   throw new Error(

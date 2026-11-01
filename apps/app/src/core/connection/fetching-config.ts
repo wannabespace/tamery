@@ -1,4 +1,4 @@
-import { SSH_DESKTOP_ONLY } from '@tamery/connection/ssh/params'
+import { SSH_ELSEWHERE } from '@tamery/connection/ssh/params'
 import { SyncType } from '@tamery/shared/enums/sync-type'
 
 import type { ConnectionString } from '~/core/connection/connection-strings'
@@ -131,8 +131,8 @@ export const fetchingConfig = (
     return blocked('waiting-for-details', REASONS.connectionStringNotStored)
   }
 
-  if (usesSsh && !isElectron) {
-    return blocked('local', SSH_DESKTOP_ONLY)
+  if (usesSsh && !isElectron && !options.bridge) {
+    return blocked('local', SSH_ELSEWHERE)
   }
 
   if (options.bridge) {

@@ -66,6 +66,8 @@ const build = async (target: Target) => {
       'import.meta.env.WEB_URL': JSON.stringify(env.WEB_URL),
     },
     entrypoints: [path.join(import.meta.dirname, '..', 'src', 'index.ts')],
+    // ssh2 loads these native addons inside a try and runs on pure JS without them; bundled, an unbuilt one fails the build.
+    external: ['cpu-features', '*.node'],
     minify: true,
     plugins: [bundleDrivers],
   })

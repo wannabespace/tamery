@@ -43,7 +43,7 @@ You pick this when you create the connection, and it stays. To switch, add the c
 
 The desktop app connects directly. In the web app, run [`tamery bridge`](/cli/overview) on a computer that can reach the database.
 
-For a database behind an SSH bastion, turn on **SSH tunnel** in the connection form. Use your SSH agent, a key file, a pasted key, or a password. SSH tunnels work on desktop only.
+For a database behind an SSH bastion, turn on **SSH tunnel** in the connection form. Use your SSH agent, a key file, a pasted key, or a password. SSH tunnels work on desktop and through [`tamery bridge`](/cli/overview).
 
 For a database in Docker on that server, use its container or Compose service name as the host, like `db`, and the port inside the container. When the server can't resolve that name, Tamery finds the container there, so the database needs no published port. Your SSH user needs access to Docker.
 

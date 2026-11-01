@@ -24,19 +24,23 @@ export const signIn = async () => {
     AbortSignal.timeout(SIGN_IN_TIMEOUT_MS),
   ])
 
+  // The confirm page refuses a challenge no device listens for, so the browser opens only once this one does.
+  const events = await api.account.challenge.listen(
+    { codeChallenge },
+    { signal }
+  )
+  await events.next()
+
   openBrowser(url)
   note(
-    `${paint.link(url)}\n${paint.dim('The link expires in 5 minutes.')}`,
+    `${paint.link(url)}\n${paint.dim(`Continue only if the page shows ${paint.bold(challenge.getUserCode(codeChallenge))}. The link expires in 5 minutes.`)}`,
     'Sign in to Tamery'
   )
 
   const waiting = spinner({ signal })
   waiting.start('Waiting for you to sign in')
   try {
-    for await (const event of await api.account.challenge.listen(
-      { codeChallenge },
-      { signal }
-    )) {
+    for await (const event of events) {
       if (event.ready) {
         break
       }

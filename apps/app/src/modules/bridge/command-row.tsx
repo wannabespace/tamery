@@ -10,11 +10,9 @@ import { posthog } from '~/lib/posthog'
 export const CommandRow = ({
   children,
   command,
-  copied,
 }: {
   children: ReactNode
   command: string
-  copied: 'install' | 'update'
 }) => (
   <>
     <div
@@ -29,7 +27,9 @@ export const CommandRow = ({
       <CopyIconButton
         label="Copy command"
         text={command}
-        onClick={() => posthog.capture('bridge_command_copied', { copied })}
+        onClick={() =>
+          posthog.capture('bridge_command_copied', { copied: 'install' })
+        }
       />
     </div>
     <CodeBlock

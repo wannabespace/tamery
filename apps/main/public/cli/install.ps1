@@ -16,6 +16,10 @@
       throw "Tamery install failed: could not look up the latest version. Check your connection, or set `$env:TAMERY_VERSION. $_"
     }
   }
+  # The version lands in the download URL, checksums.txt's included: a `..` in it would fetch both from another release.
+  if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
+    throw "Tamery install failed: $version is not a version number."
+  }
 
   $asset = 'tamery-windows-x64.exe'
   $url = "https://github.com/wannabespace/tamery/releases/download/cli-v$version"

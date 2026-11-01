@@ -1,14 +1,16 @@
 import os from 'node:os'
 import process from 'node:process'
 
-import { intro, log, note, outro } from '@clack/prompts'
+import { intro, log, outro } from '@clack/prompts'
 import { resetTransactions } from '@tamery/connection/queries/transactions'
-import { BRIDGE_PAIR_PATH } from '@tamery/shared/bridge'
+import { BRIDGE_PAIR_PATH, BRIDGE_URL } from '@tamery/shared/bridge'
 import { Result } from 'better-result'
 
+import { approvals } from '../bridge/approvals'
 import { pairings } from '../bridge/pairings'
 import { createRouter } from '../bridge/router'
 import { serveBridge } from '../bridge/server'
+import { enableSshTunnels } from '../bridge/ssh'
 import { openBrowser } from '../browser'
 import { env } from '../env'
 import { paint } from '../paint'
@@ -52,6 +54,7 @@ export const bridge = async (options: {
   intro(`${paint.brand('◆ Tamery bridge')} ${paint.dim(env.VERSION)}`)
   const account = (await vault.account()) ?? (await signIn())
   const name = os.hostname().replace(/\.local$/u, '')
+  enableSshTunnels()
   const server = listen({
     port: options.port,
     publicUrl,
@@ -60,8 +63,13 @@ export const bridge = async (options: {
   void updates.check()
 
   const url = `http://127.0.0.1:${server.port}`
+  const reachedAt = publicUrl?.origin ?? url
   log.info(
-    `${paint.bold(name)} is signed in as ${paint.bold(account.email)} and listening on ${url}${publicUrl ? `, reached at ${publicUrl.origin}` : ''}.`
+    [
+      `${paint.bold(name)} ${paint.dim('·')} ${account.email}`,
+      `${paint.dim('Listening on')} ${url}`,
+      ...(publicUrl ? [`${paint.dim('Reached at')} ${publicUrl.origin}`] : []),
+    ].join('\n')
   )
   if (await vault.keyInFile()) {
     log.warn(
@@ -69,17 +77,16 @@ export const bridge = async (options: {
     )
   }
 
-  const code = pairings.issueCode()
-  const pairUrl = `${env.WEB_URL}${BRIDGE_PAIR_PATH}#${new URLSearchParams({ code, url: publicUrl?.origin ?? url })}`
-  // A paired browser keeps working across restarts, so only a first run needs a tab opened for it.
+  approvals.clear()
+  // The app's own default needs no address in the link; any other one is filled in for the user.
+  const connectUrl = `${env.WEB_URL}${BRIDGE_PAIR_PATH}${reachedAt === BRIDGE_URL ? '' : `#${new URLSearchParams({ url: reachedAt })}`}`
+  // An allowed browser keeps working across restarts, so only a first run needs a tab opened for it.
   if (pairings.count() === 0) {
-    openBrowser(pairUrl)
+    openBrowser(connectUrl)
   }
-  note(
-    `${paint.link(pairUrl)}\n${paint.dim(`Or enter code ${paint.accent(code)} in Tamery → Settings → Bridge. It works once, for 10 minutes.`)}`,
-    'Pair a browser'
+  log.step(
+    `${paint.dim('Connect a browser at')} ${paint.link(connectUrl)}\n${paint.dim('Ctrl+C to stop')}`
   )
-  log.message(paint.dim('Ctrl+C to stop.'))
 
   const stop = async () => {
     await server.stop()

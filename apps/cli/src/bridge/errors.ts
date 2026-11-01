@@ -3,6 +3,8 @@ import { bridgeNeedsSecrets } from '@tamery/shared/bridge'
 export const NEEDS_SECRETS_MESSAGE =
   'Enter the missing connection details to run it on the bridge.'
 export const NOT_FOUND_MESSAGE = 'This connection is not in your account.'
+export const UNCONFIRMED_MESSAGE =
+  'This connection opens a file or signs in with credentials from this computer, and those settings were not saved in your browser. Edit the connection and save it to run it on the bridge.'
 
 export const authErrors = {
   UNAUTHORIZED: { message: 'This browser is not paired with the bridge.' },
@@ -15,12 +17,17 @@ export const queryErrors = {
     message: NEEDS_SECRETS_MESSAGE,
   },
   NOT_FOUND: { message: NOT_FOUND_MESSAGE },
+  UNCONFIRMED: { message: UNCONFIRMED_MESSAGE },
 }
 
 export const pairErrors = {
-  INVALID_CODE: {
+  DECLINED: {
     message:
-      'This pairing code is wrong or expired. Restart `tamery bridge` for a new one.',
+      'The bridge did not allow this browser: it was declined, or nobody answered within 2 minutes. Click Connect again and allow it in the terminal running `tamery bridge`, or with `tamery bridge approve`.',
+  },
+  NOT_ATTESTED: {
+    message:
+      'The bridge could not confirm its account with Tamery. Check that it is online and signed in, then pair again.',
   },
   OTHER_ACCOUNT: {
     message:

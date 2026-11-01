@@ -1102,6 +1102,9 @@ importers:
       '@mongodb-js/shell-bson-parser':
         specifier: 'catalog:'
         version: 1.6.3(bson@7.3.3)
+      '@mongodb-js/socksv5':
+        specifier: 'catalog:'
+        version: 0.0.11
       '@orpc/client':
         specifier: 'catalog:'
         version: 2.0.0-beta.45
@@ -1150,6 +1153,12 @@ importers:
       portless:
         specifier: 'catalog:'
         version: 0.15.9
+      ssh-config:
+        specifier: 'catalog:'
+        version: 5.3.0
+      ssh2:
+        specifier: 'catalog:'
+        version: 1.17.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

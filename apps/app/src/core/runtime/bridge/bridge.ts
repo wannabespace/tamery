@@ -1,12 +1,12 @@
-import { createORPCClient, safe } from '@orpc/client'
-import type { InferClientOutputs, ORPCError } from '@orpc/client'
+import { createORPCClient, ORPCError, safe } from '@orpc/client'
+import type { InferClientOutputs } from '@orpc/client'
 import type { BridgeRouter } from '@tamery/cli/src/bridge/router'
 import {
   bridgeKey,
   bridgeNeedsSecrets,
   MIN_BRIDGE_PROTOCOL,
 } from '@tamery/shared/bridge'
-import { formatDeviceLabel } from '@tamery/shared/device-label'
+import { formatBrowserName } from '@tamery/shared/device-label'
 import { SyncType } from '@tamery/shared/enums/sync-type'
 import { omit, silently } from '@tamery/shared/utils'
 import { queryOptions, skipToken, useQuery } from '@tanstack/react-query'
@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 
 import { getCollections } from '~/core/collections'
 import { getSessionUser } from '~/lib/auth'
+import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 
@@ -33,15 +34,21 @@ import {
   bridgeAsks,
   bridgePairing,
   clearBridgePairing,
+  getActivePairing,
 } from './pairing'
 
-const BRIDGE_CHECK_INTERVAL = 30_000
+/** A loopback hello is cheap, and the title bar should turn red soon after the bridge stops. */
+const BRIDGE_CHECK_INTERVAL = 10_000
 
 type BridgeInfo = InferClientOutputs<BridgeRouter>['bridge']['pair']['info']
 
-export type BridgeStatus =
-  | { info: BridgeInfo; state: 'connected' | 'outdated' }
+type BridgeTrouble =
+  | { info: BridgeInfo; state: 'outdated' }
   | { reason: 'denied' | 'stopped'; state: 'unreachable' }
+
+export type BridgeStatus =
+  | { info: BridgeInfo; state: 'connected' }
+  | BridgeTrouble
 
 const reported = new Set<'bridge_outdated' | 'bridge_unreachable'>()
 
@@ -63,6 +70,19 @@ export const getBridgeStatusMessage = (status: BridgeStatus, name: string) => {
     return `This browser blocks Tamery from reaching ${name}. Allow local network access for this site in the browser’s settings.`
   }
   return `The bridge on ${name} is not running. Start \`tamery bridge\` there.`
+}
+
+/** Thrown before a call reaches a bridge that cannot answer, so the page can say why and offer the way out. */
+export class BridgeError extends Error {
+  readonly bridgeName: string
+  readonly status: BridgeTrouble
+
+  constructor(status: BridgeTrouble, bridgeName: string) {
+    super(getBridgeStatusMessage(status, bridgeName))
+    this.name = 'BridgeError'
+    this.bridgeName = bridgeName
+    this.status = status
+  }
 }
 
 const toStatus = (info: BridgeInfo): BridgeStatus => {
@@ -94,7 +114,7 @@ const toUnreachable = async (pairing: BridgePairing): Promise<BridgeStatus> => {
 
 /** The bridge no longer holds this browser's pairing (`tamery bridge unpair-all`, `tamery logout`). */
 const forget = (pairing: BridgePairing) => {
-  const message = `The bridge on ${pairing.name} no longer knows this browser. Pair again from Settings → Bridge.`
+  const message = `The bridge on ${pairing.name} no longer knows this browser. Connect again from Settings → Bridge.`
   // A late answer for a pairing this browser already replaced must not clear the new one.
   if (bridgePairing.get()?.secret === pairing.secret) {
     clearBridgePairing()
@@ -142,7 +162,10 @@ const statusQueryOptions = (pairing: BridgePairing | null) =>
 
 export const useBridgeStatus = () => {
   const pairing = useSubscription(bridgePairing)
-  const { data } = useQuery(statusQueryOptions(pairing))
+  // Switched off, the browser leaves the bridge alone, as if unpaired.
+  const { data } = useQuery(
+    statusQueryOptions(pairing?.enabled ? pairing : null)
+  )
   return pairing && { pairing, status: data ?? null }
 }
 
@@ -155,18 +178,21 @@ const ensureConnected = async (pairing: BridgePairing) => {
       ? cached.data
       : await queryClient.query(options)
   if (status.state !== 'connected') {
-    throw new Error(getBridgeStatusMessage(status, pairing.name))
+    throw new BridgeError(status, pairing.name)
   }
 }
 
-/** This browser's string, when it holds every part the bridge may lack; Full connections reach it from the server. */
-const getCompleteString = (connectionId: string) => {
+/**
+ * This browser's string, when it holds every part the bridge may lack. A Full string is sent only right after the user saved it
+ * here: the bridge runs a file or machine login only as this user saved it, and the synced copy may be another member's edit.
+ */
+const getCompleteString = (connectionId: string, savedHere: boolean) => {
   const { connectionsCollection, connectionStringsCollection } =
     getCollections()
   const connection = connectionsCollection.get(connectionId)
   const stored = connectionStringsCollection.get(connectionId)
   const complete =
-    connection?.syncType !== SyncType.Cloud &&
+    (savedHere || connection?.syncType !== SyncType.Cloud) &&
     !!stored &&
     stored.missingSecrets.length === 0 &&
     (stored.isPasswordPopulated || !connection?.isPasswordExists)
@@ -190,7 +216,8 @@ const getPairedClient = memoize((pairing: BridgePairing): BridgeRouter =>
         const call = () => safe(next())
         const first = await call()
         const asked = getAskedSecrets(first.definedError)
-        const stored = asked && (await getCompleteString(asked.connectionId))
+        const stored =
+          asked && (await getCompleteString(asked.connectionId, false))
         if (asked && stored) {
           await getPairedClient(pairing).bridge.saveSecrets({
             connectionId: asked.connectionId,
@@ -211,9 +238,13 @@ const getPairedClient = memoize((pairing: BridgePairing): BridgeRouter =>
             [missing.connectionId]: missing.fields,
           }))
         } else {
-          void queryClient.invalidateQueries({
+          await queryClient.invalidateQueries({
             queryKey: statusQueryOptions(pairing).queryKey,
           })
+        }
+        // A request that never got an answer: if the bridge went away meanwhile, say so instead of the network error.
+        if (!(error instanceof ORPCError)) {
+          await ensureConnected(pairing)
         }
         throw error
       },
@@ -223,15 +254,8 @@ const getPairedClient = memoize((pairing: BridgePairing): BridgeRouter =>
 
 export const bridge = {
   client: getPairedClient,
-  pair: async ({
-    code,
-    url,
-    via,
-  }: {
-    code: string
-    url: string
-    via: 'link' | 'manual'
-  }) => {
+  /** Held open until someone allows or declines this browser at the bridge's terminal. */
+  pair: async ({ url, via }: { url: string; via: 'link' | 'manual' }) => {
     const origin = parseBridgeUrl(url)
     if (!origin) {
       throw new Error(
@@ -240,14 +264,19 @@ export const bridge = {
     }
     const user = await getSessionUser()
     if (!user) {
-      throw new Error('Sign in to pair a bridge.')
+      throw new Error('Sign in to connect a bridge.')
     }
+    const nonce = bridgeKey.nonce()
     const { info, ...paired } = await getBridgeClient(origin).bridge.pair({
-      code: code.trim(),
-      label: formatDeviceLabel(navigator.userAgent),
+      label: formatBrowserName(navigator.userAgent),
+      nonce,
       userId: user.id,
     })
-    const pairing = { ...paired, name: info.name, url: origin }
+    // The bridge's own account check proves nothing, since any server can pass it: only Tamery knows whom the bridge signed in as.
+    if (!(await orpc.account.bridge.verify.call({ nonce }))) {
+      throw new Error('This bridge is not signed in to your Tamery account.')
+    }
+    const pairing = { ...paired, enabled: true, name: info.name, url: origin }
     clearBridgePairing()
     queryClient.setQueryData(
       statusQueryOptions(pairing).queryKey,
@@ -257,10 +286,11 @@ export const bridge = {
     posthog.capture('bridge_paired', { remote: !isLoopbackUrl(origin), via })
     return pairing
   },
-  /** After every save on this device. The bridge merges what it is sent into the copy it keeps. */
+  /** After every save on this device, once the server holds it. The bridge merges what it is sent into the copy it keeps. */
   saveSecrets: async (connectionId: string) => {
-    const pairing = bridgePairing.get()
-    const connectionString = pairing && (await getCompleteString(connectionId))
+    const pairing = getActivePairing()
+    const connectionString =
+      pairing && (await getCompleteString(connectionId, true))
     if (!(pairing && connectionString)) {
       return
     }

@@ -4,10 +4,13 @@ import type { RouterClient } from '@orpc/server'
 import { createQueryRouter } from '@tamery/query-proxy'
 import { BRIDGE_PROTOCOL, bridgeKey } from '@tamery/shared/bridge'
 import { type } from 'arktype'
+import { Result } from 'better-result'
 
+import { api } from '../api'
 import { env } from '../env'
 import { paint } from '../paint'
 import { updates } from '../update-check'
+import { approvals } from './approvals'
 import { connections } from './connections'
 import { authErrors, pairErrors, queryErrors } from './errors'
 import { pairings } from './pairings'
@@ -49,23 +52,41 @@ export const createRouter = ({
             proof: hash ? bridgeKey.proof(hash, input.nonce) : null,
           }
         }),
-      /** Checks the account before spending the code, so a browser signed in elsewhere leaves nothing behind. */
+      /** Checks the account and has Tamery attest it before anyone is asked, so a refused request never reaches the terminal. */
       pair: base
         .errors(pairErrors)
-        .input(type({ code: 'string', label: 'string', userId: 'string' }))
-        .handler(({ errors, input }) => {
-          if (!pairings.isCode(input.code)) {
-            throw errors.INVALID_CODE()
-          }
+        .input(
+          type({
+            label: 'string',
+            nonce: 'string.hex == 64',
+            userId: 'string',
+          })
+        )
+        .handler(async ({ errors, input }) => {
           if (input.userId !== userId) {
             throw errors.OTHER_ACCOUNT()
           }
-          log.success(`Paired ${paint.bold(input.label || 'a browser')}.`)
-          return { ...pairings.pair(input.label), info: getInfo() }
+          const attested = await Result.tryPromise(() =>
+            api.account.bridge.attest({ nonce: input.nonce })
+          )
+          if (attested.isErr()) {
+            throw errors.NOT_ATTESTED({ cause: attested.error.cause })
+          }
+          const label = input.label || 'A browser'
+          if (!(await approvals.ask(label))) {
+            log.info(`Did not allow ${paint.bold(label)}.`)
+            throw errors.DECLINED()
+          }
+          log.success(`Allowed ${paint.bold(label)}.`)
+          return { ...pairings.add(label), info: getInfo() }
         }),
       saveSecrets: authed
+        .errors({ NOT_FOUND: queryErrors.NOT_FOUND })
         .input(
-          type({ connectionId: 'string.uuid', connectionString: 'string > 0' })
+          type({
+            connectionId: 'string.uuid.v7',
+            connectionString: 'string > 0',
+          })
         )
         .handler(({ input }) => connections.save(input)),
       unpair: authed.handler(({ context }) =>

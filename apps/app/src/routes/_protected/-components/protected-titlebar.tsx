@@ -43,6 +43,7 @@ import { useActiveWorkspace } from '~/core/workspace/hooks'
 import { isViewOnly } from '~/core/workspace/utils'
 import { queryClient } from '~/lib/query-client'
 import { CommandPaletteButton } from '~/modules/actions-center/command-palette-button'
+import { RunsOn } from '~/modules/bridge/runs-on'
 import { OpenInWeb } from '~/modules/open-in-web/open-in-web'
 import { UpdateButton, VersionButton } from '~/modules/updates/update-button'
 import { UserButton } from '~/modules/user-menu/user-button'
@@ -455,6 +456,7 @@ export const ProtectedTitleBar = () => {
             }
           />
           <div className="ml-auto flex h-full shrink-0 items-center gap-1">
+            <RunsOn />
             <VersionButton />
             <UpdateButton />
             <OpenInWeb />

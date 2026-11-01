@@ -7,7 +7,7 @@ keywords: ['tunnel', 'reverse proxy', 'server', 'vps', 'caddy', 'cloudflared']
 
 The bridge listens only on `127.0.0.1`, so other computers can't reach it directly. To use a bridge on a server or another computer, run a tunnel or reverse proxy **on that same computer**, give it an HTTPS address, and pass that address to `tamery bridge --public-url`. The web app connects only to `127.0.0.1` or an `https://` address.
 
-Reaching the address is not enough to use the bridge: a browser needs a pairing code, which works once and expires after 10 minutes.
+Reaching the address is not enough to use the bridge: a browser runs nothing until you allow it in the bridge's terminal or with `tamery bridge approve`.
 
 A request through a tunnel without `--public-url` gets an error that tells you which address to set.
 

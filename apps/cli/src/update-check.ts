@@ -5,6 +5,7 @@ import { type } from 'arktype'
 import { Result } from 'better-result'
 
 import { env } from './env'
+import { paint } from './paint'
 
 const REGISTRY_TIMEOUT_MS = 3000
 
@@ -24,6 +25,10 @@ let latestVersion: string | null = null
 export const updates = {
   /** Never awaited at startup: the registry must not hold the bridge back. */
   check: async () => {
+    // A dev run has no release to compare against: `0.0.0-dev` is older than every one.
+    if (!import.meta.env.VERSION) {
+      return
+    }
     const fetched = await Result.tryPromise(async () => {
       const response = await fetch('https://registry.npmjs.org/tamery/latest', {
         signal: AbortSignal.timeout(REGISTRY_TIMEOUT_MS),
@@ -32,7 +37,9 @@ export const updates = {
     })
     if (fetched.isOk() && Bun.semver.order(fetched.value, env.VERSION) === 1) {
       latestVersion = fetched.value
-      log.warn(`Update available: ${latestVersion}. Run: ${updates.command}`)
+      log.warn(
+        `Update available: ${latestVersion}\n${paint.dim('Run')} ${updates.command}`
+      )
     }
   },
   command: getUpdateCommand(),
