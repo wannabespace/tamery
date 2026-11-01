@@ -115,7 +115,7 @@ Local URLs (via portless, requires `pnpm run dev`):
 | Client state | TanStack DB collections — not Zustand, not React Context for data.                    |
 | Cloud DB ORM | Drizzle (`packages/db`) — not raw SQL, not Prisma.                                    |
 | Auth         | Better Auth (`apps/api/lib/auth.ts`) — not custom JWT, not NextAuth.                  |
-| Secrets      | Per-user connection-string keys live in `user_encryption_keys` (Postgres), wrapped at rest by `USER_KEY_SECRET` (env) — not Infisical, never plaintext. Other encrypted columns wrap with `ENCRYPTION_SECRET`. The table is owned by the tamery/main migrations against the shared database. |
+| Secrets      | Connection-string keys live per workspace in `workspace_encryption_keys` (Postgres), wrapped at rest by `USER_KEY_SECRET` (env) — not Infisical, never plaintext. Conar uses the key of the user's default workspace. Other encrypted columns wrap with `ENCRYPTION_SECRET`. The table is owned by the tamery/main migrations against the shared database. |
 | Runtime      | Bun — not Node for server processes. Node 22+ supported as fallback.                  |
 | Testing      | Bun test for unit tests. Playwright for E2E.                                          |
 | Styles       | TailwindCSS v4 — no inline `style=` props for layout/theme values.                    |
@@ -151,5 +151,5 @@ Clients call procedures via the generated `ORPCRouter` type — no manual fetch 
 ## Secrets / environment
 
 - `apps/api/env.ts`, `apps/proxy/env.ts` etc. validate env vars with ArkType.
-- Each user's connection-string key is a random secret in `user_encryption_keys`, wrapped at rest by `USER_KEY_SECRET` via the `encryptedUserKey` column type. `userEncryptionKey.create(userId)` mints it in the auth `user.create` hook; `userEncryptionKey.get(userId)` reads it (`apps/api/lib/encryption-key.ts`). A user delete cascades the row (crypto-shred).
-- `getUserSecret(userId)` is memoized (5 min TTL), reads the key via `userEncryptionKey.get`, and is available on context after `authMiddleware`.
+- Each workspace's connection-string key is a random secret in `workspace_encryption_keys`, wrapped at rest by `USER_KEY_SECRET` via the `encryptedColumn` type. Conar keeps every connection in the user's default workspace, so that workspace's key is the user's key. `ensureDefaultWorkspace(userId)` (`apps/api/lib/workspace.ts`) mints the key with the workspace (called from the auth `user.create` hook); `workspaceEncryptionKey.getForUser(userId)` reads it (`apps/api/lib/encryption-key.ts`). A workspace delete cascades the row (crypto-shred). Tamery's `20261031152301_workspace_sharing` migration moved every owner's former `user_encryption_keys` row onto their workspaces and dropped that table.
+- `getUserSecret(userId)` is memoized (5 min TTL), reads the key via `workspaceEncryptionKey.getForUser`, and is available on context after `authMiddleware`.
