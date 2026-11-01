@@ -4,20 +4,18 @@ import { env } from '~/env'
 import { sendEmail } from '~/lib/resend'
 import { orpc } from '~/orpc'
 
-const secret = Buffer.from(env.RAILWAY_WEBHOOK_SECRET ?? '')
+const expected = Buffer.from(`Bearer ${env.RAILWAY_WEBHOOK_SECRET}`)
 
-/** Railway signs nothing, so its webhook URL carries `?token=<RAILWAY_WEBHOOK_SECRET>`. */
+/** Railway signs nothing, so the webhook sends `Authorization: Bearer <RAILWAY_WEBHOOK_SECRET>` as a custom header. */
 export const railway = orpc
   .errors({ UNAUTHORIZED: {} })
   .handler(async ({ context, errors }) => {
-    const token = Buffer.from(
-      new URL(context.request.url).searchParams.get('token') ?? ''
-    )
+    const received = Buffer.from(context.headers.get('authorization') ?? '')
 
     if (
-      secret.length === 0 ||
-      token.length !== secret.length ||
-      !timingSafeEqual(token, secret)
+      !env.RAILWAY_WEBHOOK_SECRET ||
+      received.length !== expected.length ||
+      !timingSafeEqual(received, expected)
     ) {
       throw errors.UNAUTHORIZED()
     }
