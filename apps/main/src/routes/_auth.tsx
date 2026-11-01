@@ -9,6 +9,7 @@ import {
 import { type } from 'arktype'
 
 import { Brand } from '~/components/brand'
+import { SITE_PATH } from '~/lib/site-path'
 import { Consent } from '~/modules/legal/legal-links'
 
 const AuthLayout = () => {
@@ -53,6 +54,6 @@ export const Route = createFileRoute('/_auth')({
     ],
   }),
   validateSearch: type({
-    'redirectPath?': 'string',
+    'redirectPath?': SITE_PATH,
   }),
 })

@@ -15,6 +15,7 @@ test.each([
     const warning = spyOn(console, 'warn').mockImplementation(mock())
     const dialed: Destination[] = []
     const of = spyOn(forwarding, 'of').mockResolvedValue({
+      encrypted: true,
       socket: () => {
         throw new Error('dialed the form default port')
       },

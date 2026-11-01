@@ -89,6 +89,24 @@ describe('connectionSecrets', () => {
     expect(restored.password).toBe('')
   })
 
+  it.each([
+    ['another host', 'postgres://app@attacker.example:5432/app'],
+    ['another port', 'postgres://app@db.internal:6543/app'],
+    ['another user', 'postgres://admin@db.internal:5432/app'],
+    [
+      'another SSH hop',
+      'postgres://app@db.internal:5432/app?ssh_host=attacker.example&ssh_auth=password&ssh_password=',
+    ],
+  ])('never restores a secret onto %s', (_, synced) => {
+    const restored = connectionSecrets.restore(synced, {
+      isPasswordExists: true,
+      local: LOCAL,
+    })
+
+    expect(restored).not.toContain('db-pass')
+    expect(restored).not.toContain('ssh-pass')
+  })
+
   it('never restores a secret the synced string dropped', () => {
     const switchedToAgent =
       'postgres://app@db.internal:5432/app?ssh_host=bastion&ssh_auth=agent'

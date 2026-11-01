@@ -268,6 +268,10 @@ describe('readsOnly', () => {
     ).toBe(false)
     expect(readsOnly('SELECT pg_advisory_lock(1)', pg)).toBe(false)
     expect(readsOnly('SELECT pg_terminate_backend(42)', pg)).toBe(false)
+    expect(readsOnly("SELECT lo_export(16384, '/tmp/x')", pg)).toBe(false)
+    expect(readsOnly("SELECT pg_file_write('/tmp/x', 'a', false)", pg)).toBe(
+      false
+    )
     expect(readsOnly("SELECT GET_LOCK('a', 10)", mysql)).toBe(false)
     expect(
       readsOnly("SELECT * FROM OPENQUERY(srv, 'DELETE FROM users')", mssql)

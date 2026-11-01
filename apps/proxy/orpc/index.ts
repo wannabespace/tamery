@@ -1,5 +1,6 @@
 import { os } from '@orpc/server'
 import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
+import { ORIGINS } from '@tamery/shared/origins'
 import { type } from 'arktype'
 
 import { env } from '~/env'
@@ -31,6 +32,11 @@ export const authMiddleware = orpc
     UNAUTHORIZED: { message: SESSION_NOT_FOUND_MESSAGE },
   })
   .middleware(async ({ context, errors, next }) => {
+    // The share site renders other people's rows: a script injected there must not query with the viewer's session.
+    if (context.headers.get('origin') === ORIGINS.share) {
+      throw errors.UNAUTHORIZED()
+    }
+
     const session = await getSession(context.headers)
 
     if (!session) {

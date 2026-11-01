@@ -32,6 +32,17 @@ const getUrl = (connectionString: string) => {
   return url
 }
 
+/** The server a secret was entered for, its SSH hop included. */
+const getServer = (url: SafeURL) =>
+  [
+    url.protocol,
+    url.host,
+    url.username,
+    ...[SSH_PARAMS.host, SSH_PARAMS.port, SSH_PARAMS.user].map((param) =>
+      url.searchParams.get(param)
+    ),
+  ].join('\n')
+
 /** `strip` empties a secret rather than dropping it, so another device knows which ones to ask for. */
 export const connectionSecrets = {
   /** Keeps the database password and the SSL key passphrase: a copied string must still connect from another client. */
@@ -46,13 +57,20 @@ export const connectionSecrets = {
     const params = lowercaseKeys(searchParams)
     return SECRET_PARAMS.filter((param) => params.get(param) === '')
   },
-  /** `isPasswordExists` is the synced connection's flag: an empty synced password is only a stripped one while it is set, otherwise another device removed it. */
+  /**
+   * `isPasswordExists` is the synced connection's flag: an empty synced password is only a stripped one while it is set,
+   * otherwise another device removed it. Secrets restore only onto the server they were entered for: anyone who can edit
+   * a shared connection could otherwise point it at their own host and have this device send them there.
+   */
   restore: (
     connectionString: string,
     { isPasswordExists, local }: { isPasswordExists: boolean; local: string }
   ) => {
     const url = getUrl(connectionString)
     const localUrl = getUrl(local)
+    if (getServer(url) !== getServer(localUrl)) {
+      return url.toString()
+    }
     if (isPasswordExists) {
       url.password ||= localUrl.password
     }

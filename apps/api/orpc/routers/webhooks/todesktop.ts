@@ -46,9 +46,12 @@ const verifyWebhookSignature = (
     .update(requestBody)
     .digest('hex')
 
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
+  const received = Buffer.from(signature)
+  const expected = Buffer.from(expectedSignature)
+
+  return (
+    received.length === expected.length &&
+    crypto.timingSafeEqual(received, expected)
   )
 }
 

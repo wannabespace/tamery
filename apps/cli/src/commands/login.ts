@@ -42,6 +42,13 @@ export const loginCommand = command({
       AUTH_TIMEOUT_MS
     )
 
+    // The confirm page refuses a challenge no device listens for, so the browser opens only once this one does.
+    const events = await orpc.account.challenge.listen(
+      { codeChallenge },
+      { signal: controller.signal }
+    )
+    await events.next()
+
     let browserOpened = false
 
     if (!opts.noOpen) {
@@ -54,7 +61,7 @@ export const loginCommand = command({
     }
 
     consola.box({
-      message: `${url}\n\nThis link expires in 5 minutes.`,
+      message: `${url}\n\nContinue only if the page shows ${challenge.getUserCode(codeChallenge)}. The link expires in 5 minutes.`,
       style: { borderColor: 'cyan', borderStyle: 'rounded', padding: 1 },
       title: browserOpened ? 'Browser opened' : 'Open this URL to sign in',
     })
@@ -62,11 +69,6 @@ export const loginCommand = command({
     const spinner = ora('Waiting for sign in...').start()
 
     try {
-      const events = await orpc.account.challenge.listen(
-        { codeChallenge },
-        { signal: controller.signal }
-      )
-
       let ready = false
       for await (const event of events) {
         if (event.ready) {

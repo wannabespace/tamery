@@ -38,7 +38,7 @@ Keep whatever SSL settings your provider gives you.
 postgresql://user:password@db.example.com:5432/mydb?sslmode=verify-full
 ```
 
-With no SSL option, Tamery tries an encrypted connection without certificate verification. It drops to an unencrypted one only if the server itself says it has no SSL.
+With no SSL option, Tamery tries an encrypted connection without certificate verification. It drops to an unencrypted one only if the server itself says it has no SSL, and never through the cloud proxy.
 
 ## TimescaleDB
 

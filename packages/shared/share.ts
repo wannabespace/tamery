@@ -8,7 +8,7 @@ import { activeFilter } from './filters'
 export const SHARE_PAGE_SIZE = 100
 export const SHARE_MAX_PAGES = 100
 export const SHARE_MAX_ROWS = SHARE_PAGE_SIZE * SHARE_MAX_PAGES
-export const SHARE_PASSWORD_MIN_LENGTH = 4
+export const SHARE_PASSWORD_MIN_LENGTH = 8
 
 export const SHARE_ROW_LIMITS = [100, 500, 1000, 5000, SHARE_MAX_ROWS] as const
 

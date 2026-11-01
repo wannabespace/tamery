@@ -3,6 +3,7 @@ import process from 'node:process'
 
 import { ORPCError, ValidationError } from '@orpc/server'
 import { RPCHandler } from '@orpc/server/fetch'
+import { isDevelopmentOrigin, ORIGINS } from '@tamery/shared/origins'
 import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
@@ -72,22 +73,13 @@ const app = new Hono<{
   .use(
     cors({
       credentials: true,
-      origin(origin) {
-        const allowedOrigins = ['https://tamery.app']
-        if (
-          nodeEnv === 'development' &&
-          origin.startsWith('http://localhost:')
-        ) {
-          return origin
-        }
-        const isTamery =
-          (origin.startsWith('https://') && origin.endsWith('.tamery.app')) ||
-          allowedOrigins.includes(origin)
-        // The share site renders other people's rows and calls the API only from its server: a script injected there
-        // must not reach `connections.list` with the viewer's session.
-        const isShareSite = URL.parse(origin)?.hostname.startsWith('share.')
-        return isTamery && !isShareSite ? origin : null
-      },
+      // The share site is left out: it renders other people's rows and calls the API only from its server.
+      origin: (origin) =>
+        origin === ORIGINS.site ||
+        origin === ORIGINS.web ||
+        (nodeEnv === 'development' && isDevelopmentOrigin(origin))
+          ? origin
+          : null,
     })
   )
   .get('/', (c) => c.redirect(env.MAIN_URL))
@@ -171,9 +163,13 @@ const app = new Hono<{
   .on(['GET', 'POST'], '/auth/*', (c) => {
     const req = c.req.raw
 
-    const origin = req.headers.get('origin')
+    // Better Auth checks the origin of cookie-carrying requests only. A browser request without an Origin must not pass as
+    // the desktop app; a page cannot send `x-desktop` without a preflight the CORS allowlist refuses.
+    const passesAsDesktop =
+      !req.headers.get('origin') &&
+      (!req.headers.has('cookie') || req.headers.get('x-desktop') === 'true')
 
-    if (!origin) {
+    if (passesAsDesktop) {
       req.headers.set('origin', 'file://')
     }
 

@@ -1,10 +1,11 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { type } from 'arktype'
 
+import { SITE_PATH } from '~/lib/site-path'
+
 export const Route = createFileRoute('/deep/share')({
   validateSearch: type({
-    // A path, never a URL: the redirect below always stays on the share site.
-    path: /^\/(?!\/)/u,
+    path: SITE_PATH,
   }),
   beforeLoad: ({ context, search: { path } }) => {
     if (context.session) {

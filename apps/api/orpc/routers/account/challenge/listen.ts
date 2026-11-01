@@ -10,9 +10,14 @@ export const listen = orpc
       codeChallenge: 'string',
     })
   )
-  .handler(async function* listen({ input, signal }) {
+  .handler(async function* listen({ context: { headers }, input, signal }) {
     const events = codeChallengePublisher.subscribe(input.codeChallenge, {
       signal,
+    })
+
+    await codeChallengeRedis.register(input.codeChallenge, {
+      ipAddress: headers.get('x-real-ip'),
+      userAgent: headers.get('User-Agent'),
     })
 
     yield { ready: !!(await codeChallengeRedis.get(input.codeChallenge)) }
