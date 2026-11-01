@@ -22,6 +22,7 @@ import { McpHost } from '~/modules/mcp/mcp-host'
 import { SubscriptionModal } from '~/modules/subscription/subscription-modal'
 
 import { ProtectedTitleBar } from './_protected/-components/protected-titlebar'
+import { WorkspaceInvitationDialog } from './_protected/-components/workspace-invitation-dialog'
 
 const ProtectedLayout = () => {
   const router = useRouter()
@@ -55,6 +56,7 @@ const ProtectedLayout = () => {
         {window.electron && <McpHost />}
         {window.electron && <CopyDatabaseDialog />}
         <SubscriptionModal />
+        <WorkspaceInvitationDialog />
         <div className="flex h-full flex-col">
           <ProtectedTitleBar />
           <GlobalBanner />

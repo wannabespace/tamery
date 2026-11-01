@@ -3,6 +3,11 @@ import { connections } from '@tamery/db/schema'
 import { type } from 'arktype'
 import { and, eq } from 'drizzle-orm'
 
+import {
+  inEditableWorkspace,
+  inMemberWorkspace,
+  publishToWorkspace,
+} from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
@@ -10,12 +15,33 @@ import { publisher } from './events'
 export const remove = orpc
   .use(authMiddleware)
   .input(type({ id: 'string.uuid.v7' }))
-  .handler(async ({ context, input: { id } }) => {
-    await db
+  .errors({
+    FORBIDDEN: { message: 'Only editors can remove connections.' },
+  })
+  .handler(async ({ context, errors, input: { id } }) => {
+    const where = eq(connections.id, id)
+
+    const [removed] = await db
       .delete(connections)
-      .where(
-        and(eq(connections.id, id), eq(connections.userId, context.user.id))
+      .where(and(where, inEditableWorkspace(context.user.id)(connections)))
+      .returning({ workspaceId: connections.workspaceId })
+
+    if (removed) {
+      await publishToWorkspace(publisher, removed.workspaceId, {
+        key: id,
+        type: 'delete',
+      })
+      return
+    }
+
+    if (
+      await db.$count(
+        connections,
+        and(where, inMemberWorkspace(context.user.id)(connections))
       )
+    ) {
+      throw errors.FORBIDDEN()
+    }
 
     publisher.publish(context.user.id, { key: id, type: 'delete' })
   })

@@ -1,6 +1,7 @@
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
+import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 export const resolve = orpc
@@ -14,8 +15,8 @@ export const resolve = orpc
         workspaceId: true,
       },
       where: {
+        RAW: inMemberWorkspace(context.user.id),
         id: { eq: input.id },
-        userId: { eq: context.user.id },
       },
     })
 

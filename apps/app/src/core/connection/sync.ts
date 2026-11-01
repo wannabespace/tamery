@@ -52,8 +52,15 @@ export interface ConnectionResource extends BaseTable {
 
 export const createConnectionsCollection = (
   connectionStrings: ConnectionStringsCollection
-) =>
-  createCollection(
+) => {
+  // Only for a delete the server confirmed: an optimistic one the server refuses rolls the row back, and its string must still be there.
+  const forgetString = (id: string) => {
+    if (connectionStrings.has(id)) {
+      connectionStrings.delete(id)
+    }
+  }
+
+  return createCollection(
     persistedCollectionOptions({
       ...syncCollectionOptions<Connection>({
         events: async ({ signal, write }) => {
@@ -62,12 +69,18 @@ export const createConnectionsCollection = (
             { signal }
           )) {
             write(message)
+            if (message.type === 'delete') {
+              forgetString(message.key)
+            }
           }
         },
         getKey: (item) => item.id,
         id: 'connections',
         mutations: {
-          delete: (id) => orpc.connections.remove.call({ id }),
+          delete: async (id) => {
+            await orpc.connections.remove.call({ id })
+            forgetString(id)
+          },
           insert: async (value) =>
             orpc.connections.create.call(
               await prepareConnectionToCloud(connectionStrings, value)
@@ -77,13 +90,21 @@ export const createConnectionsCollection = (
               await prepareConnectionToCloud(connectionStrings, row)
             ),
         },
-        sync: ({ rows, signal }) =>
-          orpc.connections.sync.call(rows, { signal }),
+        sync: async ({ rows, signal }) => {
+          const messages = await orpc.connections.sync.call(rows, { signal })
+          for (const message of messages) {
+            if (message.type === 'delete') {
+              forgetString(message.key)
+            }
+          }
+          return messages
+        },
       }),
       persistence,
       schemaVersion: PERSISTED_SCHEMA_VERSION,
     })
   )
+}
 
 export const createConnectionsResourcesCollection = () =>
   createCollection(

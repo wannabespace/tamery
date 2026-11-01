@@ -7,8 +7,10 @@ import { useEffect } from 'react'
 
 import { getCollections } from '~/core/collections'
 import { findResource } from '~/core/connection/resources'
-import { checkOrUpgrade } from '~/core/user/permissions'
-import { workspaceSelection } from '~/core/workspace/utils'
+import {
+  checkCanAddConnection,
+  workspaceSelection,
+} from '~/core/workspace/utils'
 import { posthog } from '~/lib/posthog'
 
 declare module '@tanstack/react-router' {
@@ -77,11 +79,7 @@ export const useConnectionLinks = () => {
           params: { resourceId },
           to: '/connection/$resourceId',
         })
-      } else if (
-        checkOrUpgrade('connection.create', {
-          count: connectionsCollection.size,
-        })
-      ) {
+      } else if (checkCanAddConnection(connectionsCollection.size)) {
         await navigate({ state: { connectionLink: link }, to: '/create' })
       }
     }

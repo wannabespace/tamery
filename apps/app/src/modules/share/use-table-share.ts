@@ -1,8 +1,10 @@
 import { SyncType } from '@tamery/shared/enums/sync-type'
 import type { ShareView } from '@tamery/shared/share'
+import { EDITOR_ROLES } from '@tamery/shared/workspace'
 import { useQuery } from '@tanstack/react-query'
 
 import { useConnectionContext } from '~/core/connection/route'
+import { useActiveWorkspace } from '~/core/workspace/hooks'
 
 import { sharesQueryOptions } from './shares-query'
 
@@ -27,8 +29,14 @@ export const sameShareView = (left: ComparedView, right: ComparedView) =>
 export const useTableShare = (schema: string, table: string) => {
   const { connection, connectionResource } = useConnectionContext()
   const { data: shares = [], isSuccess } = useQuery(sharesQueryOptions)
+  const { workspaces } = useActiveWorkspace()
 
   return {
+    editable: workspaces.some(
+      (workspace) =>
+        workspace.id === connection.workspaceId &&
+        EDITOR_ROLES.includes(workspace.role)
+    ),
     loaded: isSuccess,
     shares: shares.filter(
       (entry) =>

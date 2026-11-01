@@ -8,7 +8,6 @@ import {
   Logout03Icon,
   Message01Icon,
   NewTwitterIcon,
-  Settings02Icon,
   Share08Icon,
   UserIcon,
 } from '@hugeicons/core-free-icons'
@@ -19,11 +18,8 @@ import { UserAvatar } from '@tamery/ui/components/custom/user-avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@tamery/ui/components/dropdown-menu'
 import {
@@ -31,14 +27,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
-import type { Theme } from '@tamery/ui/theme-store'
-import { themeStore, useTheme } from '@tamery/ui/theme-store'
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { Link } from '~/components/link'
-import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { authClient } from '~/lib/auth'
 import { clearDb } from '~/lib/sync'
 import { accountUrl, sharesUrl } from '~/lib/urls'
@@ -62,12 +55,6 @@ const clearLocalAppCache = async () => {
   }
 }
 
-const THEME_OPTIONS: { value: Theme; label: string }[] = [
-  { label: 'System', value: 'system' },
-  { label: 'Dark', value: 'dark' },
-  { label: 'Light', value: 'light' },
-]
-
 const SOCIAL_ROWS = [
   { href: 'https://tamery.app', icon: Globe02Icon, label: 'Website' },
   { href: SOCIAL_LINKS.TWITTER, icon: NewTwitterIcon, label: 'X' },
@@ -84,7 +71,6 @@ export const UserButton = ({
 } = {}) => {
   const { signOut, isSigningOut } = useSignOut()
   const { data } = authClient.useSession()
-  const theme = useTheme()
   const [isSupportOpen, setIsSupportOpen] = useState(false)
 
   const { mutate: clearLocalCache, isPending: isClearingCache } = useMutation({
@@ -129,27 +115,10 @@ export const UserButton = ({
             Account
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem render={<Link to="/settings" activateOn="click" />}>
-          <HugeiconsIcon icon={Settings02Icon} strokeWidth={2} />
-          Settings
-          <DropdownMenuShortcut>
-            <ShortcutKbd shortcut="settings" />
-          </DropdownMenuShortcut>
-        </DropdownMenuItem>
         {!data?.user.isAnonymous && (
           <DropdownMenuItem onClick={() => window.open(sharesUrl, '_blank')}>
             <HugeiconsIcon icon={Share08Icon} strokeWidth={2} />
             Shares
-          </DropdownMenuItem>
-        )}
-        {window.electron && (
-          <DropdownMenuItem
-            onClick={() =>
-              window.open(import.meta.env.VITE_PUBLIC_WEB_URL, '_blank')
-            }
-          >
-            <HugeiconsIcon icon={Globe02Icon} strokeWidth={2} />
-            Web app
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={() => window.open(RELEASES_URL, '_blank')}>
@@ -167,27 +136,6 @@ export const UserButton = ({
           <HugeiconsIcon icon={BrushIcon} strokeWidth={2} />
           Clear cache
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Theme</DropdownMenuLabel>
-          {THEME_OPTIONS.map((option) => (
-            <DropdownMenuItem
-              key={option.value}
-              closeOnClick={false}
-              onClick={() => themeStore.set(option.value)}
-            >
-              <span
-                aria-hidden
-                className="flex size-4 items-center justify-center"
-              >
-                {theme === option.value && (
-                  <span className="bg-foreground size-1.5 rounded-full" />
-                )}
-              </span>
-              {option.label}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled={isSigningOut} onClick={() => signOut()}>
           <HugeiconsIcon icon={Logout03Icon} strokeWidth={2} />

@@ -1,76 +1,58 @@
 import { db } from '@tamery/db'
-import { connections, members, queries, workspaces } from '@tamery/db/schema'
+import { connections, queries } from '@tamery/db/schema'
 import { challenge } from '@tamery/shared/challenge'
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
 import { type } from 'arktype'
-import { eq, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 import { auth, sendNewSignInEmail } from '~/lib/auth'
+import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { ensureDefaultWorkspace } from '~/lib/workspace'
-import { getWorkspaceSecret, orpc } from '~/orpc'
+import { orpc } from '~/orpc'
 
 import { codeChallengeRedis } from './code-challenge'
 
 const adoptAnonymousUser = async (anonymousUserId: string, userId: string) => {
   const workspaceId = await ensureDefaultWorkspace(userId)
-  const [secret, guestConnections] = await Promise.all([
-    getWorkspaceSecret(workspaceId),
-    db
+
+  await db.transaction(async (tx) => {
+    const guestConnections = await tx
       .select({
         connectionString: connections.connectionString,
         id: connections.id,
         workspaceId: connections.workspaceId,
       })
       .from(connections)
-      .where(eq(connections.userId, anonymousUserId)),
-  ])
-  const reencrypted = await Promise.all(
-    guestConnections.flatMap(({ connectionString, id, workspaceId: from }) =>
-      connectionString
-        ? [
-            getWorkspaceSecret(from).then((guestSecret) => ({
-              connectionString: encrypt({
-                secret,
-                text: decrypt({
-                  encryptedText: connectionString,
-                  secret: guestSecret,
-                }),
-              }),
-              id,
-            })),
-          ]
-        : []
-    )
-  )
-
-  await db.transaction(async (tx) => {
-    const anonymousMembers = await tx
-      .select({ workspaceId: members.workspaceId })
-      .from(members)
-      .where(eq(members.userId, anonymousUserId))
+      .where(eq(connections.userId, anonymousUserId))
+      .for('update')
+    const secret = await workspaceEncryptionKey.getLocked(tx, workspaceId)
 
     await tx
       .update(connections)
       .set({ userId, workspaceId })
       .where(eq(connections.userId, anonymousUserId))
     await Promise.all(
-      reencrypted.map(({ connectionString, id }) =>
-        tx
-          .update(connections)
-          .set({ connectionString })
-          .where(eq(connections.id, id))
+      guestConnections.map(
+        async ({ connectionString, id, workspaceId: from }) =>
+          connectionString &&
+          tx
+            .update(connections)
+            .set({
+              connectionString: encrypt({
+                secret,
+                text: decrypt({
+                  encryptedText: connectionString,
+                  secret: await workspaceEncryptionKey.getLocked(tx, from),
+                }),
+              }),
+            })
+            .where(eq(connections.id, id))
       )
     )
     await tx
       .update(queries)
       .set({ userId })
       .where(eq(queries.userId, anonymousUserId))
-    await tx.delete(workspaces).where(
-      inArray(
-        workspaces.id,
-        anonymousMembers.map((member) => member.workspaceId)
-      )
-    )
   })
 
   const context = await auth.$context

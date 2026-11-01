@@ -34,13 +34,13 @@ test('every table keeps its deleted rows or is listed as left out', async () => 
       Bun.file(new URL(`${migration}/migration.sql`, MIGRATIONS)).text()
     )
   )
-  const kept = Array.from(
-    sql.join('\n').matchAll(KEEP_DELETED_RECORD_TRIGGER),
-    (match) => match.groups?.table
-  )
   const tables = latest.ddl
     .filter(({ entityType }) => entityType === 'tables')
     .map(({ name }) => name)
+  const kept = Array.from(
+    sql.join('\n').matchAll(KEEP_DELETED_RECORD_TRIGGER),
+    (match) => match.groups?.table
+  ).filter((table) => table !== undefined && tables.includes(table))
 
   expect([...kept, ...TABLES_NOT_KEPT].toSorted()).toEqual(tables.toSorted())
 })

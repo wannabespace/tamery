@@ -13,10 +13,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tamery/ui/components/select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@tamery/ui/components/tooltip'
 import { useSubscription } from 'seitu/react'
 
 import { Link } from '~/components/link'
 import { checkOrUpgrade } from '~/core/user/permissions'
+import { useActiveWorkspace } from '~/core/workspace/hooks'
+import { isViewOnly, VIEW_ONLY_MESSAGE } from '~/core/workspace/utils'
 import { plural } from '~/utils/plural'
 
 import {
@@ -29,6 +36,7 @@ import {
 export const ConnectionsToolbar = ({ count }: { count: number }) => {
   const sort = useSubscription(sortValue)
   const grouping = useSubscription(groupValue)
+  const viewOnly = isViewOnly(useActiveWorkspace().data)
 
   return (
     <div className="flex items-center justify-between gap-4">
@@ -81,27 +89,38 @@ export const ConnectionsToolbar = ({ count }: { count: number }) => {
             ))}
           </SelectContent>
         </Select>
-        <Button
-          variant="outline"
-          size="sm"
-          render={
-            <Link
-              to="/create"
-              onClick={(event) => {
-                if (!checkOrUpgrade('connection.create', { count })) {
-                  event.preventDefault()
+        <Tooltip disabled={!viewOnly}>
+          <TooltipTrigger
+            render={
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={viewOnly}
+                focusableWhenDisabled
+                render={
+                  viewOnly ? undefined : (
+                    <Link
+                      to="/create"
+                      onClick={(event) => {
+                        if (!checkOrUpgrade('connection.create', { count })) {
+                          event.preventDefault()
+                        }
+                      }}
+                    />
+                  )
                 }
-              }}
+              />
+            }
+          >
+            <HugeiconsIcon
+              icon={PlusSignIcon}
+              strokeWidth={2}
+              className="text-muted-foreground size-4"
             />
-          }
-        >
-          <HugeiconsIcon
-            icon={PlusSignIcon}
-            strokeWidth={2}
-            className="text-muted-foreground size-4"
-          />
-          New
-        </Button>
+            New
+          </TooltipTrigger>
+          <TooltipContent>{VIEW_ONLY_MESSAGE}</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   )
