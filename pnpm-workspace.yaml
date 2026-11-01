@@ -30,7 +30,7 @@ catalog:
   '@mistralai/mistralai': ^3.4.0
   '@modelcontextprotocol/sdk': ^1.32.2
   '@mongodb-js/mongodb-constants': ^0.34.14
-  '@mongodb-js/shell-bson-parser': ^2.1.0
+  '@mongodb-js/shell-bson-parser': ^1.6.3
   '@mongodb-js/socksv5': ^0.0.11
   '@napi-rs/keyring': 2.1.2
   '@noble/hashes': ^2.4.0
@@ -45,7 +45,7 @@ catalog:
   '@playwright/test': ^1.64.1
   '@posthog/rollup-plugin': ^1.6.2
   '@react-email/components': ^1.0.10
-  '@rolldown/plugin-babel': ^0.3.0
+  '@rolldown/plugin-babel': ^0.2.4
   '@shadcn/react': ^0.3.1
   '@standard-schema/spec': ^1.1.0
   '@streamdown/code': ^2.0.0
@@ -53,7 +53,7 @@ catalog:
   '@tailwindcss/vite': ^4.3.3
   '@tanstack/browser-db-sqlite-persistence': 0.2.37
   '@tanstack/db-sqlite-persistence-core': 0.4.12
-  '@tanstack/offline-transactions': 1.2.0
+  '@tanstack/offline-transactions': 1.1.4
   '@tanstack/react-db': 0.5.12
   '@tanstack/react-devtools': ^0.10.14
   '@tanstack/react-form': ^1.33.5
