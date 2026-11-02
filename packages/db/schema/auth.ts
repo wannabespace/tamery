@@ -87,6 +87,26 @@ export const twoFactors = d.snakeCase.table(
   ]
 )
 
+export const passkeys = d.snakeCase.table(
+  'passkeys',
+  {
+    ...baseTable,
+    aaguid: d.text(),
+    backedUp: d.boolean().notNull(),
+    counter: d.bigint({ mode: 'number' }).notNull(),
+    credentialID: d.text().notNull().unique(),
+    deviceType: d.text().notNull(),
+    name: d.text(),
+    publicKey: d.text().notNull(),
+    transports: d.text(),
+    userId: d
+      .uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+  },
+  (table) => [d.index('passkeys_userId_idx').on(table.userId)]
+)
+
 export const workspaces = d.snakeCase.table(
   'workspaces',
   {
@@ -149,6 +169,7 @@ export const authRelations = defineRelationsPart(
     accounts,
     invitations,
     members,
+    passkeys,
     sessions,
     twoFactors,
     users,
@@ -182,6 +203,12 @@ export const authRelations = defineRelationsPart(
         to: r.workspaces.id,
       }),
     },
+    passkeys: {
+      users: r.one.users({
+        from: r.passkeys.userId,
+        to: r.users.id,
+      }),
+    },
     sessions: {
       users: r.one.users({
         from: r.sessions.userId,
@@ -206,6 +233,10 @@ export const authRelations = defineRelationsPart(
       members: r.many.members({
         from: r.users.id,
         to: r.members.userId,
+      }),
+      passkeys: r.many.passkeys({
+        from: r.users.id,
+        to: r.passkeys.userId,
       }),
       sessions: r.many.sessions({
         from: r.users.id,
