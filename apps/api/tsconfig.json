@@ -10,6 +10,10 @@
     "emitDeclarationOnly": true,
     "outDir": "./.types",
     "strictNullChecks": true,
-    "types": ["@types/bun", "@better-auth/core/db/internal"]
+    "types": [
+      "@types/bun",
+      "@better-auth/core/db/internal",
+      "@simplewebauthn/server"
+    ]
   }
 }

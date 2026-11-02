@@ -4,6 +4,7 @@ export {
   authRelations,
   invitations,
   members,
+  passkeys,
   sessions,
   twoFactors,
   users,

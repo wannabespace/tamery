@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 
 import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2'
+import { getAuthenticatorName, passkey } from '@better-auth/passkey'
 import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
 import * as schema from '@tamery/db/schema'
@@ -415,6 +416,34 @@ export const auth = betterAuth({
           to: email,
         })
       },
+    }),
+    passkey({
+      authentication: {
+        // A passkey sign-in skips the TOTP challenge, so it must carry its own second factor (fingerprint, face or device PIN).
+        afterVerification: ({ verification }) => {
+          if (!verification.authenticationInfo.userVerified) {
+            throw new APIError('UNAUTHORIZED', {
+              message:
+                'Unlock your passkey with your fingerprint, face or PIN.',
+            })
+          }
+        },
+      },
+      authenticatorSelection: {
+        residentKey: 'required',
+        userVerification: 'required',
+      },
+      // Every sign-in runs on the site, not on the API's own host the plugin would default to.
+      origin: env.MAIN_URL,
+      registration: {
+        afterVerification: ({ ctx, verification }) =>
+          Promise.resolve({
+            name:
+              getAuthenticatorName(verification.registrationInfo?.aaguid) ??
+              formatDeviceLabel(ctx.headers?.get('user-agent') ?? ''),
+          }),
+      },
+      rpID: new URL(env.MAIN_URL).hostname,
     }),
     lastLoginMethod(),
     emailHarmony(),

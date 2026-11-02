@@ -14,6 +14,7 @@
   "dependencies": {
     "@better-auth/core": "catalog:",
     "@better-auth/drizzle-adapter": "catalog:",
+    "@better-auth/passkey": "catalog:",
     "@exalabs/ai-sdk": "catalog:",
     "@infisical/sdk": "catalog:",
     "@ip-location-db/dbip-city-mmdb": "catalog:",
@@ -52,6 +53,7 @@
   },
   "devDependencies": {
     "@playwright/test": "catalog:",
+    "@simplewebauthn/server": "catalog:",
     "@tamery/configs": "workspace:*",
     "@types/pg": "catalog:",
     "@types/react": "catalog:",

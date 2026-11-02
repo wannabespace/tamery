@@ -1,3 +1,4 @@
+import { passkeyClient } from '@better-auth/passkey/client'
 import { queryOptions } from '@tanstack/react-query'
 import { createIsomorphicFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
@@ -39,6 +40,7 @@ export const authClient = createAuthClient({
     twoFactorClient(),
     emailOTPClient(),
     lastLoginMethodClient(),
+    passkeyClient(),
   ],
 })
 

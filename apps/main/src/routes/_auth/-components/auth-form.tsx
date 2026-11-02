@@ -1,8 +1,13 @@
-import { GithubIcon, GoogleIcon } from '@hugeicons/core-free-icons'
+import {
+  FingerPrintIcon,
+  GithubIcon,
+  GoogleIcon,
+} from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   EARLY_ACCESS_ERROR_CODE,
   SOCIAL_PROVIDER_LABELS,
+  UNKNOWN_ERROR_MESSAGE,
 } from '@tamery/shared/constants'
 import { Badge } from '@tamery/ui/components/badge'
 import { Button } from '@tamery/ui/components/button'
@@ -12,12 +17,13 @@ import { Form, useAppForm } from '@tamery/ui/components/tanstack-form'
 import { useIsMutating, useMutation } from '@tanstack/react-query'
 import { getRouteApi, useRouter } from '@tanstack/react-router'
 import { type } from 'arktype'
+import { toast } from 'sonner'
 
 import { authClient, getLastUsedLoginMethod } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { handleError } from '~/utils/error'
 
-import { sendSignInCode } from '../-lib/sign-in'
+import { sendSignInCode, useFinishSignIn } from '../-lib/sign-in'
 
 const { useSearch } = getRouteApi('/_auth')
 
@@ -107,11 +113,52 @@ const SocialButton = ({
   )
 }
 
+const PasskeyButton = () => {
+  const finishSignIn = useFinishSignIn()
+  const { mutate, isPending } = useMutation({
+    meta: { event: 'passkey_signed_in' },
+    mutationFn: async () => {
+      const { error } = await authClient.signIn.passkey()
+
+      if (error) {
+        throw error
+      }
+    },
+    onSuccess: () => finishSignIn(),
+    // Not handleError: it reads a 401 as an expired session, and a passkey the account no longer has answers 401.
+    onError: (error: { code?: string; message?: string }) => {
+      if (error.code !== 'AUTH_CANCELLED') {
+        toast.error(error.message ?? UNKNOWN_ERROR_MESSAGE)
+      }
+    },
+  })
+
+  return (
+    <Button
+      variant="outline"
+      className="relative w-full"
+      onClick={() => mutate()}
+      disabled={isPending}
+    >
+      <LoadingContent loading={isPending}>
+        <HugeiconsIcon
+          icon={FingerPrintIcon}
+          strokeWidth={2}
+          className="size-4"
+        />
+        Passkey
+      </LoadingContent>
+      {getLastUsedLoginMethod() === 'passkey' && <Last />}
+    </Button>
+  )
+}
+
 const SocialAuthForm = () => (
-  <div className="grid grid-cols-2 gap-3">
+  <div className="grid grid-cols-3 gap-3">
     {SOCIAL_PROVIDERS.map((provider) => (
       <SocialButton key={provider.id} provider={provider} />
     ))}
+    <PasskeyButton />
   </div>
 )
 
