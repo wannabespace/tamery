@@ -4,10 +4,8 @@ import { authClient } from '~/lib/auth'
 
 import { AuthForm } from './-components/auth-form'
 
-const SignInPage = () => <AuthForm />
-
 export const Route = createFileRoute('/_auth/sign-in')({
-  component: SignInPage,
+  component: AuthForm,
   loader: async () => {
     const { data } = await authClient.getSession()
 
