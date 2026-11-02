@@ -9,15 +9,16 @@ const isMusl = () =>
 
 const os = process.platform === 'win32' ? 'windows' : process.platform
 const target = `${os}-${process.arch}${isMusl() ? '-musl' : ''}`
+const packageName = `@tamery/cli-${target}`
 
 const findBinary = () => {
   try {
     return createRequire(import.meta.url).resolve(
-      `tamery-${target}/bin/tamery${process.platform === 'win32' ? '.exe' : ''}`
+      `${packageName}/bin/tamery${process.platform === 'win32' ? '.exe' : ''}`
     )
   } catch {
     console.error(
-      `The Tamery CLI has no build for ${target}, or npm skipped the optional dependency tamery-${target}. Reinstall without --omit=optional or --no-optional: npm i -g tamery`
+      `The Tamery CLI has no build for ${target}, or npm skipped the optional dependency ${packageName}. Reinstall without --omit=optional or --no-optional: npm i -g tamery`
     )
     return process.exit(1)
   }

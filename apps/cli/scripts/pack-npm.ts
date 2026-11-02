@@ -3,6 +3,7 @@ import path from 'node:path'
 
 import pkg from '../package.json' with { type: 'json' }
 import { getBinaryName, isTarget, TARGETS } from './targets'
+import type { Target } from './targets'
 
 const ROOT = path.join(import.meta.dirname, '..')
 const DIST = path.join(ROOT, 'dist')
@@ -19,6 +20,9 @@ const shared = {
 }
 
 const LICENSE = path.join(ROOT, '..', '..', 'LICENSE')
+
+/** Sync with `npm/tamery.js`, which resolves the binary by this name. */
+const getPackageName = (target: Target) => `@tamery/cli-${target}`
 
 /** `copyFileSync` keeps each binary's executable mode, which npm only sets itself for `bin` entries. */
 const writePackage = (
@@ -44,7 +48,7 @@ for (const target of targets) {
   const [os, cpu, libc] = target.split('-')
   const binary = getBinaryName(target)
   writePackage(
-    `tamery-${target}`,
+    getPackageName(target),
     {
       cpu: [cpu],
       description: `The Tamery CLI binary for ${target}. Install \`tamery\` instead.`,
@@ -70,7 +74,7 @@ writePackage(
     files: ['tamery.js', 'LICENSE', 'README.md'],
     keywords: pkg.keywords,
     optionalDependencies: Object.fromEntries(
-      targets.map((target) => [`tamery-${target}`, pkg.version])
+      targets.map((target) => [getPackageName(target), pkg.version])
     ),
     type: 'module',
   },

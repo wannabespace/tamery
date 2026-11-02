@@ -172,7 +172,7 @@ jobs:
       - name: Publish to npm
         working-directory: apps/cli/dist/npm
         run: |
-          for package in tamery-*/ tamery/; do
+          for package in @tamery/*/ tamery/; do
             name=$(jq -r .name "$package/package.json")
             if npm view "$name@$VERSION" version >/dev/null 2>&1; then
               echo "$name@$VERSION is already on npm"
