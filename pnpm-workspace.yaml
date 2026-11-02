@@ -193,12 +193,7 @@ allowBuilds:
   ssh2: false
 # @types/ssh2 pins Node 18 types, which clash with Electron's in any workspace compiling the SSH tunnel.
 overrides:
-  body-parser: ^2.4.0
-  compression: ^1.8.2
   dompurify: ^3.4.17
   '@types/ssh2>@types/node': ^24.13.3
   # Collapse esbuild and kysely to one version each: both are optional peers of better-auth, so a second copy splits better-auth/@better-auth/core into two peer variations whose types stop unifying in @tamery/api. esbuild must stay in vite's required ^0.27.0 || ^0.28.0.
   esbuild: ^0.28.2
-  kysely: ^0.29.7
-  seroval: ^1.6.11
-  undici: ^7.30.1
