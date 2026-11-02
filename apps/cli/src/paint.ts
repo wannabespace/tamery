@@ -8,6 +8,5 @@ export const paint = {
   bold: style('bold'),
   brand: style(['bold', 'cyan']),
   dim: style('dim'),
-  flag: style('yellow'),
   link: style(['cyan', 'underline']),
 }

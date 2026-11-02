@@ -431,6 +431,9 @@ catalogs:
     change-case:
       specifier: ^5.4.4
       version: 5.4.4
+    citty:
+      specifier: ^0.2.2
+      version: 0.2.2
     class-variance-authority:
       specifier: ^0.7.1
       version: 0.7.1
@@ -1136,6 +1139,9 @@ importers:
       better-result:
         specifier: 'catalog:'
         version: 3.0.1
+      citty:
+        specifier: 'catalog:'
+        version: 0.2.2
       mongodb:
         specifier: 'catalog:'
         version: 7.7.0(@aws-sdk/credential-providers@3.993.0)(socks@2.8.10)

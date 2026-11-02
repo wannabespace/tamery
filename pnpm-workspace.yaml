@@ -89,6 +89,7 @@ catalog:
   blobatar: ^2.7.0
   bson: ^7.3.3
   change-case: ^5.4.4
+  citty: ^0.2.2
   class-variance-authority: ^0.7.1
   cmdk: ^1.1.1
   cn: ^0.5.0

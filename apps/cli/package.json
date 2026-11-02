@@ -51,6 +51,7 @@
     "@types/bun": "catalog:",
     "arktype": "catalog:",
     "better-result": "catalog:",
+    "citty": "catalog:",
     "mongodb": "catalog:",
     "mssql": "catalog:",
     "mysql2": "catalog:",
