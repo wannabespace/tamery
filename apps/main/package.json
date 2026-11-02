@@ -7,6 +7,7 @@
     "check-types": "bun check"
   },
   "dependencies": {
+    "@better-auth/passkey": "catalog:",
     "@mdx-js/rollup": "^3.1.0",
     "@orpc/client": "catalog:",
     "@orpc/tanstack-query": "catalog:",

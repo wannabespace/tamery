@@ -2,7 +2,17 @@
 title: 'Settings'
 sidebarTitle: 'Settings'
 description: 'Change app preferences and manage your account.'
-keywords: ['profile', 'dark mode', 'app icon', 'dock icon']
+keywords:
+  [
+    'profile',
+    'dark mode',
+    'app icon',
+    'dock icon',
+    'fingerprint',
+    'touch id',
+    'face id',
+    'webauthn',
+  ]
 ---
 
 ## App preferences
@@ -28,10 +38,22 @@ The avatar menu's **Account** opens [tamery.app/account](https://tamery.app/acco
 - **Subscription**, to upgrade or manage Pro
 - **Billing**, with your invoices
 - **[AI usage](/account/ai-usage)**
-- **Settings**, for two-factor authentication, your signed-in sessions, and deleting your account
+- **Settings**, for two-factor authentication, passkeys, your signed-in sessions, and deleting your account
 - **Support**
 
 Under **Settings → Sessions** you can sign out a single device, or all of them except this one with **Sign out other devices**.
+
+## Passkeys
+
+A passkey lets you sign in with your fingerprint, face, or device PIN instead of an email code.
+
+1. On the account page, open **Settings**.
+2. Under **Passkeys**, click **Add** and confirm with your fingerprint, face, or PIN.
+3. Next time, click **Passkey** on the sign-in page.
+
+Your password manager or device keeps the passkey, so it works on every device that syncs it. If adding one asks you to sign in again, sign out and back in, then retry. Signing in with a passkey skips the two-factor code, since unlocking the passkey already proves it's you.
+
+To stop using a passkey, click **Delete** next to it, then remove it from your password manager too.
 
 To sign out of the app, use the avatar menu. In the CLI, run `tamery logout`.
 
@@ -41,10 +63,11 @@ Tamery emails you when:
 
 - someone signs in to your account (after any two-factor check passes), with the device, IP address, and approximate location, including through the desktop app or the CLI, unless the account was created minutes earlier
 - Google or GitHub is connected to an existing account, the first time you sign in with it
+- a passkey is added
 - two-factor authentication is turned on or off
 - your account is deleted
 
-If you don't recognize a sign-in, open **Settings → Sessions**, sign that device out, and turn on two-factor authentication.
+If you don't recognize a sign-in, open **Settings → Sessions**, sign that device out, and turn on two-factor authentication. If it came through a passkey, also delete any passkey you don't recognize under **Settings → Passkeys**: signing out leaves the passkey working.
 
 ## Delete your account
 

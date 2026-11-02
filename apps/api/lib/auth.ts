@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 
 import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2'
+import { getAuthenticatorName, passkey } from '@better-auth/passkey'
 import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
 import * as schema from '@tamery/db/schema'
@@ -39,7 +40,6 @@ import { locateIp } from '~/lib/geo-ip'
 import { posthog } from '~/lib/posthog'
 import { resend, sendEmail } from '~/lib/resend'
 
-import { requireEarlyAccess, requireUserEarlyAccess } from './early-access'
 import { redisMemoize } from './redis'
 import {
   deleteSoleMemberWorkspaces,
@@ -48,6 +48,36 @@ import {
 } from './workspace'
 
 const twoFactorPlugin = twoFactor({ allowPasswordless: true })
+
+const mainUrl = new URL(env.MAIN_URL)
+
+const passkeyPlugin = passkey({
+  authentication: {
+    // A passkey sign-in skips the TOTP challenge, so it must carry its own second factor (fingerprint, face or device PIN).
+    afterVerification: ({ verification }) => {
+      if (!verification.authenticationInfo.userVerified) {
+        throw new APIError('UNAUTHORIZED', {
+          message: 'Unlock your passkey with your fingerprint, face or PIN.',
+        })
+      }
+    },
+  },
+  authenticatorSelection: {
+    residentKey: 'required',
+    userVerification: 'required',
+  },
+  // Every sign-in runs on the site, not on the API's own host the plugin would default to.
+  origin: mainUrl.origin,
+  registration: {
+    afterVerification: ({ ctx, verification }) =>
+      Promise.resolve({
+        name:
+          getAuthenticatorName(verification.registrationInfo?.aaguid) ??
+          formatDeviceLabel(ctx.headers?.get('user-agent') ?? ''),
+      }),
+  },
+  rpID: mainUrl.hostname,
+})
 
 const workspaceAccess = createAccessControl(defaultStatements)
 
@@ -65,7 +95,10 @@ export const sendNewSignInEmail = async ({
   ipAddress,
   userAgent,
   userId,
-}: Pick<Session, 'ipAddress' | 'userAgent' | 'userId'>) => {
+  signedInWithPasskey = false,
+}: Pick<Session, 'ipAddress' | 'userAgent' | 'userId'> & {
+  signedInWithPasskey?: boolean
+}) => {
   const user = await findUser(userId)
 
   if (!user) {
@@ -77,6 +110,7 @@ export const sendNewSignInEmail = async ({
       device: formatDeviceLabel(userAgent ?? ''),
       ipAddress: ipAddress ?? '',
       location: locateIp(ipAddress ?? ''),
+      signedInWithPasskey,
       twoFactorEnabled: user.twoFactorEnabled === true,
     },
     subject: 'New sign-in to your Tamery account',
@@ -150,8 +184,6 @@ export const auth = betterAuth({
     session: {
       create: {
         before: async (session) => {
-          await requireUserEarlyAccess(session.userId)
-
           try {
             await ensureDefaultWorkspace(session.userId)
           } catch (error) {
@@ -166,17 +198,6 @@ export const auth = betterAuth({
     },
     user: {
       create: {
-        before: async (user) => {
-          if (user.isAnonymous) {
-            throw new APIError('FORBIDDEN', {
-              message: 'Tamery is in early access. Sign in to join the list.',
-            })
-          }
-
-          await requireEarlyAccess(user.email)
-
-          return { data: user }
-        },
         after: async (user) => {
           const request = authRequest.getStore()
 
@@ -238,11 +259,6 @@ export const auth = betterAuth({
     },
   },
   hooks: {
-    before: createAuthMiddleware(async (ctx) => {
-      if (ctx.path === '/email-otp/send-verification-otp') {
-        await requireEarlyAccess(ctx.body.email)
-      }
-    }),
     after: createAuthMiddleware(async (ctx) => {
       const desktopVersion = ctx.headers?.get('x-desktop-version')
 
@@ -332,7 +348,11 @@ export const auth = betterAuth({
                 return
               }
 
-              await sendNewSignInEmail(newSession.session)
+              await sendNewSignInEmail({
+                ...newSession.session,
+                signedInWithPasskey:
+                  ctx.path === '/passkey/verify-authentication',
+              })
             }),
             matcher: () => true,
           },
@@ -417,6 +437,31 @@ export const auth = betterAuth({
         })
       },
     }),
+    {
+      ...passkeyPlugin,
+      hooks: {
+        after: [
+          // The plugin writes passkeys through the raw adapter, so databaseHooks never see them.
+          {
+            handler: createAuthMiddleware(async (ctx) => {
+              const user = ctx.context.session?.user
+
+              if (!user || isAPIError(ctx.context.returned)) {
+                return
+              }
+
+              await sendEmail({
+                subject: 'A passkey was added to your Tamery account',
+                template: 'PasskeyAdded',
+                to: user.email,
+              })
+            }),
+            matcher: (context: { path?: string }) =>
+              context.path === '/passkey/verify-registration',
+          },
+        ],
+      },
+    },
     lastLoginMethod(),
     emailHarmony(),
     anonymous(),

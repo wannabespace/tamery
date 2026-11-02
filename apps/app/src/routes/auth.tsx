@@ -93,6 +93,17 @@ const AuthPage = () => {
     })
   )
 
+  const { mutate: continueAnonymously, isPending: isContinuing } = useMutation({
+    meta: { event: 'signed_in_as_guest' },
+    mutationFn: () =>
+      authClient.signIn.anonymous({ fetchOptions: { throw: true } }),
+    onSuccess: async ({ token }) => {
+      bearerToken.set(token)
+      await refetch()
+      router.navigate({ to: '/' })
+    },
+  })
+
   useEffect(() => {
     if (!data?.ready || !codeChallenge || !verifier) {
       return
@@ -144,8 +155,7 @@ const AuthPage = () => {
                 Sign in to continue
               </h1>
               <p className="text-muted-foreground mt-2 mb-8">
-                Tamery is in early access. Sign in to request access. We’ll
-                email you when it’s ready.
+                Sync your connections, queries, and chats across every device.
               </p>
             </motion.div>
             <motion.div
@@ -187,7 +197,7 @@ const AuthPage = () => {
                 </div>
               ) : (
                 <p className="text-muted-foreground mb-4 text-center text-xs">
-                  If you already have access, sign in as usual.
+                  Sign-in unlocks AI and cloud sync.
                 </p>
               )}
             </motion.div>
@@ -202,6 +212,37 @@ const AuthPage = () => {
               </div>
             )}
           </div>
+          {window.electron && (
+            <motion.div
+              className="relative mx-auto mt-auto w-full max-w-87.5 pt-10 will-change-transform"
+              initial={{
+                opacity: 0,
+                transform: 'translateY(10px)',
+                filter: 'blur(4px)',
+              }}
+              animate={{
+                opacity: 1,
+                transform: 'translateY(0)',
+                filter: 'none',
+              }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+            >
+              <Button
+                className="w-full"
+                variant="outline"
+                disabled={isContinuing}
+                onClick={() =>
+                  session?.user.isAnonymous
+                    ? router.navigate({
+                        href: lastLocationStorageValue.get() ?? '/',
+                      })
+                    : continueAnonymously()
+                }
+              >
+                Continue without an account
+              </Button>
+            </motion.div>
+          )}
         </div>
       </div>
     </>
