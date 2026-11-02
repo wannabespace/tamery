@@ -30,6 +30,19 @@ export const createDialectProvider = (
 ) => {
   const transport = createTransport(dialect, options)
   const maxRows = options.resultSets?.maxRows
+  /** Stop goes where the query went, even if the browser paired or unpaired since. */
+  const running = new Map<string, ReturnType<typeof transport.current>>()
+  const track = <T>(
+    queryId: string | undefined,
+    t: ReturnType<typeof transport.current>,
+    call: () => Promise<T>
+  ) => {
+    if (!queryId) {
+      return call()
+    }
+    running.set(queryId, t)
+    return call().finally(() => running.delete(queryId))
+  }
 
   return {
     beginTransaction(settings: TransactionSettings) {
@@ -43,7 +56,7 @@ export const createDialectProvider = (
       )
     },
     cancel(queryId: string) {
-      const t = transport.current()
+      const t = running.get(queryId) ?? transport.current()
       if (t.kind === 'electron') {
         return t.electron.cancel({
           connectionString: options.connectionString,
@@ -62,20 +75,24 @@ export const createDialectProvider = (
     },
     execute(payload: QueryPayload) {
       const t = transport.current()
-      return t.kind === 'electron'
-        ? t.electron.execute({
-            connectionString: options.connectionString,
-            ...payload,
-            maxRows,
-          })
-        : t.proxy.execute({ ...t.input, ...payload, maxRows })
+      return track(payload.queryId, t, () =>
+        t.kind === 'electron'
+          ? t.electron.execute({
+              connectionString: options.connectionString,
+              ...payload,
+              maxRows,
+            })
+          : t.proxy.execute({ ...t.input, ...payload, maxRows })
+      )
     },
     executeTransaction(params: TxQueryPayload) {
       const t = transport.pinned(params.txId)
       const payload = { ...params, maxRows }
-      return t.kind === 'electron'
-        ? t.electron.executeTransaction(payload)
-        : t.proxy.executeTransaction(payload)
+      return track(params.queryId, t, () =>
+        t.kind === 'electron'
+          ? t.electron.executeTransaction(payload)
+          : t.proxy.executeTransaction(payload)
+      )
     },
     openSession() {
       return transport.open((t) =>

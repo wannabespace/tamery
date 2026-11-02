@@ -1,3 +1,4 @@
+import { challenge } from '@tamery/shared/challenge'
 import { Button } from '@tamery/ui/components/button'
 import { useMutation } from '@tanstack/react-query'
 import {
@@ -35,7 +36,7 @@ const ConfirmSignIn = () => {
   return (
     <OpenStatus
       title={`Sign in to ${CLIENT_NAMES[clientType]}`}
-      description={`Continue only if you started signing in yourself. You'll be signed in as ${email}.`}
+      description={`Continue only if ${clientType === 'cli' ? `your terminal shows ${challenge.getUserCode(codeChallenge)}` : 'you started signing in yourself'}. You'll be signed in as ${email}.`}
     >
       <div className="flex items-center gap-2">
         <Button variant="outline" render={<Link to="/account" />}>

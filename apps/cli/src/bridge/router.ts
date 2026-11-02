@@ -3,6 +3,7 @@ import { os } from '@orpc/server'
 import type { RouterClient } from '@orpc/server'
 import { createQueryRouter } from '@tamery/query-proxy'
 import { BRIDGE_PROTOCOL, bridgeKey } from '@tamery/shared/bridge'
+import { challenge } from '@tamery/shared/challenge'
 import { type } from 'arktype'
 import { Result } from 'better-result'
 
@@ -93,7 +94,7 @@ export const createRouter = ({
           const label = input.label || 'A browser'
           if (
             !(await approvals.ask(
-              `Allow ${paint.bold(label)} to run queries on this computer?`
+              `Allow ${paint.bold(label)} to run queries on this computer? Only if Tamery shows ${paint.bold(challenge.getUserCode(input.browserNonce))}.`
             ))
           ) {
             log.info(`Did not allow ${paint.bold(label)}.`)
@@ -129,7 +130,8 @@ export const createRouter = ({
       ),
     },
     query: createQueryRouter(authed.errors(queryErrors), {
-      connectionString: (input) => connections.resolve(input),
+      connectionString: (input, _context, dialect) =>
+        connections.resolve(input, dialect),
       owner: (context) => context.browserId,
     }),
   }

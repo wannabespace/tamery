@@ -2,14 +2,18 @@ import { ORPCError } from '@orpc/server'
 import { connectionParts } from '@tamery/connection/connection-parts'
 import { readConnectionString } from '@tamery/connection/parse-connection-string'
 import { connectionSecrets } from '@tamery/connection/secrets'
-import { DEFAULT_SSH_PORT, getSshTunnel } from '@tamery/connection/ssh/params'
+import { getSshTunnel } from '@tamery/connection/ssh/params'
 import {
   describeConnectionString,
   FILE_PARAMS,
   resourceConnectionString,
 } from '@tamery/connection/utils'
 import type { ConnectionInput } from '@tamery/query-proxy'
-import { ConnectionType } from '@tamery/shared/enums/connection-type'
+import type { Dialect } from '@tamery/shared/enums/connection-type'
+import {
+  ConnectionType,
+  getDialect,
+} from '@tamery/shared/enums/connection-type'
 import { SafeURL } from '@tamery/shared/safe-url'
 import { Result } from 'better-result'
 
@@ -54,9 +58,13 @@ const getServerCopy = async (connectionId: string, hasLocal: boolean) => {
     })
   )
   if (result.isErr()) {
+    const { cause } = result.error
+    // Only an unreachable API falls back: a session Tamery ended must stop the bridge.
+    const signedOut =
+      cause instanceof ORPCError && cause.code === 'UNAUTHORIZED'
     const fallback = cached ?? (hasLocal ? LOCAL_ONLY : null)
-    if (!fallback) {
-      throw result.error.cause
+    if (signedOut || !fallback) {
+      throw cause
     }
     return fallback
   }
@@ -65,11 +73,13 @@ const getServerCopy = async (connectionId: string, hasLocal: boolean) => {
     await vault.removeConnection(connectionId)
     throw new ORPCError('NOT_FOUND', { message: NOT_FOUND_MESSAGE })
   }
-  // Asked without a version, `unchanged` can only mean the server holds no string.
-  const copy: ServerCopy =
-    result.value.status === 'modified'
-      ? { ...result.value, checkedAt: Date.now() }
-      : { ...(cached ?? LOCAL_ONLY), checkedAt: Date.now() }
+  const kept = result.value.status === 'unchanged' ? cached : null
+  const copy: ServerCopy = {
+    ...(result.value.status === 'modified'
+      ? result.value
+      : (kept ?? LOCAL_ONLY)),
+    checkedAt: Date.now(),
+  }
   serverCopies.set(connectionId, copy)
   return copy
 }
@@ -95,9 +105,10 @@ const getLocalAccess = (connectionString: string) => {
       ? `its ${searchParams.get('authmechanism')?.toUpperCase()} credentials for ${host}`
       : null,
     // A tunnel signs in with this computer's key file, ssh-agent or `~/.ssh/config` and reaches whatever the database host names
-    // from the SSH host, so the whole route counts, defaults included: dropping `ssh_auth` alone would switch to the agent.
+    // from the SSH host, so the whole route counts, defaults included: dropping `ssh_auth` alone would switch to the agent, and
+    // dropping `ssh_port` or `ssh_user` to whatever `~/.ssh/config` names, so a missing one is never shown as its default.
     tunnel &&
-      `SSH (${[tunnel.auth, tunnel.keyPath].filter(Boolean).join(' ')}) as ${tunnel.user || 'the default user'} to ${tunnel.host}:${tunnel.port || DEFAULT_SSH_PORT}, on to ${host}:${connectionParts.port(parts)}`,
+      `SSH (${[tunnel.auth, tunnel.keyPath].filter(Boolean).join(' ')}) as ${tunnel.user || 'the default user'} to ${tunnel.host}${tunnel.port ? `:${tunnel.port}` : ' on the default port'}, on to ${host}:${connectionParts.port(parts)}`,
   ].filter((access) => access !== null)
 }
 
@@ -109,7 +120,7 @@ const needsSecrets = (connectionId: string, fields: string[] | 'all') =>
 
 export const connections = {
   /** The bridge never runs a string it is sent: it builds each one the way a device does, from the server's copy and its own. */
-  resolve: async (input: ConnectionInput) => {
+  resolve: async (input: ConnectionInput, dialect: Dialect) => {
     if (!('connectionId' in input)) {
       throw new ORPCError('BAD_REQUEST', {
         message: 'The bridge runs saved connections only. Update Tamery.',
@@ -121,6 +132,13 @@ export const connections = {
     const known = server.connectionString ?? local
     if (!known) {
       throw needsSecrets(connectionId, 'all')
+    }
+    // Approval reads a string as its own connection type: SQLite under another dialect's name would open a file unasked.
+    const { type } = connectionParts.parse(known)
+    if (!type || getDialect(type) !== dialect) {
+      throw new ORPCError('BAD_REQUEST', {
+        message: `This connection does not run as ${dialect}.`,
+      })
     }
     // Any workspace editor can change the server's copy, so a file or machine login it names runs only as the user saved it here.
     const confirmed = local ? getLocalAccess(local) : []
@@ -164,11 +182,11 @@ export const connections = {
   ) => {
     // `resolve` trusts a local copy while the API is down, so only a connection the API confirms right now gets one.
     serverCopies.delete(connectionId)
-    await getServerCopy(connectionId, false)
+    const { isPasswordExists } = await getServerCopy(connectionId, false)
     const previous = await vault.connection(connectionId)
     const next = previous
       ? connectionSecrets.restore(connectionString, {
-          isPasswordExists: true,
+          isPasswordExists,
           local: previous,
         })
       : connectionString

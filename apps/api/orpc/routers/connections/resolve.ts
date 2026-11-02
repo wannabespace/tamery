@@ -26,11 +26,14 @@ export const resolve = orpc
     }
 
     if (
-      !connection.connectionString ||
-      (input.updatedAt &&
-        input.updatedAt.getTime() >= connection.updatedAt.getTime())
+      input.updatedAt &&
+      input.updatedAt.getTime() >= connection.updatedAt.getTime()
     ) {
       return { status: 'unchanged' as const }
+    }
+
+    if (!connection.connectionString) {
+      return { status: 'no-connection-string' as const }
     }
 
     const connectionString = await context.decryptConnectionString({

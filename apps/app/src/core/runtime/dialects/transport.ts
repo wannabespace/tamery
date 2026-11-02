@@ -27,7 +27,12 @@ export interface DialectOptions {
 }
 
 type Route =
-  | { connectionId: string; pairing: BridgePairing; via: 'bridge' }
+  | {
+      connectionId: string
+      pairing: BridgePairing
+      resourceName: string | null
+      via: 'bridge'
+    }
   | { via: 'cloud' | 'electron' }
 
 const pinnedRoutes = new Map<string, Route>()
@@ -44,17 +49,16 @@ const getCloudProxyInput = (options: DialectOptions) => {
 
 /** Where a dialect's calls go: the desktop's database process, the paired bridge or the cloud proxy, decided per call. */
 export const createTransport = (dialect: Dialect, options: DialectOptions) => {
-  const { connectionsCollection, connectionsResourcesCollection } =
-    getCollections()
-  const resource = options.resourceId
-    ? connectionsResourcesCollection.get(options.resourceId)
-    : null
-  const connectionId = options.connectionId || resource?.connectionId
-  const connection = connectionId
-    ? (connectionsCollection.get(connectionId) ?? null)
-    : null
-
   const resolveRoute = (): Route => {
+    const { connectionsCollection, connectionsResourcesCollection } =
+      getCollections()
+    const resource = options.resourceId
+      ? connectionsResourcesCollection.get(options.resourceId)
+      : null
+    const connectionId = options.connectionId || resource?.connectionId
+    const connection = connectionId
+      ? (connectionsCollection.get(connectionId) ?? null)
+      : null
     const config = fetchingConfig(connection, {
       bridge: getBridgeRoute(connectionId ?? null),
       connectionString: describeConnectionString(options.connectionString),
@@ -67,7 +71,12 @@ export const createTransport = (dialect: Dialect, options: DialectOptions) => {
 
     const pairing = getActivePairing()
     if (pairing && connectionId) {
-      return { connectionId, pairing, via: 'bridge' }
+      return {
+        connectionId,
+        pairing,
+        resourceName: resource?.name ?? null,
+        via: 'bridge',
+      }
     }
     return { via: window.electron ? 'electron' : 'cloud' }
   }
@@ -82,7 +91,7 @@ export const createTransport = (dialect: Dialect, options: DialectOptions) => {
       return {
         input: {
           connectionId: route.connectionId,
-          resourceName: resource?.name ?? null,
+          resourceName: route.resourceName,
         },
         kind: 'proxy' as const,
         proxy: bridge.client(route.pairing).query[dialect],

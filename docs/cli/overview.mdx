@@ -44,7 +44,7 @@ The CLI runs on macOS (Apple silicon and Intel), Linux (x64 and arm64, including
 
 2. Check that the **Bridge URL** is the one `tamery bridge` printed, usually `http://127.0.0.1:26380`, and click **Connect**.
 
-3. The terminal running `tamery bridge` asks whether to allow the browser. Press **Enter**. Nobody answering within 2 minutes counts as no.
+3. While it waits, **Settings → Bridge** shows a code. The terminal running `tamery bridge` asks whether to allow the browser and shows a code too. If the two codes match, select **Yes** and press **Enter**. **No** is selected first, and nobody answering within 2 minutes counts as no.
 
 Keep the bridge running. While this browser is paired, the web app sends every query through the bridge and shows a computer icon at the top of the window. Its dot is green while the bridge answers and red within seconds of it stopping; hover it for the computer's name or the reason. If the bridge stops, queries fail until you start it again; they never move to Tamery's cloud proxy on their own. To use the cloud proxy without unpairing, for example while that computer is off, turn off **Run queries on** in **Settings → Bridge**; turning it back on needs no new approval.
 

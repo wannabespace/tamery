@@ -21,11 +21,11 @@ const PREFLIGHT_HEADERS = {
 }
 
 /** A misconfigured tunnel or a stray page repeats its request; the terminal says so once. */
-const refused = new Set<string>()
+let lastRefused: string | null = null
 
 const refuse = (status: number, reason: string) => {
-  if (!refused.has(reason)) {
-    refused.add(reason)
+  if (reason !== lastRefused) {
+    lastRefused = reason
     log.warn(reason)
   }
   return new Response(reason, { status })

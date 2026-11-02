@@ -4,10 +4,12 @@ import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 
-import { createORPCClient } from '@orpc/client'
+import { createORPCClient, ORPCError } from '@orpc/client'
 import { RPCLink } from '@orpc/client/fetch'
+import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/client'
 import { querySerializer } from '@tamery/query-proxy/serializer'
 import { bridgeKey } from '@tamery/shared/bridge'
+import { challenge } from '@tamery/shared/challenge'
 import { sleep } from '@tamery/shared/utils'
 
 import type { BridgeRouter } from './router'
@@ -32,6 +34,7 @@ const ids = {
   machineLogin: '0190a1b2-0000-7000-8000-000000000005',
   metadataOnly: '0190a1b2-0000-7000-8000-000000000002',
   noPassword: '0190a1b2-0000-7000-8000-000000000003',
+  socketless: '0190a1b2-0000-7000-8000-000000000009',
   unresolved: '0190a1b2-0000-7000-8000-000000000007',
 }
 
@@ -59,11 +62,13 @@ const serverCopies: Record<string, unknown> = {
   [ids.full]: modified(sqliteString),
   [ids.gone]: { status: 'not-found' },
   [ids.machineLogin]: modified(machineLoginString),
-  [ids.metadataOnly]: { status: 'unchanged' },
+  [ids.metadataOnly]: { status: 'no-connection-string' },
   [ids.noPassword]: modified('postgresql://user:@db.internal:5432/app', true),
-  [ids.unresolved]: { status: 'unchanged' },
+  [ids.socketless]: modified(`postgresql://${databaseFile}`),
+  [ids.unresolved]: { status: 'no-connection-string' },
 }
 let apiDown = false
+let signedOut = false
 let attestDown = false
 const attested: string[] = []
 /** Nonces the user's own browser had Tamery vouch for. */
@@ -90,10 +95,14 @@ void mock.module('../api', () => ({
       },
     },
     connections: {
-      resolve: ({ id }: { id: string }) =>
-        apiDown
+      resolve: ({ id }: { id: string }) => {
+        if (signedOut) {
+          return Promise.reject(new ORPCError('UNAUTHORIZED'))
+        }
+        return apiDown
           ? Promise.reject(new Error('fetch failed'))
-          : Promise.resolve(serverCopies[id]),
+          : Promise.resolve(serverCopies[id])
+      },
     },
   },
 }))
@@ -104,6 +113,8 @@ const { pairings } = await import('./pairings')
 const { approvals } = await import('./approvals')
 const { vault } = await import('../vault')
 const { configFiles } = await import('../config-files')
+
+confineSqliteFiles()
 
 const server = serveBridge({
   port: 0,
@@ -252,6 +263,24 @@ describe('pairing', () => {
     ])
     expect(label).toContain('Chrome[2KYour MacBook')
     expect(label).not.toContain('\r')
+  })
+
+  test('the terminal shows the code of the browser asking, so the user can match it', async () => {
+    const browserNonce = bridgeKey.nonce()
+    browserNonces.add(browserNonce)
+    const [, question] = await Promise.all([
+      requestAccess({ browserNonce }),
+      (async () => {
+        while (approvals.waiting().length === 0) {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- waiting for the request to arrive
+          await sleep(10)
+        }
+        const [request] = approvals.waiting()
+        approvals.decide(request?.id ?? '', true)
+        return request?.question
+      })(),
+    ])
+    expect(question).toContain(challenge.getUserCode(browserNonce))
   })
 
   test('a browser signed in to another account is refused before anyone is asked', async () => {
@@ -522,6 +551,42 @@ describe('connections', () => {
       })
     } finally {
       apiDown = false
+    }
+  })
+
+  test('a query cannot reach a SQLite file other than the one allowed', async () => {
+    const error = await createClient(paired.secret)
+      .query.sqlite.execute({
+        connectionId: ids.full,
+        query: `attach database '${path.join(home, 'other.db')}' as other`,
+      })
+      .catch((error_: unknown) => error_)
+    expect(error).toMatchObject({
+      message: expect.stringMatching(/too many attached databases/iu),
+    })
+  })
+
+  test('a connection runs only as its own dialect, so another one cannot open its path as a file', async () => {
+    await expect(
+      createClient(paired.secret).query.sqlite.execute({
+        connectionId: ids.socketless,
+        query: 'select 1',
+      })
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+  })
+
+  test('a session Tamery ended stops even a locally saved connection', async () => {
+    await vault.setConnection(ids.unresolved, sqliteString)
+    signedOut = true
+    try {
+      await expect(
+        createClient(paired.secret).query.sqlite.execute({
+          connectionId: ids.unresolved,
+          query: 'select 1',
+        })
+      ).rejects.toThrow()
+    } finally {
+      signedOut = false
     }
   })
 

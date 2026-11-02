@@ -2,6 +2,7 @@ import os from 'node:os'
 import process from 'node:process'
 
 import { intro, log, outro } from '@clack/prompts'
+import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/client'
 import { resetTransactions } from '@tamery/connection/queries/transactions'
 import { BRIDGE_PAIR_PATH, BRIDGE_URL } from '@tamery/shared/bridge'
 import { Result } from 'better-result'
@@ -14,7 +15,7 @@ import { enableSshTunnels } from '../bridge/ssh'
 import { openBrowser } from '../browser'
 import { env } from '../env'
 import { paint } from '../paint'
-import { signIn } from '../sign-in'
+import { getAccount } from '../sign-in'
 import { updates } from '../update-check'
 import { vault } from '../vault'
 
@@ -52,9 +53,10 @@ export const bridge = async (options: {
 }) => {
   const publicUrl = parsePublicUrl(options.publicUrl)
   intro(`${paint.brand('◆ Tamery bridge')} ${paint.dim(env.VERSION)}`)
-  const account = (await vault.account()) ?? (await signIn())
+  const account = await getAccount()
   const name = os.hostname().replace(/\.local$/u, '')
   enableSshTunnels()
+  confineSqliteFiles()
   const server = listen({
     port: options.port,
     publicUrl,
@@ -89,7 +91,7 @@ export const bridge = async (options: {
   )
 
   const stop = async () => {
-    await server.stop()
+    await server.stop(true)
     await resetTransactions()
     outro(`Bridge on ${name} stopped.`)
     process.exit(0)

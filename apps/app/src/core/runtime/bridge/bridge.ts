@@ -169,14 +169,12 @@ export const useBridgeStatus = () => {
   return pairing && { pairing, status: data ?? null }
 }
 
-/** A call after a failed one asks `hello` again first: the process answering may not be the bridge that was paired. */
+/**
+ * Every call asks `hello` first, never a cached answer: the bridge may have stopped since and another process taken its port,
+ * which must not receive the secret. Calls made together share one `hello`.
+ */
 const ensureConnected = async (pairing: BridgePairing) => {
-  const options = statusQueryOptions(pairing)
-  const cached = queryClient.getQueryState(options.queryKey)
-  const status =
-    cached?.data?.state === 'connected' && !cached.isInvalidated
-      ? cached.data
-      : await queryClient.query(options)
+  const status = await queryClient.query(statusQueryOptions(pairing))
   if (status.state !== 'connected') {
     throw new BridgeError(status, pairing.name)
   }
@@ -254,8 +252,19 @@ const getPairedClient = memoize((pairing: BridgePairing): BridgeRouter =>
 
 export const bridge = {
   client: getPairedClient,
-  /** Held open until someone allows or declines this browser at the bridge's terminal. */
-  pair: async ({ url, via }: { url: string; via: 'link' | 'manual' }) => {
+  /**
+   * Held open until someone allows or declines this browser at the bridge's terminal, which shows the code of `browserNonce`
+   * so the user can tell this request from another one sent as their account.
+   */
+  pair: async ({
+    browserNonce,
+    url,
+    via,
+  }: {
+    browserNonce: string
+    url: string
+    via: 'link' | 'manual'
+  }) => {
     const origin = parseBridgeUrl(url)
     if (!origin) {
       throw new Error(
@@ -267,7 +276,6 @@ export const bridge = {
       throw new Error('Sign in to connect a bridge.')
     }
     // The bridge asks Tamery whether this request is the user's own before its terminal asks the user.
-    const browserNonce = bridgeKey.nonce()
     await orpc.account.bridge.attest.call({ nonce: browserNonce })
     const nonce = bridgeKey.nonce()
     const { info, ...paired } = await getBridgeClient(origin).bridge.pair({

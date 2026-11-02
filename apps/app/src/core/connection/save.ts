@@ -3,8 +3,9 @@ import type {
   Provider,
 } from '@tamery/shared/enums/connection-type'
 import type { SyncType } from '@tamery/shared/enums/sync-type'
-import { silently } from '@tamery/shared/utils'
+import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
+import { toast } from 'sonner'
 import { v7 } from 'uuid'
 
 import { getCollections, mutateOffline } from '~/core/collections'
@@ -16,6 +17,15 @@ import { findResource } from '~/core/connection/resources'
 import { rememberOpenedResource } from '~/core/connection/stores'
 import type { Connection } from '~/core/connection/sync'
 import { bridge } from '~/core/runtime/bridge/bridge'
+
+const sendToBridge = async (connectionId: string) => {
+  const sent = await Result.tryPromise(() => bridge.saveSecrets(connectionId))
+  if (sent.isErr()) {
+    toast.error(toError(sent.error.cause).message, {
+      id: `bridge-save-${connectionId}`,
+    })
+  }
+}
 
 export interface ConnectionDetails {
   color?: string | null
@@ -97,7 +107,7 @@ export const saveConnectionString = async ({
     const persisted = await Result.tryPromise(() => tx.isPersisted.promise)
     if (persisted.isOk()) {
       // After the server holds the row, which the bridge checks first. Never awaited: an unreachable bridge must not hold up the save.
-      void silently(() => bridge.saveSecrets(connectionId))
+      void sendToBridge(connectionId)
       if (resource && resource !== stored?.defaultResourceName) {
         rememberOpenedResource(connectionId, resource)
       }

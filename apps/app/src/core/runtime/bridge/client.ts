@@ -10,14 +10,17 @@ import { memoize } from 'memoza'
 export const isLoopbackUrl = (url: string) =>
   LOOPBACK_HOST.test(URL.parse(url)?.host ?? '')
 
-/** Off this computer only `https://` keeps queries and secrets off the wire, and userinfo would hide the real host. */
+/**
+ * Off this computer only `https://` keeps queries and secrets off the wire, and userinfo would hide the real host. On it only
+ * `127.0.0.1`, where the bridge listens: `localhost` may resolve to `::1`, where any other process can.
+ */
 export const parseBridgeUrl = (raw: string) => {
   const url = URL.parse(raw.trim())
   if (!url || url.username || url.password) {
     return null
   }
   return url.protocol === 'https:' ||
-    (url.protocol === 'http:' && isLoopbackUrl(url.href))
+    (url.protocol === 'http:' && url.hostname === '127.0.0.1')
     ? url.origin
     : null
 }

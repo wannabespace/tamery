@@ -2,8 +2,10 @@ import process from 'node:process'
 
 import { note, spinner } from '@clack/prompts'
 import { challenge } from '@tamery/shared/challenge'
+import { Result } from 'better-result'
 
 import { account, api } from './api'
+import { pairings } from './bridge/pairings'
 import { openBrowser } from './browser'
 import { env } from './env'
 import { paint } from './paint'
@@ -54,6 +56,12 @@ export const signIn = async () => {
       throw new Error('Tamery did not accept the new session. Try again.')
     }
     const signedIn = { email: user.email, id: user.id, token }
+    // Another account's saved secrets and paired browsers must not carry over to this one.
+    const previous = await vault.account()
+    if (previous && previous.id !== user.id) {
+      await vault.reset()
+      pairings.reset()
+    }
     await vault.setAccount(signedIn)
     waiting.stop(`Signed in as ${paint.bold(user.email)}`)
     return signedIn
@@ -63,4 +71,12 @@ export const signIn = async () => {
     )
     throw error
   }
+}
+
+/** The saved account, unless Tamery answered that its session is over; with Tamery unreachable it still stands. */
+export const getAccount = async () => {
+  const saved = await vault.account()
+  const user =
+    saved && (await Result.tryPromise(() => account.getUser(saved.token)))
+  return saved && !(user?.isOk() && user.value === null) ? saved : signIn()
 }

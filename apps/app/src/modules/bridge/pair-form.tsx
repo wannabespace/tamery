@@ -1,4 +1,5 @@
-import { BRIDGE_URL } from '@tamery/shared/bridge'
+import { BRIDGE_URL, bridgeKey } from '@tamery/shared/bridge'
+import { challenge } from '@tamery/shared/challenge'
 import { Alert, AlertDescription } from '@tamery/ui/components/alert'
 import { Button } from '@tamery/ui/components/button'
 import { InlineCode } from '@tamery/ui/components/custom/inline-code'
@@ -29,9 +30,9 @@ export const PairForm = ({
   // An empty field is the default, so clearing it is the reset.
   const target = url.trim() || BRIDGE_URL
   const origin = parseBridgeUrl(target)
-  const { error, isPending, mutate } = useMutation({
-    mutationFn: () =>
-      bridge.pair({ url: target, via: link ? 'link' : 'manual' }),
+  const { error, isPending, mutate, variables } = useMutation({
+    mutationFn: (browserNonce: string) =>
+      bridge.pair({ browserNonce, url: target, via: link ? 'link' : 'manual' }),
     onSuccess: (pairing) => toast.success(`Connected to ${pairing.name}`),
   })
 
@@ -40,7 +41,7 @@ export const PairForm = ({
       className="flex flex-col gap-2"
       onSubmit={(event) => {
         event.preventDefault()
-        mutate()
+        mutate(bridgeKey.nonce())
       }}
     >
       <SettingsGroup title="Connect this browser">
@@ -76,8 +77,9 @@ export const PairForm = ({
             <>
               {isPending ? (
                 <>
-                  Waiting for you to allow this browser in the terminal running{' '}
-                  <InlineCode>tamery bridge</InlineCode>.
+                  Allow this browser in the terminal running{' '}
+                  <InlineCode>tamery bridge</InlineCode> only if it shows{' '}
+                  <InlineCode>{challenge.getUserCode(variables)}</InlineCode>.
                 </>
               ) : (
                 <>
