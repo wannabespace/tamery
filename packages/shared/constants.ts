@@ -90,5 +90,3 @@ export const RECONNECT_ERROR_PATTERNS = [
   'the database system is not yet accepting connections',
   'the database system is starting up',
 ]
-
-export const EARLY_ACCESS_ERROR_CODE = 'EARLY_ACCESS_PENDING'

@@ -40,7 +40,6 @@ import { locateIp } from '~/lib/geo-ip'
 import { posthog } from '~/lib/posthog'
 import { resend, sendEmail } from '~/lib/resend'
 
-import { requireEarlyAccess, requireUserEarlyAccess } from './early-access'
 import { redisMemoize } from './redis'
 import {
   deleteSoleMemberWorkspaces,
@@ -185,8 +184,6 @@ export const auth = betterAuth({
     session: {
       create: {
         before: async (session) => {
-          await requireUserEarlyAccess(session.userId)
-
           try {
             await ensureDefaultWorkspace(session.userId)
           } catch (error) {
@@ -201,17 +198,6 @@ export const auth = betterAuth({
     },
     user: {
       create: {
-        before: async (user) => {
-          if (user.isAnonymous) {
-            throw new APIError('FORBIDDEN', {
-              message: 'Tamery is in early access. Sign in to join the list.',
-            })
-          }
-
-          await requireEarlyAccess(user.email)
-
-          return { data: user }
-        },
         after: async (user) => {
           const request = authRequest.getStore()
 
@@ -273,11 +259,6 @@ export const auth = betterAuth({
     },
   },
   hooks: {
-    before: createAuthMiddleware(async (ctx) => {
-      if (ctx.path === '/email-otp/send-verification-otp') {
-        await requireEarlyAccess(ctx.body.email)
-      }
-    }),
     after: createAuthMiddleware(async (ctx) => {
       const desktopVersion = ctx.headers?.get('x-desktop-version')
 

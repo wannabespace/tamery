@@ -15,7 +15,6 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as LlmsChar91DotChar93txtRouteImport } from './routes/llms[.]txt'
 import { Route as OpenRouteImport } from './modules/deep-link/routes/open'
 import { Route as SitemapChar91DotChar93xmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as AuthEarlyAccessRouteImport } from './routes/_auth/early-access'
 import { Route as AuthEmailCodeRouteImport } from './routes/_auth/email-code'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthTwoFactorRouteImport } from './routes/_auth/two-factor'
@@ -65,11 +64,6 @@ const SitemapChar91DotChar93xmlRoute =
     path: '/sitemap.xml',
     getParentRoute: () => rootRouteImport,
   } as any)
-const AuthEarlyAccessRoute = AuthEarlyAccessRouteImport.update({
-  id: '/early-access',
-  path: '/early-access',
-  getParentRoute: () => AuthRoute,
-} as any)
 const AuthEmailCodeRoute = AuthEmailCodeRouteImport.update({
   id: '/email-code',
   path: '/email-code',
@@ -174,7 +168,6 @@ export interface FileRoutesByFullPath {
   '/llms.txt': typeof LlmsChar91DotChar93txtRoute
   '/open': typeof OpenRoute
   '/sitemap.xml': typeof SitemapChar91DotChar93xmlRoute
-  '/early-access': typeof AuthEarlyAccessRoute
   '/email-code': typeof AuthEmailCodeRoute
   '/sign-in': typeof AuthSignInRoute
   '/two-factor': typeof AuthTwoFactorRoute
@@ -199,7 +192,6 @@ export interface FileRoutesByTo {
   '/llms.txt': typeof LlmsChar91DotChar93txtRoute
   '/open': typeof OpenRoute
   '/sitemap.xml': typeof SitemapChar91DotChar93xmlRoute
-  '/early-access': typeof AuthEarlyAccessRoute
   '/email-code': typeof AuthEmailCodeRoute
   '/sign-in': typeof AuthSignInRoute
   '/two-factor': typeof AuthTwoFactorRoute
@@ -227,7 +219,6 @@ export interface FileRoutesById {
   '/llms.txt': typeof LlmsChar91DotChar93txtRoute
   '/open': typeof OpenRoute
   '/sitemap.xml': typeof SitemapChar91DotChar93xmlRoute
-  '/_auth/early-access': typeof AuthEarlyAccessRoute
   '/_auth/email-code': typeof AuthEmailCodeRoute
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/two-factor': typeof AuthTwoFactorRoute
@@ -256,7 +247,6 @@ export interface FileRouteTypes {
     | '/llms.txt'
     | '/open'
     | '/sitemap.xml'
-    | '/early-access'
     | '/email-code'
     | '/sign-in'
     | '/two-factor'
@@ -281,7 +271,6 @@ export interface FileRouteTypes {
     | '/llms.txt'
     | '/open'
     | '/sitemap.xml'
-    | '/early-access'
     | '/email-code'
     | '/sign-in'
     | '/two-factor'
@@ -308,7 +297,6 @@ export interface FileRouteTypes {
     | '/llms.txt'
     | '/open'
     | '/sitemap.xml'
-    | '/_auth/early-access'
     | '/_auth/email-code'
     | '/_auth/sign-in'
     | '/_auth/two-factor'
@@ -386,13 +374,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapChar91DotChar93xmlRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_auth/early-access': {
-      id: '/_auth/early-access'
-      path: '/early-access'
-      fullPath: '/early-access'
-      preLoaderRoute: typeof AuthEarlyAccessRouteImport
-      parentRoute: typeof AuthRoute
     }
     '/_auth/email-code': {
       id: '/_auth/email-code'
@@ -531,14 +512,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthRouteChildren {
-  AuthEarlyAccessRoute: typeof AuthEarlyAccessRoute
   AuthEmailCodeRoute: typeof AuthEmailCodeRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthTwoFactorRoute: typeof AuthTwoFactorRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthEarlyAccessRoute: AuthEarlyAccessRoute,
   AuthEmailCodeRoute: AuthEmailCodeRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthTwoFactorRoute: AuthTwoFactorRoute,
