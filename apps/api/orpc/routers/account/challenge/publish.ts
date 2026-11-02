@@ -2,7 +2,11 @@ import { type } from 'arktype'
 
 import { accountMiddleware, orpc } from '~/orpc'
 
-import { codeChallengePublisher, codeChallengeRedis } from './code-challenge'
+import {
+  challengeDeviceRedis,
+  codeChallengePublisher,
+  codeChallengeRedis,
+} from './code-challenge'
 
 const NEW_USER_WINDOW_MS = 10 * 60 * 1000
 
@@ -17,7 +21,7 @@ export const publish = orpc
   })
   .handler(async ({ context, errors, input }) => {
     // Only a device that is waiting on its own `listen` may be handed a session, never a challenge someone only linked to.
-    if (!(await codeChallengeRedis.getRequest(input.codeChallenge))) {
+    if (!(await challengeDeviceRedis.get(input.codeChallenge))) {
       throw errors.NOT_FOUND()
     }
 

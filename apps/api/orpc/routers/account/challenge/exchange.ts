@@ -10,7 +10,7 @@ import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { ensureDefaultWorkspace } from '~/lib/workspace'
 import { orpc } from '~/orpc'
 
-import { codeChallengeRedis } from './code-challenge'
+import { challengeDeviceRedis, codeChallengeRedis } from './code-challenge'
 
 const adoptAnonymousUser = async (anonymousUserId: string, userId: string) => {
   const workspaceId = await ensureDefaultWorkspace(userId)
@@ -113,6 +113,7 @@ export const exchange = orpc
     )
     await Promise.all([
       codeChallengeRedis.delete(input.codeChallenge),
+      challengeDeviceRedis.delete(input.codeChallenge),
       !data.newUser && sendNewSignInEmail(session),
     ])
     return { newUser: data.newUser, token: session.token }

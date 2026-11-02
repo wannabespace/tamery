@@ -12,17 +12,10 @@ export const codeChallengePublisher = new RedisPublisher<
 const TTL_S = 60 * 5
 
 const key = (codeChallenge: string) => `code-challenge:${codeChallenge}`
-const requestKey = (codeChallenge: string) =>
-  `code-challenge-request:${codeChallenge}`
-
-interface SignInRequest {
-  ipAddress: string | null
-  userAgent: string | null
-}
 
 export const codeChallengeRedis = {
   delete: async (codeChallenge: string) => {
-    await redis.del([key(codeChallenge), requestKey(codeChallenge)])
+    await redis.del(key(codeChallenge))
   },
   get: async (codeChallenge: string) => {
     const value = await redis.get(key(codeChallenge))
@@ -30,20 +23,34 @@ export const codeChallengeRedis = {
       ? (JSON.parse(value) as { userId: string; newUser: boolean })
       : null
   },
-  getRequest: async (codeChallenge: string) => {
-    const value = await redis.get(requestKey(codeChallenge))
-    return value ? (JSON.parse(value) as SignInRequest) : null
-  },
-  register: async (codeChallenge: string, request: SignInRequest) => {
-    await redis.set(requestKey(codeChallenge), JSON.stringify(request), {
-      condition: 'NX',
-      expiration: { type: 'EX', value: TTL_S },
-    })
-  },
   set: async (
     codeChallenge: string,
     value: { userId: string; newUser: boolean }
   ) => {
     await redis.setEx(key(codeChallenge), TTL_S, JSON.stringify(value))
+  },
+}
+
+interface ChallengeDevice {
+  ipAddress: string | null
+  userAgent: string | null
+}
+
+const deviceKey = (codeChallenge: string) =>
+  `code-challenge-device:${codeChallenge}`
+
+export const challengeDeviceRedis = {
+  delete: async (codeChallenge: string) => {
+    await redis.del(deviceKey(codeChallenge))
+  },
+  get: async (codeChallenge: string) => {
+    const value = await redis.get(deviceKey(codeChallenge))
+    return value ? (JSON.parse(value) as ChallengeDevice) : null
+  },
+  register: async (codeChallenge: string, device: ChallengeDevice) => {
+    await redis.set(deviceKey(codeChallenge), JSON.stringify(device), {
+      condition: 'NX',
+      expiration: { type: 'EX', value: TTL_S },
+    })
   },
 }

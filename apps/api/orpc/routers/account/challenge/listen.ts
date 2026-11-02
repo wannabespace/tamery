@@ -2,7 +2,11 @@ import { type } from 'arktype'
 
 import { orpc } from '~/orpc'
 
-import { codeChallengePublisher, codeChallengeRedis } from './code-challenge'
+import {
+  challengeDeviceRedis,
+  codeChallengePublisher,
+  codeChallengeRedis,
+} from './code-challenge'
 
 export const listen = orpc
   .input(
@@ -15,7 +19,7 @@ export const listen = orpc
       signal,
     })
 
-    await codeChallengeRedis.register(input.codeChallenge, {
+    await challengeDeviceRedis.register(input.codeChallenge, {
       ipAddress: headers.get('x-real-ip'),
       userAgent: headers.get('User-Agent'),
     })

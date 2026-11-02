@@ -1,11 +1,11 @@
+import { device } from './device'
 import { exchange } from './exchange'
 import { listen } from './listen'
 import { publish } from './publish'
-import { request } from './request'
 
 export const challenge = {
+  device,
   exchange,
   listen,
   publish,
-  request,
 }

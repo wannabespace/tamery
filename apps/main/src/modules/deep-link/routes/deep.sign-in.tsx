@@ -1,3 +1,4 @@
+import { challenge } from '@tamery/shared/challenge'
 import { Button } from '@tamery/ui/components/button'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import {
@@ -20,8 +21,8 @@ const CLIENT_NAMES = {
   desktop: 'the Tamery desktop app',
 }
 
-const requestQueryOptions = (codeChallenge: string) =>
-  orpc.account.challenge.request.queryOptions({
+const deviceQueryOptions = (codeChallenge: string) =>
+  orpc.account.challenge.device.queryOptions({
     input: { codeChallenge },
     staleTime: 'static',
   })
@@ -30,7 +31,7 @@ const ConfirmSignIn = () => {
   const { codeChallenge } = useSearch()
   const { clientType, email } = useRouteContext()
   const navigate = useNavigate()
-  const { data: request } = useSuspenseQuery(requestQueryOptions(codeChallenge))
+  const { data: device } = useSuspenseQuery(deviceQueryOptions(codeChallenge))
   const { mutate: publish, isPending } = useMutation(
     orpc.account.challenge.publish.mutationOptions({
       meta: { event: 'sign_in_confirmed' },
@@ -39,7 +40,7 @@ const ConfirmSignIn = () => {
   )
   const clientName = CLIENT_NAMES[clientType]
 
-  if (!request) {
+  if (!device) {
     return (
       <OpenStatus
         title="This sign-in request expired"
@@ -52,7 +53,7 @@ const ConfirmSignIn = () => {
     )
   }
 
-  const origin = [request.device, request.location].filter(Boolean).join(', ')
+  const origin = [device.label, device.location].filter(Boolean).join(', ')
 
   return (
     <OpenStatus
@@ -61,8 +62,11 @@ const ConfirmSignIn = () => {
         <>
           {origin && <>Requested from {origin}. </>}
           Continue only if you started signing in yourself and {clientName}{' '}
-          shows <span className="font-mono">{request.code}</span>. You&apos;ll
-          be signed in as <span data-mask>{email}</span>.
+          shows{' '}
+          <span className="font-mono">
+            {challenge.getUserCode(codeChallenge)}
+          </span>
+          . You&apos;ll be signed in as <span data-mask>{email}</span>.
         </>
       }
     >
@@ -106,6 +110,6 @@ export const Route = createFileRoute('/deep/sign-in')({
   },
   loaderDeps: ({ search }) => ({ codeChallenge: search.codeChallenge }),
   loader: async ({ context, deps }) => {
-    await context.queryClient.query(requestQueryOptions(deps.codeChallenge))
+    await context.queryClient.query(deviceQueryOptions(deps.codeChallenge))
   },
 })
