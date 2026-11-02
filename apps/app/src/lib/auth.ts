@@ -102,13 +102,20 @@ export const fullSignOut = async () => {
     { cleanCollections },
     { clearDb },
     { subscriptionsCache },
-    { clearBridgePairing },
+    { bridge },
+    { bridgePairing },
   ] = await Promise.all([
     import('~/core/collections'),
     import('./sync'),
     import('~/core/user/use-subscription'),
+    import('~/core/runtime/bridge/bridge'),
     import('~/core/runtime/bridge/pairing'),
   ])
+
+  const pairing = bridgePairing.get()
+  if (pairing) {
+    await bridge.unpair(pairing)
+  }
 
   // Before the session is revoked: a sync loop still running reconnects into a 401.
   await cleanCollections()
@@ -122,7 +129,6 @@ export const fullSignOut = async () => {
   }
 
   subscriptionsCache.clear()
-  clearBridgePairing()
   posthog.reset()
   queryClient.removeQueries({ queryKey: [API_QUERY_KEY] })
   await Promise.all([clearDb(), deviceEncryption.reset()])

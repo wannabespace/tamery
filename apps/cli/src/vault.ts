@@ -35,25 +35,30 @@ const readKey = async () => {
   )
 }
 
-const openVault = async () => {
+const getKey = async () => {
   const stored = await readKey()
-  const hasVault = fs.existsSync(configFiles.vault)
+  if (stored.key !== null) {
+    return stored.key
+  }
   // A new key would leave every secret in the file unreadable for good.
-  if (hasVault && !stored.key) {
+  if (fs.existsSync(configFiles.vault)) {
     throw new Error(
       'The bridge key is gone from the keychain, so the saved secrets cannot be read. Run `tamery logout` to start over.'
     )
   }
-  let { key } = stored
-  if (key === null) {
-    key = randomBytes(32).toString('base64')
-    if (stored.keyInFile) {
-      configFiles.write(configFiles.key, key)
-    } else {
-      await Bun.secrets.set({ ...KEYCHAIN_ITEM, value: key })
-    }
+  const key = randomBytes(32).toString('base64')
+  if (stored.keyInFile) {
+    configFiles.write(configFiles.key, key)
+  } else {
+    await Bun.secrets.set({ ...KEYCHAIN_ITEM, value: key })
   }
-  const data: VaultData = hasVault
+  return key
+}
+
+const EMPTY: VaultData = { account: null, connections: {} }
+
+const readData = (key: string): VaultData =>
+  fs.existsSync(configFiles.vault)
     ? vaultData.assert(
         JSON.parse(
           decrypt({
@@ -62,56 +67,49 @@ const openVault = async () => {
           })
         )
       )
-    : { account: null, connections: {} }
-  const save = () =>
-    configFiles.write(
-      configFiles.vault,
-      encrypt({ secret: key, text: JSON.stringify(data) })
-    )
-  return { data, keyInFile: stored.keyInFile, save }
-}
+    : EMPTY
 
-let opened: ReturnType<typeof openVault> | null = null
+/**
+ * Key and file are read on every call, never kept: `tamery login` and `tamery logout` replace both from another process
+ * while a bridge runs, and a copy held here would write the old account back under a key that is gone.
+ */
+const read = async () =>
+  fs.existsSync(configFiles.vault) ? readData(await getKey()) : EMPTY
 
-const open = () => {
-  opened ??= openVault()
-  return opened
+/** Nothing awaits between reading and writing, so two changes in this process never drop each other. */
+const change = async (apply: (data: VaultData) => VaultData) => {
+  const key = await getKey()
+  configFiles.write(
+    configFiles.vault,
+    encrypt({ secret: key, text: JSON.stringify(apply(readData(key))) })
+  )
 }
 
 export const vault = {
   account: async () => {
-    const { data } = await open()
-    return data.account
+    const { account } = await read()
+    return account
   },
   connection: async (id: string) => {
-    const { data } = await open()
-    return data.connections[id] ?? null
+    const { connections } = await read()
+    return connections[id] ?? null
   },
   keyInFile: async () => {
-    const { keyInFile } = await open()
+    const { keyInFile } = await readKey()
     return keyInFile
   },
-  removeConnection: async (id: string) => {
-    const { data, save } = await open()
-    if (id in data.connections) {
-      data.connections = omit(data.connections, [id])
-      save()
-    }
-  },
+  removeConnection: (id: string) =>
+    change((data) => ({ ...data, connections: omit(data.connections, [id]) })),
   reset: async () => {
     configFiles.remove(configFiles.vault)
     configFiles.remove(configFiles.key)
     await silently(() => Bun.secrets.delete(KEYCHAIN_ITEM))
-    opened = null
   },
-  setAccount: async (account: VaultData['account']) => {
-    const { data, save } = await open()
-    data.account = account
-    save()
-  },
-  setConnection: async (id: string, connectionString: string) => {
-    const { data, save } = await open()
-    data.connections[id] = connectionString
-    save()
-  },
+  setAccount: (account: VaultData['account']) =>
+    change((data) => ({ ...data, account })),
+  setConnection: (id: string, connectionString: string) =>
+    change((data) => ({
+      ...data,
+      connections: { ...data.connections, [id]: connectionString },
+    })),
 }

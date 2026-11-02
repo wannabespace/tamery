@@ -1,5 +1,5 @@
-import { useBridgeStatus } from '~/core/runtime/bridge/bridge'
 import { parseBridgeUrl } from '~/core/runtime/bridge/client'
+import { useBridgeStatus } from '~/core/runtime/bridge/status'
 import { pairingLink } from '~/lib/pairing-link'
 
 import { InstallBridge } from './install-bridge'

@@ -13,7 +13,7 @@ import { FetchingReason } from '~/core/connection/fetching-reason'
 import {
   getBridgeStatusMessage,
   useBridgeStatus,
-} from '~/core/runtime/bridge/bridge'
+} from '~/core/runtime/bridge/status'
 
 export const RunsOn = () => {
   const bridge = useBridgeStatus()

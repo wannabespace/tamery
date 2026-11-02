@@ -17,7 +17,9 @@ import { queryErrors } from './errors'
 import { pairings } from './pairings'
 import { printable } from './printable'
 
-const base = os.$context<{ authorization: string | null }>()
+const base = os.$context<{ authorization: string | null; origin: string }>()
+
+const UNNAMED_BROWSER = 'A browser'
 
 const authed = base
   .errors({
@@ -39,10 +41,10 @@ export const createRouter = ({
   userId: string
 }) => {
   const getInfo = () => ({
+    installer: updates.installer,
     latestVersion: updates.latest(),
     name,
     protocol: BRIDGE_PROTOCOL,
-    updateCommand: updates.command,
     version: env.VERSION,
   })
 
@@ -51,7 +53,7 @@ export const createRouter = ({
       hello: base
         .input(type({ browserId: 'string | null', nonce: 'string.hex == 64' }))
         .handler(({ input }) => {
-          const hash = input.browserId && pairings.getHash(input.browserId)
+          const hash = input.browserId && pairings.find(input.browserId)?.hash
           return {
             ...getInfo(),
             proof: hash ? bridgeKey.proof(hash, input.nonce) : null,
@@ -84,7 +86,7 @@ export const createRouter = ({
             userId: 'string',
           })
         )
-        .handler(async ({ errors, input }) => {
+        .handler(async ({ context, errors, input }) => {
           if (input.userId !== userId) {
             throw errors.OTHER_ACCOUNT()
           }
@@ -93,7 +95,10 @@ export const createRouter = ({
             throw errors.DECLINED()
           }
           const isUsersBrowser = await Result.tryPromise(() =>
-            api.account.bridge.verify({ nonce: input.browserNonce })
+            api.account.bridge.verify({
+              nonce: input.browserNonce,
+              origin: context.origin,
+            })
           )
           if (isUsersBrowser.isErr()) {
             throw errors.NOT_ATTESTED({ cause: isUsersBrowser.error.cause })
@@ -102,12 +107,15 @@ export const createRouter = ({
             throw errors.OTHER_ACCOUNT()
           }
           const attested = await Result.tryPromise(() =>
-            api.account.bridge.attest({ nonce: input.nonce })
+            api.account.bridge.attest({
+              nonce: input.nonce,
+              origin: context.origin,
+            })
           )
           if (attested.isErr()) {
             throw errors.NOT_ATTESTED({ cause: attested.error.cause })
           }
-          const label = input.label || 'A browser'
+          const label = input.label || UNNAMED_BROWSER
           if (
             !(await approvals.ask(
               `Allow ${paint.bold(label)} to run queries on this computer? Only if Tamery shows ${paint.bold(challenge.getUserCode(input.browserNonce))}.`
@@ -134,7 +142,8 @@ export const createRouter = ({
           })
         )
         .handler(async ({ context, errors, input }) => {
-          const label = pairings.getLabel(context.browserId) ?? 'A browser'
+          const label =
+            pairings.find(context.browserId)?.label ?? UNNAMED_BROWSER
           const saved = await connections.save(input, (access) =>
             approvals.ask(
               `Allow ${paint.bold(label)} to have this computer use ${access.map((item) => paint.bold(printable(item))).join(', ')}?`

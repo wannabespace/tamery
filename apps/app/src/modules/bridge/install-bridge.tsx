@@ -1,3 +1,4 @@
+import { BRIDGE_INSTALL_COMMANDS } from '@tamery/shared/bridge'
 import { getOS } from '@tamery/shared/os'
 import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 import { CopyIconButton } from '@tamery/ui/components/custom/copy-button'
@@ -10,9 +11,9 @@ import { posthog } from '~/lib/posthog'
 
 export const InstallBridge = () => {
   const command =
-    getOS(navigator.userAgent).type === 'windows'
-      ? 'irm https://tamery.app/cli/install.ps1 | iex'
-      : 'curl -fsSL https://tamery.app/cli/install.sh | sh'
+    BRIDGE_INSTALL_COMMANDS[
+      getOS(navigator.userAgent).type === 'windows' ? 'powershell' : 'shell'
+    ]
 
   return (
     <SettingsGroup title="Run queries on your computer">

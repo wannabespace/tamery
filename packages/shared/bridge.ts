@@ -12,8 +12,24 @@ export const MIN_BRIDGE_PROTOCOL = 1
 /** `localhost` may resolve to `::1`, where any other process can listen. */
 export const BRIDGE_URL = `http://127.0.0.1:${PORTS.BRIDGE}`
 
+/** Installing again updates. The bridge names its installer, never a command, so no bridge picks what the app shows to run. */
+export const BRIDGE_INSTALL_COMMANDS = {
+  npm: 'npm i -g tamery',
+  powershell: 'irm https://tamery.app/cli/install.ps1 | iex',
+  shell: 'curl -fsSL https://tamery.app/cli/install.sh | sh',
+}
+
 export const BRIDGE_PAIR_PATH = '/settings/bridge'
 export const BRIDGE_RPC_PATH = '/rpc'
+
+/** `origin` is the bridge's URL as the browser calls it, which both sides name, so a relay elsewhere never matches. */
+export const bridgeAttestationInput = type({
+  nonce: 'string.hex == 64',
+  origin: 'string.url',
+})
+
+/** A synced string that asks for local access (a file, SSH keys, a machine login) nobody allowed on this bridge yet. */
+export const bridgeUnconfirmed = type({ connectionId: 'string' })
 
 /** `'all'` when the bridge holds no string at all, as for **Metadata only**. */
 export const bridgeNeedsSecrets = type({

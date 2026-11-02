@@ -60,9 +60,10 @@ export const serveBridge = ({
   })
 
   return Bun.serve({
-    fetch: async (request) => {
+    fetch: async (request, server) => {
       const host = request.headers.get('host') ?? ''
-      if (!LOOPBACK_HOST.test(host) && host !== publicUrl?.host) {
+      const isPublic = publicUrl !== null && host === publicUrl.host
+      if (!isPublic && !LOOPBACK_HOST.test(host)) {
         return refuse(
           421,
           `Refused a request for ${host}. To reach the bridge there, start it with --public-url https://${host}.`
@@ -86,7 +87,13 @@ export const serveBridge = ({
         })
       }
       const { matched, response } = await handler.handle(request, {
-        context: { authorization: request.headers.get('authorization') },
+        context: {
+          authorization: request.headers.get('authorization'),
+          // Never built from the Host header, whose port a relay on another loopback port picks.
+          origin: isPublic
+            ? publicUrl.origin
+            : `http://127.0.0.1:${server.port}`,
+        },
         prefix: BRIDGE_RPC_PATH,
       })
       const answer = matched

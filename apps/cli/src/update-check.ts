@@ -1,6 +1,7 @@
 import process from 'node:process'
 
 import { log } from '@clack/prompts'
+import { BRIDGE_INSTALL_COMMANDS } from '@tamery/shared/bridge'
 import { type } from 'arktype'
 import { Result } from 'better-result'
 
@@ -10,15 +11,14 @@ import { paint } from './paint'
 const REGISTRY_TIMEOUT_MS = 3000
 
 /** The npm launcher runs the binary from inside its own package; the install scripts put it anywhere else. */
-const getUpdateCommand = () => {
+const getInstaller = (): keyof typeof BRIDGE_INSTALL_COMMANDS => {
   if (process.execPath.includes('node_modules')) {
-    return 'npm i -g tamery'
+    return 'npm'
   }
-  if (process.platform === 'win32') {
-    return 'irm https://tamery.app/cli/install.ps1 | iex'
-  }
-  return 'curl -fsSL https://tamery.app/cli/install.sh | sh'
+  return process.platform === 'win32' ? 'powershell' : 'shell'
 }
+
+const installer = getInstaller()
 
 let latestVersion: string | null = null
 
@@ -37,10 +37,10 @@ export const updates = {
     if (fetched.isOk() && Bun.semver.order(fetched.value, env.VERSION) === 1) {
       latestVersion = fetched.value
       log.warn(
-        `Update available: ${latestVersion}\n${paint.dim('Run')} ${updates.command}`
+        `Update available: ${latestVersion}\n${paint.dim('Run')} ${BRIDGE_INSTALL_COMMANDS[installer]}`
       )
     }
   },
-  command: getUpdateCommand(),
+  installer,
   latest: () => latestVersion,
 }

@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, describe, expect, mock, test } from 'bun:test'
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test,
+} from 'bun:test'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -10,6 +18,7 @@ import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/c
 import { querySerializer } from '@tamery/query-proxy/serializer'
 import { bridgeKey } from '@tamery/shared/bridge'
 import { challenge } from '@tamery/shared/challenge'
+import { encrypt } from '@tamery/shared/crypto-node'
 import { sleep } from '@tamery/shared/utils'
 
 import type { BridgeRouter } from './router'
@@ -32,6 +41,7 @@ const ids = {
   full: '0190a1b2-0000-7000-8000-000000000001',
   gone: '0190a1b2-0000-7000-8000-000000000004',
   machineLogin: '0190a1b2-0000-7000-8000-000000000005',
+  proxied: '0190a1b2-0000-7000-8000-00000000000a',
   metadataOnly: '0190a1b2-0000-7000-8000-000000000002',
   noPassword: '0190a1b2-0000-7000-8000-000000000003',
   socketless: '0190a1b2-0000-7000-8000-000000000009',
@@ -63,6 +73,7 @@ const serverCopies: Record<string, unknown> = {
   [ids.gone]: { status: 'not-found' },
   [ids.machineLogin]: modified(machineLoginString),
   [ids.metadataOnly]: { status: 'no-connection-string' },
+  [ids.proxied]: modified(`${machineLoginString}&proxyHost=evil.example`),
   [ids.noPassword]: modified('postgresql://user:@db.internal:5432/app', true),
   [ids.socketless]: modified(`postgresql://${databaseFile}`),
   [ids.unresolved]: { status: 'no-connection-string' },
@@ -71,26 +82,31 @@ let apiDown = false
 let signedOut = false
 let attestDown = false
 const attested: string[] = []
-/** Nonces the user's own browser had Tamery vouch for. */
+/** `origin nonce` pairs the user's own browser had Tamery vouch for. */
 const browserNonces = new Set<string>()
+
+interface Attestation {
+  nonce: string
+  origin: string
+}
 
 void mock.module('../api', () => ({
   account: {},
   api: {
     account: {
       bridge: {
-        attest: ({ nonce }: { nonce: string }) => {
+        attest: ({ nonce, origin }: Attestation) => {
           if (attestDown) {
             return Promise.reject(new Error('fetch failed'))
           }
-          attested.push(nonce)
+          attested.push(`${origin} ${nonce}`)
           return Promise.resolve()
         },
-        verify: ({ nonce }: { nonce: string }) => {
+        verify: ({ nonce, origin }: Attestation) => {
           if (attestDown) {
             return Promise.reject(new Error('fetch failed'))
           }
-          return Promise.resolve(browserNonces.delete(nonce))
+          return Promise.resolve(browserNonces.delete(`${origin} ${nonce}`))
         },
       },
     },
@@ -147,17 +163,28 @@ const answer = async (allowed: boolean) => {
   return request?.question
 }
 
+/** The browser attests `browserNonce` for the URL it calls, `attestedFor`, which a relay would name instead of the bridge's. */
 const requestAccess = (
-  overrides: { browserNonce?: string; label?: string; userId?: string } = {}
+  overrides: {
+    attestedFor?: string
+    browserNonce?: string
+    label?: string
+    nonce?: string
+    userId?: string
+  } = {}
 ) => {
-  const browserNonce = bridgeKey.nonce()
-  browserNonces.add(browserNonce)
+  const {
+    attestedFor = bridgeUrl,
+    browserNonce = bridgeKey.nonce(),
+    ...input
+  } = overrides
+  browserNonces.add(`${attestedFor} ${browserNonce}`)
   return createClient(null).bridge.pair({
     browserNonce,
     label: 'Test browser',
     nonce: bridgeKey.nonce(),
     userId: USER_ID,
-    ...overrides,
+    ...input,
   })
 }
 
@@ -226,13 +253,40 @@ describe('requests', () => {
 })
 
 describe('pairing', () => {
-  test('a browser allowed at the terminal is paired, its nonce attested to Tamery', async () => {
-    const before = attested.length
-    const pairing = await pair()
-    expect(attested.length).toBe(before + 1)
-    expect(pairings.getHash(pairing.browserId)).toBe(
+  test('a browser allowed at the terminal is paired, its nonce attested to Tamery for the URL it called', async () => {
+    const nonce = bridgeKey.nonce()
+    const [pairing] = await Promise.all([
+      requestAccess({ nonce }),
+      answer(true),
+    ])
+    expect(attested).toContain(`${bridgeUrl} ${nonce}`)
+    expect(pairings.find(pairing.browserId)?.hash).toBe(
       bridgeKey.hash(pairing.secret)
     )
+  })
+
+  test('a request relayed from another URL is refused before anyone is asked', async () => {
+    await expectError(
+      requestAccess({ attestedFor: 'https://relay.example' }),
+      'OTHER_ACCOUNT'
+    )
+    await expectError(
+      requestAccess({ attestedFor: 'http://127.0.0.1:9999' }),
+      'OTHER_ACCOUNT'
+    )
+    expect(approvals.waiting()).toHaveLength(0)
+  })
+
+  test('the first answer stands when the terminal and `tamery bridge approve` both answer', async () => {
+    const asked = requestAccess()
+    while (approvals.waiting().length === 0) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- waiting for the request to arrive
+      await sleep(10)
+    }
+    const [request] = approvals.waiting()
+    approvals.decide(request?.id ?? '', false)
+    approvals.decide(request?.id ?? '', true)
+    await expectError(asked, 'DECLINED')
   })
 
   test('a declined browser gets nothing', async () => {
@@ -243,7 +297,7 @@ describe('pairing', () => {
 
   test('a request whose browser Tamery did not vouch for is refused before anyone is asked', async () => {
     await expectError(
-      requestAccess({ browserNonce: bridgeKey.nonce() }),
+      requestAccess({ attestedFor: 'https://elsewhere.example' }),
       'OTHER_ACCOUNT'
     )
     expect(approvals.waiting()).toHaveLength(0)
@@ -260,7 +314,6 @@ describe('pairing', () => {
 
   test('the terminal shows the code of the browser asking, so the user can match it', async () => {
     const browserNonce = bridgeKey.nonce()
-    browserNonces.add(browserNonce)
     const [, question] = await Promise.all([
       requestAccess({ browserNonce }),
       answer(true),
@@ -310,18 +363,19 @@ describe('pairing', () => {
   })
 
   test('unpairing from another process reaches the running bridge', async () => {
-    const before = fs.readFileSync(configFiles.pairings, 'utf-8')
-    const { secret } = await pair()
-    fs.writeFileSync(configFiles.pairings, before)
+    const { browserId, secret } = await pair()
+    configFiles.remove(path.join(configFiles.browsers, `${browserId}.json`))
     await expectError(createClient(secret).bridge.unpair(), 'UNAUTHORIZED')
-    configFiles.remove(configFiles.pairings)
+    const saved = path.join(home, 'browsers-before-reset')
+    fs.cpSync(configFiles.browsers, saved, { recursive: true })
+    pairings.reset()
     try {
       await expectError(
         createClient(paired.secret).bridge.unpair(),
         'UNAUTHORIZED'
       )
     } finally {
-      fs.writeFileSync(configFiles.pairings, before)
+      fs.cpSync(saved, configFiles.browsers, { recursive: true })
     }
   })
 
@@ -384,6 +438,21 @@ describe('connections', () => {
     await expectError(
       client.query.mongodb.execute({
         connectionId: ids.machineLogin,
+        query: 'db.users.find()',
+      }),
+      'UNCONFIRMED'
+    )
+  })
+
+  test('a machine login routed through a proxy the bridge was not allowed is refused', async () => {
+    const client = createClient(paired.secret)
+    await saveAllowed(client, {
+      connectionId: ids.proxied,
+      connectionString: machineLoginString,
+    })
+    await expectError(
+      client.query.mongodb.execute({
+        connectionId: ids.proxied,
         query: 'db.users.find()',
       }),
       'UNCONFIRMED'
@@ -547,7 +616,21 @@ describe('connections', () => {
       })
       .catch((error_: unknown) => error_)
     expect(error).toMatchObject({
-      message: expect.stringMatching(/too many attached databases/iu),
+      message: expect.stringMatching(/not authorized/iu),
+    })
+    await expect(
+      createClient(paired.secret).query.sqlite.execute({
+        connectionId: ids.full,
+        query: `vacuum into '${path.join(home, 'copy.db')}'`,
+      })
+    ).rejects.toThrow()
+    expect(fs.existsSync(path.join(home, 'copy.db'))).toBe(false)
+  })
+
+  test('VACUUM still runs, since it attaches no file', async () => {
+    await createClient(paired.secret).query.sqlite.execute({
+      connectionId: ids.full,
+      query: 'vacuum',
     })
   })
 
@@ -605,5 +688,35 @@ describe('connections', () => {
       } as never)
       .catch((error_: unknown) => error_)
     expect(error).toMatchObject({ code: 'BAD_REQUEST' })
+  })
+})
+
+describe('vault', () => {
+  test('a vault another process rewrote is read, never overwritten with an older copy', async () => {
+    const account = { email: 'other@tamery.test', id: 'user-2', token: 't' }
+    configFiles.write(
+      configFiles.vault,
+      encrypt({
+        secret: 'test-key',
+        text: JSON.stringify({ account, connections: {} }),
+      })
+    )
+    await vault.setConnection(ids.full, sqliteString)
+    expect(await vault.account()).toEqual(account)
+  })
+
+  test('logout resets a vault it cannot read', async () => {
+    const { logout } = await import('../commands/logout')
+    configFiles.write(configFiles.vault, 'not a vault')
+    const keychain = spyOn(Bun.secrets, 'delete').mockResolvedValue(true)
+    try {
+      await expect(vault.account()).rejects.toThrow()
+      await logout()
+      expect(fs.existsSync(configFiles.vault)).toBe(false)
+      expect(pairings.labels()).toHaveLength(0)
+    } finally {
+      keychain.mockRestore()
+      fs.writeFileSync(configFiles.key, 'test-key')
+    }
   })
 })

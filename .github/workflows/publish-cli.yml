@@ -149,23 +149,36 @@ jobs:
         working-directory: apps/cli/dist
         env:
           GH_TOKEN: ${{ github.token }}
-        # --latest=false: the desktop app's releases live in this repo and stay the latest.
+        # --latest=false: the desktop app's releases live in this repo and stay the latest. A rerun after a failed npm
+        # publish replaces the assets of the release it already created.
         run: |
-          gh release create "cli-v$VERSION" tamery-* checksums.txt \
-            --target "$GITHUB_SHA" \
-            --title "Tamery CLI $VERSION" \
-            --notes "Install or update: \`curl -fsSL https://tamery.app/cli/install.sh | sh\` (macOS, Linux), \`irm https://tamery.app/cli/install.ps1 | iex\` (Windows) or \`npm i -g tamery\`." \
-            --latest=false
+          if gh release view "cli-v$VERSION" >/dev/null 2>&1; then
+            gh release upload "cli-v$VERSION" tamery-* checksums.txt --clobber
+          else
+            gh release create "cli-v$VERSION" tamery-* checksums.txt \
+              --target "$GITHUB_SHA" \
+              --title "Tamery CLI $VERSION" \
+              --notes "Install or update: \`curl -fsSL https://tamery.app/cli/install.sh | sh\` (macOS, Linux), \`irm https://tamery.app/cli/install.ps1 | iex\` (Windows) or \`npm i -g tamery\`." \
+              --latest=false
+          fi
 
       - name: Pack npm packages
         working-directory: apps/cli
         run: bun scripts/pack-npm.ts
 
-      # Platform packages first, so the main package never points at a version that is not on npm yet.
+      # Platform packages first, so the main package never points at a version that is not on npm yet. A version already on
+      # npm is skipped, so a rerun finishes what a failed one started. NPM_TOKEN creates the packages trusted publishing
+      # cannot: npm configures it only on a package that exists.
       - name: Publish to npm
         working-directory: apps/cli/dist/npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          for package in tamery-*/; do
-            npm publish "./$package" --provenance --access public
+          for package in tamery-*/ tamery/; do
+            name=$(jq -r .name "$package/package.json")
+            if npm view "$name@$VERSION" version >/dev/null 2>&1; then
+              echo "$name@$VERSION is already on npm"
+            else
+              npm publish "./$package" --provenance --access public
+            fi
           done
-          npm publish ./tamery --provenance --access public

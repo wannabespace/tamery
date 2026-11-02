@@ -1,36 +1,36 @@
 import { Buffer } from 'node:buffer'
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
-import fs from 'node:fs'
+import path from 'node:path'
 
 import { bridgeKey } from '@tamery/shared/bridge'
 import { type } from 'arktype'
 
 import { configFiles } from '../config-files'
 
-const pairingsFile = type({
-  browsers: type({
-    hash: 'string',
-    id: 'string',
-    label: 'string',
-  }).array(),
-})
-
-type Browser = (typeof pairingsFile.infer)['browsers'][number]
+const browserFile = type({ hash: 'string', label: 'string' })
 
 const BEARER_PREFIX = 'Bearer '
 
-/** Read on every call, so `tamery bridge unpair-all` and `tamery logout` reach a bridge already running. */
-const readBrowsers = (): Browser[] =>
-  fs.existsSync(configFiles.pairings)
-    ? pairingsFile.assert(
-        JSON.parse(fs.readFileSync(configFiles.pairings, 'utf-8'))
-      ).browsers
-    : []
+const getFile = (browserId: string) =>
+  path.join(configFiles.browsers, `${browserId}.json`)
 
-const save = (browsers: Browser[]) =>
-  configFiles.write(configFiles.pairings, JSON.stringify({ browsers }, null, 2))
+/** Read on every call, so `tamery bridge unpair-all` and `tamery logout` reach a bridge already running. */
+const readBrowsers = () =>
+  configFiles
+    .readAll(configFiles.browsers)
+    .map(({ data, id }) => ({ id, ...browserFile.assert(JSON.parse(data)) }))
 
 export const pairings = {
+  /** Only after someone allowed it (`approvals`). */
+  add: (label: string) => {
+    const secret = randomBytes(32).toString('base64url')
+    const browserId = randomUUID()
+    configFiles.write(
+      getFile(browserId),
+      JSON.stringify({ hash: bridgeKey.hash(secret), label })
+    )
+    return { browserId, secret }
+  },
   authenticate: (authorization: string | null) => {
     if (!authorization?.startsWith(BEARER_PREFIX)) {
       return null
@@ -44,20 +44,9 @@ export const pairings = {
       )?.id ?? null
     )
   },
+  find: (browserId: string) =>
+    readBrowsers().find((browser) => browser.id === browserId) ?? null,
   labels: () => readBrowsers().map((browser) => browser.label),
-  getHash: (browserId: string) =>
-    readBrowsers().find((browser) => browser.id === browserId)?.hash ?? null,
-  getLabel: (browserId: string) =>
-    readBrowsers().find((browser) => browser.id === browserId)?.label ?? null,
-  /** Only after someone allowed it (`approvals`). */
-  add: (label: string) => {
-    const secret = randomBytes(32).toString('base64url')
-    const browser = { hash: bridgeKey.hash(secret), id: randomUUID(), label }
-    save([...readBrowsers(), browser])
-    return { browserId: browser.id, secret }
-  },
-  remove: (browserId: string) => {
-    save(readBrowsers().filter((browser) => browser.id !== browserId))
-  },
-  reset: () => configFiles.remove(configFiles.pairings),
+  remove: (browserId: string) => configFiles.remove(getFile(browserId)),
+  reset: () => configFiles.remove(configFiles.browsers),
 }

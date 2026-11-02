@@ -1,4 +1,4 @@
-import { type } from 'arktype'
+import { bridgeAttestationInput } from '@tamery/shared/bridge'
 
 import { accountMiddleware, orpc } from '~/orpc'
 
@@ -6,8 +6,9 @@ import { bridgeAttestation } from './attestation'
 
 export const verify = orpc
   .use(accountMiddleware)
-  .input(type({ nonce: 'string.hex == 64' }))
+  .input(bridgeAttestationInput)
   .handler(
     async ({ context, input }) =>
-      (await bridgeAttestation.take(input.nonce)) === context.user.id
+      (await bridgeAttestation.take(input.nonce, input.origin)) ===
+      context.user.id
   )

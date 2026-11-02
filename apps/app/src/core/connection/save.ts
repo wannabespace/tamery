@@ -107,8 +107,9 @@ export const saveConnectionString = async ({
   const settle = async () => {
     const persisted = await Result.tryPromise(() => tx.isPersisted.promise)
     if (persisted.isOk()) {
-      // After the server holds the row, which the bridge checks first. Never awaited: an unreachable bridge must not hold up the save.
-      void sendToBridge(connectionId)
+      // After the server holds the row, which the bridge checks first, and before the connection opens: a file, tunnel or
+      // machine login runs on the bridge only once its terminal allowed it. A failure only toasts, never fails the save.
+      await sendToBridge(connectionId)
       if (resource && resource !== stored?.defaultResourceName) {
         rememberOpenedResource(connectionId, resource)
       }

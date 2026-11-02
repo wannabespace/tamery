@@ -47,6 +47,7 @@ export const getBridgeRoute = (connectionId: string | null) => {
     pairing && {
       asks: (connectionId && bridgeAsks.get()[connectionId]) || null,
       name: pairing.name,
+      pairing,
     }
   )
 }
@@ -58,7 +59,7 @@ export const useBridgeRoute = (connectionId: string | null) => {
   const asks = useSubscription(bridgeAsks, {
     selector: (all) => (connectionId && all[connectionId]) || null,
   })
-  return pairing && { asks, name: pairing.name }
+  return pairing && { asks, name: pairing.name, pairing }
 }
 
 export const clearBridgePairing = () => {

@@ -17,6 +17,7 @@ const bridge = {
 const cloud = { execute: bridgeCall(), executeTransaction: bridgeCall() }
 const pairing = {
   browserId: 'browser',
+  enabled: true,
   name: 'valerii-mbp',
   secret: 'secret',
   url: 'http://127.0.0.1:26380',
@@ -43,7 +44,6 @@ mock.module('~/core/runtime/bridge/bridge', () => ({
   bridge: { client: () => ({ query: { postgres: bridge } }) },
 }))
 mock.module('~/core/runtime/bridge/pairing', () => ({
-  getActivePairing: () => (state.route ? pairing : null),
   getBridgeRoute: () => state.route,
 }))
 Object.assign(globalThis, { window: {} })
@@ -51,7 +51,7 @@ Object.assign(globalThis, { window: {} })
 const { createDialectProvider } = await import('./driver')
 const { dialects } = await import('./index')
 
-const paired: BridgeRoute = { asks: null, name: pairing.name }
+const paired: BridgeRoute = { asks: null, name: pairing.name, pairing }
 const select = { query: 'SELECT 1', values: [] }
 
 beforeEach(() => {

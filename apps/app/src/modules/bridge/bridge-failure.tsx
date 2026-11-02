@@ -5,8 +5,8 @@ import { useQueryErrorResetBoundary } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
 import { Link } from '~/components/link'
-import type { BridgeError } from '~/core/runtime/bridge/bridge'
 import { setBridgeEnabled } from '~/core/runtime/bridge/pairing'
+import type { BridgeError } from '~/core/runtime/bridge/status'
 
 export const BridgeFailure = ({
   error: { bridgeName, status },

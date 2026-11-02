@@ -1,56 +1,52 @@
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
+import path from 'node:path'
 import process from 'node:process'
 
 import { log } from '@clack/prompts'
 import { sleep } from '@tamery/shared/utils'
 import { type } from 'arktype'
+import { Result } from 'better-result'
 
 import { configFiles } from '../config-files'
 import { paint } from '../paint'
 import { askInTerminal } from './terminal-question'
 
-const requestsFile = type({
-  requests: type({
-    allowed: 'boolean | null',
-    id: 'string',
-    question: 'string',
-  }).array(),
-})
-
-type AccessRequest = (typeof requestsFile.infer)['requests'][number]
+const requestFile = type({ question: 'string' })
 
 const ANSWER_TIMEOUT_MS = 2 * 60 * 1000
 const POLL_MS = 500
 const MAX_WAITING = 3
+const ALLOWED = 'allowed'
 
-const read = () =>
-  fs.existsSync(configFiles.requests)
-    ? requestsFile.assert(
-        JSON.parse(fs.readFileSync(configFiles.requests, 'utf-8'))
-      ).requests
-    : []
+const getFiles = (id: string) => ({
+  answer: path.join(configFiles.requests, `${id}.answer`),
+  request: path.join(configFiles.requests, `${id}.json`),
+})
 
-const update = (change: (requests: AccessRequest[]) => AccessRequest[]) =>
-  configFiles.write(
-    configFiles.requests,
-    JSON.stringify({ requests: change(read()) })
-  )
+const readAnswer = (id: string) =>
+  Result.try(() => fs.readFileSync(getFiles(id).answer, 'utf-8'))
+    .map((answer) => answer === ALLOWED)
+    .unwrapOr(null)
 
 /** The first answer stands: the bridge's terminal and `tamery bridge approve` can both be asking. */
-const decide = (id: string, allowed: boolean) =>
-  update((requests) =>
-    requests.map((request) =>
-      request.id === id && request.allowed === null
-        ? { ...request, allowed }
-        : request
-    )
-  )
+const decide = (id: string, allowed: boolean) => {
+  configFiles.create(getFiles(id).answer, allowed ? ALLOWED : 'declined')
+}
 
-const askHere = async (request: AccessRequest, signal: AbortSignal) => {
-  const allowed = await askInTerminal(request.question, { signal })
+const waiting = () =>
+  configFiles
+    .readAll(configFiles.requests)
+    .filter(({ id }) => !fs.existsSync(getFiles(id).answer))
+    .map(({ data, id }) => ({
+      id,
+      ...requestFile.assert(JSON.parse(data)),
+    }))
+
+const askHere = async (id: string, question: string, signal: AbortSignal) => {
+  const allowed = await askInTerminal(question, { signal })
   if (allowed !== null) {
-    decide(request.id, allowed)
+    decide(id, allowed)
   }
 }
 
@@ -59,11 +55,12 @@ export const approvals = {
     if (approvals.isFull()) {
       return false
     }
-    const request = { allowed: null, id: randomUUID(), question }
-    update((requests) => [...requests, request])
+    const id = randomUUID()
+    const files = getFiles(id)
+    configFiles.write(files.request, JSON.stringify({ question }))
     const answered = new AbortController()
     if (process.stdin.isTTY) {
-      void askHere(request, answered.signal)
+      void askHere(id, question, answered.signal)
     } else {
       log.info(
         `${question} Run ${paint.accent('tamery bridge approve')} to answer.`
@@ -72,8 +69,8 @@ export const approvals = {
     try {
       const deadline = Date.now() + ANSWER_TIMEOUT_MS
       while (Date.now() < deadline) {
-        const allowed = read().find(({ id }) => id === request.id)?.allowed
-        if (typeof allowed === 'boolean') {
+        const allowed = readAnswer(id)
+        if (allowed !== null) {
           return allowed
         }
         // oxlint-disable-next-line eslint/no-await-in-loop -- polling the file another process answers in
@@ -82,11 +79,12 @@ export const approvals = {
       return false
     } finally {
       answered.abort()
-      update((requests) => requests.filter(({ id }) => id !== request.id))
+      configFiles.remove(files.request)
+      configFiles.remove(files.answer)
     }
   },
   clear: () => configFiles.remove(configFiles.requests),
   decide,
-  isFull: () => approvals.waiting().length >= MAX_WAITING,
-  waiting: () => read().filter(({ allowed }) => allowed === null),
+  isFull: () => waiting().length >= MAX_WAITING,
+  waiting,
 }

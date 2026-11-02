@@ -1,3 +1,4 @@
+import { BRIDGE_INSTALL_COMMANDS } from '@tamery/shared/bridge'
 import { Button } from '@tamery/ui/components/button'
 import { CopyButton } from '@tamery/ui/components/custom/copy-button'
 import {
@@ -8,10 +9,11 @@ import { Switch } from '@tamery/ui/components/switch'
 import type { ReactNode } from 'react'
 
 import { FetchingReason } from '~/core/connection/fetching-reason'
-import type { BridgeStatus } from '~/core/runtime/bridge/bridge'
-import { bridge, getBridgeStatusMessage } from '~/core/runtime/bridge/bridge'
+import { bridge } from '~/core/runtime/bridge/bridge'
 import type { BridgePairing } from '~/core/runtime/bridge/pairing'
 import { setBridgeEnabled } from '~/core/runtime/bridge/pairing'
+import type { BridgeStatus } from '~/core/runtime/bridge/status'
+import { getBridgeStatusMessage } from '~/core/runtime/bridge/status'
 import { posthog } from '~/lib/posthog'
 
 export const PairedBridge = ({
@@ -88,7 +90,7 @@ export const PairedBridge = ({
           <CopyButton
             variant="outline"
             size="sm"
-            text={info.updateCommand}
+            text={BRIDGE_INSTALL_COMMANDS[info.installer]}
             onClick={() =>
               posthog.capture('bridge_command_copied', { copied: 'update' })
             }

@@ -97,9 +97,17 @@ const getLocalAccess = (connectionString: string) => {
   ].filter((access) => access !== null)
 }
 
-const getAddedAccess = (before: string | null, after: string) => {
-  const known = before ? getLocalAccess(before) : []
-  return getLocalAccess(after).filter((access) => !known.includes(access))
+/**
+ * All of `after`'s local access once anything but its database or a secret changed: a proxy, TLS or port change sends the
+ * same file, keys or machine login elsewhere while every description still matches.
+ */
+const getUnconfirmedAccess = (before: string | null, after: string) => {
+  const access = getLocalAccess(after)
+  if (!before || !connectionSecrets.isSameServer(before, after)) {
+    return access
+  }
+  const known = getLocalAccess(before)
+  return access.filter((item) => !known.includes(item))
 }
 
 const needsSecrets = (connectionId: string, fields: string[] | 'all') =>
@@ -132,9 +140,12 @@ export const connections = {
     // Any workspace editor can change the server's copy, so a file or machine login it names runs only as the user saved it here.
     if (
       server.connectionString &&
-      getAddedAccess(local, server.connectionString).length > 0
+      getUnconfirmedAccess(local, server.connectionString).length > 0
     ) {
-      throw new ORPCError('UNCONFIRMED', queryErrors.UNCONFIRMED)
+      throw new ORPCError('UNCONFIRMED', {
+        data: { connectionId },
+        message: queryErrors.UNCONFIRMED.message,
+      })
     }
     const connectionString =
       server.connectionString && local
@@ -179,7 +190,7 @@ export const connections = {
           local: previous,
         })
       : connectionString
-    const added = getAddedAccess(previous, next)
+    const added = getUnconfirmedAccess(previous, next)
     if (added.length > 0 && !(await confirm(added))) {
       return false
     }

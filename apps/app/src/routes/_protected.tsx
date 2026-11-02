@@ -5,7 +5,7 @@ import { useEffect } from 'react'
 
 import { EventsProvider } from '~/components/events-provider'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
-import { useBridgeStatus } from '~/core/runtime/bridge/bridge'
+import { useBridgeStatus } from '~/core/runtime/bridge/status'
 import {
   loadPermissions,
   permix,

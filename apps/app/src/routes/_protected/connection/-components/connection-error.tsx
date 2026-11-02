@@ -3,14 +3,26 @@ import { isKeychainLocked } from '@tamery/shared/keychain'
 import { toError } from '@tamery/shared/utils'
 import type { ErrorComponentProps } from '@tanstack/react-router'
 
-import { BridgeError } from '~/core/runtime/bridge/bridge'
+import { getUnconfirmedConnection } from '~/core/runtime/bridge/bridge'
+import { BridgeError } from '~/core/runtime/bridge/status'
 import { BridgeFailure } from '~/modules/bridge/bridge-failure'
+import { BridgeUnconfirmed } from '~/modules/bridge/bridge-unconfirmed'
 
 import { ConnectionFailure } from './connection-failure'
 
 export const ConnectionError = (props: ErrorComponentProps) => {
   if (props.error instanceof BridgeError) {
     return <BridgeFailure error={props.error} reset={props.reset} />
+  }
+  const unconfirmed = getUnconfirmedConnection(props.error)
+  if (unconfirmed) {
+    return (
+      <BridgeUnconfirmed
+        connectionId={unconfirmed}
+        message={toError(props.error).message}
+        reset={props.reset}
+      />
+    )
   }
   if (
     isKeychainLocked(props.error) ||

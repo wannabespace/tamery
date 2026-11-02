@@ -1,6 +1,6 @@
 import { ratelimit } from '@orpc/ratelimit'
 import { RedisRateLimiter } from '@orpc/ratelimit/redis'
-import { type } from 'arktype'
+import { bridgeAttestationInput } from '@tamery/shared/bridge'
 
 import { redis } from '~/lib/redis'
 import { accountMiddleware, orpc } from '~/orpc'
@@ -16,7 +16,7 @@ const limiter = new RedisRateLimiter(redis, {
 export const attest = orpc
   .use(accountMiddleware)
   .use(ratelimit({ key: ({ context }) => context.user.id, limiter }))
-  .input(type({ nonce: 'string.hex == 64' }))
+  .input(bridgeAttestationInput)
   .handler(async ({ context, input }) => {
-    await bridgeAttestation.set(input.nonce, context.user.id)
+    await bridgeAttestation.set(input.nonce, input.origin, context.user.id)
   })

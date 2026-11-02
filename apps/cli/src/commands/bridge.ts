@@ -43,6 +43,7 @@ export const bridge = async (options: {
   enableSshTunnels()
   confineSqliteFiles()
   const router = createRouter({ name, userId: account.id })
+  approvals.clear()
   const listening = Result.try(() =>
     serveBridge({ port: options.port, publicUrl, router })
   )
@@ -74,7 +75,6 @@ export const bridge = async (options: {
     )
   }
 
-  approvals.clear()
   const connectUrl = `${env.WEB_URL}${BRIDGE_PAIR_PATH}${reachedAt === BRIDGE_URL ? '' : `#${new URLSearchParams({ url: reachedAt })}`}`
   const paired = [...new Set(pairings.labels())]
   if (paired.length === 0) {
