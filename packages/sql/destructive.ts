@@ -155,7 +155,7 @@ const SESSION_COMMANDS = new Set([
 ])
 
 const SIDE_EFFECT_FUNCTION =
-  /^(?:DBLINK\w*|GET_LOCK|LO_EXPORT|OPEN(?:DATASOURCE|QUERY|ROWSET)|PG_(?:CANCEL|TERMINATE)_BACKEND|PG_(?:TRY_)?ADVISORY_LOCK(?:_SHARED)?|PG_FILE_WRITE)$/u
+  /^(?:DBLINK\w*|GET_LOCK|LO_EXPORT|OPEN(?:DATASOURCE|QUERY|ROWSET)|PG_(?:CANCEL|TERMINATE)_BACKEND|PG_(?:TRY_)?ADVISORY_LOCK(?:_SHARED)?|PG_FILE_(?:RENAME|UNLINK|WRITE))$/u
 
 export const readsOnly = (text: string, dialect: DialectSpec) => {
   const { tokens } = tokenize(text, dialect)

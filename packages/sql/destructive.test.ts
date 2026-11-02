@@ -272,6 +272,10 @@ describe('readsOnly', () => {
     expect(readsOnly("SELECT pg_file_write('/tmp/x', 'a', false)", pg)).toBe(
       false
     )
+    expect(readsOnly("SELECT pg_file_unlink('/tmp/x')", pg)).toBe(false)
+    expect(readsOnly("SELECT pg_file_rename('/tmp/x', '/tmp/y')", pg)).toBe(
+      false
+    )
     expect(readsOnly(String.raw`SELECT U&"lo_\0065xport"(1, '/x')`, pg)).toBe(
       false
     )
