@@ -55,8 +55,14 @@ const NEW_WINDOW_OFFSET = 28
 
 let mainWindow: BrowserWindow | null = null
 
-// Allowlist: any other scheme hands the renderer a way to launch arbitrary local apps. cursor: and vscode: carry the MCP install links.
-const EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'cursor:', 'vscode:'])
+// Any other URL could launch a local app; and of cursor: and vscode: only the MCP install links Settings → MCP builds, since
+// a link in a chat answer could otherwise hand those editors an extension install or a command with chosen arguments.
+const EXTERNAL_URL_PREFIXES = [
+  'http://',
+  'https://',
+  'cursor://anysphere.cursor-deeplink/mcp/install?',
+  'vscode:mcp/install?',
+]
 
 // With no handler Electron grants every web permission, so this allowlist is the only gate. Clipboard must stay — grid and connection-string paste read it; nothing behind the rest (camera, mic, geolocation, midi, web notifications: desktop notifies natively over IPC).
 const ALLOWED_PERMISSIONS = new Set([
@@ -72,6 +78,12 @@ const restrictPermissions = () => {
   session.defaultSession.setPermissionCheckHandler((_webContents, permission) =>
     ALLOWED_PERMISSIONS.has(permission)
   )
+}
+
+const stayInApp = (event: Electron.Event<{ url: string }>) => {
+  if (!isAppUrl(event.url)) {
+    event.preventDefault()
+  }
 }
 
 const openExternal = async (win: BrowserWindow, url: string) => {
@@ -145,14 +157,11 @@ export const createWindow = (route?: string) => {
     }
   }
 
-  win.webContents.on('will-navigate', (event) => {
-    if (!isAppUrl(event.url)) {
-      event.preventDefault()
-    }
-  })
+  win.webContents.on('will-navigate', stayInApp)
+  win.webContents.on('will-redirect', stayInApp)
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (EXTERNAL_PROTOCOLS.has(new URL(url).protocol)) {
+    if (EXTERNAL_URL_PREFIXES.some((prefix) => url.startsWith(prefix))) {
       void openExternal(win, url)
     }
     return { action: 'deny' }

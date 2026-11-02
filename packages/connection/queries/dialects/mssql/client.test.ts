@@ -9,6 +9,7 @@ import { poolConfig } from './client'
 test('the connector dials the address tedious names, not the seed', async () => {
   const dialed: Destination[] = []
   const of = spyOn(forwarding, 'of').mockResolvedValue({
+    encrypted: true,
     socket: () => {
       throw new Error('dialed the seed')
     },

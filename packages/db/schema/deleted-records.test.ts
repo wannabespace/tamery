@@ -12,6 +12,7 @@ const TABLES_NOT_KEPT = [
   'deleted_records',
   'early_access',
   'invitations',
+  'passkeys',
   'sessions',
   'subscriptions',
   'two_factors',

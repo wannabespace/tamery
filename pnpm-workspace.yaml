@@ -12,6 +12,9 @@ catalog:
   '@blobatar/react': ^2.7.0
   '@better-auth/core': ^1.7.14
   '@better-auth/drizzle-adapter': ^1.7.14
+  # Pinned: a newer patch than @better-auth/core pulls a second core copy and splits the API's auth types.
+  '@better-auth/passkey': 1.7.14
+  '@simplewebauthn/server': ^13.3.3
   '@clack/prompts': ^1.8.1
   '@clickhouse/client': ^1.24.1
   '@libsql/client': ^0.18.0
@@ -193,9 +196,7 @@ allowBuilds:
   ssh2: false
 # @types/ssh2 pins Node 18 types, which clash with Electron's in any workspace compiling the SSH tunnel.
 overrides:
-  compression: ^1.8.2
   dompurify: ^3.4.17
   '@types/ssh2>@types/node': ^24.13.3
-  # Collapse esbuild and kysely to one version each: both are optional peers of better-auth, so a second copy splits better-auth/@better-auth/core into two peer variations whose types stop unifying in @tamery/api. esbuild must stay in vite's required ^0.27.0 || ^0.28.0.
+  # Collapse esbuild to one version (drizzle-kit asks for ^0.25): it is an optional peer of better-auth, so a second copy splits better-auth/@better-auth/core into two peer variations whose types stop unifying in @tamery/api. It must stay in vite's required ^0.27.0 || ^0.28.0.
   esbuild: ^0.28.2
-  kysely: ^0.29.7

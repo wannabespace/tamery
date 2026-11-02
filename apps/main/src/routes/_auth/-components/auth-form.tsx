@@ -1,6 +1,13 @@
-import { GithubIcon, GoogleIcon } from '@hugeicons/core-free-icons'
+import {
+  FingerPrintIcon,
+  GithubIcon,
+  GoogleIcon,
+} from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { SOCIAL_PROVIDER_LABELS } from '@tamery/shared/constants'
+import {
+  SOCIAL_PROVIDER_LABELS,
+  UNKNOWN_ERROR_MESSAGE,
+} from '@tamery/shared/constants'
 import { Badge } from '@tamery/ui/components/badge'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
@@ -9,12 +16,17 @@ import { Form, useAppForm } from '@tamery/ui/components/tanstack-form'
 import { useIsMutating, useMutation } from '@tanstack/react-query'
 import { getRouteApi, useRouter } from '@tanstack/react-router'
 import { type } from 'arktype'
+import { toast } from 'sonner'
 
-import { authClient, getLastUsedLoginMethod } from '~/lib/auth'
+import {
+  authClient,
+  getLastUsedLoginMethod,
+  isPasskeyPromptDismissed,
+} from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { handleError } from '~/utils/error'
 
-import { sendSignInCode } from '../-lib/sign-in'
+import { sendSignInCode, useFinishSignIn } from '../-lib/sign-in'
 
 const { useSearch } = getRouteApi('/_auth')
 
@@ -56,9 +68,9 @@ const SocialButton = ({
   const { redirectPath } = useSearch()
   const router = useRouter()
   const { href } = router.buildLocation({ to: '/account' })
-  const isAnyPending = useIsMutating({ mutationKey: ['social'] }) > 0
+  const isAnyPending = useIsMutating({ mutationKey: ['sign-in'] }) > 0
   const { mutate, isPending } = useMutation({
-    mutationKey: ['social', provider.id],
+    mutationKey: ['sign-in', provider.id],
     mutationFn: async () => {
       void posthog.capture('social_sign_in_started', { provider: provider.id })
       const callbackUrl = new URL(location.origin + (redirectPath || href))
@@ -95,11 +107,54 @@ const SocialButton = ({
   )
 }
 
+const PasskeyButton = () => {
+  const finishSignIn = useFinishSignIn()
+  const isAnyPending = useIsMutating({ mutationKey: ['sign-in'] }) > 0
+  const { mutate, isPending } = useMutation({
+    meta: { event: 'passkey_signed_in' },
+    mutationKey: ['sign-in', 'passkey'],
+    mutationFn: async () => {
+      const { error } = await authClient.signIn.passkey()
+
+      if (error) {
+        throw error
+      }
+    },
+    onSuccess: () => finishSignIn(),
+    // Not handleError: it reads a 401 as an expired session, and a passkey the account no longer has answers 401.
+    onError: (error: { code?: string; message?: string }) => {
+      if (!isPasskeyPromptDismissed(error)) {
+        toast.error(error.message ?? UNKNOWN_ERROR_MESSAGE)
+      }
+    },
+  })
+
+  return (
+    <Button
+      variant="outline"
+      className="relative w-full"
+      onClick={() => mutate()}
+      disabled={isAnyPending}
+    >
+      <LoadingContent loading={isPending}>
+        <HugeiconsIcon
+          icon={FingerPrintIcon}
+          strokeWidth={2}
+          className="size-4"
+        />
+        Passkey
+      </LoadingContent>
+      {getLastUsedLoginMethod() === 'passkey' && <Last />}
+    </Button>
+  )
+}
+
 const SocialAuthForm = () => (
-  <div className="grid grid-cols-2 gap-3">
+  <div className="grid grid-cols-3 gap-3">
     {SOCIAL_PROVIDERS.map((provider) => (
       <SocialButton key={provider.id} provider={provider} />
     ))}
+    <PasskeyButton />
   </div>
 )
 

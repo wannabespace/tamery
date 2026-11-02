@@ -38,22 +38,27 @@ const AuthPage = () => {
   const [verifier, setVerifier] = useState<string | null>(null)
   const [codeChallenge, setCodeChallenge] = useState<string | null>(null)
 
-  const signInWithChallenge = () => {
-    const {
-      verifier: nextVerifier,
-      codeChallenge: nextCodeChallenge,
-      url,
-    } = signInUrl(window.electron ? 'desktop' : 'web')
+  const startSignIn = useMutation({
+    mutationFn: async () => {
+      const signIn = signInUrl(window.electron ? 'desktop' : 'web')
 
-    setVerifier(nextVerifier)
-    setCodeChallenge(nextCodeChallenge)
+      if (!window.electron) {
+        location.assign(signIn.url)
+        return
+      }
 
-    if (window.electron) {
-      window.open(url, '_blank')
-    } else {
-      location.assign(url)
-    }
-  }
+      // The confirm page refuses a challenge no device listens for, so the browser opens only once this one does.
+      const events = await orpc.account.challenge.listen.call({
+        codeChallenge: signIn.codeChallenge,
+      })
+      await events.next()
+      await events.return()
+
+      setVerifier(signIn.verifier)
+      setCodeChallenge(signIn.codeChallenge)
+      window.open(signIn.url, '_blank')
+    },
+  })
 
   const { data, error } = useQuery(
     orpc.account.challenge.listen.liveOptions({
@@ -62,6 +67,7 @@ const AuthPage = () => {
   )
 
   const isWaiting = !!codeChallenge && !data?.ready && !error
+  const failure = error ?? startSignIn.error
 
   const cancelSignIn = () => {
     setVerifier(null)
@@ -169,7 +175,7 @@ const AuthPage = () => {
               <Button
                 className="mb-2 w-full"
                 size="lg"
-                onClick={() => signInWithChallenge()}
+                onClick={() => startSignIn.mutate()}
               >
                 {isWaiting ? (
                   <span className="animate-pulse">Waiting for sign in...</span>
@@ -177,8 +183,14 @@ const AuthPage = () => {
                   'Sign In'
                 )}
               </Button>
-              {isWaiting ? (
-                <div className="mb-2 flex justify-center">
+              {isWaiting && codeChallenge ? (
+                <div className="mb-2 flex flex-col items-center gap-1">
+                  <p className="text-muted-foreground text-center text-xs">
+                    Continue in your browser only if it shows{' '}
+                    <span className="text-foreground font-mono">
+                      {challenge.getUserCode(codeChallenge)}
+                    </span>
+                  </p>
                   <Button variant="link-muted" size="xs" onClick={cancelSignIn}>
                     Cancel
                   </Button>
@@ -189,14 +201,14 @@ const AuthPage = () => {
                 </p>
               )}
             </motion.div>
-            {!!error && (
+            {failure && (
               <div className="text-muted-foreground flex items-center gap-2 text-sm">
                 <HugeiconsIcon
                   icon={Alert02Icon}
                   strokeWidth={2}
                   className="text-destructive size-4"
                 />
-                {error.message}
+                {failure.message}
               </div>
             )}
           </div>

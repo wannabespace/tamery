@@ -67,7 +67,8 @@ export const sendEmail = async <
           throw error
         }
       },
-      `resend:${JSON.stringify(options)}`,
+      // Keyed: the message carries a six-digit sign-in code, which a plain hash in a listed key name gives up to brute force.
+      `resend:${new Bun.CryptoHasher('sha256', env.BETTER_AUTH_SECRET).update(JSON.stringify(options)).digest('hex')}`,
       10 * 60
     )
   } catch (error) {
