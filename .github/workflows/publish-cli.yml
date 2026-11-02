@@ -166,19 +166,17 @@ jobs:
         working-directory: apps/cli
         run: bun scripts/pack-npm.ts
 
-      # Platform packages first, so the main package never points at a version that is not on npm yet. A version already on
-      # npm is skipped, so a rerun finishes what a failed one started. NPM_TOKEN creates the packages trusted publishing
-      # cannot: npm configures it only on a package that exists.
+      # Trusted publishing (OIDC through `id-token: write`, provenance included), so no token: each package names this
+      # workflow as its trusted publisher (`monorepo.md`). Platform packages first, so the main package never points at a
+      # version that is not on npm yet. A version already on npm is skipped, so a rerun finishes what a failed one started.
       - name: Publish to npm
         working-directory: apps/cli/dist/npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           for package in tamery-*/ tamery/; do
             name=$(jq -r .name "$package/package.json")
             if npm view "$name@$VERSION" version >/dev/null 2>&1; then
               echo "$name@$VERSION is already on npm"
             else
-              npm publish "./$package" --provenance --access public
+              npm publish "./$package" --access public
             fi
           done
