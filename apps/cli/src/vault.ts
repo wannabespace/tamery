@@ -16,6 +16,8 @@ const vaultData = type({
   connections: { '[string]': 'string' },
 })
 
+const vaultFile = type('string.json.parse').to(vaultData)
+
 type VaultData = typeof vaultData.infer
 
 /** A headless Linux box usually has no Secret Service, so the key sits in a file beside the vault there. */
@@ -59,13 +61,11 @@ const EMPTY: VaultData = { account: null, connections: {} }
 
 const readData = (key: string): VaultData =>
   fs.existsSync(configFiles.vault)
-    ? vaultData.assert(
-        JSON.parse(
-          decrypt({
-            encryptedText: fs.readFileSync(configFiles.vault, 'utf-8'),
-            secret: key,
-          })
-        )
+    ? vaultFile.assert(
+        decrypt({
+          encryptedText: fs.readFileSync(configFiles.vault, 'utf-8'),
+          secret: key,
+        })
       )
     : EMPTY
 

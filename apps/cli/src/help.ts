@@ -1,4 +1,11 @@
-import type { ArgDef, ArgsDef, CommandDef, Resolvable } from 'citty'
+import type {
+  ArgDef,
+  ArgsDef,
+  CommandDef,
+  CommandMeta,
+  Resolvable,
+  SubCommandsDef,
+} from 'citty'
 
 import { env } from './env'
 import { paint } from './paint'
@@ -16,8 +23,9 @@ interface Row {
 }
 
 /** citty lets each part of a command be a value, a promise, or a function returning either. */
-const resolve = <T>(value: Resolvable<T>) =>
-  typeof value === 'function' ? (value as () => T | Promise<T>)() : value
+const resolve = <T extends ArgsDef | CommandDef | CommandMeta | SubCommandsDef>(
+  value: Resolvable<T>
+) => (typeof value === 'function' ? value() : value)
 
 const renderSection = (title: string, rows: Row[], width: number) =>
   rows.length === 0

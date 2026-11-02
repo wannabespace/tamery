@@ -142,10 +142,13 @@ export const createRouter = ({
         .handler(async ({ context, errors, input }) => {
           const label =
             pairings.find(context.browserId)?.label ?? UNNAMED_BROWSER
-          const saved = await connections.save(input, (access) =>
-            approvals.ask(
-              `Allow ${paint.bold(label)} to have this computer use ${access.map((item) => paint.bold(printable(item))).join(', ')}?`
-            )
+          const saved = await connections.save(
+            input,
+            (access) =>
+              approvals.ask(
+                `Allow ${paint.bold(label)} to have this computer use ${access.map((item) => paint.bold(printable(item))).join(', ')}?`
+              ),
+            errors
           )
           if (!saved) {
             throw errors.ACCESS_DECLINED()
@@ -156,8 +159,8 @@ export const createRouter = ({
       ),
     },
     query: createQueryRouter(authed.errors(queryErrors), {
-      connectionString: (input, _context, dialect) =>
-        connections.resolve(input, dialect),
+      connectionString: (input, _context, dialect, errors) =>
+        connections.resolve(input, dialect, errors),
       owner: (context) => context.browserId,
     }),
   }

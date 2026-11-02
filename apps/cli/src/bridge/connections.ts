@@ -19,7 +19,7 @@ import { Result } from 'better-result'
 
 import { api } from '../api'
 import { vault } from '../vault'
-import { queryErrors } from './errors'
+import type { QueryErrors } from './errors'
 
 const FRESH_MS = 60 * 1000
 
@@ -39,7 +39,11 @@ const LOCAL_ONLY: ServerCopy = {
 
 const serverCopies = new Map<string, ServerCopy>()
 
-const getServerCopy = async (connectionId: string, hasLocal: boolean) => {
+const getServerCopy = async (
+  connectionId: string,
+  hasLocal: boolean,
+  errors: Pick<QueryErrors, 'NOT_FOUND'>
+) => {
   const cached = serverCopies.get(connectionId) ?? null
   if (cached && Date.now() - cached.checkedAt < FRESH_MS) {
     return cached
@@ -63,7 +67,7 @@ const getServerCopy = async (connectionId: string, hasLocal: boolean) => {
   if (result.value.status === 'not-found') {
     serverCopies.delete(connectionId)
     await vault.removeConnection(connectionId)
-    throw new ORPCError('NOT_FOUND', queryErrors.NOT_FOUND)
+    throw errors.NOT_FOUND()
   }
   const kept = result.value.status === 'unchanged' ? cached : null
   const copy: ServerCopy = {
@@ -110,30 +114,28 @@ const getUnconfirmedAccess = (before: string | null, after: string) => {
   return access.filter((item) => !known.includes(item))
 }
 
-const needsSecrets = (connectionId: string, fields: string[] | 'all') =>
-  new ORPCError('NEEDS_SECRETS', {
-    data: { connectionId, fields },
-    message: queryErrors.NEEDS_SECRETS.message,
-  })
-
 export const connections = {
-  resolve: async (input: ConnectionInput, dialect: Dialect) => {
+  resolve: async (
+    input: ConnectionInput,
+    dialect: Dialect,
+    errors: QueryErrors
+  ) => {
     if (!('connectionId' in input)) {
-      throw new ORPCError('BAD_REQUEST', {
+      throw errors.BAD_REQUEST({
         message: 'The bridge runs saved connections only. Update Tamery.',
       })
     }
     const { connectionId } = input
     const local = await vault.connection(connectionId)
-    const server = await getServerCopy(connectionId, !!local)
+    const server = await getServerCopy(connectionId, !!local, errors)
     const known = server.connectionString ?? local
     if (!known) {
-      throw needsSecrets(connectionId, 'all')
+      throw errors.NEEDS_SECRETS({ data: { connectionId, fields: 'all' } })
     }
     // Approval reads a string as its own connection type: SQLite under another dialect's name would open a file unasked.
     const { type } = connectionParts.parse(known)
     if (!type || getDialect(type) !== dialect) {
-      throw new ORPCError('BAD_REQUEST', {
+      throw errors.BAD_REQUEST({
         message: `This connection does not run as ${dialect}.`,
       })
     }
@@ -142,10 +144,7 @@ export const connections = {
       server.connectionString &&
       getUnconfirmedAccess(local, server.connectionString).length > 0
     ) {
-      throw new ORPCError('UNCONFIRMED', {
-        data: { connectionId },
-        message: queryErrors.UNCONFIRMED.message,
-      })
+      throw errors.UNCONFIRMED({ data: { connectionId } })
     }
     const connectionString =
       server.connectionString && local
@@ -160,7 +159,7 @@ export const connections = {
       ...connectionSecrets.missing(url.searchParams),
     ]
     if (missing.length > 0) {
-      throw needsSecrets(connectionId, missing)
+      throw errors.NEEDS_SECRETS({ data: { connectionId, fields: missing } })
     }
     return input.resourceName
       ? resourceConnectionString(connectionString, input.resourceName)
@@ -178,11 +177,16 @@ export const connections = {
       connectionId: string
       connectionString: string
     },
-    confirm: (access: string[]) => Promise<boolean>
+    confirm: (access: string[]) => Promise<boolean>,
+    errors: Pick<QueryErrors, 'NOT_FOUND'>
   ) => {
     // `resolve` trusts a local copy while the API is down, so only a connection the API confirms right now gets one.
     serverCopies.delete(connectionId)
-    const { isPasswordExists } = await getServerCopy(connectionId, false)
+    const { isPasswordExists } = await getServerCopy(
+      connectionId,
+      false,
+      errors
+    )
     const previous = await vault.connection(connectionId)
     const next = previous
       ? connectionSecrets.restore(connectionString, {

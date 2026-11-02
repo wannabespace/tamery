@@ -7,7 +7,10 @@ import { type } from 'arktype'
 
 import { configFiles } from '../config-files'
 
-const browserFile = type({ hash: 'string', label: 'string' })
+const browserFile = type('string.json.parse').to({
+  hash: 'string',
+  label: 'string',
+})
 
 const BEARER_PREFIX = 'Bearer '
 
@@ -18,7 +21,7 @@ const getFile = (browserId: string) =>
 const readBrowsers = () =>
   configFiles
     .readAll(configFiles.browsers)
-    .map(({ data, id }) => ({ id, ...browserFile.assert(JSON.parse(data)) }))
+    .map(({ data, id }) => ({ id, ...browserFile.assert(data) }))
 
 export const pairings = {
   /** Only after someone allowed it (`approvals`). */

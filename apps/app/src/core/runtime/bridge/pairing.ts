@@ -1,3 +1,4 @@
+import type { bridgeNeedsSecrets } from '@tamery/shared/bridge'
 import { type } from 'arktype'
 import { createStore } from 'seitu'
 import { useSubscription } from 'seitu/react'
@@ -39,7 +40,9 @@ export const setBridgeEnabled = (enabled: boolean) => {
 }
 
 /** Per connection, what the bridge last answered `NEEDS_SECRETS` with while this browser lacked it too. */
-export const bridgeAsks = createStore<Record<string, string[] | 'all'>>({})
+export const bridgeAsks = createStore<
+  Record<string, (typeof bridgeNeedsSecrets.infer)['fields']>
+>({})
 
 export const getBridgeRoute = (connectionId: string | null) => {
   const pairing = getActivePairing()

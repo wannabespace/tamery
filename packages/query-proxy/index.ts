@@ -3,6 +3,7 @@ import type {
   Context,
   ErrorMap,
   MergedContext,
+  ORPCErrorConstructorMap,
   RouterClient,
 } from '@orpc/server'
 import { type } from '@orpc/server'
@@ -25,12 +26,16 @@ export type ConnectionInput =
   | { connectionId: string; resourceName?: string | null }
   | { resourceId: string }
 
-interface Resolvers<TContext> {
-  /** `dialect` is the executor that will run the string, which may not be the one its connection names. */
+interface Resolvers<TContext, TErrors extends ErrorMap> {
+  /**
+   * `dialect` is the executor that will run the string, which may not be the one its connection names; `errors` builds the
+   * errors the caller's builder declares.
+   */
   connectionString: (
     input: ConnectionInput,
     context: TContext,
-    dialect: Dialect
+    dialect: Dialect,
+    errors: ORPCErrorConstructorMap<TErrors>
   ) => string | Promise<string>
   /** Who a transaction belongs to, so a leaked `txId` cannot drive another user's transaction. */
   owner: (context: TContext) => string
@@ -46,32 +51,34 @@ const createQueryDialect = <
 >(
   name: Dialect,
   orpc: BuilderWithMiddlewares<TInitial, TInjected, TErrors>,
-  resolve: Resolvers<MergedContext<TInitial, TInjected>>
+  resolve: Resolvers<MergedContext<TInitial, TInjected>, TErrors>
 ) => {
   const dialect = executors[name]
   return {
     beginTransaction: orpc
       .input(type<Params<typeof dialect.beginTransaction>>())
-      .handler(async ({ input, context }) =>
+      .handler(async ({ context, errors, input }) =>
         dialect.beginTransaction({
           ...input,
           connectionString: await resolve.connectionString(
             input,
             context,
-            name
+            name,
+            errors
           ),
           ownerId: resolve.owner(context),
         })
       ),
     cancel: orpc
       .input(type<Params<typeof dialect.cancel>>())
-      .handler(async ({ input, context }) =>
+      .handler(async ({ context, errors, input }) =>
         dialect.cancel({
           ...input,
           connectionString: await resolve.connectionString(
             input,
             context,
-            name
+            name,
+            errors
           ),
         })
       ),
@@ -82,13 +89,14 @@ const createQueryDialect = <
       ),
     execute: orpc
       .input(type<Params<typeof dialect.execute>>())
-      .handler(async ({ input, context }) =>
+      .handler(async ({ context, errors, input }) =>
         dialect.execute({
           ...input,
           connectionString: await resolve.connectionString(
             input,
             context,
-            name
+            name,
+            errors
           ),
           maxRows: Math.min(input.maxRows ?? MAX_ROWS, MAX_ROWS),
         })
@@ -104,13 +112,14 @@ const createQueryDialect = <
       ),
     openSession: orpc
       .input(type<Params<typeof dialect.openSession>>())
-      .handler(async ({ input, context }) =>
+      .handler(async ({ context, errors, input }) =>
         dialect.openSession({
           ...input,
           connectionString: await resolve.connectionString(
             input,
             context,
-            name
+            name,
+            errors
           ),
           ownerId: resolve.owner(context),
         })
@@ -138,7 +147,7 @@ export const createQueryRouter = <
   TErrors extends ErrorMap,
 >(
   orpc: BuilderWithMiddlewares<TInitial, TInjected, TErrors>,
-  resolve: Resolvers<MergedContext<TInitial, TInjected>>
+  resolve: Resolvers<MergedContext<TInitial, TInjected>, TErrors>
 ) =>
   ({
     clickhouse: createQueryDialect(Dialect.ClickHouse, orpc, resolve),

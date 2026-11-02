@@ -12,7 +12,7 @@ import { configFiles } from '../config-files'
 import { paint } from '../paint'
 import { askInTerminal } from './terminal-question'
 
-const requestFile = type({ question: 'string' })
+const requestFile = type('string.json.parse').to({ question: 'string' })
 
 const ANSWER_TIMEOUT_MS = 2 * 60 * 1000
 const POLL_MS = 500
@@ -35,7 +35,7 @@ const waiting = () =>
     .filter(({ id }) => !fs.existsSync(getFiles(id).answer))
     .map(({ data, id }) => ({
       id,
-      ...requestFile.assert(JSON.parse(data)),
+      ...requestFile.assert(data),
     }))
 
 const askHere = async (id: string, question: string, signal: AbortSignal) => {

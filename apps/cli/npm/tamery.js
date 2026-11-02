@@ -3,9 +3,19 @@ import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import process from 'node:process'
 
-const isMusl = () =>
-  process.platform === 'linux' &&
-  !process.report.getReport().header.glibcVersionRuntime
+/** Node on glibc names the version in its process report; on musl it names none. */
+const hasGlibc = () => {
+  const report = process.report.getReport()
+  const header = 'header' in report ? report.header : null
+  return (
+    typeof header === 'object' &&
+    header !== null &&
+    'glibcVersionRuntime' in header &&
+    !!header.glibcVersionRuntime
+  )
+}
+
+const isMusl = () => process.platform === 'linux' && !hasGlibc()
 
 const os = process.platform === 'win32' ? 'windows' : process.platform
 const target = `${os}-${process.arch}${isMusl() ? '-musl' : ''}`
