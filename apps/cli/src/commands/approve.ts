@@ -29,16 +29,11 @@ export const approve = async () => {
       : await waitForRequests()
   for (const request of requests) {
     // oxlint-disable-next-line eslint/no-await-in-loop -- one question at a time
-    const allowed = await askInTerminal(
-      `Allow ${paint.bold(request.label)} to run queries on this computer?`,
-      {}
-    )
+    const allowed = await askInTerminal(request.question)
     if (allowed === null) {
       return
     }
     approvals.decide(request.id, allowed)
-    log.message(
-      paint.dim(allowed ? 'Allowed. The browser connects now.' : 'Declined.')
-    )
+    log.message(paint.dim(allowed ? 'Allowed.' : 'Declined.'))
   }
 }

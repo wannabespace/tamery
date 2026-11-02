@@ -2,7 +2,7 @@ import { ORPCError } from '@orpc/server'
 import { connectionParts } from '@tamery/connection/connection-parts'
 import { readConnectionString } from '@tamery/connection/parse-connection-string'
 import { connectionSecrets } from '@tamery/connection/secrets'
-import { SSH_PARAMS } from '@tamery/connection/ssh/params'
+import { DEFAULT_SSH_PORT, getSshTunnel } from '@tamery/connection/ssh/params'
 import {
   describeConnectionString,
   FILE_PARAMS,
@@ -80,30 +80,24 @@ const getMissing = (connectionString: string, isPasswordExists: boolean) => {
   return isPasswordExists && !url.password ? ['password', ...missing] : missing
 }
 
-const SSH_ACCESS_PARAMS = [
-  SSH_PARAMS.auth,
-  SSH_PARAMS.host,
-  SSH_PARAMS.keyPath,
-  SSH_PARAMS.port,
-  SSH_PARAMS.user,
-]
-
 /** What a string makes this computer hand to the driver: a file to open or read, or the credentials of the machine's own login. */
 const getLocalAccess = (connectionString: string) => {
-  const { database, host, type } = connectionParts.parse(connectionString)
+  const parts = connectionParts.parse(connectionString)
+  const { database, host, type } = parts
   const { searchParams } = readConnectionString(connectionString)
+  const tunnel = getSshTunnel(searchParams)
   return [
-    type === ConnectionType.SQLite && !host ? `file:${database}` : null,
+    type === ConnectionType.SQLite && !host ? `the file ${database}` : null,
     ...FILE_PARAMS.map((param) =>
-      searchParams.has(param) ? `${param}=${searchParams.get(param)}` : null
+      searchParams.has(param) ? `${param} ${searchParams.get(param)}` : null
     ),
     describeConnectionString(connectionString).usesMachineCredentials
-      ? `${searchParams.get('authmechanism')?.toUpperCase()}@${host}`
+      ? `its ${searchParams.get('authmechanism')?.toUpperCase()} credentials for ${host}`
       : null,
-    // A tunnel reads this computer's key file, ssh-agent or `~/.ssh/config`, so its whole target counts as local access.
-    ...SSH_ACCESS_PARAMS.map((param) =>
-      searchParams.get(param) ? `${param}=${searchParams.get(param)}` : null
-    ),
+    // A tunnel signs in with this computer's key file, ssh-agent or `~/.ssh/config` and reaches whatever the database host names
+    // from the SSH host, so the whole route counts, defaults included: dropping `ssh_auth` alone would switch to the agent.
+    tunnel &&
+      `SSH (${[tunnel.auth, tunnel.keyPath].filter(Boolean).join(' ')}) as ${tunnel.user || 'the default user'} to ${tunnel.host}:${tunnel.port || DEFAULT_SSH_PORT}, on to ${host}:${connectionParts.port(parts)}`,
   ].filter((access) => access !== null)
 }
 
@@ -154,25 +148,38 @@ export const connections = {
       : connectionString
   },
   /** The browser sends only the fields the bridge asked for; a secret saved earlier and not asked for must survive. */
-  save: async ({
-    connectionId,
-    connectionString,
-  }: {
-    connectionId: string
-    connectionString: string
-  }) => {
+  /**
+   * `false` when the string asks for a file, SSH route or machine login the bridge's copy did not have and the person at its
+   * terminal declined it: a paired browser's script could otherwise point the bridge at any file or host on this computer.
+   */
+  save: async (
+    {
+      connectionId,
+      connectionString,
+    }: {
+      connectionId: string
+      connectionString: string
+    },
+    confirm: (access: string[]) => Promise<boolean>
+  ) => {
     // `resolve` trusts a local copy while the API is down, so only a connection the API confirms right now gets one.
     serverCopies.delete(connectionId)
     await getServerCopy(connectionId, false)
     const previous = await vault.connection(connectionId)
-    await vault.setConnection(
-      connectionId,
-      previous
-        ? connectionSecrets.restore(connectionString, {
-            isPasswordExists: true,
-            local: previous,
-          })
-        : connectionString
+    const next = previous
+      ? connectionSecrets.restore(connectionString, {
+          isPasswordExists: true,
+          local: previous,
+        })
+      : connectionString
+    const known = previous ? getLocalAccess(previous) : []
+    const added = getLocalAccess(next).filter(
+      (access) => !known.includes(access)
     )
+    if (added.length > 0 && !(await confirm(added))) {
+      return false
+    }
+    await vault.setConnection(connectionId, next)
+    return true
   },
 }

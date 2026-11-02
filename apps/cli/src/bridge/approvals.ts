@@ -14,7 +14,7 @@ const requestsFile = type({
   requests: type({
     allowed: 'boolean | null',
     id: 'string',
-    label: 'string',
+    question: 'string',
   }).array(),
 })
 
@@ -40,18 +40,18 @@ const update = (change: (requests: AccessRequest[]) => AccessRequest[]) =>
     JSON.stringify({ requests: change(read()) })
   )
 
+/** The first answer stands: the bridge's terminal and `tamery bridge approve` can both be asking. */
 const decide = (id: string, allowed: boolean) =>
   update((requests) =>
     requests.map((request) =>
-      request.id === id ? { ...request, allowed } : request
+      request.id === id && request.allowed === null
+        ? { ...request, allowed }
+        : request
     )
   )
 
 const askHere = async (request: AccessRequest, signal: AbortSignal) => {
-  const allowed = await askInTerminal(
-    `Allow ${paint.bold(request.label)} to run queries on this computer?`,
-    { signal }
-  )
+  const allowed = await askInTerminal(request.question, { signal })
   if (allowed !== null) {
     decide(request.id, allowed)
   }
@@ -59,18 +59,18 @@ const askHere = async (request: AccessRequest, signal: AbortSignal) => {
 
 export const approvals = {
   /** `true` once allowed here or with `tamery bridge approve`; `false` when declined, unanswered or flooded. */
-  ask: async (label: string) => {
-    if (approvals.waiting().length >= MAX_WAITING) {
+  ask: async (question: string) => {
+    if (approvals.isFull()) {
       return false
     }
-    const request: AccessRequest = { allowed: null, id: randomUUID(), label }
+    const request: AccessRequest = { allowed: null, id: randomUUID(), question }
     update((requests) => [...requests, request])
     const answered = new AbortController()
     if (process.stdin.isTTY) {
       void askHere(request, answered.signal)
     } else {
       log.info(
-        `${paint.bold(label)} asks to run queries here. Run ${paint.accent('tamery bridge approve')} to answer.`
+        `${question} Run ${paint.accent('tamery bridge approve')} to answer.`
       )
     }
     try {
@@ -92,5 +92,6 @@ export const approvals = {
   /** A bridge that stopped mid-request leaves its requests behind; a new one starts clean. */
   clear: () => configFiles.remove(configFiles.requests),
   decide,
+  isFull: () => approvals.waiting().length >= MAX_WAITING,
   waiting: () => read().filter(({ allowed }) => allowed === null),
 }

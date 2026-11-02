@@ -49,6 +49,8 @@ export const pairings = {
   count: () => readBrowsers().length,
   getHash: (browserId: string) =>
     readBrowsers().find((browser) => browser.id === browserId)?.hash ?? null,
+  getLabel: (browserId: string) =>
+    readBrowsers().find((browser) => browser.id === browserId)?.label ?? null,
   /** Only after someone allowed it (`approvals`). */
   add: (label: string) => {
     const secret = randomBytes(32).toString('base64url')

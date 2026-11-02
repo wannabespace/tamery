@@ -20,6 +20,13 @@ export const queryErrors = {
   UNCONFIRMED: { message: UNCONFIRMED_MESSAGE },
 }
 
+export const saveErrors = {
+  ACCESS_DECLINED: {
+    message:
+      "The bridge did not allow this connection to open files or sign in with its computer's keys or credentials: it was declined, or nobody answered within 2 minutes. Save it again and allow it in the terminal running `tamery bridge`, or with `tamery bridge approve`.",
+  },
+}
+
 export const pairErrors = {
   DECLINED: {
     message:

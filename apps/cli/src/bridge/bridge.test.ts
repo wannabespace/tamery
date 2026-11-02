@@ -66,6 +66,8 @@ const serverCopies: Record<string, unknown> = {
 let apiDown = false
 let attestDown = false
 const attested: string[] = []
+/** Nonces the user's own browser had Tamery vouch for. */
+const browserNonces = new Set<string>()
 
 void mock.module('../api', () => ({
   account: {},
@@ -78,6 +80,12 @@ void mock.module('../api', () => ({
           }
           attested.push(nonce)
           return Promise.resolve()
+        },
+        verify: ({ nonce }: { nonce: string }) => {
+          if (attestDown) {
+            return Promise.reject(new Error('fetch failed'))
+          }
+          return Promise.resolve(browserNonces.delete(nonce))
         },
       },
     },
@@ -127,17 +135,31 @@ const answer = async (allowed: boolean) => {
   approvals.decide(request?.id ?? '', allowed)
 }
 
-const requestAccess = (overrides: { userId?: string } = {}) =>
-  createClient(null).bridge.pair({
+const requestAccess = (
+  overrides: { browserNonce?: string; label?: string; userId?: string } = {}
+) => {
+  const browserNonce = bridgeKey.nonce()
+  browserNonces.add(browserNonce)
+  return createClient(null).bridge.pair({
+    browserNonce,
     label: 'Test browser',
     nonce: bridgeKey.nonce(),
     userId: USER_ID,
     ...overrides,
   })
+}
 
 const pair = async () => {
   const [pairing] = await Promise.all([requestAccess(), answer(true)])
   return pairing
+}
+
+/** Saves a string that asks for a file, tunnel or machine login, which the person at the terminal must allow. */
+const saveAllowed = async (
+  client: BridgeRouter,
+  input: Parameters<BridgeRouter['bridge']['saveSecrets']>[0]
+) => {
+  await Promise.all([client.bridge.saveSecrets(input), answer(true)])
 }
 
 const expectError = async (call: Promise<unknown>, code: string) => {
@@ -205,6 +227,31 @@ describe('pairing', () => {
     const before = pairings.count()
     await Promise.all([expectError(requestAccess(), 'DECLINED'), answer(false)])
     expect(pairings.count()).toBe(before)
+  })
+
+  test('a request whose browser Tamery did not vouch for is refused before anyone is asked', async () => {
+    await expectError(
+      requestAccess({ browserNonce: bridgeKey.nonce() }),
+      'OTHER_ACCOUNT'
+    )
+    expect(approvals.waiting()).toHaveLength(0)
+  })
+
+  test('a label cannot write control characters into the terminal prompt', async () => {
+    const [, label] = await Promise.all([
+      requestAccess({ label: 'Chrome\u001B[2K\rYour MacBook' }),
+      (async () => {
+        while (approvals.waiting().length === 0) {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- waiting for the request to arrive
+          await sleep(10)
+        }
+        const [request] = approvals.waiting()
+        approvals.decide(request?.id ?? '', true)
+        return request?.question
+      })(),
+    ])
+    expect(label).toContain('Chrome[2KYour MacBook')
+    expect(label).not.toContain('\r')
   })
 
   test('a browser signed in to another account is refused before anyone is asked', async () => {
@@ -286,12 +333,12 @@ describe('connections', () => {
         query: 'select 1 as one',
       })
     await expectError(run(), 'UNCONFIRMED')
-    await client.bridge.saveSecrets({
+    await saveAllowed(client, {
       connectionId: ids.full,
       connectionString: `sqlite://${path.join(home, 'other.db')}`,
     })
     await expectError(run(), 'UNCONFIRMED')
-    await client.bridge.saveSecrets({
+    await saveAllowed(client, {
       connectionId: ids.full,
       connectionString: sqliteString,
     })
@@ -315,7 +362,7 @@ describe('connections', () => {
       }),
       'UNCONFIRMED'
     )
-    await client.bridge.saveSecrets({
+    await saveAllowed(client, {
       connectionId: ids.machineLogin,
       connectionString:
         'mongodb://elsewhere.example.com/app?authMechanism=MONGODB-AWS',
@@ -336,6 +383,50 @@ describe('connections', () => {
         query: 'select 1',
       }),
       'UNCONFIRMED'
+    )
+  })
+
+  test.each([
+    [
+      'signs in another way',
+      'postgresql://user:secret@db.internal:5432/app?ssh_host=bastion.example.com&ssh_user=deploy&ssh_auth=password',
+    ],
+    [
+      'reaches another database host',
+      'postgresql://user:secret@other.internal:5432/app?ssh_host=bastion.example.com&ssh_user=deploy&ssh_auth=agent',
+    ],
+  ])(
+    'a synced tunnel that %s than the one saved on the bridge is refused',
+    async (_, saved) => {
+      const client = createClient(paired.secret)
+      await saveAllowed(client, {
+        connectionId: ids.tunnel,
+        connectionString: saved,
+      })
+      await expectError(
+        client.query.postgres.execute({
+          connectionId: ids.tunnel,
+          query: 'select 1',
+        }),
+        'UNCONFIRMED'
+      )
+    }
+  )
+
+  test('a save that points the bridge at a file it did not have is declined at the terminal', async () => {
+    const client = createClient(paired.secret)
+    await Promise.all([
+      expectError(
+        client.bridge.saveSecrets({
+          connectionId: ids.metadataOnly,
+          connectionString: `sqlite://${path.join(home, 'Cookies')}`,
+        }),
+        'ACCESS_DECLINED'
+      ),
+      answer(false),
+    ])
+    expect((await vault.connection(ids.metadataOnly)) ?? '').not.toContain(
+      'Cookies'
     )
   })
 
@@ -381,7 +472,7 @@ describe('connections', () => {
     expect(error).toMatchObject({
       data: { connectionId: ids.metadataOnly, fields: 'all' },
     })
-    await client.bridge.saveSecrets({
+    await saveAllowed(client, {
       connectionId: ids.metadataOnly,
       connectionString: sqliteString,
     })

@@ -52,7 +52,7 @@ An allowed browser stays allowed when the bridge restarts, and the bridge opens 
 
 On a server without a browser, open the sign-in link that `tamery bridge` prints on your own computer, and enter the bridge's address as the **Bridge URL** in **Settings → Bridge**. An empty **Bridge URL** means `http://127.0.0.1:26380`. When the bridge runs without a terminal to ask in (a service, a container, output sent to a file), run `tamery bridge approve` on that computer to answer.
 
-A browser has one bridge at a time. Connecting to another one replaces it, and **Unpair** in **Settings → Bridge** disconnects it. The bridge must be signed in to the same account as the web app. Tamery's servers confirm that before the terminal is asked, so a bridge someone else runs is refused.
+A browser has one bridge at a time. Connecting to another one replaces it, and **Unpair** in **Settings → Bridge** disconnects it. The bridge must be signed in to the same account as the web app. Tamery's servers confirm it in both directions before the terminal is asked, so a bridge someone else runs is refused, and so is a request that does not come from a browser signed in to your account.
 
 To use a bridge on a server or another computer, see [Reach a bridge on another computer](/cli/remote).
 
@@ -66,7 +66,7 @@ The bridge runs only the connections saved in your account.
 | **No password** | Asks once for the password and the other secrets that don't sync. |
 | **Metadata only** | Asks once for the server details. |
 
-A connection that opens a SQLite file, reads a certificate file (such as `sslkey` or `tlsCAFile`), or signs in to MongoDB with the computer's own AWS, OIDC or Kerberos credentials runs only once you save it in this browser, whatever its sync type. If someone in a shared workspace later changes that file or host, the bridge refuses the connection until you save it again, so a teammate can't point the bridge at your files or credentials.
+A connection that opens a SQLite file, reads a certificate file (such as `sslkey` or `tlsCAFile`), or signs in to MongoDB with the computer's own AWS, OIDC or Kerberos credentials runs only once you save it in this browser, whatever its sync type. The same goes for an SSH tunnel, which uses the computer's keys and agent: if someone in a shared workspace later changes that file, host, or tunnel (including the database host behind it), the bridge refuses the connection until you save it again, so a teammate can't point the bridge at your files or credentials. When a save asks for a file, tunnel or login the bridge hasn't used for that connection before, the terminal running `tamery bridge` asks you to allow it, or run `tamery bridge approve`.
 
 If this browser already has what the bridge needs, it sends it on its own. Otherwise the web app opens the connection form on just the missing fields. What you enter is saved in this browser and sent to the bridge once, which keeps it encrypted with a key in the system keychain: the macOS Keychain, Windows Credential Manager, or the Secret Service on Linux.
 

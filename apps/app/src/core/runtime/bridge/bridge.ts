@@ -266,8 +266,12 @@ export const bridge = {
     if (!user) {
       throw new Error('Sign in to connect a bridge.')
     }
+    // The bridge asks Tamery whether this request is the user's own before its terminal asks the user.
+    const browserNonce = bridgeKey.nonce()
+    await orpc.account.bridge.attest.call({ nonce: browserNonce })
     const nonce = bridgeKey.nonce()
     const { info, ...paired } = await getBridgeClient(origin).bridge.pair({
+      browserNonce,
       label: formatBrowserName(navigator.userAgent),
       nonce,
       userId: user.id,

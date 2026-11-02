@@ -12,8 +12,9 @@ import { paint } from '../paint'
 import { updates } from '../update-check'
 import { approvals } from './approvals'
 import { connections } from './connections'
-import { authErrors, pairErrors, queryErrors } from './errors'
+import { authErrors, pairErrors, queryErrors, saveErrors } from './errors'
 import { pairings } from './pairings'
+import { printable } from './printable'
 
 const base = os.$context<{ authorization: string | null }>()
 
@@ -52,18 +53,35 @@ export const createRouter = ({
             proof: hash ? bridgeKey.proof(hash, input.nonce) : null,
           }
         }),
-      /** Checks the account and has Tamery attest it before anyone is asked, so a refused request never reaches the terminal. */
+      /**
+       * Each side has Tamery vouch for its account before anyone is asked: anything that reaches the port (a local process, a
+       * `--public-url` client) can send `userId` and pick `label`, so only `browserNonce` shows the request is the user's.
+       */
       pair: base
         .errors(pairErrors)
         .input(
           type({
-            label: 'string',
+            browserNonce: 'string.hex == 64',
+            label: type('string <= 100').pipe(printable),
             nonce: 'string.hex == 64',
             userId: 'string',
           })
         )
         .handler(async ({ errors, input }) => {
           if (input.userId !== userId) {
+            throw errors.OTHER_ACCOUNT()
+          }
+          // Before any call to Tamery, so a flood of requests costs the API nothing once the terminal has enough to answer.
+          if (approvals.isFull()) {
+            throw errors.DECLINED()
+          }
+          const isUsersBrowser = await Result.tryPromise(() =>
+            api.account.bridge.verify({ nonce: input.browserNonce })
+          )
+          if (isUsersBrowser.isErr()) {
+            throw errors.NOT_ATTESTED({ cause: isUsersBrowser.error.cause })
+          }
+          if (!isUsersBrowser.value) {
             throw errors.OTHER_ACCOUNT()
           }
           const attested = await Result.tryPromise(() =>
@@ -73,7 +91,11 @@ export const createRouter = ({
             throw errors.NOT_ATTESTED({ cause: attested.error.cause })
           }
           const label = input.label || 'A browser'
-          if (!(await approvals.ask(label))) {
+          if (
+            !(await approvals.ask(
+              `Allow ${paint.bold(label)} to run queries on this computer?`
+            ))
+          ) {
             log.info(`Did not allow ${paint.bold(label)}.`)
             throw errors.DECLINED()
           }
@@ -81,14 +103,27 @@ export const createRouter = ({
           return { ...pairings.add(label), info: getInfo() }
         }),
       saveSecrets: authed
-        .errors({ NOT_FOUND: queryErrors.NOT_FOUND })
+        .errors({
+          ACCESS_DECLINED: saveErrors.ACCESS_DECLINED,
+          NOT_FOUND: queryErrors.NOT_FOUND,
+        })
         .input(
           type({
             connectionId: 'string.uuid.v7',
             connectionString: 'string > 0',
           })
         )
-        .handler(({ input }) => connections.save(input)),
+        .handler(async ({ context, errors, input }) => {
+          const label = pairings.getLabel(context.browserId) ?? 'A browser'
+          const saved = await connections.save(input, (access) =>
+            approvals.ask(
+              `Allow ${paint.bold(label)} to have this computer use ${access.map((item) => paint.bold(printable(item))).join(', ')}?`
+            )
+          )
+          if (!saved) {
+            throw errors.ACCESS_DECLINED()
+          }
+        }),
       unpair: authed.handler(({ context }) =>
         pairings.remove(context.browserId)
       ),
