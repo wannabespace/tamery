@@ -5,6 +5,7 @@ import { intro, log, outro } from '@clack/prompts'
 import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/client'
 import { resetTransactions } from '@tamery/connection/queries/transactions'
 import { BRIDGE_PAIR_PATH, BRIDGE_URL } from '@tamery/shared/bridge'
+import { hasErrnoCode } from '@tamery/shared/errno'
 import { Result } from 'better-result'
 
 import { approvals } from '../bridge/approvals'
@@ -46,11 +47,7 @@ export const bridge = async (options: {
   )
   if (listening.isErr()) {
     const { cause } = listening.error
-    if (
-      cause instanceof Error &&
-      'code' in cause &&
-      cause.code === 'EADDRINUSE'
-    ) {
+    if (hasErrnoCode(cause, 'EADDRINUSE')) {
       throw new Error(
         `Port ${options.port} is busy. Is another bridge running? Use --port to pick another.`
       )

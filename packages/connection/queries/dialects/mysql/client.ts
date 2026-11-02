@@ -25,7 +25,9 @@ const connect = (conf: PoolOptions) =>
   })
 
 const refusesTls = (error: unknown) =>
-  (error as { code?: string }).code === 'HANDSHAKE_NO_SSL_SUPPORT'
+  error instanceof Error &&
+  'code' in error &&
+  error.code === 'HANDSHAKE_NO_SSL_SUPPORT'
 
 export const getPool = memoize(async (connectionString: string) => {
   const { searchParams, ...config } = getDriverConfig(connectionString)

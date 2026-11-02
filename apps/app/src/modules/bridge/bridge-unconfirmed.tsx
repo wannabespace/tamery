@@ -5,15 +5,14 @@ import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
 import { useMutation, useQueryErrorResetBoundary } from '@tanstack/react-query'
 
 import { FetchingReason } from '~/core/connection/fetching-reason'
+import type { UnconfirmedConnectionError } from '~/core/runtime/bridge/bridge'
 import { bridge } from '~/core/runtime/bridge/bridge'
 
 export const BridgeUnconfirmed = ({
-  connectionId,
-  message,
+  error: { connectionId, message },
   reset,
 }: {
-  connectionId: string
-  message: string
+  error: UnconfirmedConnectionError
   reset: () => void
 }) => {
   const queryErrors = useQueryErrorResetBoundary()

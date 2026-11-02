@@ -19,10 +19,12 @@ export { getSubscription } from '~/lib/subscription'
 export const orpc = os.$context<Context>()
 
 // Answered as CONFLICT, not Better Auth's BAD_REQUEST: the API alerts on every 400, and these are an ordinary answer to what the user typed.
+type AuthErrorCode = keyof typeof auth.$ERROR_CODES
+
 const CONFLICT_CODES: ReadonlySet<string> = new Set([
   'USER_IS_ALREADY_A_MEMBER_OF_THIS_ORGANIZATION',
   'USER_IS_ALREADY_INVITED_TO_THIS_ORGANIZATION',
-])
+] satisfies AuthErrorCode[])
 
 const WORKSPACE_ERROR_MESSAGES: Partial<Record<string, string>> = {
   INVITATION_LIMIT_REACHED: 'This workspace has too many open invitations.',
@@ -55,7 +57,7 @@ const WORKSPACE_ERROR_MESSAGES: Partial<Record<string, string>> = {
     'Make another member an owner first: a workspace always keeps one.',
   YOU_CANNOT_LEAVE_THE_ORGANIZATION_WITHOUT_AN_OWNER:
     'Make another member an owner first: a workspace always keeps one.',
-}
+} satisfies Partial<Record<AuthErrorCode, string>>
 
 export const decryptConnectionString = async ({
   encryptedText,

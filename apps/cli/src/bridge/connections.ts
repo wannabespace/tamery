@@ -1,4 +1,3 @@
-import { ORPCError } from '@orpc/server'
 import { connectionParts } from '@tamery/connection/connection-parts'
 import { readConnectionString } from '@tamery/connection/parse-connection-string'
 import { connectionSecrets } from '@tamery/connection/secrets'
@@ -14,6 +13,7 @@ import {
   ConnectionType,
   getDialect,
 } from '@tamery/shared/enums/connection-type'
+import { hasErrorCode } from '@tamery/shared/orpc-error'
 import { SafeURL } from '@tamery/shared/safe-url'
 import { Result } from 'better-result'
 
@@ -56,8 +56,7 @@ const getServerCopy = async (
   )
   if (result.isErr()) {
     const { cause } = result.error
-    const signedOut =
-      cause instanceof ORPCError && cause.code === 'UNAUTHORIZED'
+    const signedOut = hasErrorCode(cause, 'UNAUTHORIZED')
     const fallback = cached ?? (hasLocal ? LOCAL_ONLY : null)
     if (signedOut || !fallback) {
       throw cause

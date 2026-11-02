@@ -3,6 +3,7 @@ import {
   SESSION_EXPIRED_MESSAGE,
   UNKNOWN_ERROR_MESSAGE,
 } from '@tamery/shared/constants'
+import { hasErrorCode } from '@tamery/shared/orpc-error'
 import { toast } from 'sonner'
 
 import { authClient } from '~/lib/auth'
@@ -13,15 +14,12 @@ const getErrorMessage = (error: unknown) =>
   (error as Error)?.message ||
   UNKNOWN_ERROR_MESSAGE
 
-const isUnauthorizedError = (error: unknown) =>
-  error instanceof ORPCError && error.code === 'UNAUTHORIZED'
-
 const isSessionExpiredError = (error: unknown) =>
   (typeof error === 'object' &&
     error !== null &&
     'status' in error &&
     error.status === 401) ||
-  isUnauthorizedError(error)
+  hasErrorCode(error, 'UNAUTHORIZED')
 
 export const handleError = async (error: unknown) => {
   if (!error) {

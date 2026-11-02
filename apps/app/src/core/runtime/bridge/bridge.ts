@@ -1,14 +1,9 @@
 import { createORPCClient, ORPCError, safe } from '@orpc/client'
 import type { BridgeRouter } from '@tamery/cli/src/bridge/router'
-import {
-  bridgeKey,
-  bridgeNeedsSecrets,
-  bridgeUnconfirmed,
-} from '@tamery/shared/bridge'
+import { bridgeKey } from '@tamery/shared/bridge'
 import { formatBrowserName } from '@tamery/shared/device-label'
 import { SyncType } from '@tamery/shared/enums/sync-type'
 import { omit, silently } from '@tamery/shared/utils'
-import { type } from 'arktype'
 import { memoize } from 'memoza'
 
 import { getCollections } from '~/core/collections'
@@ -51,62 +46,68 @@ const getCompleteString = (connectionId: string, savedHere: boolean) => {
     : null
 }
 
-const getAskedSecrets = (error: ORPCError<string, unknown> | null) => {
-  const data =
-    error?.code === 'NEEDS_SECRETS' ? bridgeNeedsSecrets(error.data) : null
-  return data instanceof type.errors ? null : data
-}
+/** A synced connection whose local access (a file, SSH keys, a machine login) nobody allowed on the bridge yet. */
+export class UnconfirmedConnectionError extends Error {
+  readonly connectionId: string
 
-export const getUnconfirmedConnection = (error: unknown) => {
-  const data =
-    error instanceof ORPCError && error.code === 'UNCONFIRMED'
-      ? bridgeUnconfirmed(error.data)
-      : null
-  return data instanceof type.errors ? null : (data?.connectionId ?? null)
+  constructor(connectionId: string, message: string) {
+    super(message)
+    this.name = 'UnconfirmedConnectionError'
+    this.connectionId = connectionId
+  }
 }
 
 const getPairedClient = memoize((pairing: BridgePairing): BridgeRouter =>
-  createORPCClient(createBridgeLink(pairing.url, pairing.secret), {
-    interceptors: [
-      async ({ next }) => {
-        await ensureConnected(pairing)
-        const call = () => safe(next())
-        const first = await call()
-        const asked = getAskedSecrets(first.definedError)
-        const stored =
-          asked && (await getCompleteString(asked.connectionId, false))
-        if (asked && stored) {
-          await getPairedClient(pairing).bridge.saveSecrets({
-            connectionId: asked.connectionId,
-            connectionString: stored,
-          })
-        }
-        const { data, definedError, error } = stored ? await call() : first
-        if (!error) {
-          return data
-        }
-        if (definedError?.code === 'UNAUTHORIZED') {
-          throw forget(pairing)
-        }
-        const missing = getAskedSecrets(definedError)
-        if (missing) {
-          bridgeAsks.set((asks) => ({
-            ...asks,
-            [missing.connectionId]: missing.fields,
-          }))
-        } else {
-          await queryClient.invalidateQueries({
-            queryKey: statusQueryOptions(pairing).queryKey,
-          })
-        }
-        // A request that never got an answer: if the bridge went away meanwhile, say so instead of the network error.
-        if (!(error instanceof ORPCError)) {
+  createORPCClient<BridgeRouter>(
+    createBridgeLink(pairing.url, pairing.secret),
+    {
+      interceptors: [
+        async ({ next }) => {
           await ensureConnected(pairing)
-        }
-        throw error
-      },
-    ],
-  })
+          const call = () => safe(next())
+          const first = await call()
+          const asked =
+            first.definedError?.code === 'NEEDS_SECRETS'
+              ? first.definedError.data
+              : null
+          const stored =
+            asked && (await getCompleteString(asked.connectionId, false))
+          if (asked && stored) {
+            await getPairedClient(pairing).bridge.saveSecrets({
+              connectionId: asked.connectionId,
+              connectionString: stored,
+            })
+          }
+          const { data, definedError, error } = stored ? await call() : first
+          if (!error) {
+            return data
+          }
+          if (definedError?.code === 'UNAUTHORIZED') {
+            throw forget(pairing)
+          }
+          if (definedError?.code === 'UNCONFIRMED') {
+            throw new UnconfirmedConnectionError(
+              definedError.data.connectionId,
+              definedError.message
+            )
+          }
+          if (definedError?.code === 'NEEDS_SECRETS') {
+            const { connectionId, fields } = definedError.data
+            bridgeAsks.set((asks) => ({ ...asks, [connectionId]: fields }))
+          } else {
+            await queryClient.invalidateQueries({
+              queryKey: statusQueryOptions(pairing).queryKey,
+            })
+          }
+          // A request that never got an answer: if the bridge went away meanwhile, say so instead of the network error.
+          if (!(error instanceof ORPCError)) {
+            await ensureConnected(pairing)
+          }
+          throw error
+        },
+      ],
+    }
+  )
 )
 
 export const bridge = {
