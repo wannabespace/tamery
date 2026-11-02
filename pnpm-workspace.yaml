@@ -27,7 +27,7 @@ catalog:
   '@hugeicons/react': ^1.1.10
   '@infisical/sdk': ^5.0.2
   '@ip-location-db/dbip-city-mmdb': ^2.3.2026060513
-  '@mistralai/mistralai': ^3.1.0
+  '@mistralai/mistralai': ^3.4.0
   '@modelcontextprotocol/sdk': ^1.32.1
   '@mongodb-js/mongodb-constants': ^0.34.3
   '@mongodb-js/shell-bson-parser': ^1.6.3
@@ -115,7 +115,7 @@ catalog:
   mongodb: ^7.7.0
   motion: ^14.6.0
   motion-panels: ^0.6.1
-  mssql: ^12.7.11
+  mssql: ^12.7.13
   mysql2: ^3.24.6
   nanoid: ^6.0.2
   nitro: 3.0.260903-beta
