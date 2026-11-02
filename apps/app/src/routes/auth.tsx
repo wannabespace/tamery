@@ -40,27 +40,23 @@ const AuthPage = () => {
 
   const startSignIn = useMutation({
     mutationFn: async () => {
-      const {
-        verifier: nextVerifier,
-        codeChallenge: nextCodeChallenge,
-        url,
-      } = signInUrl(window.electron ? 'desktop' : 'web')
+      const signIn = signInUrl(window.electron ? 'desktop' : 'web')
 
       if (!window.electron) {
-        location.assign(url)
+        location.assign(signIn.url)
         return
       }
 
       // The confirm page refuses a challenge no device listens for, so the browser opens only once this one does.
       const events = await orpc.account.challenge.listen.call({
-        codeChallenge: nextCodeChallenge,
+        codeChallenge: signIn.codeChallenge,
       })
       await events.next()
       await events.return()
 
-      setVerifier(nextVerifier)
-      setCodeChallenge(nextCodeChallenge)
-      window.open(url, '_blank')
+      setVerifier(signIn.verifier)
+      setCodeChallenge(signIn.codeChallenge)
+      window.open(signIn.url, '_blank')
     },
   })
 

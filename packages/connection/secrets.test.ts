@@ -90,26 +90,16 @@ describe('connectionSecrets', () => {
   })
 
   it.each([
-    [
-      'another scheme',
-      (synced: string) => synced.replace('postgres:', 'mysql:'),
-    ],
-    [
-      'another host',
-      (synced: string) => synced.replace('@db.internal', '@x.example'),
-    ],
-    ['another port', (synced: string) => synced.replace(':5432', ':6543')],
-    ['another user', (synced: string) => synced.replace('app@', 'admin@')],
-    [
-      'another SSH hop',
-      (synced: string) =>
-        synced.replace('ssh_host=bastion', 'ssh_host=x.example'),
-    ],
-    ['a MongoDB proxy', (synced: string) => `${synced}&proxyHost=x.example`],
-    ['TLS turned off', (synced: string) => `${synced}&sslmode=disable`],
-  ])('never restores a secret onto %s', (_, edit) => {
+    ['another scheme', 'postgres:', 'mysql:'],
+    ['another host', '@db.internal', '@x.example'],
+    ['another port', ':5432', ':6543'],
+    ['another user', 'app@', 'admin@'],
+    ['another SSH hop', 'ssh_host=bastion', 'ssh_host=x.example'],
+    ['a MongoDB proxy', 'ssh_auth=', 'proxyHost=x.example&ssh_auth='],
+    ['TLS turned off', 'ssh_auth=', 'sslmode=disable&ssh_auth='],
+  ])('never restores a secret onto %s', (_, from, to) => {
     const restored = connectionSecrets.restore(
-      edit(connectionSecrets.strip(LOCAL)),
+      connectionSecrets.strip(LOCAL).replace(from, to),
       { isPasswordExists: true, local: LOCAL }
     )
 

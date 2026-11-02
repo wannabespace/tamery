@@ -30,7 +30,6 @@ export const codeChallengeRedis = {
       ? (JSON.parse(value) as { userId: string; newUser: boolean })
       : null
   },
-  /** The device that started signing in, as its own `listen` saw it; the first to listen keeps it. */
   getRequest: async (codeChallenge: string) => {
     const value = await redis.get(requestKey(codeChallenge))
     return value ? (JSON.parse(value) as SignInRequest) : null

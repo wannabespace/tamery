@@ -1,21 +1,18 @@
-import { timingSafeEqual } from 'node:crypto'
-
 import { env } from '~/env'
 import { sendEmail } from '~/lib/resend'
+import { safeEqual } from '~/lib/safe-equal'
 import { orpc } from '~/orpc'
-
-const expected = Buffer.from(`Bearer ${env.RAILWAY_WEBHOOK_SECRET}`)
 
 /** Railway signs nothing, so the webhook sends `Authorization: Bearer <RAILWAY_WEBHOOK_SECRET>` as a custom header. */
 export const railway = orpc
   .errors({ UNAUTHORIZED: {} })
   .handler(async ({ context, errors }) => {
-    const received = Buffer.from(context.headers.get('authorization') ?? '')
-
     if (
       !env.RAILWAY_WEBHOOK_SECRET ||
-      received.length !== expected.length ||
-      !timingSafeEqual(received, expected)
+      !safeEqual(
+        context.headers.get('authorization') ?? '',
+        `Bearer ${env.RAILWAY_WEBHOOK_SECRET}`
+      )
     ) {
       throw errors.UNAUTHORIZED()
     }

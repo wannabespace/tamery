@@ -4,7 +4,6 @@ import { accountMiddleware, orpc } from '~/orpc'
 
 import { codeChallengePublisher, codeChallengeRedis } from './code-challenge'
 
-/** Long enough for the sign-up that sent the user here, short enough that an old account always gets the sign-in email. */
 const NEW_USER_WINDOW_MS = 10 * 60 * 1000
 
 export const publish = orpc

@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer'
 import crypto from 'node:crypto'
 
 import { Octokit } from '@octokit/rest'
@@ -7,6 +6,7 @@ import { GITHUB_REPO_NAME, GITHUB_REPO_OWNER } from '@tamery/shared/constants'
 import { silently } from '@tamery/shared/utils'
 
 import { env } from '~/env'
+import { safeEqual } from '~/lib/safe-equal'
 import { orpc } from '~/orpc'
 
 interface ToDesktopWebhookPayload {
@@ -46,13 +46,7 @@ const verifyWebhookSignature = (
     .update(requestBody)
     .digest('hex')
 
-  const received = Buffer.from(signature)
-  const expected = Buffer.from(expectedSignature)
-
-  return (
-    received.length === expected.length &&
-    crypto.timingSafeEqual(received, expected)
-  )
+  return safeEqual(signature, expectedSignature)
 }
 
 export const todesktop = orpc

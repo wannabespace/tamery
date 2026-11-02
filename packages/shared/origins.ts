@@ -9,7 +9,6 @@ export const ORIGINS = {
   web: 'https://web.tamery.app',
 } as const
 
-/** Portless serves every app in development as `https://<name>.local.tamery.app`. */
 export const isDevelopmentOrigin = (origin: string) =>
   origin.startsWith('http://localhost:') ||
   (URL.parse(origin)?.hostname.endsWith('.local.tamery.app') ?? false)

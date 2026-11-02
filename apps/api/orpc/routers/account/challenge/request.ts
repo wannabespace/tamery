@@ -7,7 +7,6 @@ import { accountMiddleware, orpc } from '~/orpc'
 
 import { codeChallengeRedis } from './code-challenge'
 
-/** What the confirm page shows of the device asking to sign in, so a link someone else started reads as theirs. */
 export const request = orpc
   .use(accountMiddleware)
   .input(type({ codeChallenge: 'string' }))
