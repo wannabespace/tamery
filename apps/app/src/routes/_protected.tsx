@@ -5,7 +5,6 @@ import { useEffect } from 'react'
 
 import { EventsProvider } from '~/components/events-provider'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
-import { useBridgeStatus } from '~/core/runtime/bridge/status'
 import {
   loadPermissions,
   permix,
@@ -31,7 +30,6 @@ const ProtectedLayout = () => {
   useConnectionStringsSync()
   useLastOpenedResourcesSync()
   useConnectionLinks()
-  useBridgeStatus()
 
   useShortcut('settings', () => {
     if (!router.matchRoute({ to: '/settings' }, { fuzzy: true })) {

@@ -28,7 +28,6 @@ export const bridgeAttestationInput = type({
   origin: 'string.url',
 })
 
-/** A synced string that asks for local access (a file, SSH keys, a machine login) nobody allowed on this bridge yet. */
 export const bridgeUnconfirmed = type({ connectionId: 'string' })
 
 /** `'all'` when the bridge holds no string at all, as for **Metadata only**. */

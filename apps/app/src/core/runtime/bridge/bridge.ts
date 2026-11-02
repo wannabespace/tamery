@@ -51,14 +51,12 @@ const getCompleteString = (connectionId: string, savedHere: boolean) => {
     : null
 }
 
-/** An interceptor sees every procedure's error untyped, so the data is checked against the shared schema. */
 const getAskedSecrets = (error: ORPCError<string, unknown> | null) => {
   const data =
     error?.code === 'NEEDS_SECRETS' ? bridgeNeedsSecrets(error.data) : null
   return data instanceof type.errors ? null : data
 }
 
-/** The connection whose synced local access (a file, SSH keys, a machine login) nobody allowed on the bridge yet. */
 export const getUnconfirmedConnection = (error: unknown) => {
   const data =
     error instanceof ORPCError && error.code === 'UNCONFIRMED'
@@ -157,10 +155,7 @@ export const bridge = {
     posthog.capture('bridge_paired', { remote: !isLoopbackUrl(origin), via })
     return pairing
   },
-  /**
-   * Sends this browser's complete string; `savedHere` is the user's own save or allow, which may send a synced Full string.
-   * `false` when this browser lacks part of it too.
-   */
+  /** `false` when this browser lacks part of the string too. */
   saveSecrets: async (connectionId: string) => {
     const pairing = getActivePairing()
     const connectionString =
@@ -177,7 +172,11 @@ export const bridge = {
     return true
   },
   /** Revokes the secret on the bridge before forgetting it here, so a copy taken from this browser stops working too. */
-  unpair: async (pairing: BridgePairing) => {
+  unpair: async () => {
+    const pairing = bridgePairing.get()
+    if (!pairing) {
+      return
+    }
     await silently(() => getPairedClient(pairing).bridge.unpair())
     clearBridgePairing()
     posthog.capture('bridge_unpaired')

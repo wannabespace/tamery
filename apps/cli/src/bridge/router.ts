@@ -94,26 +94,24 @@ export const createRouter = ({
           if (approvals.isFull()) {
             throw errors.DECLINED()
           }
-          const isUsersBrowser = await Result.tryPromise(() =>
-            api.account.bridge.verify({
+          const isUsersBrowser = await Result.tryPromise(async () => {
+            const verified = await api.account.bridge.verify({
               nonce: input.browserNonce,
               origin: context.origin,
             })
-          )
+            if (verified) {
+              await api.account.bridge.attest({
+                nonce: input.nonce,
+                origin: context.origin,
+              })
+            }
+            return verified
+          })
           if (isUsersBrowser.isErr()) {
             throw errors.NOT_ATTESTED({ cause: isUsersBrowser.error.cause })
           }
           if (!isUsersBrowser.value) {
             throw errors.OTHER_ACCOUNT()
-          }
-          const attested = await Result.tryPromise(() =>
-            api.account.bridge.attest({
-              nonce: input.nonce,
-              origin: context.origin,
-            })
-          )
-          if (attested.isErr()) {
-            throw errors.NOT_ATTESTED({ cause: attested.error.cause })
           }
           const label = input.label || UNNAMED_BROWSER
           if (

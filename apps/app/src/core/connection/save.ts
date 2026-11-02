@@ -18,15 +18,6 @@ import { rememberOpenedResource } from '~/core/connection/stores'
 import type { Connection } from '~/core/connection/sync'
 import { bridge } from '~/core/runtime/bridge/bridge'
 
-const sendToBridge = async (connectionId: string) => {
-  const sent = await Result.tryPromise(() => bridge.saveSecrets(connectionId))
-  if (sent.isErr()) {
-    toast.error(toError(sent.error.cause).message, {
-      id: `bridge-save-${connectionId}`,
-    })
-  }
-}
-
 export interface ConnectionDetails {
   color?: string | null
   connectionString: string
@@ -109,7 +100,14 @@ export const saveConnectionString = async ({
     if (persisted.isOk()) {
       // After the server holds the row, which the bridge checks first, and before the connection opens: a file, tunnel or
       // machine login runs on the bridge only once its terminal allowed it. A failure only toasts, never fails the save.
-      await sendToBridge(connectionId)
+      const sent = await Result.tryPromise(() =>
+        bridge.saveSecrets(connectionId)
+      )
+      if (sent.isErr()) {
+        toast.error(toError(sent.error.cause).message, {
+          id: `bridge-save-${connectionId}`,
+        })
+      }
       if (resource && resource !== stored?.defaultResourceName) {
         rememberOpenedResource(connectionId, resource)
       }

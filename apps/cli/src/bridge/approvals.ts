@@ -24,11 +24,6 @@ const getFiles = (id: string) => ({
   request: path.join(configFiles.requests, `${id}.json`),
 })
 
-const readAnswer = (id: string) =>
-  Result.try(() => fs.readFileSync(getFiles(id).answer, 'utf-8'))
-    .map((answer) => answer === ALLOWED)
-    .unwrapOr(null)
-
 /** The first answer stands: the bridge's terminal and `tamery bridge approve` can both be asking. */
 const decide = (id: string, allowed: boolean) => {
   configFiles.create(getFiles(id).answer, allowed ? ALLOWED : 'declined')
@@ -44,7 +39,7 @@ const waiting = () =>
     }))
 
 const askHere = async (id: string, question: string, signal: AbortSignal) => {
-  const allowed = await askInTerminal(question, { signal })
+  const allowed = await askInTerminal(question, signal)
   if (allowed !== null) {
     decide(id, allowed)
   }
@@ -69,9 +64,9 @@ export const approvals = {
     try {
       const deadline = Date.now() + ANSWER_TIMEOUT_MS
       while (Date.now() < deadline) {
-        const allowed = readAnswer(id)
-        if (allowed !== null) {
-          return allowed
+        const answer = Result.try(() => fs.readFileSync(files.answer, 'utf-8'))
+        if (answer.isOk()) {
+          return answer.value === ALLOWED
         }
         // oxlint-disable-next-line eslint/no-await-in-loop -- polling the file another process answers in
         await sleep(POLL_MS)

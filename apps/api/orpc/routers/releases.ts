@@ -9,7 +9,6 @@ export const releases = orpc.use(cacheMiddleware(60 * 60)).handler(async () => {
     repo: GITHUB_REPO_NAME,
   })
 
-  // The CLI's own releases (`cli-v*`) share the repo; this list is the desktop app's.
   return data
     .filter(
       (release) => !release.draft && !release.tag_name.startsWith('cli-v')

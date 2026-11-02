@@ -68,7 +68,7 @@ const bridgeCommand = defineCommand({
     start: defineCommand({
       args: bridgeArgs,
       meta: { hidden: true, name: 'tamery bridge' },
-      run: reportingErrors<typeof bridgeArgs>(({ args }) => {
+      run: reportingErrors(({ args }) => {
         const port = Number(args.port)
         if (!Number.isInteger(port) || port < 1 || port > MAX_PORT) {
           throw new Error('--port must be a number from 1 to 65535.')

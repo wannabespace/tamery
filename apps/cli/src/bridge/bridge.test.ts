@@ -152,7 +152,7 @@ const createClient = (secret: string | null): BridgeRouter =>
     })
   )
 
-/** Plays the person at the terminal: answers the next request to arrive and returns its question. */
+/** Plays the person at the terminal: answers the next request to arrive and returns it. */
 const answer = async (allowed: boolean) => {
   while (approvals.waiting().length === 0) {
     // oxlint-disable-next-line eslint/no-await-in-loop -- waiting for the request to arrive
@@ -160,7 +160,7 @@ const answer = async (allowed: boolean) => {
   }
   const [request] = approvals.waiting()
   approvals.decide(request?.id ?? '', allowed)
-  return request?.question
+  return request
 }
 
 /** The browser attests `browserNonce` for the URL it calls, `attestedFor`, which a relay would name instead of the bridge's. */
@@ -279,12 +279,7 @@ describe('pairing', () => {
 
   test('the first answer stands when the terminal and `tamery bridge approve` both answer', async () => {
     const asked = requestAccess()
-    while (approvals.waiting().length === 0) {
-      // oxlint-disable-next-line eslint/no-await-in-loop -- waiting for the request to arrive
-      await sleep(10)
-    }
-    const [request] = approvals.waiting()
-    approvals.decide(request?.id ?? '', false)
+    const request = await answer(false)
     approvals.decide(request?.id ?? '', true)
     await expectError(asked, 'DECLINED')
   })
@@ -295,30 +290,22 @@ describe('pairing', () => {
     expect(pairings.labels().length).toBe(before)
   })
 
-  test('a request whose browser Tamery did not vouch for is refused before anyone is asked', async () => {
-    await expectError(
-      requestAccess({ attestedFor: 'https://elsewhere.example' }),
-      'OTHER_ACCOUNT'
-    )
-    expect(approvals.waiting()).toHaveLength(0)
-  })
-
   test('a label cannot write control characters into the terminal prompt', async () => {
-    const [, label] = await Promise.all([
+    const [, request] = await Promise.all([
       requestAccess({ label: 'Chrome\u001B[2K\rYour MacBook' }),
       answer(true),
     ])
-    expect(label).toContain('Chrome[2KYour MacBook')
-    expect(label).not.toContain('\r')
+    expect(request?.question).toContain('Chrome[2KYour MacBook')
+    expect(request?.question).not.toContain('\r')
   })
 
   test('the terminal shows the code of the browser asking, so the user can match it', async () => {
     const browserNonce = bridgeKey.nonce()
-    const [, question] = await Promise.all([
+    const [, request] = await Promise.all([
       requestAccess({ browserNonce }),
       answer(true),
     ])
-    expect(question).toContain(challenge.getUserCode(browserNonce))
+    expect(request?.question).toContain(challenge.getUserCode(browserNonce))
   })
 
   test('a browser signed in to another account is refused before anyone is asked', async () => {

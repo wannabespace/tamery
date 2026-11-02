@@ -44,24 +44,17 @@ export const settingsSections = [
     label: 'Keyboard',
     slug: 'keyboard',
   },
-  ...(window.electron
-    ? []
-    : [
-        {
-          component: BridgeSettings,
-          icon: ComputerTerminal01Icon,
-          label: 'Bridge',
-          slug: 'bridge',
-        },
-      ]),
-  ...(window.electron
-    ? [
-        {
-          component: McpSettings,
-          icon: McpServerIcon,
-          label: 'MCP',
-          slug: 'mcp',
-        },
-      ]
-    : []),
+  window.electron
+    ? {
+        component: McpSettings,
+        icon: McpServerIcon,
+        label: 'MCP',
+        slug: 'mcp',
+      }
+    : {
+        component: BridgeSettings,
+        icon: ComputerTerminal01Icon,
+        label: 'Bridge',
+        slug: 'bridge',
+      },
 ]

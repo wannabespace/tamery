@@ -49,11 +49,7 @@ export const PairedBridge = ({
         }
         description={statusLine}
       >
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => bridge.unpair(pairing)}
-        >
+        <Button variant="outline" size="sm" onClick={() => bridge.unpair()}>
           Unpair
         </Button>
       </SettingsRow>
@@ -70,7 +66,7 @@ export const PairedBridge = ({
           id="bridge-enabled"
           size="sm"
           checked={pairing.enabled}
-          onCheckedChange={(enabled) => setBridgeEnabled(enabled)}
+          onCheckedChange={setBridgeEnabled}
         />
       </SettingsRow>
       {info && (info.latestVersion || status?.state === 'outdated') && (

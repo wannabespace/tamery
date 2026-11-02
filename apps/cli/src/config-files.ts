@@ -9,13 +9,9 @@ import { Result } from 'better-result'
 const CONFIG_DIR =
   process.env.TAMERY_CONFIG_DIR ?? path.join(os.homedir(), '.config', 'tamery')
 
-const ensureDir = (dir: string) => {
-  fs.mkdirSync(dir, { mode: 0o700, recursive: true })
-  fs.chmodSync(CONFIG_DIR, 0o700)
-}
-
 const writeTemporary = (file: string, data: string) => {
-  ensureDir(path.dirname(file))
+  fs.mkdirSync(path.dirname(file), { mode: 0o700, recursive: true })
+  fs.chmodSync(CONFIG_DIR, 0o700)
   const temporary = `${file}.${randomUUID()}.tmp`
   fs.writeFileSync(temporary, data, { flag: 'wx', mode: 0o600 })
   return temporary
@@ -59,7 +55,7 @@ export const configFiles = {
   remove: (file: string) => fs.rmSync(file, { force: true, recursive: true }),
   requests: path.join(CONFIG_DIR, 'bridge-requests'),
   vault: path.join(CONFIG_DIR, 'bridge-secrets.json'),
-  /** Written beside the target and renamed over it, so a crash never leaves a half-written vault; `mode` applies only to a file it creates. */
+  /** Written beside the target and renamed over it, so a crash never leaves a half-written vault. */
   write: (file: string, data: string) => {
     fs.renameSync(writeTemporary(file, data), file)
   },

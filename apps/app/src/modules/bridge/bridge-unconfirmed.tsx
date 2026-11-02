@@ -7,7 +7,6 @@ import { useMutation, useQueryErrorResetBoundary } from '@tanstack/react-query'
 import { FetchingReason } from '~/core/connection/fetching-reason'
 import { bridge } from '~/core/runtime/bridge/bridge'
 
-/** A synced connection opens a file or signs in with this computer's keys: whoever runs it allows that on their own bridge. */
 export const BridgeUnconfirmed = ({
   connectionId,
   message,

@@ -19,24 +19,21 @@ import { getAccount } from '../sign-in'
 import { updates } from '../update-check'
 import { vault } from '../vault'
 
-const parsePublicUrl = (value: string | undefined) => {
-  if (!value) {
-    return null
-  }
-  const url = URL.parse(value)
-  if (url?.protocol !== 'https:' || url.username || url.password) {
-    throw new Error(
-      '--public-url must be an https:// URL, such as https://db-box.tail1234.ts.net.'
-    )
-  }
-  return url
-}
-
 export const bridge = async (options: {
   port: number
   publicUrl: string | undefined
 }) => {
-  const publicUrl = parsePublicUrl(options.publicUrl)
+  const publicUrl = options.publicUrl ? URL.parse(options.publicUrl) : null
+  if (
+    options.publicUrl &&
+    (publicUrl?.protocol !== 'https:' ||
+      publicUrl.username ||
+      publicUrl.password)
+  ) {
+    throw new Error(
+      '--public-url must be an https:// URL, such as https://db-box.tail1234.ts.net.'
+    )
+  }
   intro(`${paint.brand('◆ Tamery bridge')} ${paint.dim(env.VERSION)}`)
   const account = await getAccount()
   const name = os.hostname().replace(/\.local$/u, '')
@@ -47,17 +44,20 @@ export const bridge = async (options: {
   const listening = Result.try(() =>
     serveBridge({ port: options.port, publicUrl, router })
   )
-  const cause = listening.isErr() ? listening.error.cause : null
-  if (
-    cause instanceof Error &&
-    'code' in cause &&
-    cause.code === 'EADDRINUSE'
-  ) {
-    throw new Error(
-      `Port ${options.port} is busy. Is another bridge running? Use --port to pick another.`
-    )
+  if (listening.isErr()) {
+    const { cause } = listening.error
+    if (
+      cause instanceof Error &&
+      'code' in cause &&
+      cause.code === 'EADDRINUSE'
+    ) {
+      throw new Error(
+        `Port ${options.port} is busy. Is another bridge running? Use --port to pick another.`
+      )
+    }
+    throw cause
   }
-  const server = listening.unwrap()
+  const server = listening.value
   void updates.check()
 
   const url = `http://127.0.0.1:${server.port}`
