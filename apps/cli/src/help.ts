@@ -19,24 +19,15 @@ interface Row {
 const resolve = <T>(value: Resolvable<T>) =>
   typeof value === 'function' ? (value as () => T | Promise<T>)() : value
 
-/** Every visible command below `command`, nested ones included, so the top-level help lists `bridge approve` too. */
-const getCommandRows = async (
-  subCommands: CommandDef['subCommands'],
-  prefix: string
-): Promise<Row[]> => {
+const getCommandRows = async (subCommands: CommandDef['subCommands']) => {
   const rows = await Promise.all(
     Object.entries(await resolve(subCommands ?? {})).map(
-      async ([key, resolvable]) => {
+      async ([label, resolvable]) => {
         const subCommand = await resolve(resolvable)
         const meta = await resolve(subCommand.meta ?? {})
-        if (meta.hidden) {
-          return []
-        }
-        const label = `${prefix}${key}`
-        return [
-          { description: meta.description ?? '', label, style: accent },
-          ...(await getCommandRows(subCommand.subCommands, `${label} `)),
-        ]
+        return meta.hidden
+          ? []
+          : [{ description: meta.description ?? '', label, style: accent }]
       }
     )
   )
@@ -59,7 +50,7 @@ const renderHelp = async <T extends ArgsDef>(command: CommandDef<T>) => {
   const meta = await resolve(command.meta ?? {})
   const args = Object.entries<ArgDef>(await resolve(command.args ?? {}))
   const name = meta.name ?? 'tamery'
-  const commands = await getCommandRows(command.subCommands, '')
+  const commands = await getCommandRows(command.subCommands)
   const options: Row[] = [
     ...args.map(([option, arg]) => ({
       description: [

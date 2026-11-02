@@ -6,7 +6,7 @@ import { PORTS } from '@tamery/shared/ports'
 import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
-import type { ArgsDef, CommandContext, CommandDef } from 'citty'
+import type { ArgsDef, CommandContext } from 'citty'
 import { defineCommand, runMain } from 'citty'
 
 import { pairings } from './bridge/pairings'
@@ -91,7 +91,7 @@ const bridgeCommand = defineCommand({
   },
 })
 
-const main: CommandDef = defineCommand({
+const main = defineCommand({
   default: 'help',
   meta: {
     description: 'Tamery from your terminal.',

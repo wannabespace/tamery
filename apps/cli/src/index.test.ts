@@ -26,12 +26,13 @@ describe('commands', () => {
     const { exitCode, output } = tamery()
     expect(exitCode).toBe(0)
     expect(output).toContain('bridge')
-    expect(output).toContain('bridge approve')
+    expect(output).not.toContain('approve')
     expect(output).toContain('whoami')
   })
 
   test("a command's help lists only its own options", () => {
     expect(tamery('bridge', '--help').output).toContain('--public-url')
+    expect(tamery('bridge', '--help').output).toContain('approve')
     expect(tamery('login', '--help').output).not.toContain('--port')
   })
 
