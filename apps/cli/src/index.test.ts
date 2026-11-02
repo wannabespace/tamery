@@ -26,6 +26,7 @@ describe('commands', () => {
     const { exitCode, output } = tamery()
     expect(exitCode).toBe(0)
     expect(output).toContain('bridge')
+    expect(output).toContain('bridge approve')
     expect(output).toContain('whoami')
   })
 

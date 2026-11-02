@@ -7,7 +7,7 @@ import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import type { ArgsDef, CommandContext, CommandDef } from 'citty'
-import { defineCommand, runMain, showUsage } from 'citty'
+import { defineCommand, runMain } from 'citty'
 
 import { pairings } from './bridge/pairings'
 import { approve } from './commands/approve'
@@ -16,6 +16,7 @@ import { login } from './commands/login'
 import { logout } from './commands/logout'
 import { whoami } from './commands/whoami'
 import { env } from './env'
+import { printHelp } from './help'
 import { paint } from './paint'
 
 const MAX_PORT = 65_535
@@ -93,7 +94,7 @@ const bridgeCommand = defineCommand({
 const main: CommandDef = defineCommand({
   default: 'help',
   meta: {
-    description: 'Tamery from your terminal. Docs: https://docs.tamery.app/cli',
+    description: 'Tamery from your terminal.',
     name: 'tamery',
     version: env.VERSION,
   },
@@ -101,7 +102,7 @@ const main: CommandDef = defineCommand({
     bridge: bridgeCommand,
     help: defineCommand({
       meta: { hidden: true, name: 'tamery' },
-      run: () => showUsage(main),
+      run: () => printHelp(main),
     }),
     login: defineCommand({
       meta: {
@@ -135,5 +136,5 @@ const main: CommandDef = defineCommand({
   },
 })
 
-// Each name is the full command line: citty would prefix only the direct parent's.
-await runMain(main, { showUsage: (cmd) => showUsage(cmd) })
+// Each name is the full command line, which the help prints as it is.
+await runMain(main, { showUsage: printHelp })
