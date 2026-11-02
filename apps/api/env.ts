@@ -67,10 +67,19 @@ const devOptionalEnvs = [
   'RAILWAY_WEBHOOK_SECRET',
 ] satisfies (keyof typeof envType.infer)[]
 
+const devOptional = new Set<string>(devOptionalEnvs)
+
 export const env =
   nodeEnv === 'production' || nodeEnv === 'test'
     ? envType.assert(process.env)
     : envType
         .omit(...devOptionalEnvs)
         .merge(envType.pick(...devOptionalEnvs).partial())
-        .assert(process.env)
+        .assert(
+          // `.env.example` lists these empty, and `partial()` admits a missing key, never an empty value its type refuses.
+          Object.fromEntries(
+            Object.entries(process.env).filter(
+              ([key, value]) => value !== '' || !devOptional.has(key)
+            )
+          )
+        )
