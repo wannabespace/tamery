@@ -47,7 +47,6 @@ const getCloudProxyInput = (options: DialectOptions) => {
   return { connectionString: options.connectionString }
 }
 
-/** Where a dialect's calls go: the desktop's database process, the paired bridge or the cloud proxy, decided per call. */
 export const createTransport = (dialect: Dialect, options: DialectOptions) => {
   const resolveRoute = (): Route => {
     const { connectionsCollection, connectionsResourcesCollection } =
@@ -107,7 +106,6 @@ export const createTransport = (dialect: Dialect, options: DialectOptions) => {
 
   return {
     current: () => toTransport(resolveRoute()),
-    /** A transaction or session stays on the transport that opened it, even if the browser pairs or unpairs meanwhile. */
     open: async (
       open: (
         transport: ReturnType<typeof toTransport>

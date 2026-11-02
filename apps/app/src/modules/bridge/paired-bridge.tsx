@@ -68,10 +68,7 @@ export const PairedBridge = ({
           id="bridge-enabled"
           size="sm"
           checked={pairing.enabled}
-          onCheckedChange={(enabled) => {
-            setBridgeEnabled(enabled)
-            posthog.capture('bridge_toggled', { enabled })
-          }}
+          onCheckedChange={(enabled) => setBridgeEnabled(enabled)}
         />
       </SettingsRow>
       {info && (info.latestVersion || status?.state === 'outdated') && (

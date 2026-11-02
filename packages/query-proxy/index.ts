@@ -25,13 +25,6 @@ export type ConnectionInput =
   | { connectionId: string; resourceName?: string | null }
   | { resourceId: string }
 
-/** Generic over the builder's parts, not the builder, so the error map a caller declares reaches its clients' types. */
-type QueryBuilder<
-  TInitial extends Context,
-  TInjected extends Context,
-  TErrors extends ErrorMap,
-> = BuilderWithMiddlewares<TInitial, TInjected, TErrors>
-
 interface Resolvers<TContext> {
   /** `dialect` is the executor that will run the string, which may not be the one its connection names. */
   connectionString: (
@@ -52,10 +45,10 @@ const createQueryDialect = <
   TErrors extends ErrorMap,
 >(
   name: Dialect,
-  orpc: QueryBuilder<TInitial, TInjected, TErrors>,
+  orpc: BuilderWithMiddlewares<TInitial, TInjected, TErrors>,
   resolve: Resolvers<MergedContext<TInitial, TInjected>>
 ) => {
-  const dialect: QueryExecutor = executors[name]
+  const dialect = executors[name]
   return {
     beginTransaction: orpc
       .input(type<Params<typeof dialect.beginTransaction>>())
@@ -138,12 +131,13 @@ const createQueryDialect = <
   } satisfies Record<keyof QueryExecutor, unknown>
 }
 
+/** Generic over the builder's parts, not the builder, so the error map a caller declares reaches its clients' types. */
 export const createQueryRouter = <
   TInitial extends Context,
   TInjected extends Context,
   TErrors extends ErrorMap,
 >(
-  orpc: QueryBuilder<TInitial, TInjected, TErrors>,
+  orpc: BuilderWithMiddlewares<TInitial, TInjected, TErrors>,
   resolve: Resolvers<MergedContext<TInitial, TInjected>>
 ) =>
   ({

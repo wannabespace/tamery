@@ -16,23 +16,24 @@ import { toast } from 'sonner'
 import { FetchingReason } from '~/core/connection/fetching-reason'
 import { bridge } from '~/core/runtime/bridge/bridge'
 import { parseBridgeUrl } from '~/core/runtime/bridge/client'
-import type { PairingLink } from '~/lib/pairing-link'
 
-/** Opening the bridge's link only fills this in: Connect is the first request the bridge sees, and the terminal answers it. */
 export const PairForm = ({
   link,
   replaces,
 }: {
-  link: PairingLink | null
+  link: string | null
   replaces: string | null
 }) => {
-  const [url, setUrl] = useState(link?.url ?? '')
-  // An empty field is the default, so clearing it is the reset.
+  const [url, setUrl] = useState(link ?? '')
   const target = url.trim() || BRIDGE_URL
   const origin = parseBridgeUrl(target)
   const { error, isPending, mutate, variables } = useMutation({
     mutationFn: (browserNonce: string) =>
-      bridge.pair({ browserNonce, url: target, via: link ? 'link' : 'manual' }),
+      bridge.pair({
+        browserNonce,
+        url: target,
+        via: link === null ? 'manual' : 'link',
+      }),
     onSuccess: (pairing) => toast.success(`Connected to ${pairing.name}`),
   })
 

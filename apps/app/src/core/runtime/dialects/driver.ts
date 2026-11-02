@@ -30,7 +30,6 @@ export const createDialectProvider = (
 ) => {
   const transport = createTransport(dialect, options)
   const maxRows = options.resultSets?.maxRows
-  /** Stop goes where the query went, even if the browser paired or unpaired since. */
   const running = new Map<string, ReturnType<typeof transport.current>>()
   const track = <T>(
     queryId: string | undefined,

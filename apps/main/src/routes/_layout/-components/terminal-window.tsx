@@ -1,10 +1,8 @@
 import { cn } from '@tamery/ui/lib/utils'
-import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
 
 import { WindowButtons } from './window-buttons'
 
-/** A terminal on the page: `className` places and sizes it in its demo. */
 export const TerminalWindow = ({
   children,
   className,
@@ -31,24 +29,3 @@ export const TerminalWindow = ({
     </div>
   </div>
 )
-
-/** One line that rises in once its step arrives. */
-export const TerminalLine = ({
-  children,
-  className,
-  show,
-}: {
-  children: ReactNode
-  className?: string
-  show: boolean
-}) =>
-  show && (
-    <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  )

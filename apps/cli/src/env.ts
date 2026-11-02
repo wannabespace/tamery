@@ -1,7 +1,6 @@
 import { setupPortlessEnvs } from '@tamery/shared/portless-env'
 import { type } from 'arktype'
 
-// `scripts/build.ts` inlines these into the binary; a dev run takes the worktree's own dev URLs.
 if (!import.meta.env.VERSION) {
   setupPortlessEnvs({
     API_URL: 'api.local.tamery',

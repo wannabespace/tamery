@@ -15,7 +15,6 @@ import {
   useBridgeStatus,
 } from '~/core/runtime/bridge/bridge'
 
-/** In the title bar on every page: where this browser's queries run, and whether that bridge answers right now. */
 export const RunsOn = () => {
   const bridge = useBridgeStatus()
   if (!bridge?.pairing.enabled) {

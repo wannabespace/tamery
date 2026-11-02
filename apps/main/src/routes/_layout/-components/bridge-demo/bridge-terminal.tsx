@@ -1,4 +1,5 @@
-import { TerminalLine, TerminalWindow } from '../terminal-window'
+import { TerminalLine } from '../terminal-line'
+import { TerminalWindow } from '../terminal-window'
 import { BRIDGE_NAME, LISTENING_STEP, PAIRED_STEP } from './script'
 
 export const BridgeTerminal = ({ step }: { step: number }) => (

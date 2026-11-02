@@ -6,7 +6,6 @@ import { parseArgs } from 'node:util'
 import pkg from '../package.json' with { type: 'json' }
 import { env } from '../src/env'
 import { getBinaryName, isTarget, TARGETS } from './targets'
-import type { Target } from './targets'
 
 const DIST = path.join(import.meta.dirname, '..', 'dist')
 const CONNECTION_SOURCE = /packages\/connection\/.+\.ts$/u
@@ -47,35 +46,35 @@ const targets = Object.keys(TARGETS)
   .filter(isTarget)
   .filter((target) => values.all || target === requested)
 
-const build = async (target: Target) => {
-  const outfile = path.join(
-    DIST,
-    `tamery-${target}${path.extname(getBinaryName(target))}`
-  )
-  const result = await Bun.build({
-    compile: {
-      autoloadBunfig: false,
-      autoloadDotenv: false,
-      outfile,
-      target: TARGETS[target],
-    },
-    define: {
-      'import.meta.env.API_URL': JSON.stringify(env.API_URL),
-      'import.meta.env.MAIN_URL': JSON.stringify(env.MAIN_URL),
-      'import.meta.env.VERSION': JSON.stringify(pkg.version),
-      'import.meta.env.WEB_URL': JSON.stringify(env.WEB_URL),
-    },
-    entrypoints: [path.join(import.meta.dirname, '..', 'src', 'index.ts')],
-    // ssh2 loads these native addons inside a try and runs on pure JS without them; bundled, an unbuilt one fails the build.
-    external: ['cpu-features', '*.node'],
-    minify: true,
-    plugins: [bundleDrivers],
-  })
-  if (!result.success) {
-    throw new Error(`${target}: ${result.logs.join('\n')}`)
-  }
-  console.log(`Built ${path.relative(process.cwd(), outfile)}`)
-}
-
 fs.rmSync(DIST, { force: true, recursive: true })
-await Promise.all(targets.map((target) => build(target)))
+await Promise.all(
+  targets.map(async (target) => {
+    const outfile = path.join(
+      DIST,
+      `tamery-${target}${path.extname(getBinaryName(target))}`
+    )
+    const result = await Bun.build({
+      compile: {
+        autoloadBunfig: false,
+        autoloadDotenv: false,
+        outfile,
+        target: TARGETS[target],
+      },
+      define: {
+        'import.meta.env.API_URL': JSON.stringify(env.API_URL),
+        'import.meta.env.MAIN_URL': JSON.stringify(env.MAIN_URL),
+        'import.meta.env.VERSION': JSON.stringify(pkg.version),
+        'import.meta.env.WEB_URL': JSON.stringify(env.WEB_URL),
+      },
+      entrypoints: [path.join(import.meta.dirname, '..', 'src', 'index.ts')],
+      // ssh2 loads these native addons inside a try and runs on pure JS without them; bundled, an unbuilt one fails the build.
+      external: ['cpu-features', '*.node'],
+      minify: true,
+      plugins: [bundleDrivers],
+    })
+    if (!result.success) {
+      throw new Error(`${target}: ${result.logs.join('\n')}`)
+    }
+    console.log(`Built ${path.relative(process.cwd(), outfile)}`)
+  })
+)

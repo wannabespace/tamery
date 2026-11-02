@@ -20,7 +20,6 @@ const PREFLIGHT_HEADERS = {
   'access-control-max-age': '600',
 }
 
-/** A misconfigured tunnel or a stray page repeats its request; the terminal says so once. */
 let lastRefused: string | null = null
 
 const refuse = (status: number, reason: string) => {
@@ -50,7 +49,6 @@ export const serveBridge = ({
           if (error instanceof ORPCError) {
             throw error
           }
-          // The database's own message (a syntax error, a refused login) is what the app shows the user.
           throw new ORPCError('INTERNAL_SERVER_ERROR', {
             cause: error,
             message: redactSecrets(toError(error).message),

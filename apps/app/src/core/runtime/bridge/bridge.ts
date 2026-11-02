@@ -37,7 +37,6 @@ import {
   getActivePairing,
 } from './pairing'
 
-/** A loopback hello is cheap, and the title bar should turn red soon after the bridge stops. */
 const BRIDGE_CHECK_INTERVAL = 10_000
 
 type BridgeInfo = InferClientOutputs<BridgeRouter>['bridge']['pair']['info']
@@ -66,13 +65,12 @@ export const getBridgeStatusMessage = (status: BridgeStatus, name: string) => {
   if (status.state === 'outdated') {
     return `Update the bridge on ${name} to run queries.`
   }
-  if (status.state === 'unreachable' && status.reason === 'denied') {
+  if (status.reason === 'denied') {
     return `This browser blocks Tamery from reaching ${name}. Allow local network access for this site in the browser’s settings.`
   }
   return `The bridge on ${name} is not running. Start \`tamery bridge\` there.`
 }
 
-/** Thrown before a call reaches a bridge that cannot answer, so the page can say why and offer the way out. */
 export class BridgeError extends Error {
   readonly bridgeName: string
   readonly status: BridgeTrouble
@@ -93,26 +91,21 @@ const toStatus = (info: BridgeInfo): BridgeStatus => {
   return { info, state: 'outdated' }
 }
 
-const getLocalNetworkPermission = async () => {
-  const answers = await Promise.allSettled(
-    ['loopback-network', 'local-network'].map((name) =>
-      // Neither name is a `PermissionName` in the DOM typings yet; a browser that does not know one rejects it.
-      navigator.permissions.query({ name: name as PermissionName })
-    )
-  )
-  const known = answers.find((answer) => answer.status === 'fulfilled')
-  return known?.status === 'fulfilled' ? known.value.state : null
-}
-
 const toUnreachable = async (pairing: BridgePairing): Promise<BridgeStatus> => {
   reportOnce('bridge_unreachable')
-  const denied =
-    isLoopbackUrl(pairing.url) &&
-    (await getLocalNetworkPermission()) === 'denied'
+  const answers = isLoopbackUrl(pairing.url)
+    ? await Promise.allSettled(
+        ['loopback-network', 'local-network'].map((name) =>
+          // Neither name is a `PermissionName` in the DOM typings yet; a browser that does not know one rejects it.
+          navigator.permissions.query({ name: name as PermissionName })
+        )
+      )
+    : []
+  const known = answers.find((answer) => answer.status === 'fulfilled')
+  const denied = known?.status === 'fulfilled' && known.value.state === 'denied'
   return { reason: denied ? 'denied' : 'stopped', state: 'unreachable' }
 }
 
-/** The bridge no longer holds this browser's pairing (`tamery bridge unpair-all`, `tamery logout`). */
 const forget = (pairing: BridgePairing) => {
   const message = `The bridge on ${pairing.name} no longer knows this browser. Connect again from Settings → Bridge.`
   // A late answer for a pairing this browser already replaced must not clear the new one.
@@ -123,7 +116,6 @@ const forget = (pairing: BridgePairing) => {
   return new Error(message)
 }
 
-/** The bridge proves it holds this browser's secret before the secret, or any saved secret, is sent to it. */
 const check = async (pairing: BridgePairing) => {
   const nonce = bridgeKey.nonce()
   const hello = await Result.tryPromise(() =>
@@ -155,14 +147,12 @@ const statusQueryOptions = (pairing: BridgePairing | null) =>
         ? false
         : BRIDGE_CHECK_INTERVAL,
     refetchOnWindowFocus: 'always',
-    retry: 0,
     staleTime: 0,
     throwOnError: false,
   })
 
 export const useBridgeStatus = () => {
   const pairing = useSubscription(bridgePairing)
-  // Switched off, the browser leaves the bridge alone, as if unpaired.
   const { data } = useQuery(
     statusQueryOptions(pairing?.enabled ? pairing : null)
   )
@@ -181,8 +171,8 @@ const ensureConnected = async (pairing: BridgePairing) => {
 }
 
 /**
- * This browser's string, when it holds every part the bridge may lack. A Full string is sent only right after the user saved it
- * here: the bridge runs a file or machine login only as this user saved it, and the synced copy may be another member's edit.
+ * A Full string is sent only right after the user saved it here: the bridge runs a file or machine login only as this user
+ * saved it, and the synced copy may be another member's edit.
  */
 const getCompleteString = (connectionId: string, savedHere: boolean) => {
   const { connectionsCollection, connectionStringsCollection } =
@@ -199,7 +189,7 @@ const getCompleteString = (connectionId: string, savedHere: boolean) => {
     : null
 }
 
-/** A link interceptor sees every procedure's error untyped, so the data is checked against the shared schema. */
+/** An interceptor sees every procedure's error untyped, so the data is checked against the shared schema. */
 const getAskedSecrets = (error: ORPCError<string, unknown> | null) => {
   const data =
     error?.code === 'NEEDS_SECRETS' ? bridgeNeedsSecrets(error.data) : null
@@ -252,10 +242,6 @@ const getPairedClient = memoize((pairing: BridgePairing): BridgeRouter =>
 
 export const bridge = {
   client: getPairedClient,
-  /**
-   * Held open until someone allows or declines this browser at the bridge's terminal, which shows the code of `browserNonce`
-   * so the user can tell this request from another one sent as their account.
-   */
   pair: async ({
     browserNonce,
     url,
@@ -298,7 +284,6 @@ export const bridge = {
     posthog.capture('bridge_paired', { remote: !isLoopbackUrl(origin), via })
     return pairing
   },
-  /** After every save on this device, once the server holds it. The bridge merges what it is sent into the copy it keeps. */
   saveSecrets: async (connectionId: string) => {
     const pairing = getActivePairing()
     const connectionString =
@@ -314,7 +299,6 @@ export const bridge = {
     posthog.capture('bridge_secrets_saved')
   },
   unpair: (pairing: BridgePairing) => {
-    // An unreachable bridge keeps this browser until `tamery bridge unpair-all`; the browser forgets it either way.
     void silently(() => getPairedClient(pairing).bridge.unpair())
     clearBridgePairing()
     posthog.capture('bridge_unpaired')

@@ -63,7 +63,6 @@ beforeEach(() => {
 
 test('a paired browser sends the bridge ids, never a connection string', async () => {
   state.route = paired
-  // No password: this device lacks the password, which the bridge holds.
   const connectionString = 'postgres://user@localhost/shop'
   await createDialectProvider(Dialect.Postgres, {
     connectionString,

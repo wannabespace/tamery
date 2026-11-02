@@ -3,13 +3,13 @@ import { createStore } from 'seitu'
 import { useSubscription } from 'seitu/react'
 import { createWebStorageValue } from 'seitu/web'
 
+import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 
 export const BRIDGE_QUERY_KEY = 'bridge'
 
 const pairingSchema = type({
   browserId: 'string',
-  /** Off keeps the pairing but runs this browser's queries as if it had none. */
   enabled: 'boolean = true',
   name: 'string',
   secret: 'string',
@@ -18,7 +18,6 @@ const pairingSchema = type({
 
 export type BridgePairing = typeof pairingSchema.infer
 
-/** One bridge per browser. Only Settings → Bridge writes it, which the desktop app does not have. */
 export const bridgePairing = createWebStorageValue({
   defaultValue: null,
   key: 'bridge-pairing',
@@ -29,27 +28,20 @@ export const bridgePairing = createWebStorageValue({
 const getActive = (pairing: BridgePairing | null) =>
   pairing?.enabled ? pairing : null
 
-/** The pairing queries run on: `null` when unpaired or switched off. */
 export const getActivePairing = () => getActive(bridgePairing.get())
 
 export const useActivePairing = () =>
   useSubscription(bridgePairing, { selector: getActive })
 
-export const setBridgeEnabled = (enabled: boolean) =>
+export const setBridgeEnabled = (enabled: boolean) => {
   bridgePairing.set((pairing) => pairing && { ...pairing, enabled })
+  posthog.capture('bridge_toggled', { enabled })
+}
 
 /** Per connection, what the bridge last answered `NEEDS_SECRETS` with while this browser lacked it too. */
 export const bridgeAsks = createStore<Record<string, string[] | 'all'>>({})
 
-/** What `fetchingConfig` needs to know of the bridge a connection runs on. */
-export interface BridgeRoute {
-  asks: string[] | 'all' | null
-  name: string
-}
-
-export const getBridgeRoute = (
-  connectionId: string | null
-): BridgeRoute | null => {
+export const getBridgeRoute = (connectionId: string | null) => {
   const pairing = getActivePairing()
   return (
     pairing && {
@@ -59,9 +51,9 @@ export const getBridgeRoute = (
   )
 }
 
-export const useBridgeRoute = (
-  connectionId: string | null
-): BridgeRoute | null => {
+export type BridgeRoute = NonNullable<ReturnType<typeof getBridgeRoute>>
+
+export const useBridgeRoute = (connectionId: string | null) => {
   const pairing = useActivePairing()
   const asks = useSubscription(bridgeAsks, {
     selector: (all) => (connectionId && all[connectionId]) || null,

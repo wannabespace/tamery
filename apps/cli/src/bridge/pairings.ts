@@ -9,7 +9,6 @@ import { configFiles } from '../config-files'
 
 const pairingsFile = type({
   browsers: type({
-    /** Only the secret's hash is kept, which is also the key the bridge's `hello` proof is made with. */
     hash: 'string',
     id: 'string',
     label: 'string',
@@ -31,11 +30,6 @@ const readBrowsers = (): Browser[] =>
 const save = (browsers: Browser[]) =>
   configFiles.write(configFiles.pairings, JSON.stringify({ browsers }, null, 2))
 
-const sameText = (left: string, right: string) =>
-  left.length === right.length &&
-  timingSafeEqual(Buffer.from(left), Buffer.from(right))
-
-/** The browsers allowed to use this bridge, each by the hash of its own secret. */
 export const pairings = {
   authenticate: (authorization: string | null) => {
     if (!authorization?.startsWith(BEARER_PREFIX)) {
@@ -43,7 +37,11 @@ export const pairings = {
     }
     const hash = bridgeKey.hash(authorization.slice(BEARER_PREFIX.length))
     return (
-      readBrowsers().find((browser) => sameText(browser.hash, hash))?.id ?? null
+      readBrowsers().find(
+        (browser) =>
+          browser.hash.length === hash.length &&
+          timingSafeEqual(Buffer.from(browser.hash), Buffer.from(hash))
+      )?.id ?? null
     )
   },
   count: () => readBrowsers().length,

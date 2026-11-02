@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import process from 'node:process'
 
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
-import { silently } from '@tamery/shared/utils'
+import { omit, silently } from '@tamery/shared/utils'
 import { type } from 'arktype'
 import { Result } from 'better-result'
 
@@ -13,16 +13,10 @@ const KEYCHAIN_ITEM = { name: 'bridge-key', service: 'app.tamery.cli' }
 
 const vaultData = type({
   account: type({ email: 'string', id: 'string', token: 'string' }).or('null'),
-  /** Each connection's local copy: what the user entered on the bridge, merged over the server's copy. */
   connections: { '[string]': 'string' },
 })
 
 type VaultData = typeof vaultData.infer
-
-const EMPTY_VAULT: VaultData = { account: null, connections: {} }
-
-export const KEYCHAIN_LOCKED_MESSAGE =
-  'The keychain refused the bridge key. Unlock it and run the command again.'
 
 /** A headless Linux box usually has no Secret Service, so the key sits in a file beside the vault there. */
 const readKey = async () => {
@@ -36,17 +30,9 @@ const readKey = async () => {
   if (process.platform === 'linux' && !fs.existsSync(configFiles.vault)) {
     return { key: null, keyInFile: true }
   }
-  throw new Error(KEYCHAIN_LOCKED_MESSAGE)
-}
-
-const createKey = async (keyInFile: boolean) => {
-  const key = randomBytes(32).toString('base64')
-  if (keyInFile) {
-    configFiles.write(configFiles.key, key)
-  } else {
-    await Bun.secrets.set({ ...KEYCHAIN_ITEM, value: key })
-  }
-  return key
+  throw new Error(
+    'The keychain refused the bridge key. Unlock it and run the command again.'
+  )
 }
 
 const openVault = async () => {
@@ -58,7 +44,15 @@ const openVault = async () => {
       'The bridge key is gone from the keychain, so the saved secrets cannot be read. Run `tamery logout` to start over.'
     )
   }
-  const key = stored.key ?? (await createKey(stored.keyInFile))
+  let { key } = stored
+  if (key === null) {
+    key = randomBytes(32).toString('base64')
+    if (stored.keyInFile) {
+      configFiles.write(configFiles.key, key)
+    } else {
+      await Bun.secrets.set({ ...KEYCHAIN_ITEM, value: key })
+    }
+  }
   const data: VaultData = hasVault
     ? vaultData.assert(
         JSON.parse(
@@ -68,7 +62,7 @@ const openVault = async () => {
           })
         )
       )
-    : structuredClone(EMPTY_VAULT)
+    : { account: null, connections: {} }
   const save = () =>
     configFiles.write(
       configFiles.vault,
@@ -84,7 +78,6 @@ const open = () => {
   return opened
 }
 
-/** Encrypted with a device key kept in the OS keychain, the way the app keeps its local connection strings. */
 export const vault = {
   account: async () => {
     const { data } = await open()
@@ -94,7 +87,6 @@ export const vault = {
     const { data } = await open()
     return data.connections[id] ?? null
   },
-  /** `true` when the key sits in a file, so the secrets are only as safe as that file's permissions. */
   keyInFile: async () => {
     const { keyInFile } = await open()
     return keyInFile
@@ -102,8 +94,7 @@ export const vault = {
   removeConnection: async (id: string) => {
     const { data, save } = await open()
     if (id in data.connections) {
-      const { [id]: _removed, ...rest } = data.connections
-      data.connections = rest
+      data.connections = omit(data.connections, [id])
       save()
     }
   },

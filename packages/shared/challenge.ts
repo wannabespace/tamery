@@ -11,7 +11,6 @@ export const challenge = {
   generateCode: (verifier: string) =>
     b64UrlEncode(sha256(new TextEncoder().encode(verifier))),
   generateVerifier: () => b64UrlEncode(randomBytes(32)),
-  /** What the signing-in device and the confirm page both show, so the user can tell the request is theirs. */
   getUserCode: (codeChallenge: string) => {
     const code = Array.from(
       sha256(new TextEncoder().encode(codeChallenge)).subarray(0, CODE_LENGTH),

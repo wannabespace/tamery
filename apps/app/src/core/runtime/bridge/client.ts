@@ -58,7 +58,6 @@ export const createBridgeLink = (url: string, secret: string | null) => {
   })
 }
 
-/** For the calls a browser makes before it holds a secret: `hello` and `pair`. */
 export const getBridgeClient = memoize((url: string): BridgeRouter =>
   createORPCClient(createBridgeLink(url, null))
 )

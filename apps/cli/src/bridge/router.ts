@@ -13,19 +13,23 @@ import { paint } from '../paint'
 import { updates } from '../update-check'
 import { approvals } from './approvals'
 import { connections } from './connections'
-import { authErrors, pairErrors, queryErrors, saveErrors } from './errors'
+import { queryErrors } from './errors'
 import { pairings } from './pairings'
 import { printable } from './printable'
 
 const base = os.$context<{ authorization: string | null }>()
 
-const authed = base.errors(authErrors).use(({ context, errors, next }) => {
-  const browserId = pairings.authenticate(context.authorization)
-  if (!browserId) {
-    throw errors.UNAUTHORIZED()
-  }
-  return next({ context: { browserId } })
-})
+const authed = base
+  .errors({
+    UNAUTHORIZED: { message: 'This browser is not paired with the bridge.' },
+  })
+  .use(({ context, errors, next }) => {
+    const browserId = pairings.authenticate(context.authorization)
+    if (!browserId) {
+      throw errors.UNAUTHORIZED()
+    }
+    return next({ context: { browserId } })
+  })
 
 export const createRouter = ({
   name,
@@ -44,7 +48,6 @@ export const createRouter = ({
 
   return {
     bridge: {
-      /** `proof` is `null` for a browser this bridge never paired or has forgotten. */
       hello: base
         .input(type({ browserId: 'string | null', nonce: 'string.hex == 64' }))
         .handler(({ input }) => {
@@ -59,7 +62,20 @@ export const createRouter = ({
        * `--public-url` client) can send `userId` and pick `label`, so only `browserNonce` shows the request is the user's.
        */
       pair: base
-        .errors(pairErrors)
+        .errors({
+          DECLINED: {
+            message:
+              'The bridge did not allow this browser: it was declined, or nobody answered within 2 minutes. Click Connect again and allow it in the terminal running `tamery bridge`, or with `tamery bridge approve`.',
+          },
+          NOT_ATTESTED: {
+            message:
+              'The bridge could not confirm its account with Tamery. Check that it is online and signed in, then pair again.',
+          },
+          OTHER_ACCOUNT: {
+            message:
+              'This bridge is signed in to another Tamery account. Sign in to that one here, or run `tamery logout` and `tamery bridge` on that computer.',
+          },
+        })
         .input(
           type({
             browserNonce: 'string.hex == 64',
@@ -105,7 +121,10 @@ export const createRouter = ({
         }),
       saveSecrets: authed
         .errors({
-          ACCESS_DECLINED: saveErrors.ACCESS_DECLINED,
+          ACCESS_DECLINED: {
+            message:
+              "The bridge did not allow this connection to open files or sign in with its computer's keys or credentials: it was declined, or nobody answered within 2 minutes. Save it again and allow it in the terminal running `tamery bridge`, or with `tamery bridge approve`.",
+          },
           NOT_FOUND: queryErrors.NOT_FOUND,
         })
         .input(

@@ -19,24 +19,17 @@ import { Result } from 'better-result'
 
 import { api } from '../api'
 import { vault } from '../vault'
-import {
-  NEEDS_SECRETS_MESSAGE,
-  NOT_FOUND_MESSAGE,
-  UNCONFIRMED_MESSAGE,
-} from './errors'
+import { queryErrors } from './errors'
 
-/** How long a server copy is trusted before `connections.resolve` is asked again, so a query rarely waits on the API. */
 const FRESH_MS = 60 * 1000
 
 interface ServerCopy {
   checkedAt: number
-  /** `null` for **Metadata only**: the server keeps no string. */
   connectionString: string | null
   isPasswordExists: boolean
   updatedAt: Date | null
 }
 
-/** With the API unreachable and nothing resolved yet, the local copy is the whole string the user entered. */
 const LOCAL_ONLY: ServerCopy = {
   checkedAt: 0,
   connectionString: null,
@@ -59,7 +52,6 @@ const getServerCopy = async (connectionId: string, hasLocal: boolean) => {
   )
   if (result.isErr()) {
     const { cause } = result.error
-    // Only an unreachable API falls back: a session Tamery ended must stop the bridge.
     const signedOut =
       cause instanceof ORPCError && cause.code === 'UNAUTHORIZED'
     const fallback = cached ?? (hasLocal ? LOCAL_ONLY : null)
@@ -71,7 +63,7 @@ const getServerCopy = async (connectionId: string, hasLocal: boolean) => {
   if (result.value.status === 'not-found') {
     serverCopies.delete(connectionId)
     await vault.removeConnection(connectionId)
-    throw new ORPCError('NOT_FOUND', { message: NOT_FOUND_MESSAGE })
+    throw new ORPCError('NOT_FOUND', queryErrors.NOT_FOUND)
   }
   const kept = result.value.status === 'unchanged' ? cached : null
   const copy: ServerCopy = {
@@ -84,13 +76,6 @@ const getServerCopy = async (connectionId: string, hasLocal: boolean) => {
   return copy
 }
 
-const getMissing = (connectionString: string, isPasswordExists: boolean) => {
-  const url = new SafeURL(connectionString)
-  const missing: string[] = connectionSecrets.missing(url.searchParams)
-  return isPasswordExists && !url.password ? ['password', ...missing] : missing
-}
-
-/** What a string makes this computer hand to the driver: a file to open or read, or the credentials of the machine's own login. */
 const getLocalAccess = (connectionString: string) => {
   const parts = connectionParts.parse(connectionString)
   const { database, host, type } = parts
@@ -112,14 +97,18 @@ const getLocalAccess = (connectionString: string) => {
   ].filter((access) => access !== null)
 }
 
+const getAddedAccess = (before: string | null, after: string) => {
+  const known = before ? getLocalAccess(before) : []
+  return getLocalAccess(after).filter((access) => !known.includes(access))
+}
+
 const needsSecrets = (connectionId: string, fields: string[] | 'all') =>
   new ORPCError('NEEDS_SECRETS', {
     data: { connectionId, fields },
-    message: NEEDS_SECRETS_MESSAGE,
+    message: queryErrors.NEEDS_SECRETS.message,
   })
 
 export const connections = {
-  /** The bridge never runs a string it is sent: it builds each one the way a device does, from the server's copy and its own. */
   resolve: async (input: ConnectionInput, dialect: Dialect) => {
     if (!('connectionId' in input)) {
       throw new ORPCError('BAD_REQUEST', {
@@ -141,14 +130,11 @@ export const connections = {
       })
     }
     // Any workspace editor can change the server's copy, so a file or machine login it names runs only as the user saved it here.
-    const confirmed = local ? getLocalAccess(local) : []
     if (
       server.connectionString &&
-      getLocalAccess(server.connectionString).some(
-        (access) => !confirmed.includes(access)
-      )
+      getAddedAccess(local, server.connectionString).length > 0
     ) {
-      throw new ORPCError('UNCONFIRMED', { message: UNCONFIRMED_MESSAGE })
+      throw new ORPCError('UNCONFIRMED', queryErrors.UNCONFIRMED)
     }
     const connectionString =
       server.connectionString && local
@@ -157,7 +143,11 @@ export const connections = {
             local,
           })
         : known
-    const missing = getMissing(connectionString, server.isPasswordExists)
+    const url = new SafeURL(connectionString)
+    const missing = [
+      ...(server.isPasswordExists && !url.password ? ['password'] : []),
+      ...connectionSecrets.missing(url.searchParams),
+    ]
     if (missing.length > 0) {
       throw needsSecrets(connectionId, missing)
     }
@@ -165,7 +155,6 @@ export const connections = {
       ? resourceConnectionString(connectionString, input.resourceName)
       : connectionString
   },
-  /** The browser sends only the fields the bridge asked for; a secret saved earlier and not asked for must survive. */
   /**
    * `false` when the string asks for a file, SSH route or machine login the bridge's copy did not have and the person at its
    * terminal declined it: a paired browser's script could otherwise point the bridge at any file or host on this computer.
@@ -190,10 +179,7 @@ export const connections = {
           local: previous,
         })
       : connectionString
-    const known = previous ? getLocalAccess(previous) : []
-    const added = getLocalAccess(next).filter(
-      (access) => !known.includes(access)
-    )
+    const added = getAddedAccess(previous, next)
     if (added.length > 0 && !(await confirm(added))) {
       return false
     }

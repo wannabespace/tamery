@@ -10,7 +10,6 @@ import { OrdersTable } from '../agent-demo/orders-table'
 import { WindowButtons } from '../window-buttons'
 import { BRIDGE_NAME, PAIRED_STEP, RAN_STEP } from './script'
 
-/** The web app in a browser tab, querying a localhost database through the bridge. */
 export const BrowserWindow = ({ step }: { step: number }) => (
   <div className="bg-body ring-foreground/4 absolute top-60 right-0 left-6 flex flex-col overflow-hidden rounded-xl shadow-2xl ring sm:top-16 sm:left-auto sm:w-[58%]">
     <div className="bg-card relative flex h-9 shrink-0 items-center border-b px-3">

@@ -1,6 +1,7 @@
 import { cn } from '@tamery/ui/lib/utils'
 
-import { TerminalLine, TerminalWindow } from '../terminal-window'
+import { TerminalLine } from '../terminal-line'
+import { TerminalWindow } from '../terminal-window'
 import {
   APPROVAL_STEP,
   DONE_STEP,

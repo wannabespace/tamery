@@ -7,9 +7,7 @@ import type { ReactNode } from 'react'
 import { Link } from '~/components/link'
 import type { BridgeError } from '~/core/runtime/bridge/bridge'
 import { setBridgeEnabled } from '~/core/runtime/bridge/pairing'
-import { posthog } from '~/lib/posthog'
 
-/** A paired bridge that cannot answer is a state to get out of, not a crash: the reason and the ways out. */
 export const BridgeFailure = ({
   error: { bridgeName, status },
   reset,
@@ -32,7 +30,6 @@ export const BridgeFailure = ({
       variant="outline"
       onClick={() => {
         setBridgeEnabled(false)
-        posthog.capture('bridge_toggled', { enabled: false })
         retry()
       }}
     >

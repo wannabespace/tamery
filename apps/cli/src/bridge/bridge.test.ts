@@ -136,7 +136,7 @@ const createClient = (secret: string | null): BridgeRouter =>
     })
   )
 
-/** Plays the person at the terminal: answers the next request to arrive. */
+/** Plays the person at the terminal: answers the next request to arrive and returns its question. */
 const answer = async (allowed: boolean) => {
   while (approvals.waiting().length === 0) {
     // oxlint-disable-next-line eslint/no-await-in-loop -- waiting for the request to arrive
@@ -144,6 +144,7 @@ const answer = async (allowed: boolean) => {
   }
   const [request] = approvals.waiting()
   approvals.decide(request?.id ?? '', allowed)
+  return request?.question
 }
 
 const requestAccess = (
@@ -251,15 +252,7 @@ describe('pairing', () => {
   test('a label cannot write control characters into the terminal prompt', async () => {
     const [, label] = await Promise.all([
       requestAccess({ label: 'Chrome\u001B[2K\rYour MacBook' }),
-      (async () => {
-        while (approvals.waiting().length === 0) {
-          // oxlint-disable-next-line eslint/no-await-in-loop -- waiting for the request to arrive
-          await sleep(10)
-        }
-        const [request] = approvals.waiting()
-        approvals.decide(request?.id ?? '', true)
-        return request?.question
-      })(),
+      answer(true),
     ])
     expect(label).toContain('Chrome[2KYour MacBook')
     expect(label).not.toContain('\r')
@@ -270,15 +263,7 @@ describe('pairing', () => {
     browserNonces.add(browserNonce)
     const [, question] = await Promise.all([
       requestAccess({ browserNonce }),
-      (async () => {
-        while (approvals.waiting().length === 0) {
-          // oxlint-disable-next-line eslint/no-await-in-loop -- waiting for the request to arrive
-          await sleep(10)
-        }
-        const [request] = approvals.waiting()
-        approvals.decide(request?.id ?? '', true)
-        return request?.question
-      })(),
+      answer(true),
     ])
     expect(question).toContain(challenge.getUserCode(browserNonce))
   })
@@ -614,7 +599,6 @@ describe('connections', () => {
 
   test('a connection string is never run', async () => {
     const error = await createClient(paired.secret)
-      // oxlint-disable-next-line ts/no-unsafe-argument -- an outdated app's input, which the contract no longer types
       .query.sqlite.execute({
         connectionString: sqliteString,
         query: 'select 1',

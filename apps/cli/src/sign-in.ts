@@ -13,8 +13,7 @@ import { vault } from './vault'
 
 const SIGN_IN_TIMEOUT_MS = 5 * 60 * 1000
 
-/** The website confirms the sign-in and hands this computer its own session through the challenge flow. */
-export const signIn = async () => {
+const signIn = async () => {
   const verifier = challenge.generateVerifier()
   const codeChallenge = challenge.generateCode(verifier)
   const url = `${env.MAIN_URL}/deep/sign-in?codeChallenge=${codeChallenge}&type=cli`
@@ -33,7 +32,7 @@ export const signIn = async () => {
   )
   await events.next()
 
-  openBrowser(url)
+  void openBrowser(url)
   note(
     `${paint.link(url)}\n${paint.dim(`Continue only if the page shows ${paint.bold(challenge.getUserCode(codeChallenge))}. The link expires in 5 minutes.`)}`,
     'Sign in to Tamery'
@@ -56,7 +55,6 @@ export const signIn = async () => {
       throw new Error('Tamery did not accept the new session. Try again.')
     }
     const signedIn = { email: user.email, id: user.id, token }
-    // Another account's saved secrets and paired browsers must not carry over to this one.
     const previous = await vault.account()
     if (previous && previous.id !== user.id) {
       await vault.reset()

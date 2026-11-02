@@ -9,7 +9,6 @@ import { paint } from '../paint'
 import { printable } from './printable'
 import { askInTerminal } from './terminal-question'
 
-/** A host missing from every known_hosts file is trusted only by the person at the terminal, never by default. */
 const confirmHostKey: ConfirmHostKey = async ({
   fingerprint,
   host,
@@ -28,7 +27,6 @@ const confirmHostKey: ConfirmHostKey = async ({
   )
 }
 
-/** Opens the tunnels the desktop app's database process opens, with the same known_hosts and `~/.ssh/config` rules. */
 export const enableSshTunnels = () =>
   forwarding.use((connectionString) =>
     tunnelForwarding(connectionString, confirmHostKey)

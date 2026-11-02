@@ -122,7 +122,6 @@ export const fullSignOut = async () => {
   }
 
   subscriptionsCache.clear()
-  // The bridge stays signed in as this account, so the next one to sign in here must pair its own.
   clearBridgePairing()
   posthog.reset()
   queryClient.removeQueries({ queryKey: [API_QUERY_KEY] })

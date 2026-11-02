@@ -25,7 +25,6 @@ let latestVersion: string | null = null
 export const updates = {
   /** Never awaited at startup: the registry must not hold the bridge back. */
   check: async () => {
-    // A dev run has no release to compare against: `0.0.0-dev` is older than every one.
     if (!import.meta.env.VERSION) {
       return
     }

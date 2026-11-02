@@ -1,6 +1,6 @@
 import process from 'node:process'
 
-import { Result } from 'better-result'
+import { silently } from '@tamery/shared/utils'
 
 /** `cmd /c start` would split a URL at its `&`; the URL handler takes it whole. */
 const OPENERS: Partial<Record<NodeJS.Platform, string[]>> = {
@@ -8,10 +8,9 @@ const OPENERS: Partial<Record<NodeJS.Platform, string[]>> = {
   win32: ['rundll32', 'url.dll,FileProtocolHandler'],
 }
 
-/** `false` when no browser could be started, so the caller prints the URL to open by hand. */
 export const openBrowser = (url: string) =>
-  Result.try(() =>
+  silently(() =>
     Bun.spawn([...(OPENERS[process.platform] ?? ['xdg-open']), url], {
       stdio: ['ignore', 'ignore', 'ignore'],
     })
-  ).isOk()
+  )

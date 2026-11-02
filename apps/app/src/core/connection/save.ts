@@ -103,6 +103,7 @@ export const saveConnectionString = async ({
       })
     }
   })
+
   const settle = async () => {
     const persisted = await Result.tryPromise(() => tx.isPersisted.promise)
     if (persisted.isOk()) {

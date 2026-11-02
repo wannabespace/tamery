@@ -8,7 +8,6 @@ import { TableError } from '~/core/table/table-error'
 
 export const TabError = ({ error }: ErrorComponentProps) => {
   const failure = toError(error)
-  // The connection's own boundary shows these: they are about reaching it, not about this tab.
   if (
     isKeychainLocked(error) ||
     error instanceof BridgeError ||

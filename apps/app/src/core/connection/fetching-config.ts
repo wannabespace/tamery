@@ -39,10 +39,8 @@ interface FetchingOptions {
 const REASONS = {
   connectionStringNotStored:
     'Only the name and color of this connection sync. Add its server details on this device to use it here.',
-  internalFromWeb:
-    'You cannot reach this connection from the web app. Run `tamery bridge` or open this connection in the desktop app.',
   passwordMissing: 'Enter the password to query this connection.',
-  passwordNotStored:
+  notInWeb:
     'You cannot reach this connection from the web app. Run `tamery bridge` or open this connection in the desktop app.',
   secretsMissing:
     'Enter the SSH or SSL credentials this device has not saved yet to query this connection.',
@@ -88,31 +86,6 @@ const resolveFlags = (
   }
 }
 
-/** Paired, the bridge judges what it can run: only a string under test and what it asked for stop here. */
-const getBridgeConfig = (
-  { asks, name }: BridgeRoute,
-  draft: boolean | undefined
-) => {
-  if (draft) {
-    return blocked(
-      'bridge',
-      `Saved connections run on ${name}, so save it to try it.`
-    )
-  }
-  if (asks === 'all') {
-    return blocked('waiting-for-details', REASONS.connectionStringNotStored)
-  }
-  if (asks) {
-    return blocked(
-      'waiting-for-password',
-      asks.includes('password')
-        ? REASONS.passwordMissing
-        : REASONS.secretsMissing
-    )
-  }
-  return allowed('bridge')
-}
-
 export const fetchingConfig = (
   connection: FetchingConnection,
   options: FetchingOptions
@@ -131,12 +104,30 @@ export const fetchingConfig = (
     return blocked('waiting-for-details', REASONS.connectionStringNotStored)
   }
 
-  if (usesSsh && !isElectron && !options.bridge) {
-    return blocked('local', SSH_ELSEWHERE)
+  if (options.bridge) {
+    const { asks, name } = options.bridge
+    if (options.draft) {
+      return blocked(
+        'bridge',
+        `Saved connections run on ${name}, so save it to try it.`
+      )
+    }
+    if (asks === 'all') {
+      return blocked('waiting-for-details', REASONS.connectionStringNotStored)
+    }
+    if (asks) {
+      return blocked(
+        'waiting-for-password',
+        asks.includes('password')
+          ? REASONS.passwordMissing
+          : REASONS.secretsMissing
+      )
+    }
+    return allowed('bridge')
   }
 
-  if (options.bridge) {
-    return getBridgeConfig(options.bridge, options.draft)
+  if (usesSsh && !isElectron) {
+    return blocked('local', SSH_ELSEWHERE)
   }
 
   if (passwordUnresolved) {
@@ -159,12 +150,8 @@ export const fetchingConfig = (
     return allowed('local')
   }
 
-  if (isInternal) {
-    return blocked('cloud-proxy', REASONS.internalFromWeb)
-  }
-
-  if (connection && connection.syncType !== SyncType.Cloud) {
-    return blocked('cloud-proxy', REASONS.passwordNotStored)
+  if (isInternal || (connection && connection.syncType !== SyncType.Cloud)) {
+    return blocked('cloud-proxy', REASONS.notInWeb)
   }
 
   return allowed('cloud-proxy')
