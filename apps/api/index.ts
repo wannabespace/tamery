@@ -67,19 +67,19 @@ const isDesktopVersionOutdated = (
   !!parsedAppVersion?.minor &&
   parsedAppVersion.minor < env.MIN_DESKTOP_VERSION
 
+// The share site is left out: it renders other people's rows and calls the API only from its server.
+const isTrustedOrigin = (origin: string) =>
+  origin === ORIGINS.site ||
+  origin === ORIGINS.web ||
+  (nodeEnv === 'development' && isDevelopmentOrigin(origin))
+
 const app = new Hono<{
   Variables: AppVariables
 }>()
   .use(
     cors({
       credentials: true,
-      // The share site is left out: it renders other people's rows and calls the API only from its server.
-      origin: (origin) =>
-        origin === ORIGINS.site ||
-        origin === ORIGINS.web ||
-        (nodeEnv === 'development' && isDevelopmentOrigin(origin))
-          ? origin
-          : null,
+      origin: (origin) => (isTrustedOrigin(origin) ? origin : null),
     })
   )
   .get('/', (c) => c.redirect(env.MAIN_URL))
@@ -176,6 +176,18 @@ const app = new Hono<{
     return handleAuth(req)
   })
   .use('/rpc/*', async (c, next) => {
+    // CORS only hides the answer: a form on any `*.tamery.app` page still posts with the session cookie, and oRPC takes
+    // a multipart body as input. A page cannot send `x-desktop` without a preflight.
+    const origin = c.req.header('origin')
+    if (
+      origin &&
+      c.req.header('cookie') &&
+      !isTrustedOrigin(origin) &&
+      c.req.header('x-desktop') !== 'true'
+    ) {
+      return c.text('Forbidden', 403)
+    }
+
     const { matched, response } = await handler.handle(c.req.raw.clone(), {
       context: createContext(c),
       prefix: '/rpc',

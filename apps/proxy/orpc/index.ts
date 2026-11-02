@@ -1,13 +1,17 @@
 import { os } from '@orpc/server'
 import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
-import { ORIGINS } from '@tamery/shared/origins'
+import { isDevelopmentOrigin, ORIGINS } from '@tamery/shared/origins'
 import { type } from 'arktype'
 
-import { env } from '~/env'
+import { env, nodeEnv } from '~/env'
 
 import type { Context } from './context'
 
 export const orpc = os.$context<Context>()
+
+export const isWebOrigin = (origin: string) =>
+  origin === ORIGINS.web ||
+  (nodeEnv === 'development' && isDevelopmentOrigin(origin))
 
 const sessionResponse = type({ session: { userId: 'string' } })
 
@@ -32,8 +36,10 @@ export const authMiddleware = orpc
     UNAUTHORIZED: { message: SESSION_NOT_FOUND_MESSAGE },
   })
   .middleware(async ({ context, errors, next }) => {
-    // The share site renders other people's rows: a script injected there must not query with the viewer's session.
-    if (context.headers.get('origin') === ORIGINS.share) {
+    // CORS only hides the answer: a form on any `*.tamery.app` page, the share site's included, still posts with the
+    // viewer's cookie.
+    const origin = context.headers.get('origin')
+    if (origin && context.headers.has('cookie') && !isWebOrigin(origin)) {
       throw errors.UNAUTHORIZED()
     }
 

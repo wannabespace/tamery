@@ -18,7 +18,6 @@ export const request = orpc
       found && {
         code: challenge.getUserCode(input.codeChallenge),
         device: found.userAgent ? formatDeviceLabel(found.userAgent) : null,
-        ipAddress: found.ipAddress,
         location: found.ipAddress ? locateIp(found.ipAddress) : null,
       }
     )

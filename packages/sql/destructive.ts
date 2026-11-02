@@ -188,6 +188,12 @@ export const readsOnly = (text: string, dialect: DialectSpec) => {
         isPunctuation(statement.tokens[index + 1], '(') &&
         SIDE_EFFECT_FUNCTION.test(identifierName(token).toUpperCase())
     ) &&
+    // Postgres reads `U&"lo_\0065xport"` as `lo_export`, a name the check above never sees.
+    !statement.tokens.some(
+      (token) =>
+        token.quoted &&
+        text.slice(token.start - 2, token.start).toUpperCase() === 'U&'
+    ) &&
     // MySQL and MariaDB run `/*! … */` and `/*M! … */` as SQL; the tokenizer reads them as comments.
     !tokens.some(
       (token) => token.kind === 'comment' && /^\/\*M?!/u.test(token.text)

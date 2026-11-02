@@ -32,16 +32,25 @@ const getUrl = (connectionString: string) => {
   return url
 }
 
-/** The server a secret was entered for, its SSH hop included. */
-const getServer = (url: SafeURL) =>
-  [
-    url.protocol,
-    url.host,
-    url.username,
-    ...[SSH_PARAMS.host, SSH_PARAMS.port, SSH_PARAMS.user].map((param) =>
-      url.searchParams.get(param)
-    ),
-  ].join('\n')
+const strip = (connectionString: string) => {
+  const url = getUrl(connectionString)
+  url.password = ''
+  url.hash = ''
+  for (const param of SECRET_PARAMS) {
+    if (url.searchParams.has(param)) {
+      url.searchParams.set(param, '')
+    }
+  }
+  return url
+}
+
+/** Any option but the database can send a secret elsewhere: a MongoDB `proxyHost`, an SSH hop, TLS turned off. */
+const getServer = (connectionString: string) => {
+  const url = strip(connectionString)
+  url.pathname = ''
+  url.searchParams.sort()
+  return url.toString()
+}
 
 /** `strip` empties a secret rather than dropping it, so another device knows which ones to ask for. */
 export const connectionSecrets = {
@@ -59,7 +68,7 @@ export const connectionSecrets = {
   },
   /**
    * `isPasswordExists` is the synced connection's flag: an empty synced password is only a stripped one while it is set,
-   * otherwise another device removed it. Secrets restore only onto the server they were entered for: anyone who can edit
+   * otherwise another device removed it. Secrets restore only while nothing but the database changed: anyone who can edit
    * a shared connection could otherwise point it at their own host and have this device send them there.
    */
   restore: (
@@ -67,10 +76,10 @@ export const connectionSecrets = {
     { isPasswordExists, local }: { isPasswordExists: boolean; local: string }
   ) => {
     const url = getUrl(connectionString)
-    const localUrl = getUrl(local)
-    if (getServer(url) !== getServer(localUrl)) {
+    if (getServer(connectionString) !== getServer(local)) {
       return url.toString()
     }
+    const localUrl = getUrl(local)
     if (isPasswordExists) {
       url.password ||= localUrl.password
     }
@@ -89,15 +98,5 @@ export const connectionSecrets = {
       SECRET_PARAMS.some((param) => url.searchParams.get(param))
     )
   },
-  strip: (connectionString: string) => {
-    const url = getUrl(connectionString)
-    url.password = ''
-    url.hash = ''
-    for (const param of SECRET_PARAMS) {
-      if (url.searchParams.has(param)) {
-        url.searchParams.set(param, '')
-      }
-    }
-    return url.toString()
-  },
+  strip: (connectionString: string) => strip(connectionString).toString(),
 }

@@ -90,21 +90,40 @@ describe('connectionSecrets', () => {
   })
 
   it.each([
-    ['another host', 'postgres://app@attacker.example:5432/app'],
-    ['another port', 'postgres://app@db.internal:6543/app'],
-    ['another user', 'postgres://admin@db.internal:5432/app'],
+    [
+      'another scheme',
+      (synced: string) => synced.replace('postgres:', 'mysql:'),
+    ],
+    [
+      'another host',
+      (synced: string) => synced.replace('@db.internal', '@x.example'),
+    ],
+    ['another port', (synced: string) => synced.replace(':5432', ':6543')],
+    ['another user', (synced: string) => synced.replace('app@', 'admin@')],
     [
       'another SSH hop',
-      'postgres://app@db.internal:5432/app?ssh_host=attacker.example&ssh_auth=password&ssh_password=',
+      (synced: string) =>
+        synced.replace('ssh_host=bastion', 'ssh_host=x.example'),
     ],
-  ])('never restores a secret onto %s', (_, synced) => {
-    const restored = connectionSecrets.restore(synced, {
-      isPasswordExists: true,
-      local: LOCAL,
-    })
+    ['a MongoDB proxy', (synced: string) => `${synced}&proxyHost=x.example`],
+    ['TLS turned off', (synced: string) => `${synced}&sslmode=disable`],
+  ])('never restores a secret onto %s', (_, edit) => {
+    const restored = connectionSecrets.restore(
+      edit(connectionSecrets.strip(LOCAL)),
+      { isPasswordExists: true, local: LOCAL }
+    )
 
     expect(restored).not.toContain('db-pass')
     expect(restored).not.toContain('ssh-pass')
+  })
+
+  it('restores the secrets onto another database of the same server', () => {
+    const restored = connectionSecrets.restore(
+      connectionSecrets.strip(LOCAL).replace(':5432/app', ':5432/other'),
+      { isPasswordExists: true, local: LOCAL }
+    )
+
+    expect(restored).toBe(LOCAL.replace(':5432/app', ':5432/other'))
   })
 
   it('never restores a secret the synced string dropped', () => {

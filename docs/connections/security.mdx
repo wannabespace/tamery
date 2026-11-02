@@ -14,7 +14,7 @@ You choose what reaches Tamery's cloud when you create a connection:
 | Sync type | Stored in the cloud |
 | --- | --- |
 | **Full** | The complete connection string, encrypted. |
-| **No password** | Connection details without the password, SSH secrets, SSL key secrets, access token, `Authorization` header, or MongoDB `authMechanismProperties`. When someone changes the server, user or SSH host, each device asks for the secrets again instead of sending them to the new server. |
+| **No password** | Connection details without the password, SSH secrets, SSL key secrets, access token, `Authorization` header, or MongoDB `authMechanismProperties`. When someone changes anything but the database, such as the server, user, SSH host or SSL settings, each device asks for the secrets again instead of sending them on. |
 | **Metadata only** | Name, engine, label, and color. No connection string. |
 
 Synced connection strings are encrypted with a workspace key. They are decrypted on Tamery's server when another device retrieves them, then sent over HTTPS. This is not end-to-end encryption.

@@ -5,12 +5,13 @@ import { ORPCError } from '@orpc/server'
 import { RPCHandler } from '@orpc/server/fetch'
 import { forwarding } from '@tamery/connection/forwarding'
 import { querySerializer } from '@tamery/query-proxy/serializer'
-import { isDevelopmentOrigin, ORIGINS } from '@tamery/shared/origins'
+import { ORIGINS } from '@tamery/shared/origins'
 import { redactSecrets, sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 
 import { env, nodeEnv } from './env'
+import { isWebOrigin } from './orpc'
 import { createContext } from './orpc/context'
 import { router } from './orpc/routers'
 import { guardedForwarding } from './public-host'
@@ -59,11 +60,7 @@ const app = new Hono<{
     cors({
       credentials: true,
       origin: (origin) =>
-        origin === ORIGINS.web ||
-        origin === ORIGINS.share ||
-        (nodeEnv === 'development' && isDevelopmentOrigin(origin))
-          ? origin
-          : null,
+        isWebOrigin(origin) || origin === ORIGINS.share ? origin : null,
     })
   )
   .get('/', (c) => c.redirect(env.MAIN_URL))

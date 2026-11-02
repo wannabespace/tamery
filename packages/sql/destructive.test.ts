@@ -272,6 +272,15 @@ describe('readsOnly', () => {
     expect(readsOnly("SELECT pg_file_write('/tmp/x', 'a', false)", pg)).toBe(
       false
     )
+    expect(readsOnly(String.raw`SELECT U&"lo_\0065xport"(1, '/x')`, pg)).toBe(
+      false
+    )
+    expect(
+      readsOnly(
+        String.raw`SELECT u&"pg_file_!0077rite" UESCAPE '!'('/x', 'a')`,
+        pg
+      )
+    ).toBe(false)
     expect(readsOnly("SELECT GET_LOCK('a', 10)", mysql)).toBe(false)
     expect(
       readsOnly("SELECT * FROM OPENQUERY(srv, 'DELETE FROM users')", mssql)
