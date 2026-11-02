@@ -22,10 +22,6 @@ export const filters = orpc
     },
   })
   .handler(async ({ input, signal, context, errors }) => {
-    context.addLogData({
-      filterInput: input.prompt,
-    })
-
     await usage.enforce(context, 'filters', errors.TOO_MANY_REQUESTS)
 
     const result = await generateFilters({
@@ -41,8 +37,6 @@ export const filters = orpc
     if (result.filters.length > 0 || Object.keys(result.orderBy).length > 0) {
       await usage.record(context, 'filters')
     }
-
-    context.addLogData({ filterResult: result })
 
     return result
   })
