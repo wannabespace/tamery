@@ -27,7 +27,7 @@ mysql://user:password@db.example.com:3306/mydb?ssl=true
 
 Add `sslrejectunauthorized=false` to keep encryption but skip the certificate check. `ssl=false` turns encryption off.
 
-With no SSL option, Tamery tries an encrypted connection without certificate verification. It drops to an unencrypted one only if the server itself says SSL is unavailable.
+With no SSL option, Tamery tries an encrypted connection without certificate verification. It drops to an unencrypted one only if the server itself says SSL is unavailable, and never through the cloud proxy.
 
 ## MariaDB
 

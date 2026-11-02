@@ -46,12 +46,26 @@ export const connectionSecrets = {
     const params = lowercaseKeys(searchParams)
     return SECRET_PARAMS.filter((param) => params.get(param) === '')
   },
-  /** `isPasswordExists` is the synced connection's flag: an empty synced password is only a stripped one while it is set, otherwise another device removed it. */
+  /**
+   * `isPasswordExists` is the synced connection's flag: an empty synced password is only a stripped one while it is set,
+   * otherwise another device removed it. Secrets restore only while nothing but the database changed: anyone who can edit
+   * a shared connection could otherwise point it at their own host (or route it through a MongoDB `proxyHost`, or turn
+   * TLS off) and have this device send them there.
+   */
   restore: (
     connectionString: string,
     { isPasswordExists, local }: { isPasswordExists: boolean; local: string }
   ) => {
     const url = getUrl(connectionString)
+    const [server, localServer] = [connectionString, local].map((value) => {
+      const stripped = getUrl(connectionSecrets.strip(value))
+      stripped.pathname = ''
+      stripped.searchParams.sort()
+      return stripped.toString()
+    })
+    if (server !== localServer) {
+      return url.toString()
+    }
     const localUrl = getUrl(local)
     if (isPasswordExists) {
       url.password ||= localUrl.password

@@ -8,6 +8,8 @@ export interface Destination {
 }
 
 export interface Forwarding {
+  /** `false` for a socket that crosses the internet as is: a server refusing TLS is then refused, never read in plaintext. */
+  encrypted: boolean
   /** Takes no argument on purpose: pg calls its `stream` option with its own config. */
   socket: () => ReturnType<typeof tunnelSocket>
   /** A socket to the address the driver names itself: a server it discovers or is redirected to, or its URL's own port. */

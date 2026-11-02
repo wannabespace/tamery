@@ -43,7 +43,10 @@ export const getPool = memoize(async (connectionString: string) => {
 
   const secure = await connect(conf)
   const result =
-    ssl === undefined && secure.isErr() && refusesTls(secure.error)
+    ssl === undefined &&
+    (tunnel?.encrypted ?? true) &&
+    secure.isErr() &&
+    refusesTls(secure.error)
       ? await connect({ ...conf, ssl: undefined })
       : secure
   if (result.isErr()) {

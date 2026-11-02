@@ -9,6 +9,7 @@ import {
   SOCIAL_PROVIDER_LABELS,
 } from '@tamery/shared/constants'
 import { formatDeviceLabel } from '@tamery/shared/device-label'
+import { ORIGINS } from '@tamery/shared/origins'
 import {
   invitableRole,
   isDefaultWorkspaceMetadata,
@@ -437,10 +438,12 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins: [
-    'https://tamery.app',
-    'https://*.tamery.app',
+    ORIGINS.site,
+    ORIGINS.web,
     'file://',
-    ...(nodeEnv === 'development' ? ['http://localhost:*'] : []),
+    ...(nodeEnv === 'development'
+      ? ['http://localhost:*', 'https://*.local.tamery.app']
+      : []),
   ],
   user: {
     additionalFields: {

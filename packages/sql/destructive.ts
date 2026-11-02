@@ -155,7 +155,7 @@ const SESSION_COMMANDS = new Set([
 ])
 
 const SIDE_EFFECT_FUNCTION =
-  /^(?:DBLINK\w*|GET_LOCK|OPEN(?:DATASOURCE|QUERY|ROWSET)|PG_(?:CANCEL|TERMINATE)_BACKEND|PG_(?:TRY_)?ADVISORY_LOCK(?:_SHARED)?)$/u
+  /^(?:DBLINK\w*|GET_LOCK|LO_EXPORT|OPEN(?:DATASOURCE|QUERY|ROWSET)|PG_(?:CANCEL|TERMINATE)_BACKEND|PG_(?:TRY_)?ADVISORY_LOCK(?:_SHARED)?|PG_FILE_(?:RENAME|UNLINK|WRITE))$/u
 
 export const readsOnly = (text: string, dialect: DialectSpec) => {
   const { tokens } = tokenize(text, dialect)
@@ -187,6 +187,12 @@ export const readsOnly = (text: string, dialect: DialectSpec) => {
       (token, index) =>
         isPunctuation(statement.tokens[index + 1], '(') &&
         SIDE_EFFECT_FUNCTION.test(identifierName(token).toUpperCase())
+    ) &&
+    // Postgres reads `U&"lo_\0065xport"` as `lo_export`, a name the check above never sees.
+    !statement.tokens.some(
+      (token) =>
+        token.quoted &&
+        text.slice(token.start - 2, token.start).toUpperCase() === 'U&'
     ) &&
     // MySQL and MariaDB run `/*! … */` and `/*M! … */` as SQL; the tokenizer reads them as comments.
     !tokens.some(

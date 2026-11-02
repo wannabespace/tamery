@@ -53,6 +53,7 @@ export const Route = createFileRoute('/_auth')({
     ],
   }),
   validateSearch: type({
-    'redirectPath?': 'string',
+    // Without the leading slash, `@host` appended to `location.origin` names another host.
+    'redirectPath?': /^\//u,
   }),
 })
