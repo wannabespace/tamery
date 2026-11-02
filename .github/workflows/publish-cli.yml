@@ -4,13 +4,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
-  contents: write
+  contents: read
 
 jobs:
-  publish:
-    # macOS, so the darwin-arm64 binary is re-signed and smoke-tested natively.
+  build:
+    # macOS, so the darwin binaries can be re-signed.
     runs-on: macos-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v7
 
@@ -25,7 +26,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: latest
-          registry-url: 'https://registry.npmjs.org'
 
       - run: pnpm i --frozen-lockfile --ignore-scripts
 
@@ -43,14 +43,102 @@ jobs:
           MAIN_URL: ${{ secrets.MAIN_URL }}
           WEB_URL: ${{ secrets.WEB_URL }}
 
-      - name: Sign macOS binaries (ad hoc) and smoke-test
-        id: version
+      # A cross-compiled darwin binary carries an invalid signature, and macOS kills an arm64 one on start.
+      - name: Sign macOS binaries (ad hoc)
         working-directory: apps/cli/dist
+        run: codesign --force --sign - tamery-darwin-arm64 tamery-darwin-x64
+
+      - name: Read the version
+        id: version
+        run: echo "version=$(jq -r .version apps/cli/package.json)" >> "$GITHUB_OUTPUT"
+
+      # A tar, since an artifact drops the executable bit the npm packages and smoke tests need.
+      - run: tar -cf dist.tar -C apps/cli dist
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist.tar
+
+  smoke-test:
+    needs: build
+    strategy:
+      matrix:
+        include:
+          - runner: macos-latest
+            binaries: tamery-darwin-arm64
+          - runner: macos-latest
+            binaries: tamery-darwin-x64
+            rosetta: true
+          - runner: ubuntu-latest
+            binaries: tamery-linux-x64
+            alpine: tamery-linux-x64-musl
+          - runner: ubuntu-24.04-arm
+            binaries: tamery-linux-arm64
+            alpine: tamery-linux-arm64-musl
+          - runner: windows-latest
+            binaries: tamery-windows-x64.exe
+          - runner: windows-11-arm
+            binaries: tamery-windows-arm64.exe
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+
+      - run: tar -xf dist.tar
+
+      - if: matrix.rosetta
+        run: softwareupdate --install-rosetta --agree-to-license
+
+      - name: Run the binary
+        working-directory: dist
         run: |
-          codesign --force --sign - tamery-darwin-arm64 tamery-darwin-x64
-          version=$(jq -r .version ../package.json)
-          test "$(./tamery-darwin-arm64 --version)" = "$version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          binary="./${{ matrix.binaries }}"
+          if [ "${{ matrix.rosetta }}" = true ]; then binary="arch -x86_64 $binary"; fi
+          test "$($binary --version)" = "$VERSION"
+          $binary bridge --help | grep -q -- --public-url
+
+      # Alpine leaves libstdc++ out, which Bun's musl build links; the install script tells users to add it.
+      - name: Run the musl binary on Alpine
+        if: matrix.alpine
+        run: |
+          docker run --rm -v "$PWD/dist:/dist:ro" alpine:latest sh -c "
+            apk add -q libstdc++ &&
+            test \"\$(/dist/${{ matrix.alpine }} --version)\" = '$VERSION' &&
+            /dist/${{ matrix.alpine }} bridge --help | grep -q -- --public-url
+          "
+
+  publish:
+    needs: [build, smoke-test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.4
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: latest
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+
+      - run: tar -xf dist.tar -C apps/cli
 
       - name: Write checksums
         working-directory: apps/cli/dist
@@ -61,7 +149,6 @@ jobs:
         working-directory: apps/cli/dist
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
         # --latest=false: the desktop app's releases live in this repo and stay the latest.
         run: |
           gh release create "cli-v$VERSION" tamery-* checksums.txt \

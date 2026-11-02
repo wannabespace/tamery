@@ -111,6 +111,14 @@ main() {
 
   printf 'Installed Tamery CLI %s to %s\n' "$version" "$INSTALL_DIR/tamery"
   add_to_path
+  # Bun's musl build links libstdc++ dynamically, and Alpine leaves it out of its base image.
+  case "$target" in
+    *-musl)
+      if [ ! -e /usr/lib/libstdc++.so.6 ] && [ ! -e /lib/libstdc++.so.6 ]; then
+        printf '\nTamery needs libstdc++ here. Install it first: apk add libstdc++\n'
+      fi
+      ;;
+  esac
   printf '\nRun: %s bridge\n' "$command_name"
 }
 

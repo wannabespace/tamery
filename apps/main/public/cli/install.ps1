@@ -21,7 +21,9 @@
     throw "Tamery install failed: $version is not a version number."
   }
 
-  $asset = 'tamery-windows-x64.exe'
+  # The OS's own architecture: an x64 PowerShell emulated on ARM reports AMD64 everywhere else.
+  $cpu = if ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64') { 'arm64' } else { 'x64' }
+  $asset = "tamery-windows-$cpu.exe"
   $url = "https://github.com/wannabespace/tamery/releases/download/cli-v$version"
   $dir = Join-Path $HOME '.tamery\bin'
   $exe = Join-Path $dir 'tamery.exe'
@@ -29,7 +31,7 @@
   $checksums = Join-Path $dir 'checksums.txt'
   New-Item -ItemType Directory -Force -Path $dir | Out-Null
 
-  Write-Host "Downloading Tamery CLI $version for windows-x64"
+  Write-Host "Downloading Tamery CLI $version for windows-$cpu"
   try {
     Invoke-WebRequest -UseBasicParsing -Uri "$url/$asset" -OutFile $download
     Invoke-WebRequest -UseBasicParsing -Uri "$url/checksums.txt" -OutFile $checksums

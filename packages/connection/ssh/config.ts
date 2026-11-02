@@ -82,7 +82,13 @@ const getAuth = async (
     }
     return { passphrase, privateKey: privateKey.value }
   }
-  const agent = sshConfig('IdentityAgent') ?? process.env.SSH_AUTH_SOCK
+  // Windows' OpenSSH agent sets no SSH_AUTH_SOCK: it always listens on this pipe.
+  const agent =
+    sshConfig('IdentityAgent') ??
+    process.env.SSH_AUTH_SOCK ??
+    (process.platform === 'win32'
+      ? String.raw`\\.\pipe\openssh-ssh-agent`
+      : null)
   if (!agent) {
     throw tunnelError(AGENT_UNAVAILABLE)
   }

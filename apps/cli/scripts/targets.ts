@@ -5,7 +5,8 @@ export const TARGETS = {
   'linux-arm64': 'bun-linux-arm64',
   'linux-arm64-musl': 'bun-linux-arm64-musl',
   'linux-x64': 'bun-linux-x64-baseline',
-  'linux-x64-musl': 'bun-linux-x64-musl',
+  'linux-x64-musl': 'bun-linux-x64-baseline-musl',
+  'windows-arm64': 'bun-windows-arm64',
   'windows-x64': 'bun-windows-x64-baseline',
 } as const satisfies Record<string, Bun.Build.CompileTarget>
 
