@@ -1,7 +1,6 @@
 export { AccountDeleted } from './account-deleted'
 export { Alert } from './alert'
 export { ContactReceived } from './contact-received'
-export { EarlyAccessGranted } from './early-access-granted'
 export { NewSignIn } from './new-sign-in'
 export { SignInCode } from './sign-in-code'
 export { SignInMethodLinked } from './sign-in-method-linked'

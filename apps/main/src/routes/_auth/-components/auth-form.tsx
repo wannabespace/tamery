@@ -1,9 +1,6 @@
 import { GithubIcon, GoogleIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  EARLY_ACCESS_ERROR_CODE,
-  SOCIAL_PROVIDER_LABELS,
-} from '@tamery/shared/constants'
+import { SOCIAL_PROVIDER_LABELS } from '@tamery/shared/constants'
 import { Badge } from '@tamery/ui/components/badge'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
@@ -23,10 +20,6 @@ const { useSearch } = getRouteApi('/_auth')
 
 const emailSchema = type({
   email: type('string.email').configure({ message: 'Invalid email address' }),
-})
-
-const earlyAccessErrorSchema = type({
-  error: { code: `'${EARLY_ACCESS_ERROR_CODE}'` },
 })
 
 const SOCIAL_PROVIDERS = [
@@ -63,10 +56,6 @@ const SocialButton = ({
   const { redirectPath } = useSearch()
   const router = useRouter()
   const { href } = router.buildLocation({ to: '/account' })
-  const { href: signInHref } = router.buildLocation({
-    to: '/sign-in',
-    search: { redirectPath },
-  })
   const isAnyPending = useIsMutating({ mutationKey: ['social'] }) > 0
   const { mutate, isPending } = useMutation({
     mutationKey: ['social', provider.id],
@@ -81,7 +70,6 @@ const SocialButton = ({
         provider: provider.id,
         callbackURL: callbackUrl.href,
         newUserCallbackURL: newUserCallbackUrl.href,
-        errorCallbackURL: location.origin + signInHref,
       })
 
       if (error) {
@@ -125,10 +113,7 @@ export const AuthForm = () => {
     mutationFn: sendSignInCode,
     onSuccess: (_, email) =>
       router.navigate({ to: '/email-code', search: { ...search, email } }),
-    onError: (error) =>
-      earlyAccessErrorSchema.allows(error)
-        ? router.navigate({ to: '/early-access' })
-        : handleError(error),
+    onError: handleError,
   })
 
   const form = useAppForm({
@@ -144,7 +129,7 @@ export const AuthForm = () => {
           Sign in to Tamery
         </h1>
         <p className="text-muted-foreground text-sm">
-          Tamery is in early access. Sign in or request access below.
+          New here? The same email creates your account.
         </p>
         <p className="text-muted-foreground text-sm">
           Conar is still available at{' '}
