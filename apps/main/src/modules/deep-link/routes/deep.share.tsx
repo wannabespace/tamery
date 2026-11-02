@@ -3,8 +3,8 @@ import { type } from 'arktype'
 
 export const Route = createFileRoute('/deep/share')({
   validateSearch: type({
-    // A path, never a URL: the redirect below always stays on the share site.
-    path: /^\/(?!\/)/u,
+    // Without the leading slash, `@host` appended to the share origin names another host.
+    path: /^\//u,
   }),
   beforeLoad: ({ context, search: { path } }) => {
     if (context.session) {

@@ -89,6 +89,33 @@ describe('connectionSecrets', () => {
     expect(restored.password).toBe('')
   })
 
+  it.each([
+    ['another scheme', 'postgres:', 'mysql:'],
+    ['another host', '@db.internal', '@x.example'],
+    ['another port', ':5432', ':6543'],
+    ['another user', 'app@', 'admin@'],
+    ['another SSH hop', 'ssh_host=bastion', 'ssh_host=x.example'],
+    ['a MongoDB proxy', 'ssh_auth=', 'proxyHost=x.example&ssh_auth='],
+    ['TLS turned off', 'ssh_auth=', 'sslmode=disable&ssh_auth='],
+  ])('never restores a secret onto %s', (_, from, to) => {
+    const restored = connectionSecrets.restore(
+      connectionSecrets.strip(LOCAL).replace(from, to),
+      { isPasswordExists: true, local: LOCAL }
+    )
+
+    expect(restored).not.toContain('db-pass')
+    expect(restored).not.toContain('ssh-pass')
+  })
+
+  it('restores the secrets onto another database of the same server', () => {
+    const restored = connectionSecrets.restore(
+      connectionSecrets.strip(LOCAL).replace(':5432/app', ':5432/other'),
+      { isPasswordExists: true, local: LOCAL }
+    )
+
+    expect(restored).toBe(LOCAL.replace(':5432/app', ':5432/other'))
+  })
+
   it('never restores a secret the synced string dropped', () => {
     const switchedToAgent =
       'postgres://app@db.internal:5432/app?ssh_host=bastion&ssh_auth=agent'

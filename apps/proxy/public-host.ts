@@ -88,6 +88,7 @@ export const guardedForwarding = (
   const parts = connectionParts.parse(connectionString)
   const target = { host: parts.host, port: Number(connectionParts.port(parts)) }
   return Promise.resolve({
+    encrypted: false,
     socket: () => tunnelSocket(guardedConnect(target)),
     socketTo: (to) => tunnelSocket(guardedConnect(to)),
   })

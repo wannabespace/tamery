@@ -2,6 +2,7 @@ import process from 'node:process'
 
 import { boolean, command } from '@drizzle-team/brocli'
 import { challenge } from '@tamery/shared/challenge'
+import { Result } from 'better-result'
 import { consola } from 'consola'
 import open from 'open'
 import ora from 'ora'
@@ -42,30 +43,28 @@ export const loginCommand = command({
       AUTH_TIMEOUT_MS
     )
 
-    let browserOpened = false
-
-    if (!opts.noOpen) {
-      try {
-        await open(url)
-        browserOpened = true
-      } catch {
-        browserOpened = false
-      }
-    }
-
-    consola.box({
-      message: `${url}\n\nThis link expires in 5 minutes.`,
-      style: { borderColor: 'cyan', borderStyle: 'rounded', padding: 1 },
-      title: browserOpened ? 'Browser opened' : 'Open this URL to sign in',
-    })
-
-    const spinner = ora('Waiting for sign in...').start()
+    const spinner = ora('Waiting for sign in...')
 
     try {
+      // The confirm page refuses a challenge no device listens for, so the browser opens only once this one does.
       const events = await orpc.account.challenge.listen(
         { codeChallenge },
         { signal: controller.signal }
       )
+      await events.next()
+
+      const opened = opts.noOpen
+        ? null
+        : await Result.tryPromise(() => open(url))
+      const browserOpened = !!opened?.isOk()
+
+      consola.box({
+        message: `${url}\n\nContinue only if the page shows ${challenge.getUserCode(codeChallenge)}. The link expires in 5 minutes.`,
+        style: { borderColor: 'cyan', borderStyle: 'rounded', padding: 1 },
+        title: browserOpened ? 'Browser opened' : 'Open this URL to sign in',
+      })
+
+      spinner.start()
 
       let ready = false
       for await (const event of events) {

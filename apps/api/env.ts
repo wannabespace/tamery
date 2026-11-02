@@ -19,7 +19,7 @@ const envType = type({
   ALERTS_EMAIL: 'string',
   API_URL: 'string',
   BANNER_TEXT: 'string?',
-  BETTER_AUTH_SECRET: 'string',
+  BETTER_AUTH_SECRET: 'string >= 32',
   CONTEXT7_API_KEY: 'string',
   EXA_API_KEY: 'string',
   GITHUB_CLIENT_ID: 'string',
@@ -35,7 +35,8 @@ const envType = type({
   MISTRAL_API_KEY: 'string',
   OPENROUTER_API_KEY: 'string',
   POSTHOG_TOKEN: 'string?',
-  PROXY_SHARED_SECRET: 'string',
+  PROXY_SHARED_SECRET: 'string >= 32',
+  RAILWAY_WEBHOOK_SECRET: 'string >= 32',
   REDIS_URL: 'string',
   RESEND_API_KEY: 'string',
   STRIPE_ANNUAL_PRICE_ID: 'string',
@@ -63,7 +64,10 @@ const devOptionalEnvs = [
   'CONTEXT7_API_KEY',
   'GITHUB_TOKEN',
   'TODESKTOP_WEBHOOK_SECRET',
+  'RAILWAY_WEBHOOK_SECRET',
 ] satisfies (keyof typeof envType.infer)[]
+
+const devOptional = new Set<string>(devOptionalEnvs)
 
 export const env =
   nodeEnv === 'production' || nodeEnv === 'test'
@@ -71,4 +75,11 @@ export const env =
     : envType
         .omit(...devOptionalEnvs)
         .merge(envType.pick(...devOptionalEnvs).partial())
-        .assert(process.env)
+        .assert(
+          // `.env.example` lists these empty, and `partial()` admits a missing key, never an empty value its type refuses.
+          Object.fromEntries(
+            Object.entries(process.env).filter(
+              ([key, value]) => value !== '' || !devOptional.has(key)
+            )
+          )
+        )
