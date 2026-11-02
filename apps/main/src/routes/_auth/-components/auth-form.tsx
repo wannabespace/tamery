@@ -19,7 +19,11 @@ import { getRouteApi, useRouter } from '@tanstack/react-router'
 import { type } from 'arktype'
 import { toast } from 'sonner'
 
-import { authClient, getLastUsedLoginMethod } from '~/lib/auth'
+import {
+  authClient,
+  getLastUsedLoginMethod,
+  isPasskeyPromptDismissed,
+} from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { handleError } from '~/utils/error'
 
@@ -73,9 +77,9 @@ const SocialButton = ({
     to: '/sign-in',
     search: { redirectPath },
   })
-  const isAnyPending = useIsMutating({ mutationKey: ['social'] }) > 0
+  const isAnyPending = useIsMutating({ mutationKey: ['sign-in'] }) > 0
   const { mutate, isPending } = useMutation({
-    mutationKey: ['social', provider.id],
+    mutationKey: ['sign-in', provider.id],
     mutationFn: async () => {
       void posthog.capture('social_sign_in_started', { provider: provider.id })
       const callbackUrl = new URL(location.origin + (redirectPath || href))
@@ -114,9 +118,12 @@ const SocialButton = ({
 }
 
 const PasskeyButton = () => {
+  const router = useRouter()
   const finishSignIn = useFinishSignIn()
+  const isAnyPending = useIsMutating({ mutationKey: ['sign-in'] }) > 0
   const { mutate, isPending } = useMutation({
     meta: { event: 'passkey_signed_in' },
+    mutationKey: ['sign-in', 'passkey'],
     mutationFn: async () => {
       const { error } = await authClient.signIn.passkey()
 
@@ -127,7 +134,9 @@ const PasskeyButton = () => {
     onSuccess: () => finishSignIn(),
     // Not handleError: it reads a 401 as an expired session, and a passkey the account no longer has answers 401.
     onError: (error: { code?: string; message?: string }) => {
-      if (error.code !== 'AUTH_CANCELLED') {
+      if (error.code === EARLY_ACCESS_ERROR_CODE) {
+        void router.navigate({ to: '/early-access' })
+      } else if (!isPasskeyPromptDismissed(error)) {
         toast.error(error.message ?? UNKNOWN_ERROR_MESSAGE)
       }
     },
@@ -138,7 +147,7 @@ const PasskeyButton = () => {
       variant="outline"
       className="relative w-full"
       onClick={() => mutate()}
-      disabled={isPending}
+      disabled={isAnyPending}
     >
       <LoadingContent loading={isPending}>
         <HugeiconsIcon

@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "886aecc9-c3a4-45f0-ace4-3f1f5a753a9c",
+  "id": "749c2d9f-8df4-4fec-80f2-59f25d56f965",
   "prevIds": [
     "dc3842e2-a943-4c96-82b8-e682eb34801d"
   ],
@@ -1385,7 +1385,7 @@
       "table": "passkeys"
     },
     {
-      "type": "integer",
+      "type": "bigint",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2885,27 +2885,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "credential_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "passkeys_credentialID_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "passkeys"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "user_id",
           "isExpression": false,
           "asc": true,
@@ -3689,6 +3668,17 @@
       "name": "early_access_email_key",
       "schema": "public",
       "table": "early_access",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "credential_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "passkeys_credential_id_key",
+      "schema": "public",
+      "table": "passkeys",
       "entityType": "uniques"
     },
     {

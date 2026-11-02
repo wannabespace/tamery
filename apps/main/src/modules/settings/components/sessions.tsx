@@ -1,31 +1,18 @@
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@tamery/ui/components/alert-dialog'
-import { Button } from '@tamery/ui/components/button'
-import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
-import {
   SettingsGroup,
   SettingsRow,
 } from '@tamery/ui/components/custom/settings-group'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
-import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { authClient } from '~/lib/auth'
 import { orpc } from '~/lib/orpc'
 import { handleError } from '~/utils/error'
 
+import { ConfirmAction } from './confirm-action'
 import { SessionItem } from './session-item'
 
 export const SessionsSettings = () => {
-  const [isOpen, setIsOpen] = useState(false)
   const { data: sessions, refetch: refetchSessions } = useSuspenseQuery(
     orpc.account.sessions.queryOptions()
   )
@@ -43,7 +30,6 @@ export const SessionsSettings = () => {
       onError: handleError,
       onSuccess: () => {
         refetchSessions()
-        setIsOpen(false)
         toast.success('All other sessions have been revoked')
       },
     })
@@ -62,33 +48,15 @@ export const SessionsSettings = () => {
           title="Sign out other devices"
           description="Every session except this one ends right away."
         >
-          <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-            <AlertDialogTrigger render={<Button variant="outline" size="sm" />}>
-              Revoke all
-            </AlertDialogTrigger>
-            <AlertDialogContent className="sm:max-w-sm">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Revoke all other sessions?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Every device except this one is signed out right away.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel variant="outline" size="default">
-                  Cancel
-                </AlertDialogCancel>
-                <Button
-                  variant="destructive"
-                  disabled={revokingOthers}
-                  onClick={() => revokeOtherSessions()}
-                >
-                  <LoadingContent loading={revokingOthers}>
-                    Revoke all
-                  </LoadingContent>
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <ConfirmAction
+            action="Revoke all"
+            title="Revoke all other sessions?"
+            description="Every device except this one is signed out right away."
+            isPending={revokingOthers}
+            onConfirm={(close) =>
+              revokeOtherSessions(undefined, { onSuccess: close })
+            }
+          />
         </SettingsRow>
       )}
     </SettingsGroup>

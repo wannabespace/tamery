@@ -50,6 +50,36 @@ import {
 
 const twoFactorPlugin = twoFactor({ allowPasswordless: true })
 
+const mainUrl = new URL(env.MAIN_URL)
+
+const passkeyPlugin = passkey({
+  authentication: {
+    // A passkey sign-in skips the TOTP challenge, so it must carry its own second factor (fingerprint, face or device PIN).
+    afterVerification: ({ verification }) => {
+      if (!verification.authenticationInfo.userVerified) {
+        throw new APIError('UNAUTHORIZED', {
+          message: 'Unlock your passkey with your fingerprint, face or PIN.',
+        })
+      }
+    },
+  },
+  authenticatorSelection: {
+    residentKey: 'required',
+    userVerification: 'required',
+  },
+  // Every sign-in runs on the site, not on the API's own host the plugin would default to.
+  origin: mainUrl.origin,
+  registration: {
+    afterVerification: ({ ctx, verification }) =>
+      Promise.resolve({
+        name:
+          getAuthenticatorName(verification.registrationInfo?.aaguid) ??
+          formatDeviceLabel(ctx.headers?.get('user-agent') ?? ''),
+      }),
+  },
+  rpID: mainUrl.hostname,
+})
+
 const workspaceAccess = createAccessControl(defaultStatements)
 
 const providerLabels: Partial<Record<string, string>> = SOCIAL_PROVIDER_LABELS
@@ -66,7 +96,10 @@ export const sendNewSignInEmail = async ({
   ipAddress,
   userAgent,
   userId,
-}: Pick<Session, 'ipAddress' | 'userAgent' | 'userId'>) => {
+  signedInWithPasskey = false,
+}: Pick<Session, 'ipAddress' | 'userAgent' | 'userId'> & {
+  signedInWithPasskey?: boolean
+}) => {
   const user = await findUser(userId)
 
   if (!user) {
@@ -78,6 +111,7 @@ export const sendNewSignInEmail = async ({
       device: formatDeviceLabel(userAgent ?? ''),
       ipAddress: ipAddress ?? '',
       location: locateIp(ipAddress ?? ''),
+      signedInWithPasskey,
       twoFactorEnabled: user.twoFactorEnabled === true,
     },
     subject: 'New sign-in to your Tamery account',
@@ -333,7 +367,11 @@ export const auth = betterAuth({
                 return
               }
 
-              await sendNewSignInEmail(newSession.session)
+              await sendNewSignInEmail({
+                ...newSession.session,
+                signedInWithPasskey:
+                  ctx.path === '/passkey/verify-authentication',
+              })
             }),
             matcher: () => true,
           },
@@ -418,34 +456,31 @@ export const auth = betterAuth({
         })
       },
     }),
-    passkey({
-      authentication: {
-        // A passkey sign-in skips the TOTP challenge, so it must carry its own second factor (fingerprint, face or device PIN).
-        afterVerification: ({ verification }) => {
-          if (!verification.authenticationInfo.userVerified) {
-            throw new APIError('UNAUTHORIZED', {
-              message:
-                'Unlock your passkey with your fingerprint, face or PIN.',
-            })
-          }
-        },
+    {
+      ...passkeyPlugin,
+      hooks: {
+        after: [
+          // The plugin writes passkeys through the raw adapter, so databaseHooks never see them.
+          {
+            handler: createAuthMiddleware(async (ctx) => {
+              const user = ctx.context.session?.user
+
+              if (!user || isAPIError(ctx.context.returned)) {
+                return
+              }
+
+              await sendEmail({
+                subject: 'A passkey was added to your Tamery account',
+                template: 'PasskeyAdded',
+                to: user.email,
+              })
+            }),
+            matcher: (context: { path?: string }) =>
+              context.path === '/passkey/verify-registration',
+          },
+        ],
       },
-      authenticatorSelection: {
-        residentKey: 'required',
-        userVerification: 'required',
-      },
-      // Every sign-in runs on the site, not on the API's own host the plugin would default to.
-      origin: env.MAIN_URL,
-      registration: {
-        afterVerification: ({ ctx, verification }) =>
-          Promise.resolve({
-            name:
-              getAuthenticatorName(verification.registrationInfo?.aaguid) ??
-              formatDeviceLabel(ctx.headers?.get('user-agent') ?? ''),
-          }),
-      },
-      rpID: new URL(env.MAIN_URL).hostname,
-    }),
+    },
     lastLoginMethod(),
     emailHarmony(),
     anonymous(),

@@ -1,13 +1,3 @@
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@tamery/ui/components/alert-dialog'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
 import {
@@ -19,83 +9,18 @@ import {
   useMutation,
   useSuspenseQuery,
 } from '@tanstack/react-query'
-import { format } from 'date-fns'
-import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { authClient } from '~/lib/auth'
+import { authClient, isPasskeyPromptDismissed } from '~/lib/auth'
 import { handleError } from '~/utils/error'
 
-// A dismissed or timed-out browser prompt reports NotAllowedError, which arrives as the passthrough code.
-const DISMISSED_CODES = new Set([
-  'ERROR_CEREMONY_ABORTED',
-  'ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY',
-])
+import { PasskeyItem } from './passkey-item'
 
 export const passkeysQueryOptions = queryOptions({
   queryFn: () =>
     authClient.passkey.listUserPasskeys({ fetchOptions: { throw: true } }),
   queryKey: ['passkeys'],
 })
-
-const PasskeyItem = ({
-  id,
-  name,
-  createdAt,
-  refetchPasskeys,
-}: {
-  id: string
-  name?: string
-  createdAt: Date
-  refetchPasskeys: () => void
-}) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const { mutate: deletePasskey, isPending } = useMutation({
-    meta: { event: 'passkey_deleted' },
-    mutationFn: () =>
-      authClient.passkey.deletePasskey({ fetchOptions: { throw: true }, id }),
-    onError: handleError,
-    onSuccess: () => {
-      refetchPasskeys()
-      setIsOpen(false)
-      toast.success('Passkey deleted')
-    },
-  })
-
-  return (
-    <SettingsRow
-      title={name || 'Passkey'}
-      description={`Added ${format(createdAt, 'PP')}`}
-    >
-      <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-        <AlertDialogTrigger render={<Button variant="outline" size="sm" />}>
-          Delete
-        </AlertDialogTrigger>
-        <AlertDialogContent className="sm:max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this passkey?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You can no longer sign in with it. Remove it from your password
-              manager too.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel variant="outline" size="default">
-              Cancel
-            </AlertDialogCancel>
-            <Button
-              variant="destructive"
-              disabled={isPending}
-              onClick={() => deletePasskey()}
-            >
-              <LoadingContent loading={isPending}>Delete</LoadingContent>
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </SettingsRow>
-  )
-}
 
 export const PasskeysSettings = () => {
   const { data: passkeys, refetch: refetchPasskeys } =
@@ -113,7 +38,7 @@ export const PasskeysSettings = () => {
     onError: (error: { code?: string }) => {
       if (error.code === 'SESSION_NOT_FRESH') {
         toast.error('Sign in again to add a passkey.')
-      } else if (!DISMISSED_CODES.has(error.code ?? '')) {
+      } else if (!isPasskeyPromptDismissed(error)) {
         void handleError(error)
       }
     },

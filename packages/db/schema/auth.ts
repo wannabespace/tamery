@@ -93,8 +93,8 @@ export const passkeys = d.snakeCase.table(
     ...baseTable,
     aaguid: d.text(),
     backedUp: d.boolean().notNull(),
-    counter: d.integer().notNull(),
-    credentialID: d.text().notNull(),
+    counter: d.bigint({ mode: 'number' }).notNull(),
+    credentialID: d.text().notNull().unique(),
     deviceType: d.text().notNull(),
     name: d.text(),
     publicKey: d.text().notNull(),
@@ -104,10 +104,7 @@ export const passkeys = d.snakeCase.table(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
   },
-  (table) => [
-    d.index('passkeys_userId_idx').on(table.userId),
-    d.index('passkeys_credentialID_idx').on(table.credentialID),
-  ]
+  (table) => [d.index('passkeys_userId_idx').on(table.userId)]
 )
 
 export const workspaces = d.snakeCase.table(
