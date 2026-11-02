@@ -76,11 +76,18 @@ export const bridge = async (options: {
 
   approvals.clear()
   const connectUrl = `${env.WEB_URL}${BRIDGE_PAIR_PATH}${reachedAt === BRIDGE_URL ? '' : `#${new URLSearchParams({ url: reachedAt })}`}`
-  if (pairings.count() === 0) {
+  const paired = [...new Set(pairings.labels())]
+  if (paired.length === 0) {
     void openBrowser(connectUrl)
   }
   log.step(
-    `${paint.dim('Connect a browser at')} ${paint.link(connectUrl)}\n${paint.dim('Ctrl+C to stop')}`
+    [
+      ...(paired.length > 0
+        ? [`Paired with ${paired.map((label) => paint.bold(label)).join(', ')}`]
+        : []),
+      `${paint.dim(paired.length > 0 ? 'Connect another browser at' : 'Connect a browser at')} ${paint.link(connectUrl)}`,
+      paint.dim('Ctrl+C to stop'),
+    ].join('\n')
   )
 
   const stop = async () => {

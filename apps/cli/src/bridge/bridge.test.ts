@@ -236,9 +236,9 @@ describe('pairing', () => {
   })
 
   test('a declined browser gets nothing', async () => {
-    const before = pairings.count()
+    const before = pairings.labels().length
     await Promise.all([expectError(requestAccess(), 'DECLINED'), answer(false)])
-    expect(pairings.count()).toBe(before)
+    expect(pairings.labels().length).toBe(before)
   })
 
   test('a request whose browser Tamery did not vouch for is refused before anyone is asked', async () => {

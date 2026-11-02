@@ -44,7 +44,7 @@ export const pairings = {
       )?.id ?? null
     )
   },
-  count: () => readBrowsers().length,
+  labels: () => readBrowsers().map((browser) => browser.label),
   getHash: (browserId: string) =>
     readBrowsers().find((browser) => browser.id === browserId)?.hash ?? null,
   getLabel: (browserId: string) =>
