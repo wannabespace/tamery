@@ -99,7 +99,13 @@ export const KbdHotkey = ({
       {[...modifiers, key ?? code].map((part) => {
         const glyph = GLYPHS[part]
         return glyph ? (
-          <HugeiconsIcon key={part} icon={glyph} strokeWidth={2} />
+          // A size class keeps a host's own icon size (a button's, a field's) off the glyph; the kbd still shrinks it in tooltips and menus.
+          <HugeiconsIcon
+            key={part}
+            icon={glyph}
+            strokeWidth={2}
+            className="size-3"
+          />
         ) : (
           <span key={part}>{LABELS[part] ?? part}</span>
         )
