@@ -428,39 +428,41 @@ export const ProtectedTitleBar = () => {
   return (
     <div className="flex shrink-0 flex-col">
       <TitleBar className="border-b-border bg-card gap-1.5">
-        <div className="flex w-full items-center px-2">
+        <div className="flex w-full items-center gap-2 px-2">
           <RemoveConnectionDialog ref={removeDialogRef} />
-          <Link
-            to="/"
-            aria-label="Home"
-            className="hover:bg-foreground/5 shrink-0 rounded-md p-1.5 transition-colors"
-          >
-            <AppLogo className="text-primary size-4" />
-          </Link>
-          <HugeiconsIcon
-            icon={ArrowRight01Icon}
-            strokeWidth={2}
-            aria-hidden
-            className="text-muted-foreground/40 size-3.5 shrink-0"
-          />
-          <WorkspaceSwitcher />
-          <HugeiconsIcon
-            icon={ArrowRight01Icon}
-            strokeWidth={2}
-            aria-hidden
-            className="text-muted-foreground/40 size-3.5 shrink-0"
-          />
-          <ConnectionsBreadcrumb
-            onRemove={(connection) =>
-              removeDialogRef.current?.remove(connection)
-            }
-          />
-          <div className="ml-auto flex h-full shrink-0 items-center gap-1">
+          <div className="flex min-w-0 flex-1 basis-0 items-center">
+            <Link
+              to="/"
+              aria-label="Home"
+              className="hover:bg-foreground/5 shrink-0 rounded-md p-1.5 transition-colors"
+            >
+              <AppLogo className="text-primary size-4" />
+            </Link>
+            <HugeiconsIcon
+              icon={ArrowRight01Icon}
+              strokeWidth={2}
+              aria-hidden
+              className="text-muted-foreground/40 size-3.5 shrink-0"
+            />
+            <WorkspaceSwitcher />
+            <HugeiconsIcon
+              icon={ArrowRight01Icon}
+              strokeWidth={2}
+              aria-hidden
+              className="text-muted-foreground/40 size-3.5 shrink-0"
+            />
+            <ConnectionsBreadcrumb
+              onRemove={(connection) =>
+                removeDialogRef.current?.remove(connection)
+              }
+            />
+          </div>
+          <CommandPaletteButton />
+          <div className="flex h-full min-w-0 flex-1 basis-0 items-center justify-end gap-1">
             <RunsOn />
             <VersionButton />
             <UpdateButton />
             <OpenInWeb />
-            <CommandPaletteButton />
             <IconButton
               icon={Settings02Icon}
               label="Settings"

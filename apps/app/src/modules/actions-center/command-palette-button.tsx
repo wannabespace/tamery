@@ -1,30 +1,24 @@
-import { CommandIcon } from '@hugeicons/core-free-icons'
+import { Search01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@tamery/ui/components/tooltip'
 
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 
 import { actionCenterOpen } from './action-center-open'
 
+/** Reads as a search field, like a search box in a native title bar; below `md` it folds to its icon. */
 export const CommandPaletteButton = () => (
-  <Tooltip shortcut={<ShortcutKbd shortcut="commandPalette" />}>
-    <TooltipTrigger
-      render={
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          aria-label="Command palette"
-          onClick={() => actionCenterOpen.set(true)}
-        />
-      }
-    >
-      <HugeiconsIcon icon={CommandIcon} strokeWidth={2} className="size-4" />
-    </TooltipTrigger>
-    <TooltipContent side="bottom">Command palette</TooltipContent>
-  </Tooltip>
+  <Button
+    size="sm"
+    variant="outline-muted"
+    aria-label="Search"
+    className="md:w-48 md:justify-start"
+    onClick={() => actionCenterOpen.set(true)}
+  >
+    <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
+    <span className="hidden flex-1 text-left md:inline">Search</span>
+    <span className="hidden md:inline-flex">
+      <ShortcutKbd shortcut="commandPalette" />
+    </span>
+  </Button>
 )
