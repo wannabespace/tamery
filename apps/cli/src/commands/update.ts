@@ -9,13 +9,13 @@ import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
 import { env } from '../env'
+import { installer } from '../installer'
 import { paint } from '../paint'
 import { updates } from '../update-check'
 
 const UPDATE_TIMEOUT_MS = 30_000
 const isWindows = process.platform === 'win32'
-const fromScript =
-  updates.installer === 'shell' || updates.installer === 'powershell'
+const fromScript = installer === 'shell' || installer === 'powershell'
 /** Sync with `INSTALL_DIR` in `apps/main/public/cli/install.sh` and `$dir` in `install.ps1`. */
 const SCRIPT_BINARY = path.join(
   os.homedir(),
@@ -29,12 +29,14 @@ const SCRIPT_BINARY = path.join(
  * PowerShell's default execution policy, so package managers on Windows go through cmd.
  */
 const run = async (command: string, version: string) => {
-  const options = {
-    env: { ...process.env, TAMERY_VERSION: version },
-    stderr: 'inherit',
-    stdout: 'inherit',
-  } as const
-  if (updates.installer === 'shell') {
+  const spawn = (args: string[], stdin: Response | 'inherit' = 'inherit') =>
+    Bun.spawn(args, {
+      env: { ...process.env, TAMERY_VERSION: version },
+      stderr: 'inherit',
+      stdin,
+      stdout: 'inherit',
+    }).exited
+  if (installer === 'shell') {
     const script = await fetch(`${env.MAIN_URL}/cli/install.sh`, {
       signal: AbortSignal.timeout(UPDATE_TIMEOUT_MS),
     })
@@ -43,10 +45,8 @@ const run = async (command: string, version: string) => {
         `Could not download the install script: ${env.MAIN_URL} answered ${script.status}.`
       )
     }
-    return Bun.spawn(['sh', '-s'], { ...options, stdin: script }).exited
+    return spawn(['sh', '-s'], script)
   }
-  const spawn = (args: string[]) =>
-    Bun.spawn(args, { ...options, stdin: 'inherit' }).exited
   if (!isWindows) {
     return spawn(['sh', '-c', command])
   }
@@ -106,7 +106,7 @@ export const update = async () => {
     return
   }
 
-  const install = BRIDGE_INSTALL_COMMANDS[updates.installer]
+  const install = BRIDGE_INSTALL_COMMANDS[installer]
   // Pinned, here and through TAMERY_VERSION, so neither the package manager's own idea of latest nor the user's TAMERY_VERSION picks another version.
   const command = fromScript ? install : `${install}@${latest}`
   log.step(`Updating ${env.VERSION} to ${latest}: ${paint.dim(command)}`)
@@ -127,12 +127,14 @@ export const update = async () => {
   log.success(
     `Updated to ${latest}. Restart ${paint.accent('tamery bridge')} if it is running.`
   )
-  const sameBinary = Result.try(
-    () =>
-      fs.realpathSync.native(SCRIPT_BINARY) ===
-      fs.realpathSync.native(process.execPath)
-  ).unwrapOr(true)
-  if (fromScript && !sameBinary) {
+  const runsElsewhere =
+    fromScript &&
+    !Result.try(
+      () =>
+        fs.realpathSync.native(SCRIPT_BINARY) ===
+        fs.realpathSync.native(process.execPath)
+    ).unwrapOr(true)
+  if (runsElsewhere) {
     log.warn(
       `The update went to ${SCRIPT_BINARY}, but this tamery is ${process.execPath}. Delete it, or replace it with the new one.`
     )

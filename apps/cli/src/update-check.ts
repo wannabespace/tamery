@@ -3,7 +3,6 @@ import { type } from 'arktype'
 import { Result } from 'better-result'
 
 import { env } from './env'
-import { installer } from './installer'
 import { paint } from './paint'
 
 const STARTUP_TIMEOUT_MS = 3000
@@ -46,7 +45,6 @@ export const updates = {
     }
   },
   fetchLatest,
-  installer,
   isNewer,
   latest: () => latestVersion,
 }
