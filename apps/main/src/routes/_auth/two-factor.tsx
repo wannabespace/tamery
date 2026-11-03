@@ -3,16 +3,23 @@ import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
 import { Field, FieldLabel } from '@tamery/ui/components/field'
 import { Input } from '@tamery/ui/components/input'
 import { useMutation } from '@tanstack/react-query'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, getRouteApi, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { TotpCodeInput } from '~/components/totp-code-input'
 import { authClient } from '~/lib/auth'
 import { handleError } from '~/utils/error'
 
+import { PasskeyButton } from './-components/passkey-button'
 import { useFinishSignIn } from './-lib/sign-in'
 
+const { useLoaderData } = getRouteApi('/_auth/two-factor')
+
 const TwoFactorPage = () => {
+  const { hasPasskey } = useLoaderData()
+  const appCodeHint = hasPasskey
+    ? 'Enter the code from your authenticator app or continue with a passkey.'
+    : 'Enter the code from your authenticator app.'
   const finishSignIn = useFinishSignIn()
   const [code, setCode] = useState('')
   const [isBackupCode, setIsBackupCode] = useState(false)
@@ -44,7 +51,7 @@ const TwoFactorPage = () => {
         <p className="text-muted-foreground text-sm">
           {isBackupCode
             ? 'Enter one of the backup codes you saved when you turned on 2FA.'
-            : 'Enter the code from your authenticator app.'}
+            : appCodeHint}
         </p>
       </div>
       {isBackupCode ? (
@@ -86,6 +93,7 @@ const TwoFactorPage = () => {
           autoFocus
         />
       )}
+      {hasPasskey && <PasskeyButton variant="outline" />}
       <Button
         variant="link-muted"
         size="xs"
@@ -108,5 +116,12 @@ export const Route = createFileRoute('/_auth/two-factor')({
     if (session?.user) {
       throw redirect({ to: '/account' })
     }
+
+    const { data } = await authClient.$fetch<{ hasPasskey: boolean }>(
+      '/passkey/pending-two-factor',
+      { method: 'GET' }
+    )
+
+    return { hasPasskey: data?.hasPasskey ?? false }
   },
 })
