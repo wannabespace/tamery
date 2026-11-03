@@ -44,17 +44,25 @@ The CLI runs on macOS (Apple silicon and Intel), Linux (x64 and arm64), and Wind
 
 2. Check that the **Bridge URL** is the one `tamery bridge` printed, usually `http://127.0.0.1:26380`, and click **Connect**.
 
-3. While it waits, **Settings → Bridge** shows a code. The terminal running `tamery bridge` asks whether to allow the browser and shows a code too. If the two codes match, select **Yes** and press **Enter**. **No** is selected first, and nobody answering within 2 minutes counts as no.
+3. **Settings → Bridge** and the terminal running `tamery bridge` both show a code. If they match, select **Yes** in the terminal and press **Enter**. **No** is selected first, and no answer within 2 minutes counts as no.
 
-Keep the bridge running. While this browser is paired, the web app sends every query through the bridge and shows a computer icon at the top of the window. Its dot is green while the bridge answers and red within seconds of it stopping; hover it for the computer's name or the reason. If the bridge stops, queries fail until you start it again; they never move to Tamery's cloud proxy on their own. To use the cloud proxy without unpairing, for example while that computer is off, turn off **Run queries on** in **Settings → Bridge**; turning it back on needs no new approval.
+Keep the bridge running. The web app now sends every query through it, and a computer icon at the top of the window shows its state: a green dot while it answers, red within 10 seconds of it stopping. Hover it for the reason.
 
-An allowed browser stays allowed when the bridge restarts, and the bridge opens the web app only while no browser is allowed yet. To add another browser, click **Connect** there and allow it the same way.
+If the bridge stops, queries fail until you start it again. They never move to Tamery's cloud proxy on their own. To use the cloud proxy instead, for example while that computer is off, turn off **Run queries on** in **Settings → Bridge**. Turning it back on needs no new approval.
 
-On a server without a browser, open the sign-in link that `tamery bridge` prints on your own computer, and enter the bridge's address as the **Bridge URL** in **Settings → Bridge**. An empty **Bridge URL** means `http://127.0.0.1:26380`. When the bridge runs without a terminal to ask in (a service, a container, output sent to a file), run `tamery bridge approve` on that computer to answer.
+The bridge accepts only browsers signed in to the same account as the bridge.
 
-A browser has one bridge at a time. Connecting to another one replaces it. **Unpair** in **Settings → Bridge** disconnects it and makes the bridge forget the browser, and so does signing out. The bridge must be signed in to the same account as the web app. Tamery's servers confirm it in both directions before the terminal is asked, so a bridge someone else runs is refused, and so is a request that does not come from a browser signed in to your account or that reached the bridge through another address than the **Bridge URL**.
+## Paired browsers
 
-To use a bridge on a server or another computer, see [Reach a bridge on another computer](/cli/remote).
+An allowed browser stays allowed when the bridge restarts. To add another browser, click **Connect** there and allow it the same way.
+
+A browser uses one bridge at a time. To switch to another bridge, click **Unpair** in **Settings → Bridge** first, or open the link the other bridge prints. **Unpair** and signing out also make the bridge forget this browser. To disconnect every browser at once, run [`tamery bridge unpair-all`](/cli/commands#tamery-bridge-unpair-all).
+
+## Without a browser or terminal
+
+On a server without a browser, open the sign-in link that `tamery bridge` prints on your own computer. Then enter the bridge's address as the **Bridge URL**. To reach it from another computer, see [Reach a bridge on another computer](/cli/remote).
+
+When the bridge runs without a terminal to ask in, such as a service or a container, answer with [`tamery bridge approve`](/cli/commands#tamery-bridge-approve).
 
 ## Which connections it runs
 
@@ -66,19 +74,31 @@ The bridge runs only the connections saved in your account.
 | **No password** | Asks once for the password and the other secrets that don't sync. |
 | **Metadata only** | Asks once for the server details. |
 
-A connection that opens a SQLite file, reads a certificate file (such as `sslkey` or `tlsCAFile`), or signs in to MongoDB with the computer's own AWS, OIDC or Kerberos credentials runs only once you allow it on the bridge, whatever its sync type. The same goes for an SSH tunnel, which uses the computer's keys and agent. Saving the connection in this browser allows it. A connection someone else saved opens on **Allow this connection on the bridge**: click **Allow**. If someone in a shared workspace later changes anything in it but the database name and secrets (the file, host, port, proxy, TLS settings or tunnel), the bridge refuses it until you allow it again, so a teammate can't point the bridge at your files or credentials. When you allow a file, tunnel or login the bridge hasn't used for that connection before, the terminal running `tamery bridge` asks you to confirm it, or run `tamery bridge approve`. A new connection opens once you answer there.
+Some connections use this computer's files or credentials: a SQLite file, a certificate file (such as `sslkey` or `tlsCAFile`), an SSH tunnel, or a MongoDB login with the computer's AWS, OIDC or Kerberos credentials. The bridge runs them only once you allow them:
 
-If this browser already has what the bridge needs, it sends it on its own. Otherwise the web app opens the connection form on just the missing fields. What you enter is saved in this browser and sent to the bridge once, which keeps it encrypted with a key in the system keychain: the macOS Keychain, Windows Credential Manager, or the Secret Service on Linux.
+- **Saved in this browser:** already allowed.
+- **Saved by someone else:** click **Allow** on **Allow this connection on the bridge**.
+- **Edited since you allowed it,** in anything but the database name and secrets: allow it again. A teammate can't point the bridge at your files or credentials.
 
-A Linux server often has no keychain. There the key goes into `~/.config/tamery/bridge.key`, readable only by your user, and the bridge warns you on every start that the secrets are protected only by file permissions.
+The first time a connection uses a file, tunnel or login, the terminal running `tamery bridge` also asks you to confirm.
 
-If Tamery's servers can't be reached, the connections the bridge has already run keep working.
+To try a new connection while paired, save it first. Only saved connections run on the bridge.
 
-SQLite paths, `~/` included, point to files on the bridge's computer. SSH tunnels open there too, with its SSH keys, agent and `~/.ssh/config`. When an SSH host isn't in that computer's `known_hosts`, the bridge asks in its terminal whether to trust it; without a terminal it refuses, so connect once with `ssh` there first. A file path, SSH tunnel or machine login synced from another device runs only after you allow it, since it uses that computer's files and keys.
+SQLite paths, `~/` included, point to files on the bridge's computer. SSH tunnels open there too, with its SSH keys, agent and `~/.ssh/config`. When an SSH host isn't in that computer's `known_hosts`, the bridge asks in its terminal whether to trust it. Without a terminal it refuses, so connect once with `ssh` there first.
 
 The bridge reaches databases and files with the rights of the system user that runs it. On a shared server, run it as a user with no more access than it needs.
 
-## Browsers
+A query that runs longer than about 4 minutes fails.
+
+## Where secrets are stored
+
+If this browser already has the secrets the bridge needs, it sends them on its own. Otherwise the web app opens the connection form on the missing fields. What you enter is saved in this browser and sent to the bridge once.
+
+The bridge encrypts secrets with a key in the system keychain: the macOS Keychain, Windows Credential Manager, or the Secret Service on Linux. A Linux server often has no keychain. There the key goes into `~/.config/tamery/bridge.key`, readable only by your user, and the bridge warns on every start that file permissions are all that protect it. Set `TAMERY_CONFIG_DIR` to keep these files somewhere other than `~/.config/tamery`.
+
+If Tamery's servers can't be reached, connections the bridge ran since it started keep working, and so do connections whose details you entered or allowed on it. After a restart, other connections wait for the servers.
+
+## Browser support
 
 | Browser | Support |
 | --- | --- |
@@ -92,7 +112,7 @@ If you blocked the prompt, allow local network access for the web app in the bro
 
 Run the install command again, or `npm i -g tamery` if you installed with npm. Then restart the bridge.
 
-When it starts, `tamery bridge` checks for a newer version and prints the command to run when there is one. **Settings → Bridge** shows it too. When the web app needs a newer bridge, it stops sending queries to it and shows the same command.
+When it starts, `tamery bridge` checks for a newer version and prints the command to run. **Settings → Bridge** shows it too. When the web app needs a newer bridge, it stops sending queries to it and shows the same command.
 
 <Cards>
   <Card href="/cli/commands" />

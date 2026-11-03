@@ -13,7 +13,9 @@ keywords: ['reference', 'options', 'arguments', 'usage', 'login']
 tamery login
 ```
 
-Opens the browser to sign this computer in to your Tamery account, and prints the link in case it opens somewhere you are not looking. The link expires after 5 minutes. Confirm only if the page shows the code the terminal printed. If the computer is already signed in, it says which account. If Tamery ended that session, it signs in again; signing in to another account removes the saved secrets and paired browsers.
+Opens the browser to sign this computer in to your Tamery account, and prints the link too. The link expires after 5 minutes. Confirm only if the page shows the code the terminal printed.
+
+If the computer is already signed in, it prints the account. To switch accounts, run `tamery logout` first. Signing in to a different account removes the secrets and paired browsers saved for the old one.
 
 ## tamery whoami
 
@@ -21,7 +23,7 @@ Opens the browser to sign this computer in to your Tamery account, and prints th
 tamery whoami
 ```
 
-Prints the account this computer is signed in to, or says it isn't signed in.
+Prints the account this computer is signed in to, or says it isn't signed in and exits with code 1.
 
 ## tamery bridge
 
@@ -46,14 +48,14 @@ If the port is taken, usually by another bridge, it says so and exits. Stop the 
 tamery bridge approve
 ```
 
-Answers for a bridge that runs without a terminal to ask in: a service, a container, a detached session, or output sent to a file. When `tamery bridge` runs in a terminal you can see, you don't need it: the question appears there.
+Answers for a bridge that runs without a terminal to ask in, such as a service, a container or a detached session. When `tamery bridge` runs in a terminal you can see, the question appears there instead.
 
 1. Keep the bridge running.
 2. On the same computer, run `tamery bridge approve`. It waits for a browser.
 3. In the web app, click **Connect** in **Settings → Bridge**.
 4. Answer the question in the `approve` terminal.
 
-The order of steps 2 and 3 doesn't matter, as long as you answer within 2 minutes of clicking **Connect**.
+The order of steps 2 and 3 doesn't matter, as long as you answer within 2 minutes of clicking **Connect**. At most 3 requests wait at a time; more are declined.
 
 ## tamery bridge unpair-all
 
@@ -62,6 +64,18 @@ tamery bridge unpair-all
 ```
 
 Disconnects every paired browser, also from a bridge that is already running. Each one needs to be allowed again. Saved secrets stay.
+
+## tamery update
+
+```bash
+tamery update
+```
+
+Installs the latest version the way you installed the CLI: with the install script, npm, pnpm or Bun. It shows that tool's output, then asks you to restart `tamery bridge` if it is running. When you already have the latest version, it says so and installs nothing. It ignores `TAMERY_VERSION`: to install a specific version, run the install script with it.
+
+If the update fails, for example because npm needs permissions you don't have, the CLI you had keeps working. Fix the error it shows and run `tamery update` again. On Windows, stop any running `tamery bridge` before updating a CLI installed with npm, pnpm or Bun.
+
+If you installed with the script but run `tamery` from another folder, the update goes to `~/.tamery/bin` and the command says so. Delete the other copy, or replace it with the new one.
 
 ## tamery logout
 
