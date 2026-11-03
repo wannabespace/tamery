@@ -57,34 +57,12 @@ export const connectionResourceToQueryParams = async (
   }
 }
 
-export interface QueryParams {
-  connectionString: string
+export interface QueryParams extends DialectOptions {
   dialect: Dialect
-  resourceId?: string
-  connectionId?: string
-  resultSets?: DialectOptions['resultSets']
-  signal?: AbortSignal
-  txId?: string
-  log?: (params: {
-    promise: Promise<{
-      result: unknown
-      duration: number
-    }>
-    query: string
-    values?: unknown[]
-  }) => void
 }
 
-const getDatabase = (queryParams: QueryParams) =>
-  dialects[queryParams.dialect]({
-    connectionId: queryParams.connectionId,
-    connectionString: queryParams.connectionString,
-    log: queryParams.log,
-    resourceId: queryParams.resourceId,
-    resultSets: queryParams.resultSets,
-    signal: queryParams.signal,
-    txId: queryParams.txId,
-  })
+const getDatabase = ({ dialect, ...options }: QueryParams) =>
+  dialects[dialect](options)
 
 export const transaction = (queryParams: QueryParams) =>
   getDatabase(queryParams).transaction()

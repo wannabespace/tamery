@@ -26,17 +26,19 @@ const patchLog = (
     logs.map((log) => (log.id === id ? { ...log, ...patch } : log))
   )
 
+/** One statement as a dialect reports it, settling once the statement does. */
+export interface QueryLogEntry {
+  promise: Promise<{ duration: number; result: unknown }>
+  query: string
+  values?: unknown[]
+}
+
 export const logQuery = async ({
   resourceId,
   promise,
   query,
   values = [],
-}: {
-  resourceId: string
-  promise: Promise<{ result: unknown; duration: number }>
-  query: string
-  values?: unknown[]
-}) => {
+}: QueryLogEntry & { resourceId: string }) => {
   const store = getQueryLogsStore(resourceId)
   const id = crypto.randomUUID()
 

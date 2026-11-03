@@ -6,6 +6,7 @@ import { fetchingConfig } from '~/core/connection/fetching-config'
 import { bridge } from '~/core/runtime/bridge/bridge'
 import type { BridgePairing } from '~/core/runtime/bridge/pairing'
 import { getBridgeRoute } from '~/core/runtime/bridge/pairing'
+import type { QueryLogEntry } from '~/core/runtime/log'
 import { orpcProxy } from '~/lib/orpc'
 
 export interface DialectOptions {
@@ -16,14 +17,7 @@ export interface DialectOptions {
   signal?: AbortSignal
   /** Runs every query in this open transaction or session instead of the pool. */
   txId?: string
-  log?: (params: {
-    promise: Promise<{
-      result: unknown
-      duration: number
-    }>
-    query: string
-    values?: unknown[]
-  }) => void
+  log?: (entry: QueryLogEntry) => void
 }
 
 type Route =
