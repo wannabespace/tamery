@@ -155,7 +155,8 @@ export const EnableTfaDialog = ({
             <DialogHeader>
               <DialogTitle>Scan QR Code</DialogTitle>
               <DialogDescription>
-                Scan this QR Code with your authenticator app.
+                Scan this QR Code with your authenticator app, then enter the
+                code it shows.
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col items-center gap-4">
@@ -163,7 +164,7 @@ export const EnableTfaDialog = ({
                 <QRCode value={setup.totpURI} size={176} />
               </div>
               <TotpCodeInput
-                label="Verification code"
+                aria-label="Verification code"
                 value={code}
                 onChange={setCode}
                 onComplete={verifyTotp}

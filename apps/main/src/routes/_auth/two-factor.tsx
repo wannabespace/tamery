@@ -1,6 +1,6 @@
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
-import { Field, FieldLabel } from '@tamery/ui/components/field'
+import { Field, FieldLabel, FieldSeparator } from '@tamery/ui/components/field'
 import { Input } from '@tamery/ui/components/input'
 import { useMutation } from '@tanstack/react-query'
 import { createFileRoute, getRouteApi, redirect } from '@tanstack/react-router'
@@ -17,18 +17,18 @@ const { useLoaderData } = getRouteApi('/_auth/two-factor')
 
 const getHint = ({
   hasAuthenticator,
-  hasPasskey,
+  isBackupCode,
 }: {
   hasAuthenticator: boolean
-  hasPasskey: boolean
+  isBackupCode: boolean
 }) => {
-  if (!hasAuthenticator) {
-    return 'Continue with your passkey, or use a backup code.'
+  if (isBackupCode) {
+    return 'Enter one of the backup codes you saved when you turned on 2FA.'
   }
 
-  return hasPasskey
-    ? 'Enter the code from your authenticator app or continue with a passkey.'
-    : 'Enter the code from your authenticator app.'
+  return hasAuthenticator
+    ? 'Enter the code from your authenticator app.'
+    : 'Continue with your passkey, or use a backup code.'
 }
 
 const TwoFactorPage = () => {
@@ -39,6 +39,7 @@ const TwoFactorPage = () => {
   const finishSignIn = useFinishSignIn()
   const [code, setCode] = useState('')
   const [isBackupCode, setIsBackupCode] = useState(false)
+  const asksForCode = hasAuthenticator || isBackupCode
 
   const { mutate: verify, isPending } = useMutation({
     meta: { event: 'two_factor_verified' },
@@ -65,9 +66,7 @@ const TwoFactorPage = () => {
           Two-factor authentication
         </h1>
         <p className="text-muted-foreground text-sm">
-          {isBackupCode
-            ? 'Enter one of the backup codes you saved when you turned on 2FA.'
-            : getHint({ hasAuthenticator, hasPasskey })}
+          {getHint({ hasAuthenticator, isBackupCode })}
         </p>
       </div>
       {isBackupCode ? (
@@ -102,7 +101,7 @@ const TwoFactorPage = () => {
       ) : (
         hasAuthenticator && (
           <TotpCodeInput
-            label="Verification code"
+            aria-label="Verification code"
             value={code}
             onChange={setCode}
             onComplete={verify}
@@ -111,10 +110,13 @@ const TwoFactorPage = () => {
           />
         )
       )}
+      {hasPasskey && asksForCode && (
+        <FieldSeparator className="w-full">Or</FieldSeparator>
+      )}
       {hasPasskey && (
         <PasskeyButton
-          variant={hasAuthenticator || isBackupCode ? 'outline' : 'default'}
-          autoFocus={!(hasAuthenticator || isBackupCode)}
+          variant={asksForCode ? 'outline' : 'default'}
+          autoFocus={!asksForCode}
         />
       )}
       <Button

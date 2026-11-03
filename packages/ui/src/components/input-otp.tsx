@@ -14,7 +14,7 @@ const InputOTP = ({
   <OTPInput
     data-slot="input-otp"
     containerClassName={cn(
-      `flex items-center has-disabled:opacity-50`,
+      `flex w-full items-center has-disabled:opacity-50`,
       containerClassName
     )}
     spellCheck={false}
@@ -29,10 +29,7 @@ const InputOTPGroup = ({
 }: React.ComponentProps<'div'>) => (
   <div
     data-slot="input-otp-group"
-    className={cn(
-      `has-aria-invalid:invalid-ring flex items-center rounded-2xl`,
-      className
-    )}
+    className={cn(`flex flex-1 items-center gap-2`, className)}
     {...props}
   />
 )
@@ -52,7 +49,7 @@ const InputOTPSlot = ({
       data-slot="input-otp-slot"
       data-active={isActive}
       className={cn(
-        `border-foreground/8 bg-input data-[active=true]:focus-ring data-[active=true]:aria-invalid:invalid-ring relative flex size-8 items-center justify-center border-y border-r text-sm transition-[color,box-shadow] duration-200 outline-none first:rounded-l-2xl first:border-l last:rounded-r-2xl data-[active=true]:z-10`,
+        `bg-input ring-foreground/4 data-[active=true]:focus-ring aria-invalid:invalid-ring relative flex h-10 min-w-0 flex-1 items-center justify-center rounded-xl text-base font-medium shadow-xs ring transition-shadow duration-200 outline-none`,
         className
       )}
       {...props}
