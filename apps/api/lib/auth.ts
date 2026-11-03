@@ -373,6 +373,23 @@ export const auth = betterAuth({
             }),
             matcher: isOAuthCallback,
           },
+          {
+            handler: createAuthMiddleware(async (ctx) => {
+              const user = ctx.context.session?.user
+
+              if (!user || isAPIError(ctx.context.returned)) {
+                return
+              }
+
+              await sendEmail({
+                subject: 'Your Tamery backup codes were regenerated',
+                template: 'BackupCodesRegenerated',
+                to: user.email,
+              })
+            }),
+            matcher: (context: { path?: string }) =>
+              context.path === '/two-factor/generate-backup-codes',
+          },
           // Must run after twoFactor's hook, which clears newSession while a challenge is pending; the global hooks.after runs before plugin hooks.
           {
             handler: createAuthMiddleware(async (ctx) => {
