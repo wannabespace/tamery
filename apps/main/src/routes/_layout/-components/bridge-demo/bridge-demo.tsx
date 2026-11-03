@@ -3,13 +3,14 @@ import { useRef } from 'react'
 import { useLoop } from '../use-loop'
 import { BridgeTerminal } from './bridge-terminal'
 import { BrowserWindow } from './browser-window'
-import { RAN_STEP } from './script'
+import { REST_STEP, STEPS } from './script'
 
-const STEP_MS = [600, 700, 500, 4200]
+const STEP_MS = STEPS.map((step) => step.ms)
 
 export const BridgeDemo = () => {
   const ref = useRef<HTMLDivElement>(null)
-  const step = useLoop(ref, STEP_MS) ?? RAN_STEP
+  const step = useLoop(ref, STEP_MS) ?? REST_STEP
+  const focus = STEPS[step]?.focus
 
   return (
     <div className="-mx-20 mask-b-from-85% px-20 sm:mask-b-from-80%">
@@ -17,10 +18,10 @@ export const BridgeDemo = () => {
         ref={ref}
         inert
         aria-hidden
-        className="relative h-144 select-none sm:h-104"
+        className="grid gap-4 select-none sm:grid-cols-12"
       >
-        <BridgeTerminal step={step} />
-        <BrowserWindow step={step} />
+        <BrowserWindow step={step} active={focus !== 'terminal'} />
+        <BridgeTerminal step={step} active={focus !== 'browser'} />
       </div>
     </div>
   )
