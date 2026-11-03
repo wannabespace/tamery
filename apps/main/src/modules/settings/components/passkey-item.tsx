@@ -82,8 +82,14 @@ export const PasskeyItem = ({
   const [isRenaming, setIsRenaming] = useState(false)
   const { mutate: deletePasskey, isPending } = useMutation({
     meta: { event: 'passkey_deleted' },
-    mutationFn: () =>
-      authClient.passkey.deletePasskey({ fetchOptions: { throw: true }, id }),
+    // Not fetchOptions.throw: its error carries only the HTTP status text, and the server's refusal has to reach the toast.
+    mutationFn: async () => {
+      const { error } = await authClient.passkey.deletePasskey({ id })
+
+      if (error) {
+        throw error
+      }
+    },
     onError: handleError,
     onSuccess: () => {
       refetchPasskeys()

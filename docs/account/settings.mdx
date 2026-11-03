@@ -70,11 +70,16 @@ Under **Authentication**, click **Connect** next to Google or GitHub to sign in 
 
 Two-factor authentication asks for a second step after an email code, Google, or GitHub.
 
-1. On the account page, open **Authentication**.
-2. Next to **Authenticator app**, click **Set up** and scan the QR code with your authenticator app.
-3. Enter the code from the app, then save your backup codes. They are only shown once.
+You can use an authenticator app, a passkey, or both. On the account page, open **Authentication**, then under **Two-factor authentication**:
 
-At sign-in, enter the code from your app or click **Continue with passkey** if you've added one. If you lose your app, click **Use a backup code**.
+- **Authenticator app:** click **Set up**, scan the QR code with your app, and enter the code it shows.
+- **Passkey:** [add a passkey](#passkeys), then click **Turn on**.
+
+Save your backup codes when they appear. They are only shown once, and they are how you get back in if you lose your second factor, since an email code, Google, or GitHub alone is no longer enough.
+
+At sign-in, enter the code from your app or click **Continue with passkey**. If you can't use either, click **Use a backup code**.
+
+Adding an authenticator app when you already use a passkey replaces your backup codes, so you save the new ones first. Your only passkey can't be deleted while it's your only second factor: set up an authenticator app or disable two-factor authentication first.
 
 Under **More options** you can **Regenerate** your backup codes, which stops the old ones from working, or **Disable** two-factor authentication.
 
@@ -85,6 +90,7 @@ Tamery emails you when:
 - someone signs in to your account (after any two-factor check passes), with the device, IP address, and approximate location, including through the desktop app or the CLI, unless the account was created minutes earlier
 - Google or GitHub is connected to an existing account, either from **Authentication** or the first time you sign in with it
 - a passkey is added
+- an authenticator app is added while two-factor authentication is already on
 - two-factor authentication is turned on or off
 - your backup codes are regenerated
 - your account is deleted
