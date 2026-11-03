@@ -9,6 +9,7 @@ import { Result } from 'better-result'
 
 import { api } from '../api'
 import { env } from '../env'
+import { installer } from '../installer'
 import { paint } from '../paint'
 import { updates } from '../update-check'
 import { approvals } from './approvals'
@@ -41,7 +42,7 @@ export const createRouter = ({
   userId: string
 }) => {
   const getInfo = () => ({
-    installer: updates.installer,
+    installer,
     latestVersion: updates.latest(),
     name,
     protocol: BRIDGE_PROTOCOL,

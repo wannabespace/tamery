@@ -120,8 +120,12 @@ jobs:
     permissions:
       contents: write
       id-token: write
+    # A prerelease goes to npm's `next` tag, which npm refuses to guess: `latest` is what the install scripts and
+    # `tamery update` install for everyone not already on a prerelease.
     env:
       VERSION: ${{ needs.build.outputs.version }}
+      NPM_TAG: ${{ contains(needs.build.outputs.version, '-') && 'next' || 'latest' }}
+      PRERELEASE: ${{ contains(needs.build.outputs.version, '-') }}
     steps:
       - uses: actions/checkout@v7
 
@@ -158,7 +162,8 @@ jobs:
             gh release create "cli-v$VERSION" tamery-* checksums.txt \
               --target "$GITHUB_SHA" \
               --title "Tamery CLI $VERSION" \
-              --notes "Install or update: \`curl -fsSL https://tamery.app/cli/install.sh | sh\` (macOS, Linux), \`irm https://tamery.app/cli/install.ps1 | iex\` (Windows) or \`npm i -g tamery\`." \
+              --notes "Update: \`tamery update\`. Install: \`curl -fsSL https://tamery.app/cli/install.sh | sh\` (macOS, Linux), \`irm https://tamery.app/cli/install.ps1 | iex\` (Windows) or \`npm i -g tamery\`." \
+              --prerelease="$PRERELEASE" \
               --latest=false
           fi
 
@@ -177,6 +182,6 @@ jobs:
             if npm view "$name@$VERSION" version >/dev/null 2>&1; then
               echo "$name@$VERSION is already on npm"
             else
-              npm publish "./$package" --access public
+              npm publish "./$package" --access public --tag "$NPM_TAG"
             fi
           done
