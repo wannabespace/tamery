@@ -1,9 +1,9 @@
 import {
   BookOpen01Icon,
+  ComputerTerminal01Icon,
   DiscordIcon,
   GitBranchIcon,
   GithubIcon,
-  HierarchySquare02Icon,
   LayoutTable02Icon,
   News01Icon,
   RoboticIcon,
@@ -147,10 +147,10 @@ const ProductPanel = () => {
           destination={{ docs: '/features/query-editor' }}
         />
         <MenuLink
-          icon={HierarchySquare02Icon}
-          title="Schema diagram"
-          description="Every table and relation, drawn for you."
-          destination={{ docs: '/features/schema-visualizer' }}
+          icon={ComputerTerminal01Icon}
+          title="CLI"
+          description="Query your localhost from the web app."
+          destination={{ hash: 'cli', to: home }}
         />
         <MenuLink
           icon={SquareLock02Icon}
