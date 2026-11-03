@@ -3,6 +3,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
 import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 import { CopyIconButton } from '@tamery/ui/components/custom/copy-button'
+import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { SettingsGroup } from '@tamery/ui/components/custom/settings-group'
 import { smallItemInsetClassName } from '@tamery/ui/components/item'
 import {
@@ -43,11 +44,7 @@ export const ClientSetup = ({ server }: { server: McpEndpoint }) => (
             >
               <p className="text-muted-foreground min-w-0 flex-1 truncate">
                 {client.instruction}{' '}
-                {client.file && (
-                  <code className="text-foreground font-mono text-xs">
-                    {client.file}
-                  </code>
-                )}
+                {client.file && <InlineCode>{client.file}</InlineCode>}
               </p>
               {installLink && (
                 <Button

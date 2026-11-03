@@ -6,9 +6,9 @@ import { ORPCError } from '@orpc/server'
 import { connectionParts } from '@tamery/connection/connection-parts'
 import type { Destination, Forwarding } from '@tamery/connection/forwarding'
 import { readConnectionString } from '@tamery/connection/parse-connection-string'
-import { SSH_DESKTOP_ONLY } from '@tamery/connection/ssh/params'
+import { SSH_ELSEWHERE } from '@tamery/connection/ssh/params'
 import { tunnelSocket } from '@tamery/connection/ssh/socket'
-import { describeConnectionString } from '@tamery/connection/utils'
+import { describeConnectionString, FILE_PARAMS } from '@tamery/connection/utils'
 
 const NON_PUBLIC_NETWORKS = new BlockList()
 for (const [network, prefix, family] of [
@@ -33,19 +33,8 @@ for (const [network, prefix, family] of [
   NON_PUBLIC_NETWORKS.addSubnet(network, prefix, family)
 }
 
-/** The drivers read each of these as a path on the proxy's own disk. */
-const FILE_PARAMS = [
-  'sslca',
-  'sslcert',
-  'sslkey',
-  'sslrootcert',
-  'tlscafile',
-  'tlscertificatekeyfile',
-  'tlscrlfile',
-]
-
 export const PRIVATE_HOST_MESSAGE =
-  'The cloud proxy reaches only public hosts. Run `tamery proxy` or open this connection in the desktop app.'
+  'The cloud proxy reaches only public hosts. Run `tamery bridge` or open this connection in the desktop app.'
 
 const SRV_SCHEME = 'mongodb+srv'
 
@@ -83,7 +72,7 @@ export const guardedForwarding = (
   connectionString: string
 ): Promise<Forwarding> => {
   if (describeConnectionString(connectionString).usesSsh) {
-    throw new Error(SSH_DESKTOP_ONLY)
+    throw new Error(SSH_ELSEWHERE)
   }
   const parts = connectionParts.parse(connectionString)
   const target = { host: parts.host, port: Number(connectionParts.port(parts)) }
@@ -103,13 +92,13 @@ export const assertReachable = async (connectionString: string) => {
   if (FILE_PARAMS.some((param) => searchParams.has(param))) {
     throw new ORPCError('FORBIDDEN', {
       message:
-        'The cloud proxy cannot read certificate files. Run `tamery proxy` or open this connection in the desktop app.',
+        'The cloud proxy cannot read certificate files. Run `tamery bridge` or open this connection in the desktop app.',
     })
   }
   if (describeConnectionString(connectionString).usesMachineCredentials) {
     throw new ORPCError('FORBIDDEN', {
       message:
-        'The cloud proxy cannot sign in with AWS, OIDC or Kerberos credentials. Run `tamery proxy` or open this connection in the desktop app.',
+        'The cloud proxy cannot sign in with AWS, OIDC or Kerberos credentials. Run `tamery bridge` or open this connection in the desktop app.',
     })
   }
   // An SRV name has no address of its own: the servers it lists are checked by `guardedConnect` as the driver dials them.

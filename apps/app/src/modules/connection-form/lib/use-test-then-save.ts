@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import type { ConnectionDetails } from '~/core/connection/save'
 import { testConnectionQuery } from '~/core/queries/connection/test'
-import { useLocalProxyAvailable } from '~/core/runtime/proxy'
+import { useBridgeRoute } from '~/core/runtime/bridge/pairing'
 import { generateRandomName } from '~/utils/faker'
 
 import type { ConnectionForm, ConnectionFormValues } from './connection-form'
@@ -23,14 +23,14 @@ import type { FormMode } from './form-mode'
 export type OnSave = (
   connection: ConnectionDetails,
   created: {
-    open: boolean
     origin: GuessFormat | undefined
     syncType: SyncType
+    testFailed: boolean
   }
 ) => Promise<unknown>
 
 export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
-  const isLocalProxyAvailable = useLocalProxyAvailable()
+  const bridge = useBridgeRoute(null)
   const test = useMutation({
     meta: { event: 'connection_tested' },
     mutationFn: (params: { connectionString: string; dialect: Dialect }) =>
@@ -63,10 +63,11 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
         syncType: values.syncType,
       },
       {
+        bridge,
         connectionString: editing
           ? described
           : { ...described, missingSecrets: [] },
-        isLocalProxyAvailable,
+        draft: true,
       }
     )
     const tested =
@@ -131,9 +132,9 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
           type: values.type,
         },
         {
-          open: draft.canSend && draft.testStatus !== 'error',
           origin,
           syncType: values.syncType,
+          testFailed: draft.testStatus === 'error',
         }
       )
     })

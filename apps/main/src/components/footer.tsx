@@ -39,6 +39,9 @@ export const Footer = () => {
             <Link to={home} hash="pricing" className={linkClassName}>
               Pricing
             </Link>
+            <Link to={home} hash="cli" className={linkClassName}>
+              CLI
+            </Link>
             <Link to="/releases" className={linkClassName}>
               Releases
             </Link>

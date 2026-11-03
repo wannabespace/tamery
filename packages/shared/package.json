@@ -9,6 +9,7 @@
   "dependencies": {
     "@hackylabs/deep-redact": "catalog:",
     "@noble/hashes": "catalog:",
+    "@orpc/client": "catalog:",
     "@tamery/configs": "workspace:*",
     "arktype": "catalog:",
     "better-result": "catalog:",

@@ -58,8 +58,8 @@ export const SSH_FIELD_AT_FAULT: Record<
   [SSH_AUTH_ERRORS.privateKeyMissing]: 'ssh.privateKey',
 }
 
-export const SSH_DESKTOP_ONLY =
-  'SSH tunnels run in the Tamery desktop app. Open this connection there.'
+export const SSH_ELSEWHERE =
+  'SSH tunnels run in the Tamery desktop app or through `tamery bridge`. Open this connection there, or start the bridge.'
 
 export const SSH_PARAMS = {
   auth: 'ssh_auth',

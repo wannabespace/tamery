@@ -10,6 +10,7 @@ import {
   isInitializeRequest,
   isJSONRPCRequest,
 } from '@modelcontextprotocol/sdk/types.js'
+import { hasErrnoCode } from '@tamery/shared/errno'
 import type {
   McpAccess,
   McpCall,
@@ -205,7 +206,7 @@ const stop = () => {
 
 const status = (): McpStatus => {
   if (server instanceof Error) {
-    const portTaken = 'code' in server && server.code === 'EADDRINUSE'
+    const portTaken = hasErrnoCode(server, 'EADDRINUSE')
     return {
       error: portTaken
         ? `The server could not start because port ${PORTS.MCP} is taken, most likely by another copy of Tamery. Quit it, then turn the server off and on again.`

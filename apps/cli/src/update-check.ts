@@ -1,93 +1,43 @@
-import fs from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
+import process from 'node:process'
 
-const PACKAGE_NAME = 'tamery'
-const CACHE_DIR = path.join(os.homedir(), '.config', 'tamery')
-const CACHE_FILE = path.join(CACHE_DIR, 'update-check.json')
-const CHECK_INTERVAL_MS = 1000 * 60 * 60 * 24
+import { log } from '@clack/prompts'
+import { BRIDGE_INSTALL_COMMANDS } from '@tamery/shared/bridge'
+import { type } from 'arktype'
+import { Result } from 'better-result'
 
-interface UpdateCache {
-  lastCheck: number
-  latestVersion: string
-}
+import { env } from './env'
+import { paint } from './paint'
 
-const readCache = (): UpdateCache | null => {
-  try {
-    const raw = fs.readFileSync(CACHE_FILE, 'utf-8')
-    return JSON.parse(raw) as UpdateCache
-  } catch {
-    return null
+const REGISTRY_TIMEOUT_MS = 3000
+
+/** The npm launcher runs the binary from inside its own package; the install scripts put it anywhere else. */
+const getInstaller = (): keyof typeof BRIDGE_INSTALL_COMMANDS => {
+  if (process.execPath.includes('node_modules')) {
+    return 'npm'
   }
+  return process.platform === 'win32' ? 'powershell' : 'shell'
 }
 
-const writeCache = (cache: UpdateCache) => {
-  try {
-    fs.mkdirSync(CACHE_DIR, { recursive: true })
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache))
-  } catch {
-    /* empty */
-  }
-}
+const installer = getInstaller()
 
-const fetchLatestVersion = async (): Promise<string | null> => {
-  try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 3000)
+let latestVersion: string | null = null
 
-    const res = await fetch(
-      `https://registry.npmjs.org/${PACKAGE_NAME}/latest`,
-      {
-        signal: controller.signal,
-      }
-    )
-
-    clearTimeout(timeout)
-
-    if (!res.ok) {
-      return null
+export const updates = {
+  /** Never awaited at startup: the registry must not hold the bridge back. */
+  check: async () => {
+    const fetched = await Result.tryPromise(async () => {
+      const response = await fetch('https://registry.npmjs.org/tamery/latest', {
+        signal: AbortSignal.timeout(REGISTRY_TIMEOUT_MS),
+      })
+      return type({ version: 'string' }).assert(await response.json()).version
+    })
+    if (fetched.isOk() && Bun.semver.order(fetched.value, env.VERSION) === 1) {
+      latestVersion = fetched.value
+      log.warn(
+        `Update available: ${latestVersion}\n${paint.dim('Run')} ${BRIDGE_INSTALL_COMMANDS[installer]}`
+      )
     }
-
-    const data = (await res.json()) as { version: string }
-    return data.version
-  } catch {
-    return null
-  }
-}
-
-const parse = (v: string) => v.replace(/^v/u, '').split('.').map(Number)
-
-const isNewerVersion = (current: string, latest: string): boolean => {
-  const [cMajor = 0, cMinor = 0, cPatch = 0] = parse(current)
-  const [lMajor = 0, lMinor = 0, lPatch = 0] = parse(latest)
-
-  if (lMajor !== cMajor) {
-    return lMajor > cMajor
-  }
-  if (lMinor !== cMinor) {
-    return lMinor > cMinor
-  }
-  return lPatch > cPatch
-}
-
-export const checkForUpdate = async (
-  currentVersion: string
-): Promise<string | null> => {
-  const cache = readCache()
-
-  if (cache && Date.now() - cache.lastCheck < CHECK_INTERVAL_MS) {
-    return isNewerVersion(currentVersion, cache.latestVersion)
-      ? cache.latestVersion
-      : null
-  }
-
-  const latest = await fetchLatestVersion()
-
-  if (!latest) {
-    return null
-  }
-
-  writeCache({ lastCheck: Date.now(), latestVersion: latest })
-
-  return isNewerVersion(currentVersion, latest) ? latest : null
+  },
+  installer,
+  latest: () => latestVersion,
 }

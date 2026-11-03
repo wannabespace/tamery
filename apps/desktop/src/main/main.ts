@@ -116,7 +116,7 @@ export const createWindow = (route?: string) => {
     ...(!isMac && {
       titleBarOverlay: {
         color: '#00000000',
-        height: 40,
+        height: 39,
         symbolColor: '#a1a1aa',
       },
     }),

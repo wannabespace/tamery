@@ -17,6 +17,7 @@ import { getDriverConfig } from '@tamery/connection/parse-connection-string'
 import { getPool } from '@tamery/connection/queries/dialects/pg/client'
 import { getLibpqSslMode } from '@tamery/connection/ssl/pg'
 import { Dialect } from '@tamery/shared/enums/connection-type'
+import { hasErrnoCode } from '@tamery/shared/errno'
 import { silently, toError } from '@tamery/shared/utils'
 import { quoteIdentifier } from '@tamery/sql/identifier'
 import { Result } from 'better-result'
@@ -123,7 +124,7 @@ const watchTool = async (
   const closed = await Result.tryPromise(() => once(child, 'close'))
   if (closed.isErr()) {
     const error = toError(closed.error.cause)
-    throw 'code' in error && error.code === 'ENOENT'
+    throw hasErrnoCode(error, 'ENOENT')
       ? new Error(
           `${tool} was not found. Install the PostgreSQL client tools to copy databases.`
         )

@@ -36,7 +36,7 @@ export const PasskeysSettings = () => {
       }
     },
     onError: (error: { code?: string }) => {
-      if (error.code === 'SESSION_NOT_FRESH') {
+      if (error.code === authClient.$ERROR_CODES.SESSION_NOT_FRESH.code) {
         toast.error('Sign in again to add a passkey.')
       } else if (!isPasskeyPromptDismissed(error)) {
         void handleError(error)

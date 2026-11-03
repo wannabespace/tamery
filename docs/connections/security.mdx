@@ -22,10 +22,10 @@ Synced connection strings are encrypted with a workspace key. They are decrypted
 ## Where queries run
 
 - **Desktop:** your computer connects to the database directly.
-- **Web with `tamery proxy`:** the computer running the proxy connects to the database.
-- **Web without a local proxy:** Tamery's cloud proxy connects to public database servers and handles the query and its results.
+- **Web with [`tamery bridge`](/cli/overview):** the computer running the bridge connects to the database. Queries carry connection IDs, and the bridge gets each connection string through your account. Only the details your sync type keeps off Tamery's servers go from the browser to the bridge, once.
+- **Web without a bridge:** Tamery's cloud proxy connects to public database servers and handles the query and its results.
 
-The cloud proxy cannot reach private addresses, open SQLite and certificate files on your computer, or sign in to MongoDB with AWS, OIDC or Kerberos credentials. Use desktop or the local proxy for those. Connections whose secrets stay on your device also need desktop or the local proxy.
+The cloud proxy cannot reach private addresses, open SQLite and certificate files on your computer, or sign in to MongoDB with AWS, OIDC or Kerberos credentials. Use desktop or the bridge for those. Connections whose secrets stay on your device also need desktop or the bridge.
 
 ### Cloud proxy IP addresses
 
@@ -37,7 +37,7 @@ If your database only accepts allowlisted IP addresses, add these so the cloud p
 152.55.185.189
 ```
 
-Add all three. The proxy can connect from any of them. Desktop and `tamery proxy` connect from your own network, so allow that address instead.
+Add all three. The proxy can connect from any of them. Desktop and `tamery bridge` connect from your own network, so allow that address instead.
 
 Other services at our hosting provider share these addresses. An allowlist narrows who can reach your database, but the database password still protects it.
 
@@ -45,7 +45,7 @@ Encryption between Tamery and your database depends on the connection's SSL sett
 
 ## SSH tunnels
 
-SSH tunnels run on desktop only. Tamery checks the server's host key and asks before trusting an unknown one. A changed key is refused.
+SSH tunnels run on desktop and on the computer running `tamery bridge`. Tamery checks the server's host key and asks before trusting an unknown one, the bridge in its terminal. A changed key is refused.
 
 You can use your SSH agent, a key file, a pasted private key, or a password. `~/.ssh/config` is supported; `ProxyJump` and `ProxyCommand` are not.
 

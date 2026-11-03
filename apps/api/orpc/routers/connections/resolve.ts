@@ -11,6 +11,7 @@ export const resolve = orpc
     const connection = await db.query.connections.findFirst({
       columns: {
         connectionString: true,
+        isPasswordExists: true,
         updatedAt: true,
         workspaceId: true,
       },
@@ -25,11 +26,14 @@ export const resolve = orpc
     }
 
     if (
-      !connection.connectionString ||
-      (input.updatedAt &&
-        input.updatedAt.getTime() >= connection.updatedAt.getTime())
+      input.updatedAt &&
+      input.updatedAt.getTime() >= connection.updatedAt.getTime()
     ) {
       return { status: 'unchanged' as const }
+    }
+
+    if (!connection.connectionString) {
+      return { status: 'no-connection-string' as const }
     }
 
     const connectionString = await context.decryptConnectionString({
@@ -39,6 +43,7 @@ export const resolve = orpc
 
     return {
       connectionString,
+      isPasswordExists: connection.isPasswordExists,
       status: 'modified' as const,
       updatedAt: connection.updatedAt,
     }

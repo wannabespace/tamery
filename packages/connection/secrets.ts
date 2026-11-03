@@ -34,6 +34,16 @@ const getUrl = (connectionString: string) => {
 
 /** `strip` empties a secret rather than dropping it, so another device knows which ones to ask for. */
 export const connectionSecrets = {
+  /** Equal but for the database and secrets: the same host, port, user, proxy, TLS and every other option. */
+  isSameServer: (a: string, b: string) => {
+    const [first, second] = [a, b].map((value) => {
+      const stripped = getUrl(connectionSecrets.strip(value))
+      stripped.pathname = ''
+      stripped.searchParams.sort()
+      return stripped.toString()
+    })
+    return first === second
+  },
   /** Keeps the database password and the SSL key passphrase: a copied string must still connect from another client. */
   copyable: (connectionString: string) => {
     const url = getUrl(connectionString)
@@ -57,13 +67,7 @@ export const connectionSecrets = {
     { isPasswordExists, local }: { isPasswordExists: boolean; local: string }
   ) => {
     const url = getUrl(connectionString)
-    const [server, localServer] = [connectionString, local].map((value) => {
-      const stripped = getUrl(connectionSecrets.strip(value))
-      stripped.pathname = ''
-      stripped.searchParams.sort()
-      return stripped.toString()
-    })
-    if (server !== localServer) {
+    if (!connectionSecrets.isSameServer(connectionString, local)) {
       return url.toString()
     }
     const localUrl = getUrl(local)

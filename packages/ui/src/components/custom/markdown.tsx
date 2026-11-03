@@ -3,6 +3,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { cardClass } from '@tamery/ui/components/card.utils'
 import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 import { CopyIconButton } from '@tamery/ui/components/custom/copy-button'
+import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { Kbd } from '@tamery/ui/components/kbd'
 import {
   Table,
@@ -90,9 +91,7 @@ export const SectionHeading = ({
 
 export const markdownComponents = {
   code: ({ children }: { children?: ReactNode }) => (
-    <code className="bg-muted rounded-md px-1.5 py-0.5 font-mono text-sm">
-      {children}
-    </code>
+    <InlineCode>{children}</InlineCode>
   ),
   h2: (props: { children?: ReactNode; id?: string }) => (
     <SectionHeading level="h2" {...props} />

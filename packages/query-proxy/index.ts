@@ -1,12 +1,16 @@
-import type { BuilderWithMiddlewares, RouterClient } from '@orpc/server'
+import type {
+  BuilderWithMiddlewares,
+  Context,
+  ErrorMap,
+  MergedContext,
+  ORPCErrorConstructorMap,
+  RouterClient,
+} from '@orpc/server'
 import { type } from '@orpc/server'
 import type { QueryExecutor } from '@tamery/connection/queries'
 import { executors } from '@tamery/connection/queries/executors'
-import type { Dialect } from '@tamery/shared/enums/connection-type'
+import { Dialect } from '@tamery/shared/enums/connection-type'
 import type { AnyFunction, Prettify } from '@tamery/shared/utils'
-
-// oxlint-disable-next-line ts/no-explicit-any
-export type AnyBuilder = BuilderWithMiddlewares<any, any, any>
 
 type Params<
   T extends AnyFunction,
@@ -17,48 +21,65 @@ type Params<
     : P
 >
 
-type ConnectionInput =
+export type ConnectionInput =
   | { connectionString: string }
-  | { connectionId: string }
+  | { connectionId: string; resourceName?: string | null }
   | { resourceId: string }
 
-type HandlerContext<T extends AnyBuilder> = Parameters<
-  Parameters<T['handler']>[0]
->[0]['context']
-
-interface Resolvers<T extends AnyBuilder> {
+interface Resolvers<TContext, TErrors extends ErrorMap> {
+  /**
+   * `dialect` is the executor that will run the string, which may not be the one its connection names; `errors` builds the
+   * errors the caller's builder declares.
+   */
   connectionString: (
     input: ConnectionInput,
-    context: HandlerContext<T>
+    context: TContext,
+    dialect: Dialect,
+    errors: ORPCErrorConstructorMap<TErrors>
   ) => string | Promise<string>
   /** Who a transaction belongs to, so a leaked `txId` cannot drive another user's transaction. */
-  owner: (context: HandlerContext<T>) => string
+  owner: (context: TContext) => string
 }
 
 // A proxy serves many users at once; one unbounded result would hold its memory for all of them.
 const MAX_ROWS = 100_000
 
-const createQueryDialect = <T extends AnyBuilder>(
-  dialect: QueryExecutor,
-  orpc: T,
-  resolve: Resolvers<T>
-) =>
-  ({
+const createQueryDialect = <
+  TInitial extends Context,
+  TInjected extends Context,
+  TErrors extends ErrorMap,
+>(
+  name: Dialect,
+  orpc: BuilderWithMiddlewares<TInitial, TInjected, TErrors>,
+  resolve: Resolvers<MergedContext<TInitial, TInjected>, TErrors>
+) => {
+  const dialect = executors[name]
+  return {
     beginTransaction: orpc
       .input(type<Params<typeof dialect.beginTransaction>>())
-      .handler(async ({ input, context }) =>
+      .handler(async ({ context, errors, input }) =>
         dialect.beginTransaction({
           ...input,
-          connectionString: await resolve.connectionString(input, context),
+          connectionString: await resolve.connectionString(
+            input,
+            context,
+            name,
+            errors
+          ),
           ownerId: resolve.owner(context),
         })
       ),
     cancel: orpc
       .input(type<Params<typeof dialect.cancel>>())
-      .handler(async ({ input, context }) =>
+      .handler(async ({ context, errors, input }) =>
         dialect.cancel({
           ...input,
-          connectionString: await resolve.connectionString(input, context),
+          connectionString: await resolve.connectionString(
+            input,
+            context,
+            name,
+            errors
+          ),
         })
       ),
     commitTransaction: orpc
@@ -68,10 +89,15 @@ const createQueryDialect = <T extends AnyBuilder>(
       ),
     execute: orpc
       .input(type<Params<typeof dialect.execute>>())
-      .handler(async ({ input, context }) =>
+      .handler(async ({ context, errors, input }) =>
         dialect.execute({
           ...input,
-          connectionString: await resolve.connectionString(input, context),
+          connectionString: await resolve.connectionString(
+            input,
+            context,
+            name,
+            errors
+          ),
           maxRows: Math.min(input.maxRows ?? MAX_ROWS, MAX_ROWS),
         })
       ),
@@ -86,10 +112,15 @@ const createQueryDialect = <T extends AnyBuilder>(
       ),
     openSession: orpc
       .input(type<Params<typeof dialect.openSession>>())
-      .handler(async ({ input, context }) =>
+      .handler(async ({ context, errors, input }) =>
         dialect.openSession({
           ...input,
-          connectionString: await resolve.connectionString(input, context),
+          connectionString: await resolve.connectionString(
+            input,
+            context,
+            name,
+            errors
+          ),
           ownerId: resolve.owner(context),
         })
       ),
@@ -106,20 +137,26 @@ const createQueryDialect = <T extends AnyBuilder>(
       .handler(({ input, context }) =>
         dialect.transactionStatus({ ...input, ownerId: resolve.owner(context) })
       ),
-  }) satisfies Record<keyof QueryExecutor, unknown>
+  } satisfies Record<keyof QueryExecutor, unknown>
+}
 
-export const createQueryRouter = <T extends AnyBuilder>(
-  orpc: T,
-  resolve: Resolvers<T>
+/** Generic over the builder's parts, not the builder, so the error map a caller declares reaches its clients' types. */
+export const createQueryRouter = <
+  TInitial extends Context,
+  TInjected extends Context,
+  TErrors extends ErrorMap,
+>(
+  orpc: BuilderWithMiddlewares<TInitial, TInjected, TErrors>,
+  resolve: Resolvers<MergedContext<TInitial, TInjected>, TErrors>
 ) =>
   ({
-    clickhouse: createQueryDialect(executors.clickhouse, orpc, resolve),
-    mongodb: createQueryDialect(executors.mongodb, orpc, resolve),
-    mssql: createQueryDialect(executors.mssql, orpc, resolve),
-    mysql: createQueryDialect(executors.mysql, orpc, resolve),
-    oracle: createQueryDialect(executors.oracle, orpc, resolve),
-    postgres: createQueryDialect(executors.postgres, orpc, resolve),
-    sqlite: createQueryDialect(executors.sqlite, orpc, resolve),
+    clickhouse: createQueryDialect(Dialect.ClickHouse, orpc, resolve),
+    mongodb: createQueryDialect(Dialect.MongoDB, orpc, resolve),
+    mssql: createQueryDialect(Dialect.MSSQL, orpc, resolve),
+    mysql: createQueryDialect(Dialect.MySQL, orpc, resolve),
+    oracle: createQueryDialect(Dialect.Oracle, orpc, resolve),
+    postgres: createQueryDialect(Dialect.Postgres, orpc, resolve),
+    sqlite: createQueryDialect(Dialect.SQLite, orpc, resolve),
   }) satisfies Record<Dialect, Record<keyof QueryExecutor, unknown>>
 
 export type ORPCRouter = RouterClient<ReturnType<typeof createQueryRouter>>

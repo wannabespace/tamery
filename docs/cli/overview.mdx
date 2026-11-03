@@ -1,38 +1,100 @@
 ---
 title: 'Tamery CLI'
 sidebarTitle: 'Overview'
-description: 'Run SQL from the terminal or connect the web app to local databases.'
-keywords: ['command line', 'shell', 'headless']
+description: "Run the web app's queries on your own computer with tamery bridge: localhost, private networks, SQLite files, and connections whose password stays with you."
+keywords:
+  ['command line', 'terminal', 'tamery proxy', 'local proxy', 'headless']
 ---
 
-## Install and sign in
+`tamery bridge` lets the web app run your queries on the computer where the bridge runs. Use it for a database on localhost or a private network, a SQLite file, or a connection whose password Tamery's server doesn't have. The desktop app doesn't need it: it already runs queries on your computer.
 
-You need **Node.js 22.16 or later**.
+## Install
 
-```bash
-npm install -g tamery
-tamery login
-```
-
-Finish signing in in the browser, with the same account you use in the app.
-
-## Run a query
-
-The CLI uses the connections you saved in Tamery. Find the name of the one you want:
+On macOS and Linux:
 
 ```bash
-tamery query --list-connections
-tamery query -c my-db "SELECT 1 AS hello"
+curl -fsSL https://tamery.app/cli/install.sh | sh
 ```
 
-It also runs SQL files and prints JSON. See [all commands](/cli/commands).
+On Windows, in PowerShell:
 
-## Reach local databases from the web
+```powershell
+irm https://tamery.app/cli/install.ps1 | iex
+```
+
+The script puts `tamery` in `~/.tamery/bin`, adds that folder to your `PATH`, and prints the command to run next. To install a specific version, set `TAMERY_VERSION`, for example `TAMERY_VERSION=1.2.0`.
+
+If you have Node.js, npm works too:
 
 ```bash
-tamery proxy
+npm i -g tamery
 ```
 
-Keep it running on the computer that can reach the database. The web app finds it on its own. **Ctrl+C** stops it.
+The CLI runs on macOS (Apple silicon and Intel), Linux (x64 and arm64), and Windows (x64 and arm64). It needs neither Node.js nor any other runtime. On Alpine and other musl-based Linux, install `libstdc++` first, for example `apk add libstdc++`.
 
-The proxy also opens SQLite files on that computer. SSH tunnels still need the desktop app.
+## Run the bridge
+
+1. Start the bridge:
+
+   ```bash
+   tamery bridge
+   ```
+
+   The first time, it opens the browser so you can sign in with the account you use in the web app. Then it opens **Settings → Bridge** in the web app.
+
+2. Check that the **Bridge URL** is the one `tamery bridge` printed, usually `http://127.0.0.1:26380`, and click **Connect**.
+
+3. While it waits, **Settings → Bridge** shows a code. The terminal running `tamery bridge` asks whether to allow the browser and shows a code too. If the two codes match, select **Yes** and press **Enter**. **No** is selected first, and nobody answering within 2 minutes counts as no.
+
+Keep the bridge running. While this browser is paired, the web app sends every query through the bridge and shows a computer icon at the top of the window. Its dot is green while the bridge answers and red within seconds of it stopping; hover it for the computer's name or the reason. If the bridge stops, queries fail until you start it again; they never move to Tamery's cloud proxy on their own. To use the cloud proxy without unpairing, for example while that computer is off, turn off **Run queries on** in **Settings → Bridge**; turning it back on needs no new approval.
+
+An allowed browser stays allowed when the bridge restarts, and the bridge opens the web app only while no browser is allowed yet. To add another browser, click **Connect** there and allow it the same way.
+
+On a server without a browser, open the sign-in link that `tamery bridge` prints on your own computer, and enter the bridge's address as the **Bridge URL** in **Settings → Bridge**. An empty **Bridge URL** means `http://127.0.0.1:26380`. When the bridge runs without a terminal to ask in (a service, a container, output sent to a file), run `tamery bridge approve` on that computer to answer.
+
+A browser has one bridge at a time. Connecting to another one replaces it. **Unpair** in **Settings → Bridge** disconnects it and makes the bridge forget the browser, and so does signing out. The bridge must be signed in to the same account as the web app. Tamery's servers confirm it in both directions before the terminal is asked, so a bridge someone else runs is refused, and so is a request that does not come from a browser signed in to your account or that reached the bridge through another address than the **Bridge URL**.
+
+To use a bridge on a server or another computer, see [Reach a bridge on another computer](/cli/remote).
+
+## Which connections it runs
+
+The bridge runs only the connections saved in your account.
+
+| Sync type | On the bridge |
+| --- | --- |
+| **Full** | Runs right away. |
+| **No password** | Asks once for the password and the other secrets that don't sync. |
+| **Metadata only** | Asks once for the server details. |
+
+A connection that opens a SQLite file, reads a certificate file (such as `sslkey` or `tlsCAFile`), or signs in to MongoDB with the computer's own AWS, OIDC or Kerberos credentials runs only once you allow it on the bridge, whatever its sync type. The same goes for an SSH tunnel, which uses the computer's keys and agent. Saving the connection in this browser allows it. A connection someone else saved opens on **Allow this connection on the bridge**: click **Allow**. If someone in a shared workspace later changes anything in it but the database name and secrets (the file, host, port, proxy, TLS settings or tunnel), the bridge refuses it until you allow it again, so a teammate can't point the bridge at your files or credentials. When you allow a file, tunnel or login the bridge hasn't used for that connection before, the terminal running `tamery bridge` asks you to confirm it, or run `tamery bridge approve`. A new connection opens once you answer there.
+
+If this browser already has what the bridge needs, it sends it on its own. Otherwise the web app opens the connection form on just the missing fields. What you enter is saved in this browser and sent to the bridge once, which keeps it encrypted with a key in the system keychain: the macOS Keychain, Windows Credential Manager, or the Secret Service on Linux.
+
+A Linux server often has no keychain. There the key goes into `~/.config/tamery/bridge.key`, readable only by your user, and the bridge warns you on every start that the secrets are protected only by file permissions.
+
+If Tamery's servers can't be reached, the connections the bridge has already run keep working.
+
+SQLite paths, `~/` included, point to files on the bridge's computer. SSH tunnels open there too, with its SSH keys, agent and `~/.ssh/config`. When an SSH host isn't in that computer's `known_hosts`, the bridge asks in its terminal whether to trust it; without a terminal it refuses, so connect once with `ssh` there first. A file path, SSH tunnel or machine login synced from another device runs only after you allow it, since it uses that computer's files and keys.
+
+The bridge reaches databases and files with the rights of the system user that runs it. On a shared server, run it as a user with no more access than it needs.
+
+## Browsers
+
+| Browser | Support |
+| --- | --- |
+| Chrome, Edge, Brave, Arc | Supported. The first **Connect** asks for permission to access devices on your local network. Allow it. |
+| Firefox | Supported, with the same local network prompt. |
+| Safari | Can't reach `http://127.0.0.1`. Use the desktop app, or give the bridge an [HTTPS address](/cli/remote). |
+
+If you blocked the prompt, allow local network access for the web app in the browser's site settings and reload.
+
+## Update
+
+Run the install command again, or `npm i -g tamery` if you installed with npm. Then restart the bridge.
+
+When it starts, `tamery bridge` checks for a newer version and prints the command to run when there is one. **Settings → Bridge** shows it too. When the web app needs a newer bridge, it stops sending queries to it and shows the same command.
+
+<Cards>
+  <Card href="/cli/commands" />
+  <Card href="/cli/remote" />
+</Cards>

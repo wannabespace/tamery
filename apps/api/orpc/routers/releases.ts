@@ -10,7 +10,9 @@ export const releases = orpc.use(cacheMiddleware(60 * 60)).handler(async () => {
   })
 
   return data
-    .filter((release) => !release.draft)
+    .filter(
+      (release) => !release.draft && !release.tag_name.startsWith('cli-v')
+    )
     .map((release) => ({
       body: release.body,
       createdAt: release.created_at,

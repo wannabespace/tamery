@@ -4,6 +4,7 @@ import {
   SESSION_EXPIRED_MESSAGE,
   UNKNOWN_ERROR_MESSAGE,
 } from '@tamery/shared/constants'
+import { hasErrorCode } from '@tamery/shared/orpc-error'
 import { toast } from 'sonner'
 
 import { fullSignOut, isAnonymous } from '~/lib/auth'
@@ -15,15 +16,12 @@ const getErrorMessage = (error: unknown) =>
   (error as Error)?.message ||
   UNKNOWN_ERROR_MESSAGE
 
-export const isUnauthorizedError = (error: unknown) =>
-  error instanceof ORPCError && error.code === 'UNAUTHORIZED'
-
 const isSessionExpiredError = (error: unknown) =>
   (typeof error === 'object' &&
     error !== null &&
     'status' in error &&
     error.status === 401) ||
-  isUnauthorizedError(error)
+  hasErrorCode(error, 'UNAUTHORIZED')
 
 const errorStatus: Record<string, number | undefined> = COMMON_ERROR_STATUS_MAP
 
@@ -73,12 +71,7 @@ export const handleError = async (
     return
   }
 
-  if (
-    error instanceof ORPCError &&
-    error.code === 'FORBIDDEN' &&
-    isAnonymous() &&
-    !isAuthLocation()
-  ) {
+  if (hasErrorCode(error, 'FORBIDDEN') && isAnonymous() && !isAuthLocation()) {
     promptSignIn(error.message)
     return
   }

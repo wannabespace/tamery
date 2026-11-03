@@ -1,4 +1,5 @@
 import { passkeyClient } from '@better-auth/passkey/client'
+import type { WebAuthnErrorCode } from '@simplewebauthn/browser'
 import { queryOptions } from '@tanstack/react-query'
 import { createIsomorphicFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
@@ -45,10 +46,12 @@ export const authClient = createAuthClient({
 })
 
 // A dismissed or timed-out browser prompt reports NotAllowedError, which arrives as the passthrough code, not AUTH_CANCELLED.
-const PASSKEY_DISMISSED_CODES = new Set([
-  'AUTH_CANCELLED',
-  'ERROR_CEREMONY_ABORTED',
-  'ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY',
+const PASSKEY_DISMISSED_CODES = new Set<string>([
+  authClient.$ERROR_CODES.AUTH_CANCELLED.code,
+  ...([
+    'ERROR_CEREMONY_ABORTED',
+    'ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY',
+  ] satisfies WebAuthnErrorCode[]),
 ])
 
 export const isPasskeyPromptDismissed = ({ code }: { code?: string }) =>

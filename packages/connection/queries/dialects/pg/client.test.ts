@@ -3,7 +3,7 @@ import { expect, mock, spyOn, test } from 'bun:test'
 import { logDriverError } from '@tamery/shared/sanitize-log'
 import { Pool } from 'pg'
 
-import { SSH_DESKTOP_ONLY } from '../../../ssh/params'
+import { SSH_ELSEWHERE } from '../../../ssh/params'
 import { getPool } from './client'
 
 test('both the TLS pool and its plaintext fallback handle idle-client errors', async () => {
@@ -62,7 +62,7 @@ test('an SSH string reaches no driver unless the desktop app opens its tunnel', 
   try {
     await expect(
       getPool('postgres://user@db.internal/db?ssh_host=bastion')
-    ).rejects.toThrow(SSH_DESKTOP_ONLY)
+    ).rejects.toThrow(SSH_ELSEWHERE)
     expect(connect).not.toHaveBeenCalled()
   } finally {
     connect.mockRestore()

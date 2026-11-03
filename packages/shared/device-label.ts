@@ -35,3 +35,11 @@ export const formatDeviceLabel = (ua: string) => {
   }
   return osStr ? `${browserStr} on ${osStr}` : browserStr
 }
+
+/** No versions: desktop browsers freeze the OS version they report. */
+export const formatBrowserName = (ua: string) => {
+  const parser = new UAParser(ua)
+  const browser = parser.getBrowser().name ?? 'A browser'
+  const os = parser.getOS().name
+  return os ? `${browser} on ${os}` : browser
+}

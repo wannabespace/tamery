@@ -39,6 +39,7 @@
     "@hugeicons/react": "catalog:",
     "@orpc/server": "catalog:",
     "@rolldown/plugin-babel": "catalog:",
+    "@simplewebauthn/browser": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@tamery/api": "workspace:*",
     "@tamery/configs": "workspace:*",

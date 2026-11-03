@@ -16,7 +16,7 @@ The file has to exist already. A `~/` path points to the home folder of whatever
 
 ## Opening a local file from the web app
 
-The browser cannot read a file off your disk, so run [`tamery proxy`](https://docs.tamery.app/cli/commands) on the computer that holds the file. The web app then reaches it through the proxy.
+The browser cannot read a file off your disk, so run [`tamery bridge`](https://docs.tamery.app/cli/overview) on the computer that holds the file. The web app then runs its queries through the bridge.
 
 ## What you can edit in SQLite
 
@@ -37,7 +37,7 @@ On desktop, drop the file onto the window, or pick it under the SQLite engine. Y
 
 ### Can I open a local SQLite file in the web app?
 
-Yes, but run `tamery proxy` on the computer that holds the file first, since the browser cannot read your disk directly.
+Yes, but run `tamery bridge` on the computer that holds the file first, since the browser cannot read your disk directly.
 
 ### Does Tamery create a new SQLite database?
 
