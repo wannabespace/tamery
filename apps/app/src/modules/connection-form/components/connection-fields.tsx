@@ -5,7 +5,7 @@ import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { FieldGroup } from '@tamery/ui/components/field'
 
-import { useActivePairing } from '~/core/runtime/bridge/pairing'
+import { useBridgeRoute } from '~/core/runtime/bridge/pairing'
 import { posthog } from '~/lib/posthog'
 
 import type {
@@ -27,7 +27,7 @@ export const ConnectionFields = ({
   values: Pick<ConnectionFormValues, 'host' | 'provider' | 'type'>
 }) => {
   const sqliteFile = isSqliteFile(values)
-  const bridge = useActivePairing()
+  const bridge = useBridgeRoute(null)
 
   return (
     <>

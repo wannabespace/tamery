@@ -18,9 +18,9 @@ export { getSubscription } from '~/lib/subscription'
 
 export const orpc = os.$context<Context>()
 
-// Answered as CONFLICT, not Better Auth's BAD_REQUEST: the API alerts on every 400, and these are an ordinary answer to what the user typed.
 type AuthErrorCode = keyof typeof auth.$ERROR_CODES
 
+// Answered as CONFLICT, not Better Auth's BAD_REQUEST: the API alerts on every 400, and these are an ordinary answer to what the user typed.
 const CONFLICT_CODES: ReadonlySet<string> = new Set([
   'USER_IS_ALREADY_A_MEMBER_OF_THIS_ORGANIZATION',
   'USER_IS_ALREADY_INVITED_TO_THIS_ORGANIZATION',

@@ -19,22 +19,25 @@ const USAGE_LABEL = 'Usage  '
 interface Row {
   description: string
   label: string
-  style: (text: string) => string
 }
 
-/** citty lets each part of a command be a value, a promise, or a function returning either. */
 const resolve = <T extends ArgsDef | CommandDef | CommandMeta | SubCommandsDef>(
   value: Resolvable<T>
 ) => (typeof value === 'function' ? value() : value)
 
-const renderSection = (title: string, rows: Row[], width: number) =>
+const renderSection = (
+  title: string,
+  rows: Row[],
+  style: (text: string) => string,
+  width: number
+) =>
   rows.length === 0
     ? []
     : [
         '',
         bold(title),
         ...rows.map(
-          ({ description, label, style }) =>
+          ({ description, label }) =>
             `  ${style(label.padEnd(width))}${description}`
         ),
       ]
@@ -50,7 +53,7 @@ export const printHelp = async <T extends ArgsDef>(command: CommandDef<T>) => {
         const subMeta = await resolve(subCommand.meta ?? {})
         return subMeta.hidden
           ? []
-          : [{ description: subMeta.description ?? '', label, style: accent }]
+          : [{ description: subMeta.description ?? '', label }]
       }
     )
   )
@@ -64,18 +67,11 @@ export const printHelp = async <T extends ArgsDef>(command: CommandDef<T>) => {
         .filter(Boolean)
         .join(' '),
       label: `--${option}${arg.valueHint ? ` <${arg.valueHint}>` : ''}`,
-      style: flag,
     })),
     ...(meta.version
-      ? [
-          {
-            description: 'Print the version',
-            label: '-v, --version',
-            style: flag,
-          },
-        ]
+      ? [{ description: 'Print the version', label: '-v, --version' }]
       : []),
-    { description: 'Print this help', label: '-h, --help', style: flag },
+    { description: 'Print this help', label: '-h, --help' },
   ]
   const width =
     Math.max(...[...commands, ...options].map(({ label }) => label.length)) +
@@ -96,8 +92,8 @@ export const printHelp = async <T extends ArgsDef>(command: CommandDef<T>) => {
         (usage, index) =>
           `${index === 0 ? bold(USAGE_LABEL) : ' '.repeat(USAGE_LABEL.length)}${usage}`
       ),
-      ...renderSection('Commands', commands, width),
-      ...renderSection('Options', options, width),
+      ...renderSection('Commands', commands, accent, width),
+      ...renderSection('Options', options, flag, width),
       '',
       `${dim('Docs')} ${link(DOCS_URL)}`,
     ].join('\n')

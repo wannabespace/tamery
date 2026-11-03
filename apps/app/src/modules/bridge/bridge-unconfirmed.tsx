@@ -2,7 +2,7 @@ import { ComputerIcon } from '@hugeicons/core-free-icons'
 import { Button } from '@tamery/ui/components/button'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
-import { useMutation, useQueryErrorResetBoundary } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 
 import { FetchingReason } from '~/core/connection/fetching-reason'
 import type { UnconfirmedConnectionError } from '~/core/runtime/bridge/bridge'
@@ -10,12 +10,11 @@ import { bridge } from '~/core/runtime/bridge/bridge'
 
 export const BridgeUnconfirmed = ({
   error: { connectionId, message },
-  reset,
+  retry,
 }: {
   error: UnconfirmedConnectionError
-  reset: () => void
+  retry: () => void
 }) => {
-  const queryErrors = useQueryErrorResetBoundary()
   const allow = useMutation({
     meta: { event: 'bridge_connection_allowed' },
     mutationFn: async () => {
@@ -25,11 +24,7 @@ export const BridgeUnconfirmed = ({
         )
       }
     },
-    onSuccess: () => {
-      // A failed query stays failed for an error boundary until its reset boundary lets it retry on mount.
-      queryErrors.reset()
-      reset()
-    },
+    onSuccess: retry,
   })
 
   return (

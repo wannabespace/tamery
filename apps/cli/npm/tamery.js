@@ -15,10 +15,9 @@ const hasGlibc = () => {
   )
 }
 
-const isMusl = () => process.platform === 'linux' && !hasGlibc()
-
 const os = process.platform === 'win32' ? 'windows' : process.platform
-const target = `${os}-${process.arch}${isMusl() ? '-musl' : ''}`
+const musl = os === 'linux' && !hasGlibc()
+const target = `${os}-${process.arch}${musl ? '-musl' : ''}`
 const packageName = `@tamery/cli-${target}`
 
 const findBinary = () => {

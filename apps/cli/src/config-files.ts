@@ -37,8 +37,8 @@ export const configFiles = {
     throw linked.error.cause
   },
   key: path.join(CONFIG_DIR, 'bridge.key'),
-  /** The JSON files in `dir` by id, skipping one removed while it was listed. */
-  readAll: (dir: string) =>
+  /** Skips a file removed while it was listed. */
+  readAll: <T>(dir: string, file: { assert: (text: string) => T }) =>
     fs.existsSync(dir)
       ? fs
           .readdirSync(dir)
@@ -48,7 +48,7 @@ export const configFiles = {
               fs.readFileSync(path.join(dir, name), 'utf-8')
             )
             return read.isOk()
-              ? [{ data: read.value, id: path.basename(name, '.json') }]
+              ? [{ ...file.assert(read.value), id: path.parse(name).name }]
               : []
           })
       : [],

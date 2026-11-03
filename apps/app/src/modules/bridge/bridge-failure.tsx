@@ -1,7 +1,6 @@
 import { ComputerIcon } from '@hugeicons/core-free-icons'
 import { Button } from '@tamery/ui/components/button'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
-import { useQueryErrorResetBoundary } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
 import { Link } from '~/components/link'
@@ -10,17 +9,11 @@ import type { BridgeError } from '~/core/runtime/bridge/status'
 
 export const BridgeFailure = ({
   error: { bridgeName, status },
-  reset,
+  retry,
 }: {
   error: BridgeError
-  reset: () => void
+  retry: () => void
 }) => {
-  const queryErrors = useQueryErrorResetBoundary()
-  const retry = () => {
-    // A failed query stays failed for an error boundary until its reset boundary lets it retry on mount.
-    queryErrors.reset()
-    reset()
-  }
   const name = <span data-mask>{bridgeName}</span>
 
   let title = 'The bridge isn’t running'

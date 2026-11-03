@@ -4,7 +4,6 @@ import type { Dialect } from '@tamery/shared/enums/connection-type'
 import { getCollections } from '~/core/collections'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import { bridge } from '~/core/runtime/bridge/bridge'
-import type { BridgePairing } from '~/core/runtime/bridge/pairing'
 import { getBridgeRoute } from '~/core/runtime/bridge/pairing'
 import type { QueryLogEntry } from '~/core/runtime/log'
 import { orpcProxy } from '~/lib/orpc'
@@ -20,17 +19,6 @@ export interface DialectOptions {
   log?: (entry: QueryLogEntry) => void
 }
 
-type Route =
-  | {
-      connectionId: string
-      pairing: BridgePairing
-      resourceName: string | null
-      via: 'bridge'
-    }
-  | { via: 'cloud' | 'electron' }
-
-const pinnedRoutes = new Map<string, Route>()
-
 const getCloudProxyInput = (options: DialectOptions) => {
   if (options.resourceId) {
     return { resourceId: options.resourceId }
@@ -41,77 +29,60 @@ const getCloudProxyInput = (options: DialectOptions) => {
   return { connectionString: options.connectionString }
 }
 
-export const createTransport = (dialect: Dialect, options: DialectOptions) => {
-  const resolveRoute = (): Route => {
-    const { connectionsCollection, connectionsResourcesCollection } =
-      getCollections()
-    const resource = options.resourceId
-      ? connectionsResourcesCollection.get(options.resourceId)
-      : null
-    const connectionId = options.connectionId || resource?.connectionId
-    const connection = connectionId
-      ? (connectionsCollection.get(connectionId) ?? null)
-      : null
-    const bridgeRoute = getBridgeRoute(connectionId ?? null)
-    const config = fetchingConfig(connection, {
-      bridge: bridgeRoute,
-      connectionString: describeConnectionString(options.connectionString),
-      draft: !connectionId,
-    })
+const getTransport = (dialect: Dialect, options: DialectOptions) => {
+  const { connectionsCollection, connectionsResourcesCollection } =
+    getCollections()
+  const resource = options.resourceId
+    ? connectionsResourcesCollection.get(options.resourceId)
+    : null
+  const connectionId = options.connectionId || resource?.connectionId
+  const connection = connectionId
+    ? (connectionsCollection.get(connectionId) ?? null)
+    : null
+  const bridgeRoute = getBridgeRoute(connectionId ?? null)
+  const config = fetchingConfig(connection, {
+    bridge: bridgeRoute,
+    connectionString: describeConnectionString(options.connectionString),
+    draft: !connectionId,
+  })
 
-    if (!config.canSend) {
-      throw new Error(config.reason ?? 'This connection is still loading.')
-    }
-
-    if (bridgeRoute && connectionId) {
-      return {
-        connectionId,
-        pairing: bridgeRoute.pairing,
-        resourceName: resource?.name ?? null,
-        via: 'bridge',
-      }
-    }
-    return { via: window.electron ? 'electron' : 'cloud' }
+  if (!config.canSend) {
+    throw new Error(config.reason ?? 'This connection is still loading.')
   }
 
-  const toTransport = (route: Route) => {
-    const electron = window.electron?.query[dialect]
-    if (route.via === 'electron' && electron) {
-      return { electron, kind: 'electron' as const }
-    }
-
-    if (route.via === 'bridge') {
-      return {
-        input: {
-          connectionId: route.connectionId,
-          resourceName: route.resourceName,
-        },
-        kind: 'proxy' as const,
-        proxy: bridge.client(route.pairing).query[dialect],
-      }
-    }
-
+  if (bridgeRoute && connectionId) {
     return {
-      input: getCloudProxyInput(options),
+      input: { connectionId, resourceName: resource?.name ?? null },
       kind: 'proxy' as const,
-      proxy: orpcProxy.query[dialect],
+      proxy: bridge.client(bridgeRoute.pairing).query[dialect],
     }
+  }
+
+  const electron = window.electron?.query[dialect]
+  if (electron) {
+    return { electron, kind: 'electron' as const }
   }
 
   return {
-    current: () => toTransport(resolveRoute()),
-    open: async (
-      open: (
-        transport: ReturnType<typeof toTransport>
-      ) => Promise<{ txId: string }>
-    ) => {
-      const route = resolveRoute()
-      const opened = await open(toTransport(route))
-      pinnedRoutes.set(opened.txId, route)
-      return opened
-    },
-    pinned: (txId: string) =>
-      toTransport(pinnedRoutes.get(txId) ?? resolveRoute()),
-    release: (txId: string) => pinnedRoutes.delete(txId),
+    input: getCloudProxyInput(options),
+    kind: 'proxy' as const,
+    proxy: orpcProxy.query[dialect],
   }
 }
+
+type Transport = ReturnType<typeof getTransport>
+
+const pinnedTransports = new Map<string, Transport>()
+
+export const createTransport = (dialect: Dialect, options: DialectOptions) => ({
+  current: () => getTransport(dialect, options),
+  open: async (open: (transport: Transport) => Promise<{ txId: string }>) => {
+    const transport = getTransport(dialect, options)
+    const opened = await open(transport)
+    pinnedTransports.set(opened.txId, transport)
+    return opened
+  },
+  pinned: (txId: string) =>
+    pinnedTransports.get(txId) ?? getTransport(dialect, options),
+  release: (txId: string) => pinnedTransports.delete(txId),
+})

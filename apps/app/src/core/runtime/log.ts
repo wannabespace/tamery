@@ -26,7 +26,6 @@ const patchLog = (
     logs.map((log) => (log.id === id ? { ...log, ...patch } : log))
   )
 
-/** One statement as a dialect reports it, settling once the statement does. */
 export interface QueryLogEntry {
   promise: Promise<{ duration: number; result: unknown }>
   query: string

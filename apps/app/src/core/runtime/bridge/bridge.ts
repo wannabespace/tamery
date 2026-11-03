@@ -46,7 +46,6 @@ const getCompleteString = (connectionId: string, savedHere: boolean) => {
     : null
 }
 
-/** A synced connection whose local access (a file, SSH keys, a machine login) nobody allowed on the bridge yet. */
 export class UnconfirmedConnectionError extends Error {
   readonly connectionId: string
 

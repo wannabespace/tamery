@@ -24,27 +24,6 @@ const getFiles = (id: string) => ({
   request: path.join(configFiles.requests, `${id}.json`),
 })
 
-/** The first answer stands: the bridge's terminal and `tamery bridge approve` can both be asking. */
-const decide = (id: string, allowed: boolean) => {
-  configFiles.create(getFiles(id).answer, allowed ? ALLOWED : 'declined')
-}
-
-const waiting = () =>
-  configFiles
-    .readAll(configFiles.requests)
-    .filter(({ id }) => !fs.existsSync(getFiles(id).answer))
-    .map(({ data, id }) => ({
-      id,
-      ...requestFile.assert(data),
-    }))
-
-const askHere = async (id: string, question: string, signal: AbortSignal) => {
-  const allowed = await askInTerminal(question, signal)
-  if (allowed !== null) {
-    decide(id, allowed)
-  }
-}
-
 export const approvals = {
   ask: async (question: string) => {
     if (approvals.isFull()) {
@@ -55,7 +34,9 @@ export const approvals = {
     configFiles.write(files.request, JSON.stringify({ question }))
     const answered = new AbortController()
     if (process.stdin.isTTY) {
-      void askHere(id, question, answered.signal)
+      void askInTerminal(question, answered.signal).then(
+        (allowed) => allowed !== null && approvals.decide(id, allowed)
+      )
     } else {
       log.info(
         `${question} Run ${paint.accent('tamery bridge approve')} to answer.`
@@ -79,7 +60,13 @@ export const approvals = {
     }
   },
   clear: () => configFiles.remove(configFiles.requests),
-  decide,
-  isFull: () => waiting().length >= MAX_WAITING,
-  waiting,
+  /** The first answer stands: the bridge's terminal and `tamery bridge approve` can both be asking. */
+  decide: (id: string, allowed: boolean) => {
+    configFiles.create(getFiles(id).answer, allowed ? ALLOWED : 'declined')
+  },
+  isFull: () => approvals.waiting().length >= MAX_WAITING,
+  waiting: () =>
+    configFiles
+      .readAll(configFiles.requests, requestFile)
+      .filter(({ id }) => !fs.existsSync(getFiles(id).answer)),
 }

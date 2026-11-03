@@ -31,9 +31,6 @@ const getActive = (pairing: BridgePairing | null) =>
 
 export const getActivePairing = () => getActive(bridgePairing.get())
 
-export const useActivePairing = () =>
-  useSubscription(bridgePairing, { selector: getActive })
-
 export const setBridgeEnabled = (enabled: boolean) => {
   bridgePairing.set((pairing) => pairing && { ...pairing, enabled })
   posthog.capture('bridge_toggled', { enabled })
@@ -58,7 +55,7 @@ export const getBridgeRoute = (connectionId: string | null) => {
 export type BridgeRoute = NonNullable<ReturnType<typeof getBridgeRoute>>
 
 export const useBridgeRoute = (connectionId: string | null) => {
-  const pairing = useActivePairing()
+  const pairing = useSubscription(bridgePairing, { selector: getActive })
   const asks = useSubscription(bridgeAsks, {
     selector: (all) => (connectionId && all[connectionId]) || null,
   })

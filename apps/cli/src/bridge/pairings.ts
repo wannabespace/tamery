@@ -19,9 +19,7 @@ const getFile = (browserId: string) =>
 
 /** Read on every call, so `tamery bridge unpair-all` and `tamery logout` reach a bridge already running. */
 const readBrowsers = () =>
-  configFiles
-    .readAll(configFiles.browsers)
-    .map(({ data, id }) => ({ id, ...browserFile.assert(data) }))
+  configFiles.readAll(configFiles.browsers, browserFile)
 
 export const pairings = {
   /** Only after someone allowed it (`approvals`). */
