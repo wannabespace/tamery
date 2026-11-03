@@ -14,6 +14,7 @@ import { approve } from './commands/approve'
 import { bridge } from './commands/bridge'
 import { login } from './commands/login'
 import { logout } from './commands/logout'
+import { update } from './commands/update'
 import { whoami } from './commands/whoami'
 import { env } from './env'
 import { printHelp } from './help'
@@ -125,6 +126,13 @@ const main = defineCommand({
           `${paint.accent('tamery proxy')} is now ${paint.accent('tamery bridge')}.`
         )
       }),
+    }),
+    update: defineCommand({
+      meta: {
+        description: 'Update the CLI the way you installed it',
+        name: 'tamery update',
+      },
+      run: reportingErrors(update),
     }),
     whoami: defineCommand({
       meta: {

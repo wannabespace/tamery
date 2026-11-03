@@ -14,9 +14,12 @@ export const BRIDGE_URL = `http://127.0.0.1:${PORTS.BRIDGE}`
 
 /** Installing again updates. The bridge names its installer, never a command, so no bridge picks what the app shows to run. */
 export const BRIDGE_INSTALL_COMMANDS = {
+  bun: 'bun add -g tamery',
   npm: 'npm i -g tamery',
+  pnpm: 'pnpm add -g tamery',
   powershell: 'irm https://tamery.app/cli/install.ps1 | iex',
   shell: 'curl -fsSL https://tamery.app/cli/install.sh | sh',
+  yarn: 'yarn global add tamery',
 }
 
 export const BRIDGE_PAIR_PATH = '/settings/bridge'

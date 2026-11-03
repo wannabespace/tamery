@@ -158,7 +158,7 @@ jobs:
             gh release create "cli-v$VERSION" tamery-* checksums.txt \
               --target "$GITHUB_SHA" \
               --title "Tamery CLI $VERSION" \
-              --notes "Install or update: \`curl -fsSL https://tamery.app/cli/install.sh | sh\` (macOS, Linux), \`irm https://tamery.app/cli/install.ps1 | iex\` (Windows) or \`npm i -g tamery\`." \
+              --notes "Update: \`tamery update\`. Install: \`curl -fsSL https://tamery.app/cli/install.sh | sh\` (macOS, Linux), \`irm https://tamery.app/cli/install.ps1 | iex\` (Windows) or \`npm i -g tamery\`." \
               --latest=false
           fi
 
