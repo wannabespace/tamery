@@ -17,8 +17,8 @@ catalog:
   '@better-auth/drizzle-adapter': ^1.7.14
   # Pinned: a newer patch than @better-auth/core pulls a second core copy and splits the API's auth types.
   '@better-auth/passkey': 1.7.14
-  '@simplewebauthn/browser': ^14.0.0
-  '@simplewebauthn/server': ^14.0.3
+  '@simplewebauthn/browser': ^13.3.0
+  '@simplewebauthn/server': ^13.3.3
   '@clack/prompts': ^1.8.1
   '@clickhouse/client': ^1.24.1
   '@libsql/client': ^0.18.0

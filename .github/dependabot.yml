@@ -25,6 +25,9 @@ updates:
       # @vitejs/plugin-react 6.1 accepts only ^0.1.7 || ^0.2.0.
       - dependency-name: "@rolldown/plugin-babel"
         versions: [">=0.3.0"]
+      # @better-auth/passkey needs ^13, and apps/api's inferred auth type only names the version it declares itself.
+      - dependency-name: "@simplewebauthn/*"
+        versions: [">=14.0.0"]
     groups:
       dependencies:
         patterns: ["*"]
