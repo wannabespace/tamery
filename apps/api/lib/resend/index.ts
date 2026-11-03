@@ -12,6 +12,8 @@ const templates = { ...templatesNamespace }
 
 export const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
 
+const NO_REPLY_EMAIL = 'no-reply@tamery.app'
+
 // Anyone can make the API fail a request, and alerts share the Resend quota that sign-in codes need.
 const ALERTS_PER_MINUTE = 10
 
@@ -53,8 +55,9 @@ export const sendEmail = async <
 
     const Template = templates[template] as (props?: P) => React.ReactElement
     const options: CreateEmailOptions = {
-      from: `Tamery <${CONTACT_EMAIL}>`,
+      from: `Tamery <${NO_REPLY_EMAIL}>`,
       react: Template(props),
+      replyTo: CONTACT_EMAIL,
       subject,
       to,
     }
