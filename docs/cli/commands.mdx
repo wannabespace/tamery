@@ -71,9 +71,9 @@ Disconnects every paired browser, also from a bridge that is already running. Ea
 tamery update
 ```
 
-Installs the latest version the way you installed the CLI: with the install script, npm, pnpm or Bun. It shows that tool's output, then asks you to restart `tamery bridge` if it is running. When you already have the latest version, it says so and installs nothing. It ignores `TAMERY_VERSION`: to install a specific version, run the install script with it.
+Installs the latest version the way you installed the CLI: with the install script, npm, pnpm or Bun. It shows that tool's output, then asks you to restart `tamery bridge` if it is running. When you already have the latest version, it says so and installs nothing. On a release candidate, it also installs a newer release candidate. It ignores `TAMERY_VERSION`: to install a specific version, run the install script with it.
 
-If the update fails, for example because npm needs permissions you don't have, the CLI you had keeps working. Fix the error it shows and run `tamery update` again. On Windows, stop any running `tamery bridge` before updating a CLI installed with npm, pnpm or Bun.
+If the update fails, for example because npm needs permissions you don't have, it says why. Fix that and run `tamery update` again. On Windows, a `tamery bridge` that is still running can hold the file the update replaces: stop it and try again.
 
 If you installed with the script but run `tamery` from another folder, the update goes to `~/.tamery/bin` and the command says so. Delete the other copy, or replace it with the new one.
 
