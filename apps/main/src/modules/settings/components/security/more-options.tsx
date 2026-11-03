@@ -10,20 +10,20 @@ import {
   CollapsibleTrigger,
 } from '@tamery/ui/components/collapsible'
 import { SettingsRow } from '@tamery/ui/components/custom/settings-group'
-import { Dialog, DialogContent } from '@tamery/ui/components/dialog'
 import { Item, ItemMedia } from '@tamery/ui/components/item'
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { authClient, useReloadSession } from '~/lib/auth'
+import { authClient } from '~/lib/auth'
 import { handleError } from '~/utils/error'
 
 import { ConfirmAction } from '../confirm-action'
-import { BackupCodes } from './enable-tfa-dialog'
+import { BackupCodesDialog } from './enable-tfa-dialog'
+import { useReloadTwoFactor } from './two-factor-methods'
 
 export const MoreOptions = () => {
-  const reloadSession = useReloadSession()
+  const reloadTwoFactor = useReloadTwoFactor()
   const [codesOpen, setCodesOpen] = useState(false)
 
   const {
@@ -47,20 +47,17 @@ export const MoreOptions = () => {
     onError: handleError,
     onSuccess: async () => {
       toast.success('2FA disabled')
-      await reloadSession()
+      await reloadTwoFactor()
     },
   })
 
   return (
     <Collapsible>
-      <Dialog open={codesOpen} onOpenChange={setCodesOpen}>
-        <DialogContent className="sm:max-w-xs">
-          <BackupCodes
-            codes={regenerated?.backupCodes ?? []}
-            onDone={() => setCodesOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      <BackupCodesDialog
+        codes={regenerated?.backupCodes ?? []}
+        open={codesOpen}
+        onOpenChange={setCodesOpen}
+      />
       <Item
         size="sm"
         variant="grouped"

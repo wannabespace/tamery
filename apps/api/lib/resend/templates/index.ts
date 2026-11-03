@@ -1,5 +1,6 @@
 export { AccountDeleted } from './account-deleted'
 export { Alert } from './alert'
+export { AuthenticatorAdded } from './authenticator-added'
 export { BackupCodesRegenerated } from './backup-codes-regenerated'
 export { ContactReceived } from './contact-received'
 export { NewSignIn } from './new-sign-in'

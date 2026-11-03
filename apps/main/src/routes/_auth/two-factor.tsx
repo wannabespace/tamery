@@ -15,11 +15,27 @@ import { useFinishSignIn } from './-lib/sign-in'
 
 const { useLoaderData } = getRouteApi('/_auth/two-factor')
 
-const TwoFactorPage = () => {
-  const { hasPasskey } = useLoaderData()
-  const appCodeHint = hasPasskey
+const getHint = ({
+  hasAuthenticator,
+  hasPasskey,
+}: {
+  hasAuthenticator: boolean
+  hasPasskey: boolean
+}) => {
+  if (!hasAuthenticator) {
+    return 'Continue with your passkey, or use a backup code.'
+  }
+
+  return hasPasskey
     ? 'Enter the code from your authenticator app or continue with a passkey.'
     : 'Enter the code from your authenticator app.'
+}
+
+const TwoFactorPage = () => {
+  const { hasAuthenticator, hasPasskey } = useLoaderData()
+  const leaveBackupCodeLabel = hasAuthenticator
+    ? 'Use your authenticator app'
+    : 'Use your passkey'
   const finishSignIn = useFinishSignIn()
   const [code, setCode] = useState('')
   const [isBackupCode, setIsBackupCode] = useState(false)
@@ -51,7 +67,7 @@ const TwoFactorPage = () => {
         <p className="text-muted-foreground text-sm">
           {isBackupCode
             ? 'Enter one of the backup codes you saved when you turned on 2FA.'
-            : appCodeHint}
+            : getHint({ hasAuthenticator, hasPasskey })}
         </p>
       </div>
       {isBackupCode ? (
@@ -84,16 +100,23 @@ const TwoFactorPage = () => {
           </Button>
         </form>
       ) : (
-        <TotpCodeInput
-          label="Verification code"
-          value={code}
-          onChange={setCode}
-          onComplete={verify}
-          loading={isPending}
-          autoFocus
+        hasAuthenticator && (
+          <TotpCodeInput
+            label="Verification code"
+            value={code}
+            onChange={setCode}
+            onComplete={verify}
+            loading={isPending}
+            autoFocus
+          />
+        )
+      )}
+      {hasPasskey && (
+        <PasskeyButton
+          variant={hasAuthenticator || isBackupCode ? 'outline' : 'default'}
+          autoFocus={!(hasAuthenticator || isBackupCode)}
         />
       )}
-      {hasPasskey && <PasskeyButton variant="outline" />}
       <Button
         variant="link-muted"
         size="xs"
@@ -102,7 +125,7 @@ const TwoFactorPage = () => {
           setIsBackupCode(!isBackupCode)
         }}
       >
-        {isBackupCode ? 'Use your authenticator app' : 'Use a backup code'}
+        {isBackupCode ? leaveBackupCodeLabel : 'Use a backup code'}
       </Button>
     </div>
   )
@@ -117,11 +140,11 @@ export const Route = createFileRoute('/_auth/two-factor')({
       throw redirect({ to: '/account' })
     }
 
-    const { data } = await authClient.$fetch<{ hasPasskey: boolean }>(
-      '/passkey/pending-two-factor',
-      { method: 'GET' }
-    )
+    const { data } = await authClient.$fetch<{
+      hasAuthenticator: boolean
+      hasPasskey: boolean
+    }>('/passkey/two-factor-methods', { method: 'GET' })
 
-    return { hasPasskey: data?.hasPasskey ?? false }
+    return data ?? { hasAuthenticator: true, hasPasskey: false }
   },
 })

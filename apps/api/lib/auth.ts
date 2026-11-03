@@ -23,7 +23,9 @@ import {
   APIError,
   createAuthEndpoint,
   createAuthMiddleware,
+  getSessionFromCtx,
   isAPIError,
+  sensitiveSessionMiddleware,
 } from 'better-auth/api'
 import {
   anonymous,
@@ -347,6 +349,34 @@ export const auth = betterAuth({
     bearer(),
     {
       ...twoFactorPlugin,
+      endpoints: {
+        ...twoFactorPlugin.endpoints,
+        enableTwoFactorWithPasskey: createAuthEndpoint(
+          '/two-factor/enable-with-passkey',
+          { method: 'POST', use: [sensitiveSessionMiddleware] },
+          async (ctx) => {
+            const { user } = ctx.context.session
+            const where = [{ field: 'userId', value: user.id }]
+            const [passkeyRow, twoFactorRow] = await Promise.all([
+              ctx.context.adapter.findOne({ model: 'passkey', where }),
+              ctx.context.adapter.findOne({ model: 'twoFactor', where }),
+            ])
+
+            // The twoFactor row holds the backup codes, the only way back in if the passkey is lost.
+            if (!(passkeyRow && twoFactorRow)) {
+              throw new APIError('BAD_REQUEST', {
+                message: 'Add a passkey before turning this on.',
+              })
+            }
+
+            await ctx.context.internalAdapter.updateUser(user.id, {
+              twoFactorEnabled: true,
+            })
+
+            return { status: true }
+          }
+        ),
+      },
       hooks: {
         after: [
           // twoFactor() only challenges password sign-ins; without this an email code or Google/GitHub skips TOTP.
@@ -406,6 +436,27 @@ export const auth = betterAuth({
               })
             }),
             matcher: () => true,
+          },
+          // Turning 2FA on and signing in both start a new session; adding an app to active 2FA updates no user row, so databaseHooks never see it.
+          {
+            handler: createAuthMiddleware(async (ctx) => {
+              if (ctx.context.newSession || isAPIError(ctx.context.returned)) {
+                return
+              }
+
+              const session = await getSessionFromCtx(ctx)
+
+              if (session) {
+                await sendEmail({
+                  subject:
+                    'An authenticator app was added to your Tamery account',
+                  template: 'AuthenticatorAdded',
+                  to: session.user.email,
+                })
+              }
+            }),
+            matcher: (context: { path?: string }) =>
+              context.path === '/two-factor/verify-totp',
           },
         ],
       },
@@ -492,32 +543,75 @@ export const auth = betterAuth({
       ...passkeyPlugin,
       endpoints: {
         ...passkeyPlugin.endpoints,
-        hasPendingTwoFactorPasskey: createAuthEndpoint(
-          '/passkey/pending-two-factor',
+        twoFactorMethods: createAuthEndpoint(
+          '/passkey/two-factor-methods',
           { method: 'GET' },
           async (ctx) => {
+            const session = await getSessionFromCtx(ctx)
             // 'two_factor' is twoFactor()'s challenge cookie, whose name better-auth doesn't export.
-            const challengeId = await ctx.getSignedCookie(
-              ctx.context.createAuthCookie('two_factor').name,
-              ctx.context.secret
-            )
+            const challengeId = session
+              ? null
+              : await ctx.getSignedCookie(
+                  ctx.context.createAuthCookie('two_factor').name,
+                  ctx.context.secret
+                )
             const challenge = challengeId
               ? await ctx.context.internalAdapter.findVerificationValue(
                   challengeId
                 )
               : null
-            const challengedPasskey = challenge
-              ? await ctx.context.adapter.findOne({
-                  model: 'passkey',
-                  where: [{ field: 'userId', value: challenge.value }],
-                })
-              : null
+            const userId = session?.user.id ?? challenge?.value
 
-            return { hasPasskey: !!challengedPasskey }
+            if (!userId) {
+              return { hasAuthenticator: true, hasPasskey: false }
+            }
+
+            const where = [{ field: 'userId', value: userId }]
+            const [passkeyRow, twoFactorRow] = await Promise.all([
+              ctx.context.adapter.findOne({ model: 'passkey', where }),
+              ctx.context.adapter.findOne<{ verified: boolean | null }>({
+                model: 'twoFactor',
+                where,
+              }),
+            ])
+
+            return {
+              hasAuthenticator: twoFactorRow?.verified !== false,
+              hasPasskey: !!passkeyRow,
+            }
           }
         ),
       },
       hooks: {
+        before: [
+          {
+            handler: createAuthMiddleware(async (ctx) => {
+              const session = await getSessionFromCtx(ctx)
+
+              if (!session?.user.twoFactorEnabled) {
+                return
+              }
+
+              const where = [{ field: 'userId', value: session.user.id }]
+              const [passkeyCount, twoFactorRow] = await Promise.all([
+                ctx.context.adapter.count({ model: 'passkey', where }),
+                ctx.context.adapter.findOne<{ verified: boolean | null }>({
+                  model: 'twoFactor',
+                  where,
+                }),
+              ])
+
+              if (twoFactorRow?.verified === false && passkeyCount <= 1) {
+                throw new APIError('BAD_REQUEST', {
+                  message:
+                    'This passkey is your only second factor. Set up an authenticator app or disable two-factor authentication first.',
+                })
+              }
+            }),
+            matcher: (context: { path?: string }) =>
+              context.path === '/passkey/delete-passkey',
+          },
+        ],
         after: [
           // The plugin writes passkeys through the raw adapter, so databaseHooks never see them.
           {

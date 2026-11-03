@@ -15,16 +15,20 @@ import { QRCode } from 'react-qr-code'
 import { toast } from 'sonner'
 
 import { TotpCodeInput } from '~/components/totp-code-input'
-import { authClient, useReloadSession } from '~/lib/auth'
+import { authClient } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { handleError } from '~/utils/error'
 
+import { useReloadTwoFactor } from './two-factor-methods'
+
 export interface TotpSetup {
   backupCodes: string[]
+  // Starting setup on an account with 2FA on has already replaced its backup codes, so they must be saved before anything else can be abandoned.
+  codesFirst: boolean
   totpURI: string
 }
 
-export const BackupCodes = ({
+const BackupCodes = ({
   codes,
   onDone,
 }: {
@@ -69,6 +73,22 @@ export const BackupCodes = ({
   </>
 )
 
+export const BackupCodesDialog = ({
+  codes,
+  open,
+  onOpenChange,
+}: {
+  codes: string[]
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) => (
+  <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="sm:max-w-xs">
+      <BackupCodes codes={codes} onDone={() => onOpenChange(false)} />
+    </DialogContent>
+  </Dialog>
+)
+
 export const EnableTfaDialog = ({
   open,
   onOpenChange,
@@ -78,12 +98,15 @@ export const EnableTfaDialog = ({
   onOpenChange: (open: boolean) => void
   setup: TotpSetup
 }) => {
-  const reloadSession = useReloadSession()
+  const reloadTwoFactor = useReloadTwoFactor()
   const [code, setCode] = useState('')
   const [isVerified, setIsVerified] = useState(false)
+  const [codesSaved, setCodesSaved] = useState(false)
 
   const { mutate: verifyTotp, isPending } = useMutation({
-    meta: { event: 'two_factor_enabled' },
+    meta: {
+      event: setup.codesFirst ? 'authenticator_added' : 'two_factor_enabled',
+    },
     mutationFn: (codeValue: string) =>
       authClient.twoFactor.verifyTotp({
         code: codeValue,
@@ -95,9 +118,15 @@ export const EnableTfaDialog = ({
       setCode('')
     },
     onSuccess: async () => {
-      toast.success('2FA enabled')
-      setIsVerified(true)
-      await reloadSession()
+      if (setup.codesFirst) {
+        toast.success('Authenticator app added')
+        onOpenChange(false)
+      } else {
+        toast.success('2FA enabled')
+        setIsVerified(true)
+      }
+
+      await reloadTwoFactor()
     },
   })
 
@@ -109,14 +138,17 @@ export const EnableTfaDialog = ({
         if (!nextOpen) {
           setCode('')
           setIsVerified(false)
+          setCodesSaved(false)
         }
       }}
     >
       <DialogContent className="sm:max-w-xs">
-        {isVerified ? (
+        {(setup.codesFirst ? !codesSaved : isVerified) ? (
           <BackupCodes
             codes={setup.backupCodes}
-            onDone={() => onOpenChange(false)}
+            onDone={() =>
+              setup.codesFirst ? setCodesSaved(true) : onOpenChange(false)
+            }
           />
         ) : (
           <>

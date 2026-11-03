@@ -5,6 +5,7 @@ import { AccountPage } from '~/components/account-page'
 
 import { passkeysQueryOptions } from '../../components/passkeys'
 import { SecuritySettings } from '../../components/security'
+import { twoFactorMethodsQueryOptions } from '../../components/security/two-factor-methods'
 import {
   accountsQueryOptions,
   SignInMethods,
@@ -30,6 +31,10 @@ export const Route = createFileRoute('/account/authentication')({
       }),
       context.queryClient.query({
         ...passkeysQueryOptions,
+        staleTime: 'static',
+      }),
+      context.queryClient.query({
+        ...twoFactorMethodsQueryOptions,
         staleTime: 'static',
       }),
     ])
