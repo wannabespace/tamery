@@ -8,8 +8,9 @@ permissions:
 
 jobs:
   build:
-    # macOS, so the darwin binaries can be re-signed.
-    runs-on: macos-latest
+    # macOS, so the darwin binaries can be re-signed. Intel, because it cross-compiles every target anyway and macOS arm64
+    # runners can stay unavailable long enough that GitHub cancels the job.
+    runs-on: macos-26-intel
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -67,9 +68,8 @@ jobs:
         include:
           - runner: macos-latest
             binaries: tamery-darwin-arm64
-          - runner: macos-latest
+          - runner: macos-26-intel
             binaries: tamery-darwin-x64
-            rosetta: true
           - runner: ubuntu-latest
             binaries: tamery-linux-x64
             alpine: tamery-linux-x64-musl
@@ -93,14 +93,10 @@ jobs:
 
       - run: tar -xf dist.tar
 
-      - if: matrix.rosetta
-        run: softwareupdate --install-rosetta --agree-to-license
-
       - name: Run the binary
         working-directory: dist
         run: |
           binary="./${{ matrix.binaries }}"
-          if [ "${{ matrix.rosetta }}" = true ]; then binary="arch -x86_64 $binary"; fi
           test "$($binary --version)" = "$VERSION"
           $binary bridge --help | grep -q -- --public-url
 
