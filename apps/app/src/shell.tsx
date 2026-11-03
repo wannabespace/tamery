@@ -1,7 +1,6 @@
 import { AppLogo } from '@tamery/ui/components/brand/app-logo'
 import { cn } from '@tamery/ui/lib/utils'
 
-// h-10 counts the border: trafficLightPosition.y and Windows' titleBarOverlay height (apps/desktop/src/main/main.ts) centre the window controls in it.
 export const titleBarClassName =
   'flex h-10 shrink-0 items-center border-b border-transparent'
 
