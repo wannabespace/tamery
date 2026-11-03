@@ -1,3 +1,4 @@
+import { downloadFile } from '@tamery/shared/files'
 import { Button } from '@tamery/ui/components/button'
 import {
   Dialog,
@@ -16,6 +17,7 @@ import { toast } from 'sonner'
 
 import { TotpCodeInput } from '~/components/totp-code-input'
 import { authClient } from '~/lib/auth'
+import { posthog } from '~/lib/posthog'
 import { handleError } from '~/utils/error'
 
 export interface TotpSetup {
@@ -49,6 +51,19 @@ const BackupCodes = ({
         onClick={() => copy(codes.join('\n'), 'Backup codes copied')}
       >
         Copy
+      </Button>
+      <Button
+        variant="outline"
+        onClick={() => {
+          downloadFile(
+            codes.join('\n'),
+            'tamery-backup-codes.txt',
+            'text/plain'
+          )
+          void posthog.capture('backup_codes_downloaded')
+        }}
+      >
+        Download
       </Button>
       <Button onClick={onDone}>Done</Button>
     </DialogFooter>
