@@ -114,9 +114,7 @@ const AuthPage = () => {
 
   return (
     <>
-      {window.electron && (
-        <TitleBar className="traffic-lights:mb-0 -mb-10.25" />
-      )}
+      {window.electron && <TitleBar className="traffic-lights:mb-0 -mb-10" />}
       <div className="relative grid flex-1 overflow-hidden lg:grid-cols-2">
         <AuthSidePanel />
         <div className="relative flex flex-col overflow-hidden px-4 py-6">

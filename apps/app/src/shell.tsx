@@ -1,8 +1,9 @@
 import { AppLogo } from '@tamery/ui/components/brand/app-logo'
 import { cn } from '@tamery/ui/lib/utils'
 
+// h-10 counts the border: trafficLightPosition.y and Windows' titleBarOverlay height (apps/desktop/src/main/main.ts) centre the window controls in it.
 export const titleBarClassName =
-  'flex h-[calc(40px+1px)] shrink-0 items-center border-b border-transparent'
+  'flex h-10 shrink-0 items-center border-b border-transparent'
 
 export const resourcePanelClassName =
   'bg-background ring-foreground/4 flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl ring'
@@ -92,7 +93,7 @@ const SettingsShell = () => (
 const AuthShell = () => (
   <div
     aria-hidden
-    className="traffic-lights:pt-10.25 pointer-events-none fixed inset-0 grid lg:grid-cols-2"
+    className="traffic-lights:pt-10 pointer-events-none fixed inset-0 grid lg:grid-cols-2"
     data-shell
     id="shell-auth"
   >
