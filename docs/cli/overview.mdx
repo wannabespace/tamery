@@ -116,16 +116,7 @@ tamery update
 
 Then restart the bridge. `tamery update` installs the latest version the same way you installed the CLI. [CLI commands](/cli/commands#tamery-update) covers what it does when something is in the way.
 
-A CLI older than `tamery update` says it is an unknown command. Run the command you installed with again:
-
-| Installed with | Command |
-| --- | --- |
-| Install script | `curl -fsSL https://tamery.app/cli/install.sh \| sh` or `irm https://tamery.app/cli/install.ps1 \| iex` |
-| npm | `npm i -g tamery` |
-| pnpm | `pnpm add -g tamery` |
-| Bun | `bun add -g tamery` |
-
-When it starts, `tamery bridge` checks for a newer version and tells you to run `tamery update` when there is one. **Settings → Bridge** shows the update too, with the command for how that bridge was installed, which works on every version. When the web app needs a newer bridge, it stops sending queries to it and shows the same command.
+When it starts, `tamery bridge` checks for a newer version and tells you to run `tamery update` when there is one. **Settings → Bridge** shows the update too. When the web app needs a newer bridge, it stops sending queries to it and shows the update there.
 
 <Cards>
   <Card href="/cli/commands" />
