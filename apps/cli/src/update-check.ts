@@ -25,9 +25,6 @@ let latestVersion: string | null = null
 export const updates = {
   /** Never awaited at startup: the registry must not hold the bridge back. */
   check: async () => {
-    if (!import.meta.env.VERSION) {
-      return
-    }
     const fetched = await Result.tryPromise(async () => {
       const response = await fetch('https://registry.npmjs.org/tamery/latest', {
         signal: AbortSignal.timeout(REGISTRY_TIMEOUT_MS),

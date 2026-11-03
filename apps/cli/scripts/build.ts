@@ -3,7 +3,6 @@ import path from 'node:path'
 import process from 'node:process'
 import { parseArgs } from 'node:util'
 
-import pkg from '../package.json' with { type: 'json' }
 import { env } from '../src/env'
 import { getBinaryName, isTarget, TARGETS } from './targets'
 
@@ -63,7 +62,6 @@ await Promise.all(
       define: {
         'import.meta.env.API_URL': JSON.stringify(env.API_URL),
         'import.meta.env.MAIN_URL': JSON.stringify(env.MAIN_URL),
-        'import.meta.env.VERSION': JSON.stringify(pkg.version),
         'import.meta.env.WEB_URL': JSON.stringify(env.WEB_URL),
       },
       entrypoints: [path.join(import.meta.dirname, '..', 'src', 'index.ts')],
