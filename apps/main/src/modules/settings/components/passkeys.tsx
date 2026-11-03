@@ -1,9 +1,9 @@
+import { FingerPrintIcon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
+import type { WebAuthnErrorCode } from '@simplewebauthn/browser'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
-import {
-  SettingsGroup,
-  SettingsRow,
-} from '@tamery/ui/components/custom/settings-group'
+import { SettingsRow } from '@tamery/ui/components/custom/settings-group'
 import {
   queryOptions,
   useMutation,
@@ -11,10 +11,17 @@ import {
 } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { authClient, isPasskeyPromptDismissed } from '~/lib/auth'
+import {
+  authClient,
+  isPasskeyPromptDismissed,
+  SESSION_NOT_FRESH_CODE,
+} from '~/lib/auth'
 import { handleError } from '~/utils/error'
 
 import { PasskeyItem } from './passkey-item'
+
+const ALREADY_REGISTERED: WebAuthnErrorCode =
+  'ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED'
 
 export const passkeysQueryOptions = queryOptions({
   queryFn: () =>
@@ -36,8 +43,12 @@ export const PasskeysSettings = () => {
       }
     },
     onError: (error: { code?: string }) => {
-      if (error.code === authClient.$ERROR_CODES.SESSION_NOT_FRESH.code) {
+      if (error.code === SESSION_NOT_FRESH_CODE) {
         toast.error('Sign in again to add a passkey.')
+      } else if (error.code === ALREADY_REGISTERED) {
+        toast.error(
+          'This device or password manager already has a passkey for your account.'
+        )
       } else if (!isPasskeyPromptDismissed(error)) {
         void handleError(error)
       }
@@ -49,17 +60,21 @@ export const PasskeysSettings = () => {
   })
 
   return (
-    <SettingsGroup title="Passkeys">
-      {passkeys.map((passkey) => (
-        <PasskeyItem
-          key={passkey.id}
-          {...passkey}
-          refetchPasskeys={refetchPasskeys}
-        />
-      ))}
+    <>
       <SettingsRow
-        title="Add a passkey"
-        description="Sign in with your fingerprint, face or device PIN instead of an email code."
+        icon={
+          <HugeiconsIcon
+            icon={FingerPrintIcon}
+            strokeWidth={2}
+            className="size-4"
+          />
+        }
+        title="Passkeys"
+        description={
+          passkeys.length > 0
+            ? `${passkeys.length} registered`
+            : 'Sign in with your fingerprint, face or device PIN instead of an email code.'
+        }
       >
         <Button
           variant="outline"
@@ -70,6 +85,13 @@ export const PasskeysSettings = () => {
           <LoadingContent loading={isPending}>Add</LoadingContent>
         </Button>
       </SettingsRow>
-    </SettingsGroup>
+      {passkeys.map((passkey) => (
+        <PasskeyItem
+          key={passkey.id}
+          {...passkey}
+          refetchPasskeys={refetchPasskeys}
+        />
+      ))}
+    </>
   )
 }

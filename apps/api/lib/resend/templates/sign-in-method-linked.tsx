@@ -12,9 +12,8 @@ export const SignInMethodLinked = ({ provider }: { provider: string }) => (
   >
     <Section className="mb-5">
       <Text>
-        You can now sign in to Tamery with {provider}. It was connected the
-        first time someone signed in with a {provider} account that uses this
-        email.
+        You can now sign in to Tamery with {provider}, through a {provider}
+        account that uses this email.
       </Text>
       <Text>
         If this wasn&apos;t you, review your sessions, sign out any device you

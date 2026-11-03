@@ -1,3 +1,5 @@
+import { SmartPhone01Icon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import {
   SettingsGroup,
   SettingsRow,
@@ -50,10 +52,17 @@ export const SecuritySettings = () => {
         setup={setup}
       />
       <DisableTfaDialog open={disableOpen} onOpenChange={setDisableOpen} />
-      <SettingsGroup title="Security">
+      <SettingsGroup title="Two-factor authentication">
         <SettingsRow
           htmlFor="two-factor"
-          title="Two-factor authentication"
+          icon={
+            <HugeiconsIcon
+              icon={SmartPhone01Icon}
+              strokeWidth={2}
+              className="size-4"
+            />
+          }
+          title="Authenticator app"
           description={
             twoFactorEnabled
               ? 'Signing in asks for a code from your authenticator app.'

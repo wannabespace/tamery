@@ -16,6 +16,7 @@ import { Route as LlmsChar91DotChar93txtRouteImport } from './routes/llms[.]txt'
 import { Route as OpenRouteImport } from './modules/deep-link/routes/open'
 import { Route as SitemapChar91DotChar93xmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthEmailCodeRouteImport } from './routes/_auth/email-code'
+import { Route as AuthPasskeyRouteImport } from './routes/_auth/passkey'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthTwoFactorRouteImport } from './routes/_auth/two-factor'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
@@ -26,6 +27,7 @@ import { Route as LayoutReleasesRouteImport } from './modules/releases/routes/_l
 import { Route as LayoutTermsOfServiceRouteImport } from './modules/legal/routes/_layout/terms-of-service'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as AccountAiUsageRouteImport } from './modules/ai-usage/routes/account/ai-usage'
+import { Route as AccountAuthenticationRouteImport } from './modules/settings/routes/account/authentication'
 import { Route as AccountBillingRouteImport } from './modules/billing/routes/account/billing'
 import { Route as DeepDotshareRouteImport } from './modules/deep-link/routes/deep.share'
 import { Route as DeepDotsignInRouteImport } from './modules/deep-link/routes/deep.sign-in'
@@ -67,6 +69,11 @@ const SitemapChar91DotChar93xmlRoute =
 const AuthEmailCodeRoute = AuthEmailCodeRouteImport.update({
   id: '/email-code',
   path: '/email-code',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthPasskeyRoute = AuthPasskeyRouteImport.update({
+  id: '/passkey',
+  path: '/passkey',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthSignInRoute = AuthSignInRouteImport.update({
@@ -119,6 +126,11 @@ const AccountAiUsageRoute = AccountAiUsageRouteImport.update({
   path: '/ai-usage',
   getParentRoute: () => AccountRoute,
 } as any)
+const AccountAuthenticationRoute = AccountAuthenticationRouteImport.update({
+  id: '/authentication',
+  path: '/authentication',
+  getParentRoute: () => AccountRoute,
+} as any)
 const AccountBillingRoute = AccountBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -169,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/open': typeof OpenRoute
   '/sitemap.xml': typeof SitemapChar91DotChar93xmlRoute
   '/email-code': typeof AuthEmailCodeRoute
+  '/passkey': typeof AuthPasskeyRoute
   '/sign-in': typeof AuthSignInRoute
   '/two-factor': typeof AuthTwoFactorRoute
   '/download': typeof LayoutDownloadRoute
@@ -177,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/releases': typeof LayoutReleasesRoute
   '/terms-of-service': typeof LayoutTermsOfServiceRoute
   '/account/ai-usage': typeof AccountAiUsageRoute
+  '/account/authentication': typeof AccountAuthenticationRoute
   '/account/billing': typeof AccountBillingRoute
   '/deep/share': typeof DeepDotshareRoute
   '/deep/sign-in': typeof DeepDotsignInRoute
@@ -193,6 +207,7 @@ export interface FileRoutesByTo {
   '/open': typeof OpenRoute
   '/sitemap.xml': typeof SitemapChar91DotChar93xmlRoute
   '/email-code': typeof AuthEmailCodeRoute
+  '/passkey': typeof AuthPasskeyRoute
   '/sign-in': typeof AuthSignInRoute
   '/two-factor': typeof AuthTwoFactorRoute
   '/download': typeof LayoutDownloadRoute
@@ -201,6 +216,7 @@ export interface FileRoutesByTo {
   '/releases': typeof LayoutReleasesRoute
   '/terms-of-service': typeof LayoutTermsOfServiceRoute
   '/account/ai-usage': typeof AccountAiUsageRoute
+  '/account/authentication': typeof AccountAuthenticationRoute
   '/account/billing': typeof AccountBillingRoute
   '/deep/share': typeof DeepDotshareRoute
   '/deep/sign-in': typeof DeepDotsignInRoute
@@ -220,6 +236,7 @@ export interface FileRoutesById {
   '/open': typeof OpenRoute
   '/sitemap.xml': typeof SitemapChar91DotChar93xmlRoute
   '/_auth/email-code': typeof AuthEmailCodeRoute
+  '/_auth/passkey': typeof AuthPasskeyRoute
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/two-factor': typeof AuthTwoFactorRoute
   '/_layout/download': typeof LayoutDownloadRoute
@@ -228,6 +245,7 @@ export interface FileRoutesById {
   '/_layout/releases': typeof LayoutReleasesRoute
   '/_layout/terms-of-service': typeof LayoutTermsOfServiceRoute
   '/account/ai-usage': typeof AccountAiUsageRoute
+  '/account/authentication': typeof AccountAuthenticationRoute
   '/account/billing': typeof AccountBillingRoute
   '/deep/share': typeof DeepDotshareRoute
   '/deep/sign-in': typeof DeepDotsignInRoute
@@ -248,6 +266,7 @@ export interface FileRouteTypes {
     | '/open'
     | '/sitemap.xml'
     | '/email-code'
+    | '/passkey'
     | '/sign-in'
     | '/two-factor'
     | '/download'
@@ -256,6 +275,7 @@ export interface FileRouteTypes {
     | '/releases'
     | '/terms-of-service'
     | '/account/ai-usage'
+    | '/account/authentication'
     | '/account/billing'
     | '/deep/share'
     | '/deep/sign-in'
@@ -272,6 +292,7 @@ export interface FileRouteTypes {
     | '/open'
     | '/sitemap.xml'
     | '/email-code'
+    | '/passkey'
     | '/sign-in'
     | '/two-factor'
     | '/download'
@@ -280,6 +301,7 @@ export interface FileRouteTypes {
     | '/releases'
     | '/terms-of-service'
     | '/account/ai-usage'
+    | '/account/authentication'
     | '/account/billing'
     | '/deep/share'
     | '/deep/sign-in'
@@ -298,6 +320,7 @@ export interface FileRouteTypes {
     | '/open'
     | '/sitemap.xml'
     | '/_auth/email-code'
+    | '/_auth/passkey'
     | '/_auth/sign-in'
     | '/_auth/two-factor'
     | '/_layout/download'
@@ -306,6 +329,7 @@ export interface FileRouteTypes {
     | '/_layout/releases'
     | '/_layout/terms-of-service'
     | '/account/ai-usage'
+    | '/account/authentication'
     | '/account/billing'
     | '/deep/share'
     | '/deep/sign-in'
@@ -382,6 +406,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthEmailCodeRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/passkey': {
+      id: '/_auth/passkey'
+      path: '/passkey'
+      fullPath: '/passkey'
+      preLoaderRoute: typeof AuthPasskeyRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/sign-in': {
       id: '/_auth/sign-in'
       path: '/sign-in'
@@ -452,6 +483,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountAiUsageRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/account/authentication': {
+      id: '/account/authentication'
+      path: '/authentication'
+      fullPath: '/account/authentication'
+      preLoaderRoute: typeof AccountAuthenticationRouteImport
+      parentRoute: typeof AccountRoute
+    }
     '/account/billing': {
       id: '/account/billing'
       path: '/billing'
@@ -513,12 +551,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthRouteChildren {
   AuthEmailCodeRoute: typeof AuthEmailCodeRoute
+  AuthPasskeyRoute: typeof AuthPasskeyRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthTwoFactorRoute: typeof AuthTwoFactorRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthEmailCodeRoute: AuthEmailCodeRoute,
+  AuthPasskeyRoute: AuthPasskeyRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthTwoFactorRoute: AuthTwoFactorRoute,
 }
@@ -552,6 +592,7 @@ const LayoutRouteWithChildren =
 
 interface AccountRouteChildren {
   AccountAiUsageRoute: typeof AccountAiUsageRoute
+  AccountAuthenticationRoute: typeof AccountAuthenticationRoute
   AccountBillingRoute: typeof AccountBillingRoute
   AccountIndexRoute: typeof AccountIndexRoute
   AccountSettingsIndexRoute: typeof AccountSettingsIndexRoute
@@ -559,6 +600,7 @@ interface AccountRouteChildren {
 
 const AccountRouteChildren: AccountRouteChildren = {
   AccountAiUsageRoute: AccountAiUsageRoute,
+  AccountAuthenticationRoute: AccountAuthenticationRoute,
   AccountBillingRoute: AccountBillingRoute,
   AccountIndexRoute: AccountIndexRoute,
   AccountSettingsIndexRoute: AccountSettingsIndexRoute,
