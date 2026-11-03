@@ -2,6 +2,10 @@ catalogMode: prefer
 cleanupUnusedCatalogs: true
 shellEmulator: true
 blockExoticSubdeps: false
+# Keep in sync with the npm cooldown in .github/dependabot.yml: a fresher bump fails CI's lockfile verification.
+minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - kysely@0.29.8
 packages:
   - packages/*
   - apps/*
