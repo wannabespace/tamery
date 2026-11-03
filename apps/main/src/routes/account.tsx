@@ -27,6 +27,7 @@ import { authClient } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { AiUsageLink } from '~/modules/ai-usage/ai-usage-link'
 import { BillingLink } from '~/modules/billing/billing-link'
+import { AuthenticationLink } from '~/modules/settings/authentication-link'
 import { SettingsLink } from '~/modules/settings/settings-link'
 import { SupportButton } from '~/modules/support/support-button'
 
@@ -99,6 +100,7 @@ const AccountLayout = () => {
             </SidebarLink>
             <BillingLink />
             <AiUsageLink />
+            <AuthenticationLink />
             <SettingsLink />
             <SupportButton />
             <Separator className="mx-2 my-1.5 hidden w-auto! md:block" />

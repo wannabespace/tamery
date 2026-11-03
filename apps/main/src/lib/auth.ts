@@ -1,4 +1,4 @@
-import { passkeyClient } from '@better-auth/passkey/client'
+import { PASSKEY_ERROR_CODES, passkeyClient } from '@better-auth/passkey/client'
 import type { WebAuthnErrorCode } from '@simplewebauthn/browser'
 import { queryOptions } from '@tanstack/react-query'
 import { createIsomorphicFn } from '@tanstack/react-start'
@@ -45,9 +45,12 @@ export const authClient = createAuthClient({
   ],
 })
 
+// Never compare against authClient.$ERROR_CODES: it exists only in Better Auth's types, at runtime it is a path proxy and no code ever equals it.
+export const SESSION_NOT_FRESH_CODE = 'SESSION_NOT_FRESH'
+
 // A dismissed or timed-out browser prompt reports NotAllowedError, which arrives as the passthrough code, not AUTH_CANCELLED.
 const PASSKEY_DISMISSED_CODES = new Set<string>([
-  authClient.$ERROR_CODES.AUTH_CANCELLED.code,
+  PASSKEY_ERROR_CODES.AUTH_CANCELLED.code,
   ...([
     'ERROR_CEREMONY_ABORTED',
     'ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY',

@@ -51,6 +51,9 @@ const twoFactorPlugin = twoFactor({ allowPasswordless: true })
 
 const mainUrl = new URL(env.MAIN_URL)
 
+const PASSKEY_EXISTS_MESSAGE =
+  'This device or password manager already has a passkey for your account.'
+
 const passkeyPlugin = passkey({
   authentication: {
     // A passkey sign-in skips the TOTP challenge, so it must carry its own second factor (fingerprint, face or device PIN).
@@ -69,12 +72,32 @@ const passkeyPlugin = passkey({
   // Every sign-in runs on the site, not on the API's own host the plugin would default to.
   origin: mainUrl.origin,
   registration: {
-    afterVerification: ({ ctx, verification }) =>
-      Promise.resolve({
+    afterVerification: async ({ ctx, user, verification }) => {
+      const { aaguid, credentialDeviceType } =
+        verification.registrationInfo ?? {}
+
+      // excludeCredentials is only a request some password managers ignore. Device-bound passkeys stay allowed: two security keys of one model, or one per computer, are real backups.
+      if (credentialDeviceType === 'multiDevice' && aaguid) {
+        const duplicate = await ctx.context.adapter.findOne({
+          model: 'passkey',
+          where: [
+            { field: 'userId', value: user.id },
+            { field: 'aaguid', value: aaguid },
+            { field: 'deviceType', value: credentialDeviceType },
+          ],
+        })
+
+        if (duplicate) {
+          throw new APIError('BAD_REQUEST', { message: PASSKEY_EXISTS_MESSAGE })
+        }
+      }
+
+      return {
         name:
-          getAuthenticatorName(verification.registrationInfo?.aaguid) ??
+          getAuthenticatorName(aaguid) ??
           formatDeviceLabel(ctx.headers?.get('user-agent') ?? ''),
-      }),
+      }
+    },
   },
   rpID: mainUrl.hostname,
 })
@@ -123,6 +146,12 @@ const isOAuthCallback = ({ path }: { path?: string }) =>
   path?.startsWith('/callback/') === true
 
 export const auth = betterAuth({
+  account: {
+    accountLinking: {
+      // An email code needs no account row, so disconnecting the last provider locks nobody out.
+      allowUnlinkingAll: true,
+    },
+  },
   advanced: {
     cookiePrefix: AUTH_COOKIE_PREFIX,
     crossSubDomainCookies: {

@@ -13,10 +13,12 @@ export const PasskeyAdded = () => (
         or two-factor authentication.
       </Text>
       <Text>
-        If this wasn&apos;t you, delete that passkey under Settings → Passkeys
-        and sign out any device you don&apos;t recognize.
+        If this wasn&apos;t you, delete that passkey under Authentication and
+        sign out any device you don&apos;t recognize.
       </Text>
     </Section>
-    <Button href={`${env.MAIN_URL}/account/settings`}>Review security</Button>
+    <Button href={`${env.MAIN_URL}/account/authentication`}>
+      Review passkeys
+    </Button>
   </Base>
 )

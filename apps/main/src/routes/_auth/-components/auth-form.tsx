@@ -1,13 +1,6 @@
-import {
-  FingerPrintIcon,
-  GithubIcon,
-  GoogleIcon,
-} from '@hugeicons/core-free-icons'
+import { GithubIcon, GoogleIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  SOCIAL_PROVIDER_LABELS,
-  UNKNOWN_ERROR_MESSAGE,
-} from '@tamery/shared/constants'
+import { SOCIAL_PROVIDER_LABELS } from '@tamery/shared/constants'
 import { Badge } from '@tamery/ui/components/badge'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
@@ -16,17 +9,13 @@ import { Form, useAppForm } from '@tamery/ui/components/tanstack-form'
 import { useIsMutating, useMutation } from '@tanstack/react-query'
 import { getRouteApi, useRouter } from '@tanstack/react-router'
 import { type } from 'arktype'
-import { toast } from 'sonner'
 
-import {
-  authClient,
-  getLastUsedLoginMethod,
-  isPasskeyPromptDismissed,
-} from '~/lib/auth'
+import { authClient, getLastUsedLoginMethod } from '~/lib/auth'
+import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { handleError } from '~/utils/error'
 
-import { sendSignInCode, useFinishSignIn } from '../-lib/sign-in'
+import { sendSignInCode } from '../-lib/sign-in'
 
 const { useSearch } = getRouteApi('/_auth')
 
@@ -107,54 +96,11 @@ const SocialButton = ({
   )
 }
 
-const PasskeyButton = () => {
-  const finishSignIn = useFinishSignIn()
-  const isAnyPending = useIsMutating({ mutationKey: ['sign-in'] }) > 0
-  const { mutate, isPending } = useMutation({
-    meta: { event: 'passkey_signed_in' },
-    mutationKey: ['sign-in', 'passkey'],
-    mutationFn: async () => {
-      const { error } = await authClient.signIn.passkey()
-
-      if (error) {
-        throw error
-      }
-    },
-    onSuccess: () => finishSignIn(),
-    // Not handleError: it reads a 401 as an expired session, and a passkey the account no longer has answers 401.
-    onError: (error: { code?: string; message?: string }) => {
-      if (!isPasskeyPromptDismissed(error)) {
-        toast.error(error.message ?? UNKNOWN_ERROR_MESSAGE)
-      }
-    },
-  })
-
-  return (
-    <Button
-      variant="outline"
-      className="relative w-full"
-      onClick={() => mutate()}
-      disabled={isAnyPending}
-    >
-      <LoadingContent loading={isPending}>
-        <HugeiconsIcon
-          icon={FingerPrintIcon}
-          strokeWidth={2}
-          className="size-4"
-        />
-        Passkey
-      </LoadingContent>
-      {getLastUsedLoginMethod() === 'passkey' && <Last />}
-    </Button>
-  )
-}
-
 const SocialAuthForm = () => (
-  <div className="grid grid-cols-3 gap-3">
+  <div className="grid grid-cols-2 gap-3">
     {SOCIAL_PROVIDERS.map((provider) => (
       <SocialButton key={provider.id} provider={provider} />
     ))}
-    <PasskeyButton />
   </div>
 )
 
@@ -163,7 +109,7 @@ export const AuthForm = () => {
   const lastMethod = getLastUsedLoginMethod()
   const router = useRouter()
 
-  const { mutate: sendCode, isPending } = useMutation({
+  const { mutate: sendCode, isPending: isSendingCode } = useMutation({
     meta: { event: 'sign_in_code_sent' },
     mutationFn: sendSignInCode,
     onSuccess: (_, email) =>
@@ -171,10 +117,23 @@ export const AuthForm = () => {
     onError: handleError,
   })
 
+  const { mutate: continueWithEmail, isPending: isCheckingPasskey } =
+    useMutation({
+      mutationFn: (email: string) => orpc.hasPasskey.call({ email }),
+      onSuccess: (hasPasskey, email) =>
+        hasPasskey
+          ? router.navigate({ to: '/passkey', search: { ...search, email } })
+          : sendCode(email),
+      // A rate-limited or failed lookup must never block signing in.
+      onError: (_, email) => sendCode(email),
+    })
+
+  const isPending = isCheckingPasskey || isSendingCode
+
   const form = useAppForm({
     defaultValues: { email: '' },
     validators: { onChange: emailSchema },
-    onSubmit: ({ value }) => sendCode(value.email),
+    onSubmit: ({ value }) => continueWithEmail(value.email),
   })
 
   return (
@@ -225,7 +184,9 @@ export const AuthForm = () => {
             <LoadingContent loading={isPending}>
               Continue with email
             </LoadingContent>
-            {lastMethod === 'email-otp' && <Last />}
+            {(lastMethod === 'email-otp' || lastMethod === 'passkey') && (
+              <Last />
+            )}
           </Button>
         </FieldSet>
       </Form>

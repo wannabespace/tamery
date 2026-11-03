@@ -23,7 +23,7 @@ export const NewSignIn = ({
 
   if (signedInWithPasskey) {
     advice =
-      "If it wasn't, sign that device out and delete any passkey you don't recognize under Settings → Passkeys: a passkey sign-in skips two-factor authentication."
+      "If it wasn't, sign that device out and delete any passkey you don't recognize under Authentication: a passkey sign-in skips two-factor authentication."
   } else if (twoFactorEnabled) {
     advice =
       "If it wasn't, sign that device out right away: whoever it was also got past two-factor authentication."
