@@ -1,6 +1,6 @@
 {
   "name": "@tamery/cli",
-  "version": "1.0.0-rc.1",
+  "version": "0.99.0",
   "private": true,
   "description": "Tamery from your terminal.",
   "keywords": [
