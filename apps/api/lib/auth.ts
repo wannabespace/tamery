@@ -19,7 +19,12 @@ import type { WorkspaceRole } from '@tamery/shared/workspace'
 import type { Session } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { emailHarmony } from 'better-auth-harmony'
-import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api'
+import {
+  APIError,
+  createAuthEndpoint,
+  createAuthMiddleware,
+  isAPIError,
+} from 'better-auth/api'
 import {
   anonymous,
   bearer,
@@ -468,6 +473,33 @@ export const auth = betterAuth({
     }),
     {
       ...passkeyPlugin,
+      endpoints: {
+        ...passkeyPlugin.endpoints,
+        hasPendingTwoFactorPasskey: createAuthEndpoint(
+          '/passkey/pending-two-factor',
+          { method: 'GET' },
+          async (ctx) => {
+            // 'two_factor' is twoFactor()'s challenge cookie, whose name better-auth doesn't export.
+            const challengeId = await ctx.getSignedCookie(
+              ctx.context.createAuthCookie('two_factor').name,
+              ctx.context.secret
+            )
+            const challenge = challengeId
+              ? await ctx.context.internalAdapter.findVerificationValue(
+                  challengeId
+                )
+              : null
+            const challengedPasskey = challenge
+              ? await ctx.context.adapter.findOne({
+                  model: 'passkey',
+                  where: [{ field: 'userId', value: challenge.value }],
+                })
+              : null
+
+            return { hasPasskey: !!challengedPasskey }
+          }
+        ),
+      },
       hooks: {
         after: [
           // The plugin writes passkeys through the raw adapter, so databaseHooks never see them.

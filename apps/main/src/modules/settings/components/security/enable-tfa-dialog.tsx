@@ -10,13 +10,12 @@ import {
 } from '@tamery/ui/components/dialog'
 import { copy } from '@tamery/ui/lib/copy'
 import { useMutation } from '@tanstack/react-query'
-import { useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { QRCode } from 'react-qr-code'
 import { toast } from 'sonner'
 
 import { TotpCodeInput } from '~/components/totp-code-input'
-import { authClient } from '~/lib/auth'
+import { authClient, useReloadSession } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { handleError } from '~/utils/error'
 
@@ -25,7 +24,7 @@ export interface TotpSetup {
   totpURI: string
 }
 
-const BackupCodes = ({
+export const BackupCodes = ({
   codes,
   onDone,
 }: {
@@ -79,7 +78,7 @@ export const EnableTfaDialog = ({
   onOpenChange: (open: boolean) => void
   setup: TotpSetup
 }) => {
-  const router = useRouter()
+  const reloadSession = useReloadSession()
   const [code, setCode] = useState('')
   const [isVerified, setIsVerified] = useState(false)
 
@@ -98,7 +97,7 @@ export const EnableTfaDialog = ({
     onSuccess: async () => {
       toast.success('2FA enabled')
       setIsVerified(true)
-      await router.invalidate()
+      await reloadSession()
     },
   })
 

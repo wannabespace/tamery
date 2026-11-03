@@ -1,10 +1,11 @@
 import { SmartPhone01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { Button } from '@tamery/ui/components/button'
+import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
 import {
   SettingsGroup,
   SettingsRow,
 } from '@tamery/ui/components/custom/settings-group'
-import { Switch } from '@tamery/ui/components/switch'
 import { useMutation } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
@@ -12,9 +13,9 @@ import { useState } from 'react'
 import { authClient } from '~/lib/auth'
 import { handleError } from '~/utils/error'
 
-import { DisableTfaDialog } from './disable-tfa-dialog'
 import type { TotpSetup } from './enable-tfa-dialog'
 import { EnableTfaDialog } from './enable-tfa-dialog'
+import { MoreOptions } from './more-options'
 
 const NO_SETUP: TotpSetup = { backupCodes: [], totpURI: '' }
 
@@ -25,7 +26,6 @@ export const SecuritySettings = () => {
   const twoFactorEnabled = user.twoFactorEnabled ?? false
 
   const [enableOpen, setEnableOpen] = useState(false)
-  const [disableOpen, setDisableOpen] = useState(false)
 
   const {
     mutate: enable,
@@ -51,10 +51,8 @@ export const SecuritySettings = () => {
         onOpenChange={setEnableOpen}
         setup={setup}
       />
-      <DisableTfaDialog open={disableOpen} onOpenChange={setDisableOpen} />
       <SettingsGroup title="Two-factor authentication">
         <SettingsRow
-          htmlFor="two-factor"
           icon={
             <HugeiconsIcon
               icon={SmartPhone01Icon}
@@ -65,20 +63,22 @@ export const SecuritySettings = () => {
           title="Authenticator app"
           description={
             twoFactorEnabled
-              ? 'Signing in asks for a code from your authenticator app.'
+              ? 'On. Signing in asks for a code from your app, or a passkey if you added one.'
               : 'Ask for a code from an authenticator app when you sign in.'
           }
         >
-          <Switch
-            id="two-factor"
-            size="sm"
-            checked={twoFactorEnabled}
-            onCheckedChange={() =>
-              twoFactorEnabled ? setDisableOpen(true) : enable()
-            }
-            disabled={isEnabling}
-          />
+          {!twoFactorEnabled && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => enable()}
+              disabled={isEnabling}
+            >
+              <LoadingContent loading={isEnabling}>Set up</LoadingContent>
+            </Button>
+          )}
         </SettingsRow>
+        {twoFactorEnabled && <MoreOptions />}
       </SettingsGroup>
     </>
   )
