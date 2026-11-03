@@ -1,7 +1,6 @@
 catalogMode: prefer
 cleanupUnusedCatalogs: true
 shellEmulator: true
-blockExoticSubdeps: false
 # Keep in sync with the npm cooldown in .github/dependabot.yml: a fresher bump fails CI's lockfile verification.
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
@@ -196,6 +195,7 @@ allowBuilds:
   ssh2: false
 # @types/ssh2 pins Node 18 types, which clash with Electron's in any workspace compiling the SSH tunnel.
 overrides:
+  '@tailwindcss/typography>postcss-selector-parser': 6.1.5
   dompurify: ^3.4.17
   '@types/ssh2>@types/node': ^24.13.3
   # Collapse esbuild to one version (drizzle-kit asks for ^0.25): it is an optional peer of better-auth, so a second copy splits better-auth/@better-auth/core into two peer variations whose types stop unifying in @tamery/api. It must stay in vite's required ^0.27.0 || ^0.28.0.
