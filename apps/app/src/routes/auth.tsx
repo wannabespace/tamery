@@ -181,13 +181,10 @@ const AuthPage = () => {
                   'Sign In'
                 )}
               </Button>
-              {isWaiting && codeChallenge ? (
+              {isWaiting ? (
                 <div className="mb-2 flex flex-col items-center gap-1">
                   <p className="text-muted-foreground text-center text-xs">
-                    Continue in your browser only if it shows{' '}
-                    <span className="text-foreground font-mono">
-                      {challenge.getUserCode(codeChallenge)}
-                    </span>
+                    Continue in your browser.
                   </p>
                   <Button variant="link-muted" size="xs" onClick={cancelSignIn}>
                     Cancel
