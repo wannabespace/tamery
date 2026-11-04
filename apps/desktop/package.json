@@ -1,6 +1,6 @@
 {
   "name": "@tamery/desktop",
-  "version": "0.99.4",
+  "version": "0.99.5",
   "description": "AI-powered tool for working with Postgres, MySQL, MSSQL, Oracle, ClickHouse and SQLite.",
   "homepage": "https://tamery.app",
   "author": {
