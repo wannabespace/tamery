@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { expect, test } from 'bun:test'
 
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import { EQUAL_FILTER } from '@tamery/shared/filters'
@@ -20,21 +20,6 @@ test('a column name with a space or a dot stays one identifier', () => {
   expect(sql).toBe(
     'select "first name" as "first name", "a.b" as "a.b" from "public"."people" where "a.b" = $1 order by "first name" desc limit $2 offset $3'
   )
-})
-
-test.each([
-  ['public', 'events', '`events`'],
-  ['system', 'dashboards', '`system`.`dashboards`'],
-  ['postgres.public', 'users', '`postgres`.`public`.`users`'],
-])("PostHog's schema %s reads table %s as %s", (schema, table, from) => {
-  const { sql } = selectPage(coldDialect(Dialect.PostHog), {
-    limit: 10,
-    offset: 0,
-    schema,
-    table,
-  }).compile()
-
-  expect(sql.trim()).toBe(`select * from ${from} limit ?`)
 })
 
 test('mongoPage binds filter values by column type and breaks sort ties on _id', () => {
@@ -69,26 +54,4 @@ test('mongoPage binds filter values by column type and breaks sort ties on _id',
 test('mongoPage keeps an explicit _id sort instead of appending its own', () => {
   const [sort] = mongoPage({ limit: 10, offset: 0, orderBy: { _id: 'DESC' } })
   expect(sort).toEqual({ $sort: { _id: -1 } })
-})
-
-describe('PostHog compiles what HogQL accepts', () => {
-  test.each([
-    ['a bare name loses its catalog label', 'public', 'events', '`events`'],
-    ['a warehouse label is dropped too', 'warehouse', 'orders', '`orders`'],
-    [
-      'a dotted name keeps its namespace',
-      'public',
-      'posthog.ai_events',
-      '`posthog`.`ai_events`',
-    ],
-  ])('%s', (_name, schema, table, target) => {
-    const { sql } = selectPage(coldDialect(Dialect.PostHog), {
-      limit: 10,
-      offset: 0,
-      schema,
-      table,
-    }).compile()
-
-    expect(sql.trim()).toBe(`select * from ${target} limit ?`)
-  })
 })

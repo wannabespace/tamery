@@ -198,7 +198,6 @@ export const editColumnQuery = (target: EditColumnTarget) =>
           )
         }
       },
-      posthog: unsupported('Column changes'),
       sqlite:
         altered(target) || commented(target) || target.reference
           ? unsupported('Changing a column')

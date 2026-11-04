@@ -18,7 +18,6 @@ import { prepareQuery } from './dialects/clickhouse/prepare-query'
 import { ClickhouseQueryCompiler } from './dialects/clickhouse/query-compiler'
 import { MssqlQueryCompiler } from './dialects/mssql/query-compiler'
 import { OracleQueryCompiler } from './dialects/oracle/query-compiler'
-import { PosthogQueryCompiler } from './dialects/posthog/query-compiler'
 
 const createBareAdapter = () => ({
   acquireMigrationLock: () => Promise.resolve(),
@@ -58,11 +57,6 @@ export const kyselyDialects = {
     createIntrospector,
     createQueryCompiler: () => new PostgresQueryCompiler(),
   },
-  posthog: {
-    createAdapter: createBareAdapter,
-    createIntrospector,
-    createQueryCompiler: () => new PosthogQueryCompiler(),
-  },
   sqlite: {
     createAdapter: () => new SqliteAdapter(),
     createIntrospector,
@@ -82,6 +76,6 @@ export const coldDialect = memoize(
 )
 
 export const toQueryPayload = (dialect: SqlDialect, compiled: CompiledQuery) =>
-  dialect === Dialect.ClickHouse || dialect === Dialect.PostHog
+  dialect === Dialect.ClickHouse
     ? { query: prepareQuery(compiled), values: [] }
     : { query: compiled.sql, values: [...compiled.parameters] }

@@ -49,7 +49,6 @@ const ENGINE_STRINGS: Record<ConnectionType | Provider, EngineString> = {
     ...SERVER_STRING,
     defaultDatabase: (user) => user,
   },
-  [ConnectionType.PostHog]: SERVER_STRING,
   [ConnectionType.SQLite]: {
     label: ({ database }) => database.slice(database.lastIndexOf('/') + 1),
     resource: SQLITE_RESOURCE_NAME,

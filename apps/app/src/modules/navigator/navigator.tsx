@@ -6,7 +6,6 @@ import { useParams, useRouter } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'motion/react'
 import { useSubscription } from 'seitu/react'
 
-import { getCapabilities } from '~/core/catalog/capabilities'
 import { useConnectionContext } from '~/core/connection/route'
 import { QueryLoggerToggle } from '~/modules/query-logger/query-logger-toggle'
 import { newQueryAction } from '~/modules/runner/lib/new-query'
@@ -61,11 +60,9 @@ export const Navigator = () => {
 
   return (
     <div className="text-foreground flex h-full flex-col pr-1.5">
-      {!getCapabilities(dialect).flags.includes('readOnly') && (
-        <div className="shrink-0 pt-0.5 pb-1.5 pl-2">
-          <NavigatorSwitcher />
-        </div>
-      )}
+      <div className="shrink-0 pt-0.5 pb-1.5 pl-2">
+        <NavigatorSwitcher />
+      </div>
       <div className="relative flex min-h-0 flex-1 flex-col">
         <AnimatePresence initial={false} mode="popLayout">
           <motion.div

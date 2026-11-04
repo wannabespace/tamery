@@ -42,20 +42,16 @@ export const SchemaRow = ({
 }: {
   controlId?: string
   row: Extract<TreeRow, { kind: 'schema' }>
-  onCreateTable?: () => void
-  onCreateView?: () => void
-  onDrop?: () => void
+  onCreateTable: () => void
+  onCreateView: () => void
+  onDrop: () => void
   onRename?: () => void
   onToggle: () => void
 }) => {
   const schemaParam = useActiveTable()?.schema
   const items: AppMenuNode[] = [
-    ...(onCreateView
-      ? [
-          { icon: ViewIcon, label: 'New View', onSelect: onCreateView },
-          { type: 'separator' as const },
-        ]
-      : []),
+    { icon: ViewIcon, label: 'New View', onSelect: onCreateView },
+    { type: 'separator' },
     ...(onRename
       ? [{ icon: PencilEdit01Icon, label: 'Rename', onSelect: onRename }]
       : []),
@@ -64,17 +60,13 @@ export const SchemaRow = ({
       label: 'Copy Name',
       onSelect: () => copyToClipboard(row.name, 'Schema name copied'),
     },
-    ...(onDrop
-      ? [
-          { type: 'separator' as const },
-          {
-            icon: Delete02Icon,
-            label: 'Drop',
-            onSelect: onDrop,
-            variant: 'destructive' as const,
-          },
-        ]
-      : []),
+    { type: 'separator' },
+    {
+      icon: Delete02Icon,
+      label: 'Drop',
+      onSelect: onDrop,
+      variant: 'destructive',
+    },
   ]
 
   return (
@@ -125,28 +117,26 @@ export const SchemaRow = ({
           />
         }
       />
-      {onCreateTable && (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <SidebarMenuAction
-                showOnHover
-                tabIndex={-1}
-                aria-label={`New table in ${row.name}`}
-                className="top-1/2 right-6 -translate-y-1/2"
-                onClick={onCreateTable}
-              />
-            }
-          >
-            <HugeiconsIcon
-              icon={PlusSignIcon}
-              strokeWidth={2}
-              className="size-3.5!"
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <SidebarMenuAction
+              showOnHover
+              tabIndex={-1}
+              aria-label={`New table in ${row.name}`}
+              className="top-1/2 right-6 -translate-y-1/2"
+              onClick={onCreateTable}
             />
-          </TooltipTrigger>
-          <TooltipContent side="right">New table</TooltipContent>
-        </Tooltip>
-      )}
+          }
+        >
+          <HugeiconsIcon
+            icon={PlusSignIcon}
+            strokeWidth={2}
+            className="size-3.5!"
+          />
+        </TooltipTrigger>
+        <TooltipContent side="right">New table</TooltipContent>
+      </Tooltip>
     </AppContextMenu>
   )
 }

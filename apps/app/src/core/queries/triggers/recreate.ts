@@ -104,7 +104,6 @@ export const recreateTriggerQuery = ({
           await create.postgres.execute(tx)
           await restore?.postgres.execute(tx)
         }),
-      posthog: unsupported('Triggers'),
       sqlite: (db) =>
         db.transaction().execute(async (tx) => {
           await drop.sqlite.execute(tx)

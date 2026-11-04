@@ -30,29 +30,19 @@ import {
 import { useSubscription } from 'seitu/react'
 
 import { useObjectNames } from '~/core/catalog/names'
-import { useConnectionContext } from '~/core/connection/route'
 import { plural } from '~/utils/plural'
 
 import { useTableColumnsContext } from '../../../lib/columns'
-import { withRowFieldColumns } from '../../../lib/row-field-columns'
 import { orderColumns, useTablePageStore } from '../../../lib/store'
 
-export const ActionsColumns = ({
-  rows,
-}: {
-  rows: readonly Record<string, unknown>[]
-}) => {
+export const ActionsColumns = () => {
   const names = useObjectNames()
-  const { dialect } = useConnectionContext()
   const store = useTablePageStore()
   const { columnOrder, hiddenColumns } = useSubscription(store, {
     selector: (state) => pick(state, ['columnOrder', 'hiddenColumns']),
   })
   const { columns: tableColumns, isPending } = useTableColumnsContext()
-  const columns = orderColumns(
-    withRowFieldColumns(dialect, tableColumns, rows),
-    columnOrder
-  )
+  const columns = orderColumns(tableColumns, columnOrder)
   const hiddenCount = hiddenColumns.filter((id) =>
     columns.some((column) => column.id === id)
   ).length

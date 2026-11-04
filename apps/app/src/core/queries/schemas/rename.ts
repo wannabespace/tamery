@@ -21,7 +21,6 @@ export const renameSchemaQuery = ({
         sql`ALTER SCHEMA ${sql.id(schema)} RENAME TO ${sql.id(name)}`.execute(
           db
         ),
-      posthog: unsupported('Renaming schemas'),
       sqlite: unsupported('Renaming schemas'),
     },
   })

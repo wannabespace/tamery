@@ -35,7 +35,6 @@ export const renameColumnQuery = memoize(
           db.executeQuery(renameColumnStatement(Dialect.Oracle, db, target)),
         postgres: (db) =>
           db.executeQuery(renameColumnStatement(Dialect.Postgres, db, target)),
-        posthog: unsupported('Column changes'),
         sqlite: (db) =>
           db.executeQuery(renameColumnStatement(Dialect.SQLite, db, target)),
       },

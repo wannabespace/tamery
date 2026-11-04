@@ -32,7 +32,6 @@ export const renameIndexQuery = ({
         sql`ALTER INDEX ${sql.id(schema, name)} RENAME TO ${sql.id(newName)}`.execute(
           db
         ),
-      posthog: unsupported('Renaming indexes'),
       sqlite: unsupported('Renaming indexes'),
     },
   })

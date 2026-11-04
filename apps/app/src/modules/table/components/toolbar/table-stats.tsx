@@ -13,10 +13,8 @@ import { cn } from '@tamery/ui/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 
-import { getCapabilities } from '~/core/catalog/capabilities'
 import { useObjectNames } from '~/core/catalog/names'
 import { useConnectionContext } from '~/core/connection/route'
-import { POSTHOG_ROWS_LIMIT } from '~/core/queries/rows/list'
 import { resourceTableTotalQueryOptions } from '~/core/queries/rows/total'
 
 import { useTableColumnsContext } from '../../lib/columns'
@@ -28,16 +26,12 @@ const COMPACT_COUNT_FORMAT = {
 
 const CountDetails = ({
   canRequestExact,
-  capped,
   failed,
-  firstRowsOnly,
   total,
   updatedAt,
 }: {
   canRequestExact: boolean
-  capped: boolean
   failed: boolean
-  firstRowsOnly: boolean
   total: { count: number; isEstimated: boolean } | undefined
   updatedAt: number
 }) => {
@@ -52,16 +46,10 @@ const CountDetails = ({
     <div className="flex flex-col gap-0.5">
       <span>
         {total.isEstimated ? '~' : ''}
-        {total.count.toLocaleString()}
-        {capped ? '+' : ''} {names.row}
+        {total.count.toLocaleString()} {names.row}
         {total.count === 1 ? '' : 's'}
         {canRequestExact && '. Click to get the exact count.'}
       </span>
-      {firstRowsOnly && (
-        <span>
-          Only the first {names.row}s load here. Filter or sort to reach others.
-        </span>
-      )}
       <span className="opacity-70">
         Updated: {new Date(updatedAt).toLocaleTimeString()}
       </span>
@@ -85,7 +73,7 @@ export const TableStats = ({
   schema: string
   table: string
 }) => {
-  const { connectionResource, dialect } = useConnectionContext()
+  const { connectionResource } = useConnectionContext()
   const { columns } = useTableColumnsContext()
   const [exact, setExact] = useState(false)
   const {
@@ -102,13 +90,8 @@ export const TableStats = ({
     }),
     enabled: ready,
   })
-  const firstRowsOnly = getCapabilities(dialect).flags.includes('firstRowsOnly')
-  // The engine's page is capped, so a full one says nothing of the table's size, and it has no count to fall back on.
-  const capped = firstRowsOnly && loaded === POSTHOG_ROWS_LIMIT
   const total =
-    loaded === undefined
-      ? (!firstRowsOnly && counted) || undefined
-      : { count: loaded, isEstimated: false }
+    loaded === undefined ? counted : { count: loaded, isEstimated: false }
   const canRequestExact = !failed && !exact && total?.isEstimated === true
 
   return (
@@ -143,7 +126,6 @@ export const TableStats = ({
                   isFetching && 'text-muted-foreground/50 animate-pulse'
                 )}
                 prefix={total.isEstimated ? '~' : ''}
-                suffix={capped ? '+' : ''}
               />
             )}
             {!failed && !total && (
@@ -156,8 +138,6 @@ export const TableStats = ({
         <CountDetails
           canRequestExact={canRequestExact}
           failed={failed}
-          capped={capped}
-          firstRowsOnly={firstRowsOnly}
           total={total}
           updatedAt={dataUpdatedAt}
         />

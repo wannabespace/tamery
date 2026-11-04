@@ -52,7 +52,6 @@ export const recreateConstraintQuery = ({
           await dropConstraint(tx, target).execute()
           await addConstraint(tx, target, shape).execute()
         }),
-      posthog: unsupported('Constraints'),
       sqlite: unsupported('Editing constraints'),
     },
   })

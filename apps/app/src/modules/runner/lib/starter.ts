@@ -1,7 +1,6 @@
 import { Dialect, isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { formatForDisplay } from '@tanstack/react-hotkeys'
 
-import { getCapabilities } from '~/core/catalog/capabilities'
 import type { ShortcutId } from '~/core/keyboard/shortcuts'
 import { SHORTCUTS } from '~/core/keyboard/shortcuts'
 
@@ -189,40 +188,6 @@ RETURNING *;`,
     ],
     notes: [STEP_BY_STEP, EXPLAIN],
   },
-  [Dialect.PostHog]: {
-    examples: [
-      {
-        query: `SELECT event, count() AS total
-FROM events
-WHERE timestamp > now() - INTERVAL 7 DAY
-GROUP BY event
-ORDER BY total DESC
-LIMIT 20;`,
-        title: 'Top events, last 7 days',
-      },
-      {
-        query: `SELECT toStartOfDay(timestamp) AS day, count(DISTINCT person_id) AS users
-FROM events
-WHERE timestamp > now() - INTERVAL 30 DAY
-GROUP BY day
-ORDER BY day;`,
-        title: 'Daily active users, last 30 days',
-      },
-      {
-        query: `SELECT properties.$browser AS browser, count() AS total
-FROM events
-WHERE event = '$pageview' AND timestamp > now() - INTERVAL 7 DAY
-GROUP BY browser
-ORDER BY total DESC
-LIMIT 20;`,
-        title: 'Pageviews by browser, last 7 days',
-      },
-    ],
-    notes: [
-      'HogQL only reads. Without a LIMIT, a query returns 100 rows.',
-      'Read a property as properties.$browser, or person.properties.email for the person.',
-    ],
-  },
   [Dialect.SQLite]: {
     examples: [
       {
@@ -252,17 +217,6 @@ RETURNING *;`,
   },
 }
 
-const getConfirmNotes = (dialect: Dialect) => {
-  if (getCapabilities(dialect).flags.includes('readOnly')) {
-    return []
-  }
-  return [
-    isSqlDialect(dialect)
-      ? 'Tamery asks before running UPDATE, DELETE, DROP or ALTER.'
-      : 'Tamery asks before a call that updates, deletes or drops.',
-  ]
-}
-
 export const starterQuery = (dialect: Dialect) => {
   const { examples, notes } = DIALECT_STARTERS[dialect]
   const commentPrefix = isSqlDialect(dialect) ? '--' : '//'
@@ -278,7 +232,9 @@ export const starterQuery = (dialect: Dialect) => {
         `${keys('runAll')} runs every statement in this tab.`,
         `${keys('saveStatement')} saves the statement as a query, ${keys('saveTab')} the whole tab.`,
         `${keys('editWithAi')} edits with AI, ${keys('fixWithAi')} fixes a statement that failed.`,
-        ...getConfirmNotes(dialect),
+        isSqlDialect(dialect)
+          ? 'Tamery asks before running UPDATE, DELETE, DROP or ALTER.'
+          : 'Tamery asks before a call that updates, deletes or drops.',
         ...notes,
       ].join('\n')
     ),

@@ -7,7 +7,6 @@ import { memoize } from 'memoza'
 import { getCapabilities, getDefaultSchema } from '~/core/catalog/capabilities'
 import { getConnectionResourceStore } from '~/core/connection/stores'
 import type { ConnectionResource } from '~/core/connection/sync'
-import { getPosthogTable } from '~/core/queries/shared/posthog-catalog'
 import { userTables } from '~/core/queries/shared/sqlite-catalog'
 import {
   connectionResourceToQueryParams,
@@ -19,8 +18,6 @@ import { oracleTablesAndSchemas } from './oracle'
 const MSSQL_FIRST_FIXED_ROLE_SCHEMA_ID = 16_384
 
 const CLICKHOUSE_MATERIALIZED_VIEW_STORAGE = '.inner%'
-
-const POSTHOG_CATALOG_LIMIT = 10_000
 
 const tableTypes = ['base table', 'view', 'materialized view'] as const
 
@@ -208,26 +205,6 @@ export const resourceTablesAndSchemasQuery = memoize(
               ])
             )
             .execute(),
-        posthog: async (db) => {
-          const { rows } = await sql<{
-            description: string | null
-            table_name: string
-            table_schema: string
-          }>`
-            SELECT table_schema, table_name, description
-            FROM system.information_schema.tables
-            WHERE table_schema != 'information_schema'
-              AND table_name NOT IN ('numbers', 'range', 'generate_series')
-            LIMIT ${sql.lit(POSTHOG_CATALOG_LIMIT)}
-          `.execute(db)
-          // Nothing in PostHog takes a write, and a view is what the grid and the menus never offer one on.
-          return rows.flatMap((row) => {
-            const table = getPosthogTable(row.table_schema, row.table_name)
-            return table
-              ? [{ comment: row.description, ...table, type: 'view' as const }]
-              : []
-          })
-        },
         sqlite: (db) =>
           userTables(db, ['table', 'view', 'virtual'])
             .select((eb) => [

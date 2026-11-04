@@ -184,7 +184,6 @@ const NATIVE_TYPES: Record<Dialect, Record<string, string>> = {
     'timestamp with time zone': '@db.Timestamptz',
     uuid: '@db.Uuid',
   },
-  posthog: {},
   sqlite: {},
 }
 

@@ -20,7 +20,6 @@ export const alterColumnQuery = (target: AlterColumnTarget) =>
         db.executeQuery(alterColumnStatement(Dialect.Oracle, db, target)),
       postgres: (db) =>
         db.executeQuery(alterColumnStatement(Dialect.Postgres, db, target)),
-      posthog: unsupported('Column changes'),
       sqlite: unsupported('Changing a column'),
     },
   })

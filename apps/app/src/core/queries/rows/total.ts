@@ -3,7 +3,6 @@ import { filterValueBindings } from '@tamery/connection/queries/value-binding'
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import type { ActiveFilter, FilterValueBinding } from '@tamery/shared/filters'
 import { toKyselyFilter } from '@tamery/shared/filters'
-import { unsupported } from '@tamery/shared/unsupported'
 import { queryOptions } from '@tanstack/react-query'
 import { type } from 'arktype'
 import { Result } from 'better-result'
@@ -168,8 +167,6 @@ export const resourceTableTotalQuery = memoize(
 
           return countRows(db, db.fn.countAll(), target)
         },
-        // A count over `events` would spend the project's read budget or pass PostHog's 10s limit.
-        posthog: () => Promise.resolve({ count: 0, isEstimated: false }),
         sqlite: (db) =>
           countRows(
             db,
@@ -294,7 +291,6 @@ export const keyedRowsCountQuery = (target: KeyedRowsTarget) =>
         countKeyedRows(db, bindValue.oracle, Dialect.Oracle, target),
       postgres: (db) =>
         countKeyedRows(db, bindValue.postgres, Dialect.Postgres, target),
-      posthog: unsupported('Editing rows'),
       sqlite: (db) =>
         countKeyedRows(db, bindValue.sqlite, Dialect.SQLite, target),
     },

@@ -26,7 +26,6 @@ export const insertDocumentQuery = ({
       mysql: unsupported(DOCUMENT),
       oracle: unsupported(DOCUMENT),
       postgres: unsupported(DOCUMENT),
-      posthog: unsupported(DOCUMENT),
       sqlite: unsupported(DOCUMENT),
     },
   })

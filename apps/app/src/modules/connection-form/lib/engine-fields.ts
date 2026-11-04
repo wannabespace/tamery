@@ -107,31 +107,6 @@ const ENGINE_FIELDS: Record<ConnectionType | Provider, EngineFields> = {
     options: 'e.g. sslmode=require',
     user: 'e.g. postgres',
   }),
-  [ConnectionType.PostHog]: {
-    field: 'host',
-    message: 'Enter the host',
-    rows: [
-      {
-        label: 'Host',
-        name: 'host',
-        placeholder: 'eu.posthog.com, us.posthog.com or a project link',
-        port: true,
-      },
-      {
-        label: 'API key',
-        name: 'password',
-        placeholder: 'A personal API key with Query Read',
-        required: 'Enter the API key',
-        secret: true,
-      },
-      {
-        label: 'Project ID',
-        name: 'database',
-        placeholder: 'In the project URL, after /project/',
-        required: 'Enter the project ID',
-      },
-    ],
-  },
   [ConnectionType.SQLite]: {
     field: 'database',
     message: 'Choose the database file',

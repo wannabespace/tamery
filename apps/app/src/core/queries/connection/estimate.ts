@@ -86,7 +86,6 @@ export const estimateQuery = (text: string, dialect: Dialect) => {
         )
         return postgresRows.assert(set?.rows[0]?.[0])
       },
-      posthog: unsupported('Row estimates'),
       sqlite: unsupported('Row estimates'),
     },
   })

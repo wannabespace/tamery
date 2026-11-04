@@ -2,7 +2,7 @@ import type { ConnectionParts } from '@tamery/connection/connection-parts'
 import { connectionParts } from '@tamery/connection/connection-parts'
 import type { ConnectionPatch } from '@tamery/connection/diagnosis'
 import type { ConnectionGuess } from '@tamery/connection/guess'
-import { guessConnectionField } from '@tamery/connection/guess'
+import { guessConnection } from '@tamery/connection/guess'
 import type { GuessedParts } from '@tamery/connection/guess/types'
 import { isLocalHost } from '@tamery/connection/hosts'
 import type { SshTunnel } from '@tamery/connection/ssh/params'
@@ -171,12 +171,8 @@ const clearFields = (form: ConnectionForm) => {
   form.setFieldValue('sshEnabled', false)
 }
 
-const isPosthog = (engine: Engine) => engine.type === ConnectionType.PostHog
-
 const sharesFields = (from: Engine, to: Engine) =>
-  from.provider === to.provider &&
-  isSqliteFile(from) === isSqliteFile(to) &&
-  isPosthog(from) === isPosthog(to)
+  from.provider === to.provider && isSqliteFile(from) === isSqliteFile(to)
 
 export const switchEngine = (form: ConnectionForm, engine: Engine) => {
   if (!sharesFields(form.state.values, engine)) {
@@ -199,24 +195,14 @@ const getGuessedEngine = (
 
 const BARE_HOST = /^[\w.:%[\]-]+$/u
 
-const fill = (
-  form: ConnectionForm,
-  { format, parts }: ConnectionGuess,
-  replacesHost: boolean
-) => {
+const fill = (form: ConnectionForm, { format, parts }: ConnectionGuess) => {
   const { values } = form.state
-  if (
-    replacesHost &&
-    parts.host &&
-    BARE_HOST.test(values.host) &&
-    parts.host !== values.host
-  ) {
+  if (parts.host && BARE_HOST.test(values.host) && parts.host !== values.host) {
     clearFields(form)
   }
   switchEngine(form, getGuessedEngine(values, parts))
   if (format === 'jdbc' || format === 'url') {
     form.setFieldValue('options', parts.options ?? '')
-    form.setFieldValue('port', parts.port ?? '')
   }
   for (const field of SERVER_FIELDS) {
     const value = parts[field]
@@ -240,14 +226,14 @@ const expandField = (
   const { values } = form.state
   const { field } = getEngineFields(values)
   const value = values[field]
-  const guess = guessConnectionField(value, values.type)
+  const guess = guessConnection(value, true)
   const read = guess?.parts[field]
   if (
     guess &&
     ((read !== undefined && read !== value) ||
       !sharesFields(values, getGuessedEngine(values, guess.parts)))
   ) {
-    fill(form, guess, false)
+    fill(form, guess)
     onFill(guess, false)
   }
 }
@@ -291,7 +277,7 @@ export const useConnectionForm = ({
     form,
     paste: (guess: ConnectionGuess, via: PasteVia) => {
       posthog.capture('connection_pasted', { format: guess.format, via })
-      fill(form, guess, true)
+      fill(form, guess)
       onFill(guess, true)
     },
     patch: (patch: ConnectionPatch) => {

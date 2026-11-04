@@ -34,7 +34,6 @@ export const createPolicyQuery = ({
       oracle: unsupported('Row policies'),
       postgres: (db) =>
         createPolicyStatement({ schema, shape, table }).execute(db),
-      posthog: unsupported('Row policies'),
       sqlite: unsupported('Row policies'),
     },
   })

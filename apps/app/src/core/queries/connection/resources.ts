@@ -78,8 +78,6 @@ const connectionResourcesQuery = (defaultResourceName: string | null) =>
           .execute()
         return rows.map((r) => r.datname)
       },
-      posthog: () =>
-        Promise.resolve(defaultResourceName ? [defaultResourceName] : []),
       sqlite: () => Promise.resolve([SQLITE_RESOURCE_NAME]),
     },
     type: type('string[]'),

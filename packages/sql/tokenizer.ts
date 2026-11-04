@@ -182,11 +182,6 @@ const startsLineComment = (text: string, index: number, dialect: DialectSpec) =>
       DASH_COMMENT_GAP.test(text[index + 2] ?? ' '))) ||
   (dialect.hashComments && text[index] === '#' && text[index + 1] !== '>')
 
-const startsName = (char: string, next: string, dialect: DialectSpec) =>
-  WORD_START.test(char) ||
-  nonAsciiName(char, dialect) ||
-  (dialect.dollarNames && char === '$' && WORD.test(next))
-
 const tokenAt = (
   text: string,
   index: number,
@@ -211,7 +206,7 @@ const tokenAt = (
       return { end: index + match.length, kind: 'number' }
     }
   }
-  if (startsName(char, next, dialect)) {
+  if (WORD_START.test(char) || nonAsciiName(char, dialect)) {
     const end = wordEnd(text, index + 1, dialect)
     return { end, kind: wordKind(text, index, end, dialect) }
   }

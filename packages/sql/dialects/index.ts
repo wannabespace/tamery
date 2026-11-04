@@ -7,7 +7,6 @@ import { mssql } from './mssql'
 import { mysql } from './mysql'
 import { oracle } from './oracle'
 import { postgres } from './postgres'
-import { posthog } from './posthog'
 import { sqlite } from './sqlite'
 
 export const dialects: Record<SqlDialect, DialectSpec> = {
@@ -16,6 +15,5 @@ export const dialects: Record<SqlDialect, DialectSpec> = {
   [Dialect.MySQL]: mysql,
   [Dialect.Oracle]: oracle,
   [Dialect.Postgres]: postgres,
-  [Dialect.PostHog]: posthog,
   [Dialect.SQLite]: sqlite,
 }

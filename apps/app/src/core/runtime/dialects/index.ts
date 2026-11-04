@@ -34,8 +34,5 @@ export const dialects = {
   mysql: createDialect<MysqlDatabase>(Dialect.MySQL),
   oracle: createDialect<OracleDatabase>(Dialect.Oracle),
   postgres: createDialect<PostgresDatabase>(Dialect.Postgres),
-  posthog: createDialect<Record<string, Record<string, unknown>>>(
-    Dialect.PostHog
-  ),
   sqlite: createDialect<SqliteDatabase>(Dialect.SQLite),
 } satisfies Record<Dialect, AnyFunction>

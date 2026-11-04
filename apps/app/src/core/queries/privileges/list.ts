@@ -70,7 +70,6 @@ const query = createQuery({
     },
     oracle: unsupported('Privileges'),
     postgres: unsupported('Privileges'),
-    posthog: unsupported('Privileges'),
     sqlite: unsupported('Privileges'),
   },
   type: privilegeType.array(),

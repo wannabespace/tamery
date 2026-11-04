@@ -47,7 +47,6 @@ export const alterEnumQuery = ({
             await statement.execute(tx)
           }
         }),
-      posthog: unsupported('Editing enums'),
       sqlite: unsupported('Editing enums'),
     },
   })

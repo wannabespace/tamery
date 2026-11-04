@@ -41,7 +41,6 @@ const connectionVersionQuery = createQuery({
         .where('PRODUCT', 'like', 'Oracle%')
         .executeTakeFirstOrThrow(),
     postgres: readVersion(sql`current_setting('server_version')`),
-    posthog: () => Promise.resolve({ version: 'HogQL' }),
     sqlite: readVersion(sql`sqlite_version()`),
   },
   type: connectionVersionType,

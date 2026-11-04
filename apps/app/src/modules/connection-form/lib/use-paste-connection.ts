@@ -1,7 +1,6 @@
 import type { ConnectionGuess } from '@tamery/connection/guess'
-import { guessConnection, guessConnectionField } from '@tamery/connection/guess'
+import { guessConnection } from '@tamery/connection/guess'
 import { sqliteFile } from '@tamery/connection/sqlite-file'
-import type { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { isMac } from '@tamery/ui/lib/os'
 import { useLocation } from '@tanstack/react-router'
 import { Result } from 'better-result'
@@ -19,7 +18,7 @@ export interface PasteFlash {
 }
 
 export const PASTE_FORMATS =
-  'Connection URLs, .env files, JDBC strings, SQLite files, Turso, D1 and PostHog links, and psql, mysql or ssh commands.'
+  'Connection URLs, .env files, JDBC strings, SQLite files, Turso and D1 links, and psql, mysql or ssh commands.'
 
 const MAX_DROP_BYTES = 256 * 1024
 const FLASH_SHOWN_MS = 3000
@@ -27,12 +26,10 @@ const SQLITE_HEADER = 'SQLite format 3\0'
 
 export const usePasteConnection = ({
   enabled,
-  getEngine,
   onPaste,
   pitchShown,
 }: {
   enabled: boolean
-  getEngine: () => ConnectionType
   onPaste: (guess: ConnectionGuess, via: PasteVia) => void
   pitchShown: boolean
 }) => {
@@ -109,7 +106,7 @@ export const usePasteConnection = ({
       read(text, 'paste')
       return
     }
-    const guess = guessConnectionField(text, getEngine())
+    const guess = guessConnection(text, true)
     if (
       guess &&
       guess.format !== 'host' &&

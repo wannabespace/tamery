@@ -32,7 +32,6 @@ const DIALECT_CONFIGS: Record<Dialect, DialectSeedConfig> = {
   mysql: mysqlSeedConfig,
   oracle: oracleSeedConfig,
   postgres: pgSeedConfig,
-  posthog: { generators: {}, types: {} },
   sqlite: sqliteSeedConfig,
 }
 

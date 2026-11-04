@@ -19,7 +19,6 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
-import { getCapabilities } from '~/core/catalog/capabilities'
 import { useConnectionContext } from '~/core/connection/route'
 import { ExportDataMenu } from '~/core/export/export-data'
 import {
@@ -134,7 +133,7 @@ export const TableToolbar = ({
   }
 
   return (
-    <div className="flex shrink-0 flex-wrap items-start gap-2 px-3 py-2">
+    <div className="flex shrink-0 items-start gap-2 px-3 py-2">
       <TableStats
         failed={isRowsError}
         filters={filters}
@@ -149,7 +148,7 @@ export const TableToolbar = ({
       />
       <FilterSearchBar table={table} schema={schema} />
       <div className="flex shrink-0 items-center gap-1">
-        <ActionsColumns rows={rows} />
+        <ActionsColumns />
         <ActionsOrder />
         <ActionsView />
         {isTable && (
@@ -175,9 +174,6 @@ export const TableToolbar = ({
           </Tooltip>
           <DropdownMenuContent align="end" className="min-w-44">
             <ExportDataMenu
-              canExportAll={
-                !getCapabilities(dialect).flags.includes('firstRowsOnly')
-              }
               filename={`${schema}_${table}`}
               getData={getData}
               disabled={rows.length === 0 || isPending}
@@ -188,14 +184,13 @@ export const TableToolbar = ({
                 Code
               </DropdownMenuItem>
             )}
-            {isSqlDialect(dialect) &&
-              !getCapabilities(dialect).flags.includes('readOnly') && (
-                <ShareMenuItem
-                  schema={schema}
-                  table={table}
-                  onOpen={() => setShareOpen(true)}
-                />
-              )}
+            {isSqlDialect(dialect) && (
+              <ShareMenuItem
+                schema={schema}
+                table={table}
+                onOpen={() => setShareOpen(true)}
+              />
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
         <Dialog open={shareOpen} onOpenChange={setShareOpen}>

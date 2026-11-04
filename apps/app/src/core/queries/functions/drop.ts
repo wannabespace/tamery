@@ -21,7 +21,6 @@ export const dropFunctionQuery = ({
       oracle: (db) => drop.oracle.execute(db),
       postgres: (db) =>
         (cascade ? sql`${drop.postgres} CASCADE` : drop.postgres).execute(db),
-      posthog: unsupported('Functions'),
       sqlite: unsupported('Functions'),
     },
   })

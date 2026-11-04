@@ -72,11 +72,6 @@ const HOST_HINTS: HostHint[] = [
     type: ConnectionType.Postgres,
   },
   { label: 'Fly.io', suffixes: ['.flympg.net'], type: ConnectionType.Postgres },
-  {
-    label: 'PostHog',
-    suffixes: ['.posthog.com'],
-    type: ConnectionType.PostHog,
-  },
   { label: 'Railway', suffixes: ['.railway.app', '.rlwy.net'] },
   { label: 'AWS RDS', suffixes: ['.rds.amazonaws.com'] },
   {

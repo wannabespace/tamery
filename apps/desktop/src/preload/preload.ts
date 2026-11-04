@@ -196,7 +196,6 @@ contextBridge.exposeInMainWorld('electron', {
     mysql: dialectQueryBridge('mysql'),
     oracle: dialectQueryBridge('oracle'),
     postgres: dialectQueryBridge('postgres'),
-    posthog: dialectQueryBridge('posthog'),
     sqlite: dialectQueryBridge('sqlite'),
   },
   sqlite: {

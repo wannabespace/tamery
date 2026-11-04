@@ -24,7 +24,6 @@ export const dropConstraintQuery = (
         db.executeQuery(dropConstraintStatement(Dialect.Oracle, db, target)),
       postgres: (db) =>
         db.executeQuery(dropConstraintStatement(Dialect.Postgres, db, target)),
-      posthog: unsupported('Constraints'),
       sqlite: unsupported('Dropping constraints'),
     },
   })

@@ -112,30 +112,3 @@ describe('connectionParts', () => {
     expect(missingAfterEdit(null)).toEqual([])
   })
 })
-
-describe('a PostHog string', () => {
-  const string = connectionParts.format(
-    parts({
-      database: '12345',
-      host: 'eu.posthog.com',
-      password: 'phx_key',
-      port: '',
-      type: ConnectionType.PostHog,
-      user: '',
-    })
-  )
-
-  it('reads back the host, project and API key it was formatted from', () => {
-    expect(connectionParts.parse(string)).toMatchObject({
-      database: '12345',
-      host: 'eu.posthog.com',
-      password: 'phx_key',
-      port: '',
-      type: ConnectionType.PostHog,
-    })
-  })
-
-  it('never reaches the cloud with its API key on No password', () => {
-    expect(connectionSecrets.strip(string)).not.toContain('phx_key')
-  })
-})

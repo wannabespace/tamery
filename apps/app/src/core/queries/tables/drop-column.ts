@@ -23,7 +23,6 @@ export const dropColumnQuery = (target: {
         db.executeQuery(dropColumnStatement(Dialect.Oracle, db, target)),
       postgres: (db) =>
         db.executeQuery(dropColumnStatement(Dialect.Postgres, db, target)),
-      posthog: unsupported('Column changes'),
       sqlite: (db) =>
         db.executeQuery(dropColumnStatement(Dialect.SQLite, db, target)),
     },

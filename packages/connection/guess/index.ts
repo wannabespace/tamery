@@ -12,7 +12,6 @@ import { guessJson } from './json'
 import { guessKeyValue } from './key-value'
 import { guessOracle } from './oracle'
 import { mergeParts } from './parts'
-import { guessPosthog, guessPosthogServer } from './posthog'
 import { guessRemoteSqlite } from './remote-sqlite'
 import { guessSqlite } from './sqlite'
 import { guessSsh, throughForwards } from './ssh'
@@ -32,7 +31,6 @@ const getDetectors = (isConnection: boolean) => [
   guessKeyValue,
   guessRemoteSqlite,
   guessEnv,
-  guessPosthog,
   (text: string) => guessWebUrl(text, text, isConnection),
   guessPgpass,
   guessHost,
@@ -94,8 +92,3 @@ export const guessConnection = (
       parts: fixed,
     }
   }).unwrapOr(null)
-
-/** A form's field for where the database is: it already knows the engine, and for PostHog a URL there is never a ClickHouse. */
-export const guessConnectionField = (text: string, engine: ConnectionType) =>
-  (engine === ConnectionType.PostHog && guessPosthogServer(text)) ||
-  guessConnection(text, true)

@@ -15,12 +15,6 @@ const pg = dialects[Dialect.Postgres]
 const clickhouse = dialects[Dialect.ClickHouse]
 
 describe('destructiveKeywords', () => {
-  it('asks nothing on an engine that refuses every write itself', () => {
-    expect(
-      destructiveKeywords('DROP TABLE events', dialects[Dialect.PostHog])
-    ).toEqual([])
-  })
-
   it('flags statements that change or remove existing data', () => {
     expect(destructiveKeywords('REPLACE INTO t VALUES (1)', mysql)).toEqual([
       'REPLACE',

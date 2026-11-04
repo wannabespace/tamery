@@ -7,7 +7,6 @@ import { infiniteQueryOptions } from '@tanstack/react-query'
 import { type } from 'arktype'
 import { memoize } from 'memoza'
 
-import { getCapabilities } from '~/core/catalog/capabilities'
 import type { ConnectionResource } from '~/core/connection/sync'
 import { DEFAULT_PAGE_LIMIT } from '~/core/connection/utils'
 import {
@@ -19,10 +18,7 @@ import { fromMongodbDocument } from './shape'
 
 const rowType = type('Record<string, unknown>')
 
-export const POSTHOG_ROWS_LIMIT = 1000
-
 interface PageResult {
-  isLast: boolean
   rows: (typeof rowType.inferIn)[]
 }
 
@@ -43,11 +39,11 @@ export interface RowsQueryProps {
 export const resourceRowsQuery = memoize(
   ({
     columns = [],
-    limit,
+    limit = DEFAULT_PAGE_LIMIT,
     query,
     ...props
   }: RowsQueryProps & { offset: number }) => {
-    const page = { ...props, ...query, limit: limit ?? DEFAULT_PAGE_LIMIT }
+    const page = { ...props, ...query, limit }
     return createQuery({
       query: {
         clickhouse: (db) =>
@@ -68,14 +64,6 @@ export const resourceRowsQuery = memoize(
         mysql: (db) => selectPage(db, page).execute(),
         oracle: (db) => selectPage(db, page).execute(),
         postgres: (db) => selectPage(db, page).execute(),
-        // PostHog refuses OFFSET, so the first page is all it has.
-        posthog: (db) =>
-          page.offset === 0
-            ? selectPage(db, {
-                ...page,
-                limit: limit ?? POSTHOG_ROWS_LIMIT,
-              }).execute()
-            : Promise.resolve([]),
         sqlite: (db) =>
           selectPage(db, page, filterValueBindings.sqlite?.(columns)).execute(),
       },
@@ -119,12 +107,13 @@ export const resourceRowsQueryInfiniteOptions = memoize(
         lastPage: PageResult,
         _allPages: PageResult[],
         lastPageParam: number
-      ) => (lastPage.isLast ? null : lastPageParam + pageLimit),
+      ) =>
+        lastPage.rows.length === 0 || lastPage.rows.length < pageLimit
+          ? null
+          : lastPageParam + pageLimit,
       initialPageParam: 0,
       queryFn: async ({ pageParam: offset }) => {
-        const queryParams =
-          await connectionResourceToQueryParams(connectionResource)
-        const rows = await resourceRowsQuery({
+        const result = await resourceRowsQuery({
           offset,
           query: {
             filters,
@@ -134,15 +123,10 @@ export const resourceRowsQueryInfiniteOptions = memoize(
           schema,
           table,
           ...props,
-        }).run(queryParams)
+        }).run(await connectionResourceToQueryParams(connectionResource))
 
         return {
-          isLast:
-            rows.length < pageLimit ||
-            getCapabilities(queryParams.dialect).flags.includes(
-              'firstRowsOnly'
-            ),
-          rows,
+          rows: result,
         } satisfies PageResult
       },
       queryKey: [

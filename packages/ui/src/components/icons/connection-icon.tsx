@@ -7,7 +7,6 @@ import { MSSQLIcon } from '@tamery/ui/components/icons/mssql'
 import { MySQLIcon } from '@tamery/ui/components/icons/mysql'
 import { OracleIcon } from '@tamery/ui/components/icons/oracle'
 import { PostgresIcon } from '@tamery/ui/components/icons/postgres'
-import { PostHogIcon } from '@tamery/ui/components/icons/posthog'
 import { SQLiteIcon } from '@tamery/ui/components/icons/sqlite'
 import { TursoIcon } from '@tamery/ui/components/icons/turso'
 import type { ComponentProps, ReactNode } from 'react'
@@ -25,7 +24,6 @@ const iconMap: Record<
   [ConnectionType.SQLite]: SQLiteIcon,
   [ConnectionType.Oracle]: OracleIcon,
   [ConnectionType.MongoDB]: MongoIcon,
-  [ConnectionType.PostHog]: PostHogIcon,
   [Provider.CloudflareD1]: CloudflareD1Icon,
   [Provider.MongoDBAtlas]: MongoIcon,
   [Provider.Turso]: TursoIcon,

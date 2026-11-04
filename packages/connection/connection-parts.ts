@@ -33,7 +33,6 @@ export const DEFAULT_PORTS: Record<ConnectionType, number | null> = {
   [ConnectionType.MySQL]: 3306,
   [ConnectionType.Oracle]: 1521,
   [ConnectionType.Postgres]: 5432,
-  [ConnectionType.PostHog]: null,
   [ConnectionType.SQLite]: null,
 }
 
@@ -93,7 +92,6 @@ const TYPE_OF_NAME: Record<string, ConnectionType> = {
   pgsql: ConnectionType.Postgres,
   postgres: ConnectionType.Postgres,
   postgresql: ConnectionType.Postgres,
-  posthog: ConnectionType.PostHog,
   sqlite: ConnectionType.SQLite,
   sqlite3: ConnectionType.SQLite,
   sqlserver: ConnectionType.MSSQL,

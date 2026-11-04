@@ -13,9 +13,7 @@ import { motion } from 'motion/react'
 import type { CSSProperties, ComponentRef } from 'react'
 import { useDeferredValue, useEffect, useEffectEvent, useRef } from 'react'
 
-import { getCapabilities } from '~/core/catalog/capabilities'
 import { useObjectNames } from '~/core/catalog/names'
-import { useConnectionContext } from '~/core/connection/route'
 
 import { DropSchemaDialog } from './drop-schema-dialog'
 import { DropTableDialog } from './drop-table-dialog'
@@ -55,7 +53,6 @@ export const TablesList = ({
   rows: TreeRow[]
   search?: string
 }) => {
-  const { dialect } = useConnectionContext()
   const names = useObjectNames()
   const dropSchema = useRef<ComponentRef<typeof DropSchemaDialog>>(null)
   const dropTable = useRef<ComponentRef<typeof DropTableDialog>>(null)
@@ -138,7 +135,7 @@ export const TablesList = ({
         <p className="text-muted-foreground text-sm">
           {search ? `No ${names.table}s found` : `No ${names.table}s yet`}
         </p>
-        {!search && !getCapabilities(dialect).flags.includes('readOnly') && (
+        {!search && (
           <Button
             variant="outline"
             size="sm"

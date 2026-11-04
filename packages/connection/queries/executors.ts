@@ -7,7 +7,6 @@ import * as mssql from './dialects/mssql'
 import * as mysql from './dialects/mysql'
 import * as oracle from './dialects/oracle'
 import * as pg from './dialects/pg'
-import * as posthog from './dialects/posthog'
 import * as sqlite from './dialects/sqlite'
 
 export const executors: Record<Dialect, QueryExecutor> = {
@@ -17,6 +16,5 @@ export const executors: Record<Dialect, QueryExecutor> = {
   mysql: mysql.query,
   oracle: oracle.query,
   postgres: pg.query,
-  posthog: posthog.query,
   sqlite: sqlite.query,
 }

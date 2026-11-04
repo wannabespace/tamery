@@ -17,26 +17,11 @@ export const MONGOSH_OUTPUT_RULES = [
   'Write literal values and BSON constructors (ObjectId("…"), ISODate("…"), NumberLong("…")); when a value is unknown, use the shortest generic literal of the right type, never invented realistic-looking data.',
 ]
 
-export const getEngineName = (connectionType: string) =>
-  connectionType === ConnectionType.PostHog
-    ? "PostHog's HogQL, a read-only SQL over ClickHouse"
-    : connectionType
-
-export const getEngineRules = (connectionType: string) =>
-  connectionType === ConnectionType.PostHog
-    ? [
-        'Read a JSON property with a dot path, never JSONExtract: properties.$browser on events, person.properties.email for the person behind an event. Property names starting with $ are written as they are.',
-        "HogQL names are case-sensitive. Filter events on timestamp whenever the request allows it, and on event for one kind (event = '$pageview').",
-        'PostHog stops a query after 10 seconds and returns 100 rows without a LIMIT.',
-      ]
-    : []
-
 export const queryOutputRules = (connectionType: string) =>
   connectionType === ConnectionType.MongoDB
     ? MONGOSH_OUTPUT_RULES
     : [
-        `The database type is "${getEngineName(connectionType)}".`,
-        ...getEngineRules(connectionType),
+        `The database type is "${connectionType}".`,
         MATCH_USER_STYLE,
         'Return only SQL, nothing else: no explanations, greetings, markdown, or ``` fences.',
         'The output is pasted directly into a SQL editor.',

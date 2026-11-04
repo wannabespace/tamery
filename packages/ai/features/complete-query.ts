@@ -6,12 +6,7 @@ import { generateText } from 'ai'
 import { env } from '../env'
 import { models } from '../models/list'
 import { usageTelemetry } from '../usage/record'
-import {
-  getEngineName,
-  getEngineRules,
-  MATCH_USER_STYLE,
-  section,
-} from './prompt'
+import { MATCH_USER_STYLE, section } from './prompt'
 
 const CARET = '<CARET>'
 
@@ -25,8 +20,7 @@ const engineInstructions = (connectionType: string) =>
       ]
     : [
         'You are an inline SQL completion engine inside a SQL editor.',
-        `The database type is "${getEngineName(connectionType)}".`,
-        ...getEngineRules(connectionType),
+        `The database type is "${connectionType}".`,
         "Values are the user's job, structure is yours. You complete SQL structure only: keywords, operators, functions, and table, column and enum names from the schema. A string, number, date or time value may appear in your text only if it is an enum value from the schema or the user already wrote it; any other value is unknown to you, so end your text right before it, without its opening quote, and let the user type it.",
         'Finish only the current statement, at most a few lines, and stop at its end: never start another statement. Use only tables and columns from the schema.',
         'Never use placeholders or bind parameters.',
@@ -109,10 +103,7 @@ const fimPrompt = (data: CompleteQueryInput) =>
           '// MongoDB shell (mongosh): only db.<collection>.<method>(...) chains run; no functions, loops, variables or cursor iteration (forEach/map).',
           ...schemaAsMongo(data.context),
         ]
-      : [
-          `-- Database: ${getEngineName(data.connectionType)}`,
-          ...schemaAsDdl(data.context),
-        ]),
+      : [`-- Database: ${data.connectionType}`, ...schemaAsDdl(data.context)]),
     '',
     data.prefix,
   ].join('\n')

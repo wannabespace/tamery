@@ -30,7 +30,6 @@ export const createTriggerQuery = (
           },
         }),
       postgres: (db) => create.postgres.execute(db),
-      posthog: unsupported('Triggers'),
       sqlite: (db) => create.sqlite.execute(db),
     },
   })

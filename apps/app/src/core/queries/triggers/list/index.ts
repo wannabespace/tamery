@@ -234,7 +234,6 @@ const resourceTriggersQuery = createQuery({
         .where('n.nspname', 'not like', 'pg_%')
         .where('n.nspname', '!=', 'information_schema')
         .execute(),
-    posthog: unsupported('Triggers'),
     sqlite: async (db) => {
       const rows = await db
         .selectFrom('sqlite_schema')

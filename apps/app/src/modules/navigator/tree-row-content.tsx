@@ -40,7 +40,6 @@ export const TreeRowContent = ({
 }) => {
   const { dialect } = useConnectionContext()
   const names = useObjectNames()
-  const readOnly = getCapabilities(dialect).flags.includes('readOnly')
 
   if (row.kind === 'schema') {
     return (
@@ -48,17 +47,9 @@ export const TreeRowContent = ({
         <SchemaRow
           controlId={controlId}
           row={row}
-          onCreateTable={readOnly ? undefined : () => onCreateTable(row.name)}
-          onCreateView={
-            readOnly
-              ? undefined
-              : () => createViewDialogRef.current?.create(row.name)
-          }
-          onDrop={
-            readOnly
-              ? undefined
-              : () => dialogs.dropSchema.current?.drop(row.name)
-          }
+          onCreateTable={() => onCreateTable(row.name)}
+          onCreateView={() => createViewDialogRef.current?.create(row.name)}
+          onDrop={() => dialogs.dropSchema.current?.drop(row.name)}
           onRename={
             getCapabilities(dialect).flags.includes('renameSchema')
               ? () => dialogs.renameSchema.current?.rename(row.name)
@@ -119,15 +110,12 @@ export const TreeRowContent = ({
                 )
             : undefined
         }
-        onDrop={
-          readOnly
-            ? undefined
-            : () =>
-                dialogs.dropTable.current?.drop(
-                  row.schema,
-                  row.table.name,
-                  row.table.type
-                )
+        onDrop={() =>
+          dialogs.dropTable.current?.drop(
+            row.schema,
+            row.table.name,
+            row.table.type
+          )
         }
       />
     </div>

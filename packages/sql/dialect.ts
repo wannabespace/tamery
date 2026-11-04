@@ -6,12 +6,6 @@ export interface DialectSpec {
   alternativeQuotes: boolean
   identifierQuotes: readonly string[]
   dollarQuotes: boolean
-  /** HogQL: `$browser` is a name, where other engines read a leading `$` as a parameter or a quote. */
-  dollarNames: boolean
-  /** HogQL: `properties.$browser` and `person.properties.email` are paths into a column, so a name before a dot need not be a table. */
-  fieldPaths: boolean
-  /** The engine refuses every write itself, so a statement that reads as one needs no confirmation. */
-  readOnly: boolean
   backslashEscapes: boolean
   hashComments: boolean
   /** MySQL: `--` starts a comment only before whitespace or a control character, so `1--1` is `1 - -1`. */
@@ -42,16 +36,13 @@ export const spec = (
   alternativeQuotes: false,
   atVariables: false,
   backslashEscapes: false,
-  dollarNames: false,
   dollarQuotes: false,
-  fieldPaths: false,
   goBatches: false,
   hashComments: false,
   identifierQuotes: ['"'],
   nameCase: null,
   nonAsciiNames: false,
   plsqlUnits: false,
-  readOnly: false,
   separatorFreeStatements: false,
   spacedDashComments: false,
   transactions: true,

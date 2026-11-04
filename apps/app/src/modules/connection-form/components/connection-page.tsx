@@ -105,7 +105,6 @@ export const ConnectionPage = ({
 
   const { dragging, flash, read, readClipboard } = usePasteConnection({
     enabled: policy.pasteable,
-    getEngine: () => form.state.values.type,
     onPaste: (guess, via) => {
       paste(guess, via)
       if (stage === 'agent') {

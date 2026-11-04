@@ -24,7 +24,6 @@ export const dropEnumQuery = ({
           .schema.dropType(name)
           .$call((qb) => (cascade ? qb.cascade() : qb))
           .execute(),
-      posthog: unsupported('Editing enums'),
       sqlite: unsupported('Editing enums'),
     },
   })

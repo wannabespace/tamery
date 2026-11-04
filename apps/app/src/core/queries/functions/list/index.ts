@@ -220,7 +220,6 @@ const resourceFunctionsQuery = createQuery({
           sql<boolean>`NOT EXISTS (SELECT 1 FROM pg_catalog.pg_depend d WHERE d.classid = 'pg_catalog.pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')`
         )
         .execute(),
-    posthog: unsupported('Functions'),
     sqlite: unsupported('Functions'),
   },
   type: functionsType.array(),

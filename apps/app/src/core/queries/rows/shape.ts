@@ -5,7 +5,6 @@ import type { SqlDialect } from '@tamery/shared/enums/connection-type'
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import { likeToRegex, toMongoPipeline } from '@tamery/shared/filters'
 import type { ActiveFilter } from '@tamery/shared/filters'
-import { unsupported } from '@tamery/shared/unsupported'
 import type { Expression, ExpressionBuilder, SqlBool } from 'kysely'
 import { sql } from 'kysely'
 
@@ -37,8 +36,6 @@ export const textContains: Record<SqlDialect, ContainsText> = {
     ),
   postgres: (eb, column, pattern) =>
     eb(eb.cast(eb.ref(column), 'text'), 'ilike', pattern),
-  posthog: (eb, column, pattern) =>
-    eb(eb.fn('toString', [eb.ref(column)]), 'ilike', pattern),
   sqlite: (eb, column, pattern) =>
     eb(eb.cast(eb.ref(column), 'text'), 'like', pattern),
 }
@@ -98,7 +95,6 @@ export const bindValue: Record<Dialect, BindValue> = {
       : bound
   },
   postgres: bindJsonAsText(Dialect.Postgres),
-  posthog: unsupported('Editing rows'),
   sqlite: bindJsonAsText(Dialect.SQLite),
 }
 
