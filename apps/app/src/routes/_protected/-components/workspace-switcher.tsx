@@ -1,12 +1,16 @@
 import {
   Mail01Icon,
+  PencilEdit01Icon,
   PlusSignIcon,
   Tick02Icon,
   UnfoldMoreIcon,
   UserGroupIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { isDefaultWorkspaceMetadata } from '@tamery/shared/workspace'
+import {
+  isDefaultWorkspaceMetadata,
+  MEMBER_MANAGER_ROLES,
+} from '@tamery/shared/workspace'
 import { Button } from '@tamery/ui/components/button'
 import {
   DropdownMenu,
@@ -32,7 +36,7 @@ import { useIsAnonymous } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { useIsOnline } from '~/store'
 
-import { CreateWorkspaceDialog } from './create-workspace-dialog'
+import { WorkspaceNameDialog } from './workspace-name-dialog'
 
 const WorkspaceGlyph = ({
   workspace,
@@ -53,7 +57,10 @@ export const WorkspaceSwitcher = () => {
   const [open, setOpen] = useState(false)
   const isAnonymous = useIsAnonymous()
   const [createOpen, setCreateOpen] = useState(false)
+  const [renameOpen, setRenameOpen] = useState(false)
   const { data: activeWorkspace, workspaces } = useActiveWorkspace()
+  const canRename =
+    !!activeWorkspace && MEMBER_MANAGER_ROLES.includes(activeWorkspace.role)
   const isOnline = useIsOnline()
   const invitations = useInvitations()
 
@@ -169,6 +176,20 @@ export const WorkspaceSwitcher = () => {
             <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} />
             Invite and manage members
           </DropdownMenuItem>
+          {activeWorkspace && !isAnonymous && (
+            <DropdownMenuItem
+              disabled={!(canRename && isOnline)}
+              onClick={() => setRenameOpen(true)}
+            >
+              <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} />
+              Rename workspace
+              {!canRename && (
+                <span className="text-muted-foreground ml-auto text-xs">
+                  Admins only
+                </span>
+              )}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             className={isAnonymous ? 'opacity-50' : undefined}
             disabled={!isOnline}
@@ -179,7 +200,14 @@ export const WorkspaceSwitcher = () => {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <CreateWorkspaceDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <WorkspaceNameDialog open={createOpen} onOpenChange={setCreateOpen} />
+      {activeWorkspace && (
+        <WorkspaceNameDialog
+          workspace={activeWorkspace}
+          open={renameOpen}
+          onOpenChange={setRenameOpen}
+        />
+      )}
     </>
   )
 }

@@ -9,4 +9,5 @@ export {
   removeMember,
   updateMemberRole,
 } from './members'
+export { rename } from './rename'
 export { sync } from './sync'

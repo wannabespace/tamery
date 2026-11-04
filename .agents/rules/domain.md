@@ -52,6 +52,7 @@ Better Auth's `organization` plugin is remapped to `workspace`; the plugin's `ac
 
 - Every user gets a lazily-created **default personal workspace**; `connections.create` falls back to it when the client sends no `workspaceId`.
 - Extra workspaces are gated by `workspace.create` and made only through `workspaces.create` (Better Auth's own create endpoint is off). Deletion is **disabled** — connections cascade and there is no delete flow yet.
+- **Owners and admins rename a workspace** through `workspaces.rename` (Better Auth's update endpoint is off), the default one included, so a name never tells which workspace is the default: `metadata.default` does.
 - The client scopes connections to the active workspace **inside** each `useLiveQuery`, never a post-query `.filter()` (a new array every render).
 - Workspaces reach the client through `workspacesCollection`, **not** Better Auth's `useListOrganizations` — the list must survive offline.
 - Active workspace is per-device `localStorage`, **never** pushed to the session; callers pass the active id explicitly to Better Auth endpoints.
