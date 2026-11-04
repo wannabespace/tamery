@@ -3,7 +3,6 @@ import {
   PencilEdit01Icon,
   PlusSignIcon,
   Tick02Icon,
-  UnfoldMoreIcon,
   UserGroupIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -11,19 +10,17 @@ import {
   isDefaultWorkspaceMetadata,
   MEMBER_MANAGER_ROLES,
 } from '@tamery/shared/workspace'
-import { Button } from '@tamery/ui/components/button'
 import {
-  DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from '@tamery/ui/components/dropdown-menu'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { Link } from '~/components/link'
 import { checkOrUpgrade } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
 import {
@@ -36,6 +33,7 @@ import { useIsAnonymous } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { useIsOnline } from '~/store'
 
+import { TitleBarPicker } from './title-bar-picker'
 import { WorkspaceNameDialog } from './workspace-name-dialog'
 
 const WorkspaceGlyph = ({
@@ -86,40 +84,32 @@ export const WorkspaceSwitcher = () => {
 
   return (
     <>
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label="Switch workspace"
-              // oxlint-disable-next-line shadcn/no-restyle -- title-bar pickers sit tighter than a toolbar button
-              className="max-w-56 gap-1.5 px-2"
-            />
-          }
-        >
-          {activeWorkspace ? (
-            <>
-              <WorkspaceGlyph workspace={activeWorkspace} />
-              <span data-mask className="truncate">
-                {activeWorkspace.name}
-              </span>
-            </>
-          ) : (
-            <span className="text-muted-foreground truncate">Workspace</span>
-          )}
-          {invitations.length > 0 && (
-            <span
-              aria-label="Pending invitations"
-              className="bg-primary size-1.5 shrink-0 rounded-full"
-            />
-          )}
-          <HugeiconsIcon
-            icon={UnfoldMoreIcon}
-            strokeWidth={2}
-            className="text-muted-foreground/70 size-3 shrink-0"
-          />
-        </DropdownMenuTrigger>
+      <TitleBarPicker
+        open={open}
+        onOpenChange={setOpen}
+        label="Switch workspace"
+        link={<Link to="/" />}
+        name={
+          <>
+            {activeWorkspace ? (
+              <>
+                <WorkspaceGlyph workspace={activeWorkspace} />
+                <span data-mask className="truncate">
+                  {activeWorkspace.name}
+                </span>
+              </>
+            ) : (
+              <span className="text-muted-foreground truncate">Workspace</span>
+            )}
+            {invitations.length > 0 && (
+              <span
+                aria-label="Pending invitations"
+                className="bg-primary size-1.5 shrink-0 rounded-full"
+              />
+            )}
+          </>
+        }
+      >
         <DropdownMenuContent align="start" className="min-w-56">
           {invitations.length > 0 && (
             <>
@@ -199,7 +189,7 @@ export const WorkspaceSwitcher = () => {
             Create workspace
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
+      </TitleBarPicker>
       <WorkspaceNameDialog open={createOpen} onOpenChange={setCreateOpen} />
       {activeWorkspace && (
         <WorkspaceNameDialog

@@ -4,21 +4,17 @@ import {
   PlusSignIcon,
   Settings02Icon,
   Tick02Icon,
-  UnfoldMoreIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { AppLogo } from '@tamery/ui/components/brand/app-logo'
-import { Button } from '@tamery/ui/components/button'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import {
-  DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
 } from '@tamery/ui/components/dropdown-menu'
 import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 import { cn } from '@tamery/ui/lib/utils'
@@ -49,6 +45,7 @@ import { UpdateButton, VersionButton } from '~/modules/updates/update-button'
 import { UserButton } from '~/modules/user-menu/user-button'
 
 import { RemoveConnectionDialog } from './remove-connection-dialog'
+import { TitleBarPicker } from './title-bar-picker'
 import { WorkspaceSwitcher } from './workspace-switcher'
 
 interface ConnectionGroup {
@@ -177,18 +174,19 @@ const ConnectionsDropdown = ({
   const viewOnly = isViewOnly(useActiveWorkspace().data)
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="sm"
-            // oxlint-disable-next-line shadcn/no-restyle -- title-bar pickers sit tighter than a toolbar button
-            className="max-w-64 gap-1.5 px-2"
-          />
-        }
-      >
-        {current ? (
+    <TitleBarPicker
+      open={open}
+      onOpenChange={setOpen}
+      label="Switch connection"
+      link={
+        current && currentResourceId ? (
+          <ConnectionResourceLink resourceId={currentResourceId} />
+        ) : (
+          <Link to="/" />
+        )
+      }
+      name={
+        current ? (
           <>
             <ConnectionIcon
               type={current.type}
@@ -208,13 +206,9 @@ const ConnectionsDropdown = ({
           </>
         ) : (
           <span className="truncate">Connections</span>
-        )}
-        <HugeiconsIcon
-          icon={UnfoldMoreIcon}
-          strokeWidth={2}
-          className="text-muted-foreground/70 size-3 shrink-0"
-        />
-      </DropdownMenuTrigger>
+        )
+      }
+    >
       <DropdownMenuContent
         align="start"
         className="max-h-[70vh] min-w-64 overflow-auto"
@@ -280,7 +274,7 @@ const ConnectionsDropdown = ({
           )}
         </DropdownMenuItem>
       </DropdownMenuContent>
-    </DropdownMenu>
+    </TitleBarPicker>
   )
 }
 
@@ -293,7 +287,7 @@ const ResourcesDropdown = ({
   resources: ConnectionResource[]
   current: ConnectionResource
 }) => (
-  <DropdownMenu
+  <TitleBarPicker
     onOpenChange={(open) => {
       // Pick up databases created since the catalog last synced, so the list is current when opened — no refresh button needed.
       if (open) {
@@ -303,27 +297,14 @@ const ResourcesDropdown = ({
         })
       }
     }}
-  >
-    <DropdownMenuTrigger
-      render={
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label="Switch database"
-          // oxlint-disable-next-line shadcn/no-restyle -- title-bar pickers sit tighter than a toolbar button
-          className="max-w-64 gap-1.5 px-2"
-        />
-      }
-    >
+    label="Switch database"
+    link={<ConnectionResourceLink resourceId={current.id} />}
+    name={
       <span data-mask className="text-muted-foreground truncate">
         <ResourceLabel connection={connection} name={current.name} />
       </span>
-      <HugeiconsIcon
-        icon={UnfoldMoreIcon}
-        strokeWidth={2}
-        className="text-muted-foreground/70 size-3 shrink-0"
-      />
-    </DropdownMenuTrigger>
+    }
+  >
     <DropdownMenuContent
       align="start"
       className="max-h-[70vh] min-w-48 overflow-auto"
@@ -345,7 +326,7 @@ const ResourcesDropdown = ({
         </DropdownMenuItem>
       ))}
     </DropdownMenuContent>
-  </DropdownMenu>
+  </TitleBarPicker>
 )
 
 const ConnectionsBreadcrumb = ({
