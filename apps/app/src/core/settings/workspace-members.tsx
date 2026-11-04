@@ -12,12 +12,12 @@ import {
   WORKSPACE_ROLES,
 } from '@tamery/shared/workspace'
 import { Button } from '@tamery/ui/components/button'
-import { addRowClass } from '@tamery/ui/components/card.utils'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import {
   SettingsGroup,
   SettingsRow,
 } from '@tamery/ui/components/custom/settings-group'
+import { smallItemInsetClassName } from '@tamery/ui/components/item'
 import {
   Tooltip,
   TooltipContent,
@@ -35,6 +35,7 @@ import type { Workspace } from '~/core/workspace/sync'
 import { orpc } from '~/lib/orpc'
 import { queryClient } from '~/lib/query-client'
 import { useIsOnline } from '~/store'
+import { plural } from '~/utils/plural'
 
 import { InviteDialog } from './invite-dialog'
 import type { MemberConfirmation } from './member-confirm-dialog'
@@ -109,7 +110,32 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
         onInvited={refresh}
       />
       <div className="flex flex-col gap-2">
-        <SettingsGroup title="Members">
+        <div className="flex items-center justify-between gap-4">
+          <span
+            className={cn(
+              smallItemInsetClassName,
+              'text-2xs text-muted-foreground font-semibold tracking-wider uppercase'
+            )}
+          >
+            {plural(data.members.length, 'member')}
+          </span>
+          {canManage && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!isOnline}
+              onClick={() => setInviteOpen(true)}
+            >
+              <HugeiconsIcon
+                icon={PlusSignIcon}
+                strokeWidth={2}
+                className="text-muted-foreground size-4"
+              />
+              Invite
+            </Button>
+          )}
+        </div>
+        <SettingsGroup>
           {data.members.map((member) => (
             <SettingsRow
               key={member.id}
@@ -180,21 +206,6 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
             </SettingsRow>
           ))}
         </SettingsGroup>
-        {canManage && (
-          <button
-            type="button"
-            disabled={!isOnline}
-            onClick={() => setInviteOpen(true)}
-            className={cn(addRowClass, 'disabled:opacity-50')}
-          >
-            <HugeiconsIcon
-              icon={PlusSignIcon}
-              strokeWidth={2}
-              className="size-4"
-            />
-            Invite member
-          </button>
-        )}
       </div>
       <MemberConfirmDialog
         confirmation={confirmation}
