@@ -1,10 +1,9 @@
 import {
-  ArrowDataTransferHorizontalIcon,
   Mail01Icon,
   PlusSignIcon,
+  Settings02Icon,
   Tick02Icon,
   UnfoldMoreIcon,
-  UserGroupIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { isDefaultWorkspaceMetadata } from '@tamery/shared/workspace'
@@ -16,41 +15,23 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@tamery/ui/components/dropdown-menu'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { NameGlyph } from '~/components/name-glyph'
 import { checkOrUpgrade } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
 import {
   openedInvitationId,
   useInvitations,
 } from '~/core/workspace/invitations'
-import type { Workspace } from '~/core/workspace/sync'
 import { workspaceSelection } from '~/core/workspace/utils'
+import { WorkspaceNameDialog } from '~/core/workspace/workspace-name-dialog'
 import { useIsAnonymous } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { useIsOnline } from '~/store'
-
-import { CreateWorkspaceDialog } from './create-workspace-dialog'
-
-const WorkspaceGlyph = ({
-  workspace,
-}: {
-  workspace: Pick<Workspace, 'name'>
-}) => (
-  <span
-    aria-hidden
-    data-mask
-    className="bg-muted text-2xs text-accent-foreground flex size-4 shrink-0 items-center justify-center rounded font-medium"
-  >
-    {[...workspace.name][0]?.toUpperCase() ?? ''}
-  </span>
-)
 
 export const WorkspaceSwitcher = () => {
   const navigate = useNavigate()
@@ -97,7 +78,7 @@ export const WorkspaceSwitcher = () => {
         >
           {activeWorkspace ? (
             <>
-              <WorkspaceGlyph workspace={activeWorkspace} />
+              <NameGlyph name={activeWorkspace.name} />
               <span data-mask className="truncate">
                 {activeWorkspace.name}
               </span>
@@ -137,65 +118,60 @@ export const WorkspaceSwitcher = () => {
               <DropdownMenuSeparator />
             </>
           )}
+          {workspaces
+            .toSorted(
+              (a, b) =>
+                Number(isDefaultWorkspaceMetadata(b.metadata)) -
+                Number(isDefaultWorkspaceMetadata(a.metadata))
+            )
+            .map((workspace) => (
+              <DropdownMenuItem
+                key={workspace.id}
+                onClick={() => switchWorkspace(workspace.id)}
+              >
+                <NameGlyph name={workspace.name} />
+                <span data-mask className="truncate">
+                  {workspace.name}
+                </span>
+                {workspace.id === activeWorkspace?.id && (
+                  <HugeiconsIcon
+                    icon={Tick02Icon}
+                    strokeWidth={2}
+                    className="ml-auto"
+                  />
+                )}
+              </DropdownMenuItem>
+            ))}
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() =>
               navigate({
-                params: { section: 'members' },
+                params: { section: 'workspace' },
                 to: '/settings/$section',
               })
             }
           >
-            <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} />
-            Invite and manage members
+            <HugeiconsIcon icon={Settings02Icon} strokeWidth={2} />
+            <span className="truncate">
+              Manage{' '}
+              {activeWorkspace ? (
+                <span data-mask>{activeWorkspace.name}</span>
+              ) : (
+                'workspace'
+              )}
+            </span>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <HugeiconsIcon
-                icon={ArrowDataTransferHorizontalIcon}
-                strokeWidth={2}
-              />
-              Switch workspace
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="min-w-48">
-              {workspaces
-                .toSorted(
-                  (a, b) =>
-                    Number(isDefaultWorkspaceMetadata(b.metadata)) -
-                    Number(isDefaultWorkspaceMetadata(a.metadata))
-                )
-                .map((workspace) => (
-                  <DropdownMenuItem
-                    key={workspace.id}
-                    onClick={() => switchWorkspace(workspace.id)}
-                  >
-                    <WorkspaceGlyph workspace={workspace} />
-                    <span data-mask className="truncate">
-                      {workspace.name}
-                    </span>
-                    {workspace.id === activeWorkspace?.id && (
-                      <HugeiconsIcon
-                        icon={Tick02Icon}
-                        strokeWidth={2}
-                        className="ml-auto"
-                      />
-                    )}
-                  </DropdownMenuItem>
-                ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className={isAnonymous ? 'opacity-50' : undefined}
-                disabled={!isOnline}
-                onClick={handleCreate}
-              >
-                <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
-                Create workspace
-              </DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+          <DropdownMenuItem
+            className={isAnonymous ? 'opacity-50' : undefined}
+            disabled={!isOnline}
+            onClick={handleCreate}
+          >
+            <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
+            Create workspace
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <CreateWorkspaceDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <WorkspaceNameDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
   )
 }

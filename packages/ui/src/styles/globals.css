@@ -217,6 +217,12 @@
   --primary-foreground: oklch(0.92 0 0);
 }
 
+/* The blurred --primary is a fill tone: as text or a glyph it nearly matches the surface behind it. */
+.electron.window-blurred
+  [class*='text-primary']:not([class*='text-primary-foreground']) {
+  color: var(--muted-foreground);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -392,6 +398,15 @@
 
 ::view-transition-old(.overlay) {
   display: none;
+}
+
+/* Both, or the page loses :hover during a transition: a captured root and the transition's own layer each take the pointer, so hover-revealed row actions blink on every tab swap. */
+:root {
+  view-transition-name: none;
+}
+
+::view-transition {
+  pointer-events: none;
 }
 
 @utility focus-ring {

@@ -13,7 +13,7 @@ import { McpSettings } from '~/modules/mcp/mcp-settings'
 import { AppearanceSettings } from './appearance'
 import { GeneralSettings } from './general'
 import { KeyboardSettings } from './keyboard'
-import { MembersSettings } from './members'
+import { WorkspaceSettings } from './workspace'
 
 export const settingsSections = [
   ...(window.electron
@@ -33,10 +33,10 @@ export const settingsSections = [
     slug: 'appearance',
   },
   {
-    component: MembersSettings,
+    component: WorkspaceSettings,
     icon: UserGroupIcon,
-    label: 'Members',
-    slug: 'members',
+    label: 'Workspace',
+    slug: 'workspace',
   },
   {
     component: KeyboardSettings,

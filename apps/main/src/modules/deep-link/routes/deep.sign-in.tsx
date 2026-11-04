@@ -1,4 +1,3 @@
-import { challenge } from '@tamery/shared/challenge'
 import { Button } from '@tamery/ui/components/button'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import {
@@ -53,20 +52,13 @@ const ConfirmSignIn = () => {
     )
   }
 
-  const origin = [device.label, device.location].filter(Boolean).join(', ')
-
   return (
     <OpenStatus
       title={`Sign in to ${clientName}`}
       description={
         <>
-          {origin && <>Requested from {origin}. </>}
-          Continue only if you started signing in yourself and {clientName}{' '}
-          shows{' '}
-          <span className="font-mono">
-            {challenge.getUserCode(codeChallenge)}
-          </span>
-          . You&apos;ll be signed in as <span data-mask>{email}</span>.
+          Continue only if you started signing in yourself. You&apos;ll be
+          signed in as <span data-mask>{email}</span>.
         </>
       }
     >

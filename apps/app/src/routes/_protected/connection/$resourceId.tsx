@@ -8,14 +8,17 @@ import {
   ResizableSeparator,
   ResizablePanel,
 } from '@tamery/ui/components/custom/resizable'
+import { eq, useLiveQuery } from '@tanstack/react-db'
 import {
   createFileRoute,
   getRouteApi,
   Outlet,
   redirect,
+  useNavigate,
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
+import { toast } from 'sonner'
 
 import { getDefaultSchema } from '~/core/catalog/capabilities'
 import {
@@ -98,8 +101,25 @@ const RegionPanel = ({
 }
 
 const ResourcePage = () => {
-  const { connection, connectionResource } = useRouteContext()
+  const { collections, connection, connectionResource } = useRouteContext()
   const goBack = useGoBack()
+  const navigate = useNavigate()
+  const { data: liveConnection, isReady } = useLiveQuery(
+    (q) =>
+      q
+        .from({ c: collections.connectionsCollection })
+        .where(({ c }) => eq(c.id, connection.id))
+        .findOne(),
+    [collections, connection.id]
+  )
+  const isRemoved = isReady && !liveConnection
+
+  useEffect(() => {
+    if (isRemoved) {
+      toast.info('This connection is no longer available')
+      void navigate({ to: '/' })
+    }
+  }, [isRemoved, navigate])
 
   useShellLayout(connectionResource.id)
 
@@ -124,6 +144,11 @@ const ResourcePage = () => {
     enabled: !locked,
   })
   useEscapeToNavigator(!locked)
+
+  // Route context keeps the row from entry, so without this a refetch under a removed connection throws its way to the error page.
+  if (isRemoved) {
+    return null
+  }
 
   if (locked) {
     return <UnlockForm scope={needsDetails ? 'details' : 'credentials'} />

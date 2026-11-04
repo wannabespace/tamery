@@ -83,39 +83,52 @@ const connectionResourcesQuery = (defaultResourceName: string | null) =>
     type: type('string[]'),
   })
 
+const storeMissingResources = async (connectionId: string, names: string[]) => {
+  const { connectionsResourcesCollection } = getCollections()
+
+  await connectionsResourcesCollection.utils.whenSynced()
+
+  const stored = await queryOnce((q) =>
+    q
+      .from({ resource: connectionsResourcesCollection })
+      .where(({ resource }) => eq(resource.connectionId, connectionId))
+      .select(({ resource }) => ({ name: resource.name }))
+  )
+  const storedNames = new Set(stored.map((resource) => resource.name))
+  const missing = names.filter((name) => !storedNames.has(name))
+
+  if (missing.length > 0) {
+    mutateOffline(() => {
+      for (const name of missing) {
+        connectionsResourcesCollection.insert({
+          connectionId,
+          createdAt: new Date(),
+          id: v7(),
+          name,
+          updatedAt: new Date(),
+        })
+      }
+    })
+  }
+}
+
 export const connectionResourcesQueryOptions = (connection: Connection) =>
   queryOptions({
     queryFn: async () => {
-      const { connectionsResourcesCollection } = getCollections()
       const params = await connectionToQueryParams(connection)
-      const resources = await connectionResourcesQuery(
-        describeConnectionString(params.connectionString).defaultResourceName
-      ).run(params)
-
-      await connectionsResourcesCollection.utils.whenSynced()
-
-      const stored = await queryOnce((q) =>
-        q
-          .from({ resource: connectionsResourcesCollection })
-          .where(({ resource }) => eq(resource.connectionId, connection.id))
-          .select(({ resource }) => ({ name: resource.name }))
+      const { defaultResourceName } = describeConnectionString(
+        params.connectionString
       )
-      const storedNames = new Set(stored.map((resource) => resource.name))
-      const missing = resources.filter((name) => !storedNames.has(name))
 
-      if (missing.length > 0) {
-        mutateOffline(() => {
-          for (const name of missing) {
-            connectionsResourcesCollection.insert({
-              connectionId: connection.id,
-              createdAt: new Date(),
-              id: v7(),
-              name,
-              updatedAt: new Date(),
-            })
-          }
-        })
+      // Before the list, which can take seconds or fail: the connection row links only to a stored resource.
+      if (defaultResourceName) {
+        await storeMissingResources(connection.id, [defaultResourceName])
       }
+
+      const resources =
+        await connectionResourcesQuery(defaultResourceName).run(params)
+
+      await storeMissingResources(connection.id, resources)
 
       return resources
     },
