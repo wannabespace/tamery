@@ -45,7 +45,7 @@ import { UpdateButton, VersionButton } from '~/modules/updates/update-button'
 import { UserButton } from '~/modules/user-menu/user-button'
 
 import { RemoveConnectionDialog } from './remove-connection-dialog'
-import { TitleBarPicker, useHomeLink } from './title-bar-picker'
+import { resourceHomeLink, TitleBarPicker } from './title-bar-picker'
 import { WorkspaceSwitcher } from './workspace-switcher'
 
 interface ConnectionGroup {
@@ -158,16 +158,27 @@ const ConnectionsDropdown = ({
   groups,
   current,
   currentResourceId,
+  isOnHome,
   onRemove,
 }: {
   groups: ConnectionGroup[]
   current: Connection | undefined
   currentResourceId: string | undefined
+  isOnHome: boolean
   onRemove: (connection: Connection) => void
 }) => {
   const [open, setOpen] = useState(false)
-  const homeLink = useHomeLink()
   const { connectionStringsCollection } = useCollections()
+  const currentResources = groups.find(
+    (group) => group.connection.id === current?.id
+  )?.resources
+  const homeResource =
+    currentResources?.find(
+      (resource) =>
+        current &&
+        resource.name ===
+          connectionStringsCollection.get(current.id)?.defaultResourceName
+    ) ?? currentResources?.find((resource) => resource.id === currentResourceId)
   const lastOpenedResources = useSubscription(lastOpenedResourcesStorageValue)
   const atGuestLimit = !usePermissions().check('connection.create', {
     count: groups.length,
@@ -179,7 +190,11 @@ const ConnectionsDropdown = ({
       open={open}
       onOpenChange={setOpen}
       label="Switch connection"
-      link={current ? undefined : homeLink}
+      link={
+        homeResource && !(isOnHome && homeResource.id === currentResourceId)
+          ? resourceHomeLink(homeResource.id)
+          : undefined
+      }
       name={
         current ? (
           <>
@@ -277,10 +292,12 @@ const ResourcesDropdown = ({
   connection,
   resources,
   current,
+  isOnHome,
 }: {
   connection: Connection
   resources: ConnectionResource[]
   current: ConnectionResource
+  isOnHome: boolean
 }) => (
   <TitleBarPicker
     onOpenChange={(open) => {
@@ -293,6 +310,7 @@ const ResourcesDropdown = ({
       }
     }}
     label="Switch database"
+    link={isOnHome ? undefined : resourceHomeLink(current.id)}
     name={
       <span data-mask className="text-muted-foreground truncate">
         <ResourceLabel connection={connection} name={current.name} />
@@ -330,7 +348,7 @@ const ConnectionsBreadcrumb = ({
 }) => {
   const { connectionsCollection, connectionsResourcesCollection } =
     useCollections()
-  const { resourceId } = useParams({ strict: false })
+  const { resourceId, tabId } = useParams({ strict: false })
   const { data: activeWorkspace } = useActiveWorkspace()
   const { data } = useLiveQuery({
     query: (q) => {
@@ -375,6 +393,7 @@ const ConnectionsBreadcrumb = ({
         groups={groups}
         current={current?.connection}
         currentResourceId={resourceId}
+        isOnHome={!tabId}
         onRemove={onRemove}
       />
       {current && currentGroup && currentGroup.resources.length > 1 && (
@@ -389,6 +408,7 @@ const ConnectionsBreadcrumb = ({
             connection={current.connection}
             resources={currentGroup.resources}
             current={current.resource}
+            isOnHome={!tabId}
           />
         </>
       )}

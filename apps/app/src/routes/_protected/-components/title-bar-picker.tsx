@@ -1,5 +1,4 @@
 import { UnfoldMoreIcon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import {
@@ -16,6 +15,14 @@ export const useHomeLink = () => {
   return pathname === '/' ? undefined : <Link to="/" />
 }
 
+export const resourceHomeLink = (resourceId: string) => (
+  <Link
+    to="/connection/$resourceId"
+    params={{ resourceId }}
+    search={{ home: true }}
+  />
+)
+
 export const TitleBarPicker = ({
   children,
   label,
@@ -25,13 +32,13 @@ export const TitleBarPicker = ({
 }: Omit<ComponentProps<typeof DropdownMenu>, 'children'> & {
   children: ReactNode
   label: string
-  /** Where the name leads. Without it the user is already there, so the name opens the menu rather than do nothing. */
+  /** The home of this level. Without it the user is already there, so the name opens the menu rather than do nothing. */
   link?: ReactElement
   name: ReactNode
 }) => (
   <DropdownMenu {...props}>
-    {link ? (
-      <div className="flex shrink-0 items-center">
+    <div className="flex shrink-0 items-center">
+      {link ? (
         <Button
           variant="ghost"
           size="sm"
@@ -41,39 +48,33 @@ export const TitleBarPicker = ({
         >
           {name}
         </Button>
+      ) : (
         <DropdownMenuTrigger
           render={
-            <IconButton
-              icon={UnfoldMoreIcon}
-              iconClassName="size-3"
-              label={label}
-              side="bottom"
-              size="icon-sm"
-              variant="ghost-muted"
+            <Button
+              variant="ghost"
+              size="sm"
+              // oxlint-disable-next-line shadcn/no-restyle -- title-bar pickers sit tighter than a toolbar button
+              className="max-w-56 gap-1.5 px-2"
             />
           }
-        />
-      </div>
-    ) : (
+        >
+          {name}
+        </DropdownMenuTrigger>
+      )}
       <DropdownMenuTrigger
         render={
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={label}
-            // oxlint-disable-next-line shadcn/no-restyle -- title-bar pickers sit tighter than a toolbar button
-            className="max-w-56 gap-1.5 px-2"
+          <IconButton
+            icon={UnfoldMoreIcon}
+            iconClassName="size-3"
+            label={label}
+            side="bottom"
+            size="icon-sm"
+            variant="ghost-muted"
           />
         }
-      >
-        {name}
-        <HugeiconsIcon
-          icon={UnfoldMoreIcon}
-          strokeWidth={2}
-          className="text-muted-foreground/70 size-3 shrink-0"
-        />
-      </DropdownMenuTrigger>
-    )}
+      />
+    </div>
     {children}
   </DropdownMenu>
 )
