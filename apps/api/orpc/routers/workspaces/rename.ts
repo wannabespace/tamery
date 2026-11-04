@@ -4,7 +4,7 @@ import { MEMBER_MANAGER_ROLES } from '@tamery/shared/workspace'
 import { type } from 'arktype'
 import { and, eq, inArray } from 'drizzle-orm'
 
-import { workspaceMemberIds } from '~/lib/workspace'
+import { workspaceMemberIds, workspaceSlug } from '~/lib/workspace'
 import { accountMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
@@ -20,7 +20,7 @@ export const rename = orpc
     const inWorkspace = eq(workspaces.id, input.workspaceId)
     const [renamed] = await db
       .update(workspaces)
-      .set({ name: input.name })
+      .set({ name: input.name, slug: workspaceSlug(input.name) })
       .where(
         and(
           inWorkspace,
