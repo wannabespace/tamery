@@ -110,12 +110,15 @@ export const TreeRowContent = ({
                 )
             : undefined
         }
-        onDrop={() =>
-          dialogs.dropTable.current?.drop(
-            row.schema,
-            row.table.name,
-            row.table.type
-          )
+        onDrop={
+          getCapabilities(dialect).flags.includes('readOnly')
+            ? undefined
+            : () =>
+                dialogs.dropTable.current?.drop(
+                  row.schema,
+                  row.table.name,
+                  row.table.type
+                )
         }
       />
     </div>

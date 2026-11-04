@@ -90,6 +90,7 @@ export const electron = {
     mysql: queryProcess.executor(Dialect.MySQL),
     oracle: queryProcess.executor(Dialect.Oracle),
     postgres: queryProcess.executor(Dialect.Postgres),
+    posthog: queryProcess.executor(Dialect.PostHog),
     sqlite: queryProcess.executor(Dialect.SQLite),
   } satisfies Record<Dialect, QueryExecutor>,
   sqlite: {

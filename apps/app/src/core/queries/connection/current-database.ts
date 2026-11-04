@@ -34,6 +34,7 @@ const connectionCurrentDatabaseQuery = createQuery({
       db
         .selectNoFrom(sql<string>`current_database()`.as('name'))
         .executeTakeFirstOrThrow(),
+    posthog: () => Promise.resolve({ name: null }),
     sqlite: () => Promise.resolve({ name: SQLITE_RESOURCE_NAME }),
   },
   type: type({ name: 'string | null' }).pipe((row) => row.name),

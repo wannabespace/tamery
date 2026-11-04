@@ -25,6 +25,7 @@ export const setRowLevelSecurityQuery = ({
         sql`ALTER TABLE ${sql.id(schema, table)} ${enabled ? sql`ENABLE` : sql`DISABLE`} ROW LEVEL SECURITY`.execute(
           db
         ),
+      posthog: unsupported('Row level security'),
       sqlite: unsupported('Row level security'),
     },
   })

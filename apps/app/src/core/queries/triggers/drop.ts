@@ -16,6 +16,7 @@ export const dropTriggerQuery = (params: TriggerTarget & { name: string }) => {
       mysql: (db) => drop.mysql.execute(db),
       oracle: (db) => drop.oracle.execute(db),
       postgres: (db) => drop.postgres.execute(db),
+      posthog: unsupported('Triggers'),
       sqlite: (db) => drop.sqlite.execute(db),
     },
   })

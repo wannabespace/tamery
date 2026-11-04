@@ -15,6 +15,7 @@
           "connections/oracle",
           "connections/mongodb",
           "connections/clickhouse",
+          "connections/posthog",
           "connections/sqlite",
           "connections/security"
         ]

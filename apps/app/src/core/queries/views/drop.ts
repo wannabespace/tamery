@@ -1,3 +1,5 @@
+import { unsupported } from '@tamery/shared/unsupported'
+
 import { createQuery } from '~/core/runtime/query'
 
 export const dropViewQuery = ({
@@ -28,6 +30,7 @@ export const dropViewQuery = ({
 
         return (cascade ? kind.cascade() : kind).execute()
       },
+      posthog: unsupported('Views'),
       sqlite: (db) => db.withSchema(schema).schema.dropView(view).execute(),
     },
   })

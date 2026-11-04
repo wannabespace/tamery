@@ -22,6 +22,7 @@ export const createConstraintQuery = ({
       mysql: (db) => addConstraint(db, { schema, table }, shape).execute(),
       oracle: (db) => addConstraint(db, { schema, table }, shape).execute(),
       postgres: (db) => addConstraint(db, { schema, table }, shape).execute(),
+      posthog: unsupported('Constraints'),
       sqlite: unsupported('Adding constraints'),
     },
   })

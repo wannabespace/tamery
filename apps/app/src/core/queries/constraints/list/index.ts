@@ -73,6 +73,7 @@ const resourceConstraintsQuery = createQuery({
     mysql: mysqlConstraints,
     oracle: oracleConstraints,
     postgres: postgresConstraints,
+    posthog: () => Promise.resolve([]),
     sqlite: sqliteConstraints,
   },
   type: constraintsType.array(),

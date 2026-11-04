@@ -1,3 +1,4 @@
+import { unsupported } from '@tamery/shared/unsupported'
 import { sql } from 'kysely'
 
 import { createQuery } from '~/core/runtime/query'
@@ -19,6 +20,7 @@ export const dropIndexQuery = ({ name, schema, table }: IndexTarget) =>
         ),
       oracle: (db) => sql`DROP INDEX ${sql.id(schema, name)}`.execute(db),
       postgres: (db) => sql`DROP INDEX ${sql.id(schema, name)}`.execute(db),
+      posthog: unsupported('Indexes'),
       sqlite: (db) => db.withSchema(schema).schema.dropIndex(name).execute(),
     },
   })

@@ -38,6 +38,7 @@ export const customQuery = ({
       mysql: run,
       oracle: run,
       postgres: run,
+      posthog: run,
       sqlite: run,
     },
   })

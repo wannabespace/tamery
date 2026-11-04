@@ -9,6 +9,7 @@ export enum ConnectionType {
   SQLite = 'sqlite',
   Oracle = 'oracle',
   MongoDB = 'mongodb',
+  PostHog = 'posthog',
 }
 
 /** Never build a query from a `ConnectionType`: every query runs on the dialect it speaks through. */
@@ -20,6 +21,7 @@ export enum Dialect {
   SQLite = 'sqlite',
   Oracle = 'oracle',
   MongoDB = 'mongodb',
+  PostHog = 'posthog',
 }
 
 export enum QueryLanguage {
@@ -37,6 +39,7 @@ export const dialectLanguage = {
   [Dialect.SQLite]: QueryLanguage.SQL,
   [Dialect.Oracle]: QueryLanguage.SQL,
   [Dialect.MongoDB]: QueryLanguage.Mongosh,
+  [Dialect.PostHog]: QueryLanguage.SQL,
 } satisfies Record<Dialect, QueryLanguage>
 
 export type SqlDialect = {
@@ -56,6 +59,7 @@ const DIALECT_OF_TYPE: Record<ConnectionType, Dialect> = {
   [ConnectionType.MySQL]: Dialect.MySQL,
   [ConnectionType.Oracle]: Dialect.Oracle,
   [ConnectionType.Postgres]: Dialect.Postgres,
+  [ConnectionType.PostHog]: Dialect.PostHog,
   [ConnectionType.SQLite]: Dialect.SQLite,
 }
 
@@ -69,6 +73,7 @@ export const connectionTypeLabels: Record<ConnectionType, string> = {
   [ConnectionType.MySQL]: 'MySQL',
   [ConnectionType.Oracle]: 'Oracle',
   [ConnectionType.Postgres]: 'PostgreSQL',
+  [ConnectionType.PostHog]: 'PostHog',
   [ConnectionType.SQLite]: 'SQLite',
 }
 

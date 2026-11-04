@@ -104,15 +104,21 @@ export const SQL_NAMES: ObjectNames = {
 export type CapabilityFlag =
   | 'alterColumns'
   | 'cascade'
+  /** The catalog lists columns `SELECT *` leaves out, so the grid shows only what the rows hold. */
+  | 'catalogBeyondRows'
   | 'comments'
   | 'copyDatabase'
   | 'ddlRollback'
   | 'declaredColumns'
   | 'documentIndexes'
   | 'explain'
+  /** The engine refuses OFFSET, so a table shows only its first page. */
+  | 'firstRowsOnly'
   | 'foreignKeyOnUpdate'
   | 'ilike'
   | 'materializedViews'
+  /** Nothing in the engine takes a write: no schema tabs, no share, no create or drop anywhere. */
+  | 'readOnly'
   | 'renameColumns'
   | 'renameConstraints'
   | 'renameSchema'

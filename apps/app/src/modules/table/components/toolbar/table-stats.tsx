@@ -13,6 +13,7 @@ import { cn } from '@tamery/ui/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 
+import { getCapabilities } from '~/core/catalog/capabilities'
 import { useObjectNames } from '~/core/catalog/names'
 import { useConnectionContext } from '~/core/connection/route'
 import { resourceTableTotalQueryOptions } from '~/core/queries/rows/total'
@@ -27,11 +28,13 @@ const COMPACT_COUNT_FORMAT = {
 const CountDetails = ({
   canRequestExact,
   failed,
+  firstRowsOnly,
   total,
   updatedAt,
 }: {
   canRequestExact: boolean
   failed: boolean
+  firstRowsOnly: boolean
   total: { count: number; isEstimated: boolean } | undefined
   updatedAt: number
 }) => {
@@ -50,6 +53,11 @@ const CountDetails = ({
         {total.count === 1 ? '' : 's'}
         {canRequestExact && '. Click to get the exact count.'}
       </span>
+      {firstRowsOnly && (
+        <span>
+          Only the first {names.row}s load here. Filter or sort to reach others.
+        </span>
+      )}
       <span className="opacity-70">
         Updated: {new Date(updatedAt).toLocaleTimeString()}
       </span>
@@ -73,7 +81,7 @@ export const TableStats = ({
   schema: string
   table: string
 }) => {
-  const { connectionResource } = useConnectionContext()
+  const { connectionResource, dialect } = useConnectionContext()
   const { columns } = useTableColumnsContext()
   const [exact, setExact] = useState(false)
   const {
@@ -138,6 +146,9 @@ export const TableStats = ({
         <CountDetails
           canRequestExact={canRequestExact}
           failed={failed}
+          firstRowsOnly={getCapabilities(dialect).flags.includes(
+            'firstRowsOnly'
+          )}
           total={total}
           updatedAt={dataUpdatedAt}
         />

@@ -18,6 +18,7 @@ export const setTriggerEnabledQuery = (
       mysql: unsupported('Disabling triggers'),
       oracle: (db) => setEnabled.oracle.execute(db),
       postgres: (db) => setEnabled.postgres.execute(db),
+      posthog: unsupported('Disabling triggers'),
       sqlite: unsupported('Disabling triggers'),
     },
   })

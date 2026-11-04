@@ -56,6 +56,7 @@ export const addColumnQuery = ({
           await addConstraint(db, target, reference).execute()
         }
       },
+      posthog: unsupported('Column changes'),
       sqlite: reference
         ? unsupported('Foreign keys on a stored table')
         : (db) =>

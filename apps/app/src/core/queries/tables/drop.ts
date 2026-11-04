@@ -1,4 +1,5 @@
 import { Dialect } from '@tamery/shared/enums/connection-type'
+import { unsupported } from '@tamery/shared/unsupported'
 import { memoize } from 'memoza'
 
 import { createQuery } from '~/core/runtime/query'
@@ -20,6 +21,7 @@ export const dropTableQuery = memoize(
           db.executeQuery(dropTableStatement(Dialect.Oracle, db, target)),
         postgres: (db) =>
           db.executeQuery(dropTableStatement(Dialect.Postgres, db, target)),
+        posthog: unsupported('Editing tables'),
         sqlite: (db) =>
           db.executeQuery(dropTableStatement(Dialect.SQLite, db, target)),
       },

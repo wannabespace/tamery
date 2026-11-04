@@ -47,6 +47,7 @@ export const distinctQuery = (params: DistinctParams) =>
       mysql: (db) => selectDistinct(db, params),
       oracle: (db) => selectDistinct(db, params),
       postgres: (db) => selectDistinct(db, params),
+      posthog: (db) => selectDistinct(db, params),
       sqlite: (db) => selectDistinct(db, params),
     },
     type: distinctType,

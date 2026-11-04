@@ -96,6 +96,7 @@ export const recreateFunctionQuery = ({
           }
           await create.postgres.execute(tx)
         }),
+      posthog: unsupported('Functions'),
       sqlite: unsupported('Functions'),
     },
   })

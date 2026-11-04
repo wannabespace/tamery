@@ -66,6 +66,7 @@ const dependentsQuery = ({ name, schema }: { name: string; schema: string }) =>
           .where('c.relkind', 'in', ['r', 'p'])
           .where('c.relispartition', '=', false)
           .execute(),
+      posthog: () => Promise.resolve([]),
       sqlite: () => Promise.resolve([]),
     },
     type: enumDependentType.array(),

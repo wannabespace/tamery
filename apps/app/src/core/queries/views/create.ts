@@ -60,6 +60,7 @@ export const createViewQuery = ({
           .as(definition)
           .execute()
       },
+      posthog: unsupported('Views'),
       sqlite: materialized
         ? unsupported('Materialized views')
         : (db) =>

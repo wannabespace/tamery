@@ -113,6 +113,7 @@ export const columnStatsQuery = (params: ColumnStatsParams) =>
       mysql: (db) => selectStats(db, params),
       oracle: (db) => selectStats(db, params),
       postgres: (db) => selectStats(db, params),
+      posthog: (db) => selectStats(db, params),
       sqlite: (db) =>
         selectStats(db, params, filterValueBindings.sqlite?.(params.columns)),
     },

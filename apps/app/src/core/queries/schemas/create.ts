@@ -48,6 +48,7 @@ export const createSchemaQuery = (schema: string) =>
         )
       },
       postgres: (db) => db.schema.createSchema(schema).execute(),
+      posthog: unsupported('Schemas'),
       sqlite: unsupported('Schemas'),
     },
   })

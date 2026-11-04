@@ -188,6 +188,28 @@ RETURNING *;`,
     ],
     notes: [STEP_BY_STEP, EXPLAIN],
   },
+  [Dialect.PostHog]: {
+    examples: [
+      {
+        query: `SELECT event, count() AS total
+FROM events
+WHERE timestamp > now() - INTERVAL 7 DAY
+GROUP BY event
+ORDER BY total DESC
+LIMIT 20;`,
+        title: 'Top events, last 7 days',
+      },
+      {
+        query: `SELECT toStartOfDay(timestamp) AS day, count(DISTINCT person_id) AS users
+FROM events
+WHERE timestamp > now() - INTERVAL 30 DAY
+GROUP BY day
+ORDER BY day;`,
+        title: 'Daily active users, last 30 days',
+      },
+    ],
+    notes: ['HogQL only reads. Without a LIMIT, a query returns 100 rows.'],
+  },
   [Dialect.SQLite]: {
     examples: [
       {

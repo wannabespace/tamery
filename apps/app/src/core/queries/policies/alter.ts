@@ -84,6 +84,7 @@ export const alterPolicyQuery = ({
             )
           }
         }),
+      posthog: unsupported('Row policies'),
       sqlite: unsupported('Row policies'),
     },
   })

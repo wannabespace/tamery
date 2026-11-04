@@ -45,6 +45,7 @@ const triggerDefinitionQuery = ({ name, oid, schema }: TriggerItem) =>
 
         return readDefinition(sql`pg_get_triggerdef(${sql.lit(oid)}, true)`)(db)
       },
+      posthog: unsupported('Triggers'),
       sqlite: async (db) => {
         const row = await db
           .selectFrom('sqlite_schema')

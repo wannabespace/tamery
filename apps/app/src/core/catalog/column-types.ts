@@ -106,6 +106,7 @@ const COLUMN_TYPES: Record<Dialect, readonly string[]> = {
     'jsonb',
     'bytea',
   ],
+  [Dialect.PostHog]: [],
   [Dialect.SQLite]: [
     'integer',
     'real',
@@ -136,6 +137,22 @@ export const COLUMN_TYPE_CAPABILITIES: Record<Dialect, ColumnTypeCapabilities> =
       uuid: /\bUUID\b/u,
       xml: null,
       zoned: /\bDateTime/u,
+    },
+    // The names `system.information_schema.columns` reports, not ClickHouse's.
+    [Dialect.PostHog]: {
+      array: null,
+      boolean: /^Boolean$/u,
+      bytes: null,
+      dateKeywords: null,
+      datesWithTime: /^DateTime$/u,
+      enum: null,
+      id: 'UUID',
+      incomparable: /^(?:Array|JSON|Struct)$/u,
+      json: /^(?:Array|JSON|Struct)$/u,
+      options: COLUMN_TYPES[Dialect.PostHog],
+      uuid: /^UUID$/u,
+      xml: null,
+      zoned: /^DateTime$/u,
     },
     // BSON type names as `$type` reports them; a binary value stays Extended JSON, so it edits as JSON.
     [Dialect.MongoDB]: {

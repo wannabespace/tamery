@@ -66,7 +66,7 @@ const guardedConnect = async ({ host, port }: Destination) => {
 /**
  * Plugged in as every dialect's socket source, so each socket a driver opens dials an address checked just before: a name
  * re-resolving to a private host after `assertReachable` (DNS rebinding) is refused, and so is a MongoDB replica set
- * member at a literal private IP, which a DNS lookup never sees. Oracle and libsql open their own sockets and skip it.
+ * member at a literal private IP, which a DNS lookup never sees. Oracle, libsql and PostHog's `fetch` open their own sockets and skip it.
  */
 export const guardedForwarding = (
   connectionString: string

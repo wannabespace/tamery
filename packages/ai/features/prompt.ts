@@ -17,11 +17,16 @@ export const MONGOSH_OUTPUT_RULES = [
   'Write literal values and BSON constructors (ObjectId("…"), ISODate("…"), NumberLong("…")); when a value is unknown, use the shortest generic literal of the right type, never invented realistic-looking data.',
 ]
 
+export const getEngineName = (connectionType: string) =>
+  connectionType === ConnectionType.PostHog
+    ? "PostHog's HogQL, a read-only SQL over ClickHouse"
+    : connectionType
+
 export const queryOutputRules = (connectionType: string) =>
   connectionType === ConnectionType.MongoDB
     ? MONGOSH_OUTPUT_RULES
     : [
-        `The database type is "${connectionType}".`,
+        `The database type is "${getEngineName(connectionType)}".`,
         MATCH_USER_STYLE,
         'Return only SQL, nothing else: no explanations, greetings, markdown, or ``` fences.',
         'The output is pasted directly into a SQL editor.',

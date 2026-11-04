@@ -19,6 +19,8 @@ const MSSQL_FIRST_FIXED_ROLE_SCHEMA_ID = 16_384
 
 const CLICKHOUSE_MATERIALIZED_VIEW_STORAGE = '.inner%'
 
+const POSTHOG_CATALOG_LIMIT = 10_000
+
 const tableTypes = ['base table', 'view', 'materialized view'] as const
 
 export type RelationKind = 'table' | 'view'
@@ -205,6 +207,26 @@ export const resourceTablesAndSchemasQuery = memoize(
               ])
             )
             .execute(),
+        posthog: async (db) => {
+          const { rows } = await sql<{
+            description: string | null
+            table_name: string
+            table_schema: string
+          }>`
+            SELECT table_schema, table_name, description
+            FROM system.information_schema.tables
+            WHERE table_schema NOT IN ('system', 'information_schema')
+              AND table_name NOT IN ('numbers', 'range', 'generate_series')
+            LIMIT ${sql.lit(POSTHOG_CATALOG_LIMIT)}
+          `.execute(db)
+          // Nothing in PostHog takes a write, and a view is what the grid and the menus never offer one on.
+          return rows.map((row) => ({
+            comment: row.description,
+            schema: row.table_schema,
+            table: row.table_name,
+            type: 'view' as const,
+          }))
+        },
         sqlite: (db) =>
           userTables(db, ['table', 'view', 'virtual'])
             .select((eb) => [

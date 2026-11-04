@@ -43,6 +43,7 @@ export const grantPrivilegeQuery = (target: PrivilegeTarget) =>
       },
       oracle: unsupported('Privileges'),
       postgres: unsupported('Privileges'),
+      posthog: unsupported('Privileges'),
       sqlite: unsupported('Privileges'),
     },
   })

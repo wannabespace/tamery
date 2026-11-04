@@ -43,6 +43,7 @@ const dialects: Record<Dialect, () => Promise<{ query: QueryExecutor }>> = {
   mysql: () => import('@tamery/connection/queries/dialects/mysql'),
   oracle: () => import('@tamery/connection/queries/dialects/oracle'),
   postgres: () => import('@tamery/connection/queries/dialects/pg'),
+  posthog: () => import('@tamery/connection/queries/dialects/posthog'),
   sqlite: () => import('@tamery/connection/queries/dialects/sqlite'),
 }
 

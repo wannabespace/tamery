@@ -15,5 +15,7 @@ export const dialects: Record<SqlDialect, DialectSpec> = {
   [Dialect.MySQL]: mysql,
   [Dialect.Oracle]: oracle,
   [Dialect.Postgres]: postgres,
+  // HogQL is PostHog's wrapper around ClickHouse SQL.
+  [Dialect.PostHog]: clickhouse,
   [Dialect.SQLite]: sqlite,
 }

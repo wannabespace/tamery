@@ -1,4 +1,5 @@
 import { Dialect } from '@tamery/shared/enums/connection-type'
+import { unsupported } from '@tamery/shared/unsupported'
 import { memoize } from 'memoza'
 
 import { createQuery } from '~/core/runtime/query'
@@ -30,6 +31,7 @@ export const renameTableQuery = memoize(
           db.executeQuery(renameTableStatement(Dialect.Oracle, db, target)),
         postgres: (db) =>
           db.executeQuery(renameTableStatement(Dialect.Postgres, db, target)),
+        posthog: unsupported('Editing tables'),
         sqlite: (db) =>
           db.executeQuery(renameTableStatement(Dialect.SQLite, db, target)),
       },

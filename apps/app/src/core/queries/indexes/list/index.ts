@@ -64,6 +64,7 @@ const resourceIndexesQuery = createQuery({
     mysql: mysqlIndexes,
     oracle: oracleIndexes,
     postgres: postgresIndexes,
+    posthog: () => Promise.resolve([]),
     sqlite: sqliteIndexes,
   },
   type: indexesType.array(),

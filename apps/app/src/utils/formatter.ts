@@ -12,6 +12,7 @@ export const formatSql = (sql: string, dialect: Dialect) => {
     [Dialect.MySQL]: 'mysql',
     [Dialect.MSSQL]: 'tsql',
     [Dialect.ClickHouse]: 'clickhouse',
+    [Dialect.PostHog]: 'clickhouse',
     [Dialect.SQLite]: 'sqlite',
     [Dialect.Oracle]: 'plsql',
   }

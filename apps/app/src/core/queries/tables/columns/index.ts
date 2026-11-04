@@ -15,6 +15,7 @@ import { mssqlColumns } from './mssql'
 import { mysqlColumns } from './mysql'
 import { oracleColumns } from './oracle'
 import { postgresColumns } from './postgres'
+import { posthogColumns } from './posthog'
 import { sqliteColumns } from './sqlite'
 
 export const columnType = type({
@@ -85,6 +86,7 @@ const columnsQuery = memoize((filter: ColumnsFilter) =>
       mysql: (db) => mysqlColumns(db, filter),
       oracle: (db) => oracleColumns(db, filter),
       postgres: (db) => postgresColumns(db, filter),
+      posthog: (db) => posthogColumns(db, filter),
       sqlite: (db) => sqliteColumns(db, filter),
     },
     type: columnType.array(),

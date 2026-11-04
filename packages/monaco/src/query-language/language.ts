@@ -10,6 +10,7 @@ export const languageIds = {
   [Dialect.MySQL]: 'sql-mysql',
   [Dialect.Oracle]: 'sql-oracle',
   [Dialect.Postgres]: 'sql-postgres',
+  [Dialect.PostHog]: 'sql-posthog',
   [Dialect.SQLite]: 'sql-sqlite',
 } satisfies Record<Dialect, string>
 

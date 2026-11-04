@@ -27,10 +27,11 @@ const insertDocument = () => insertDocumentRef.current?.open()
 
 const TableContent = ({ table, schema }: { table: string; schema: string }) => {
   const { connectionResource, dialect } = useConnectionContext()
-  const declaredColumns =
-    getCapabilities(dialect).flags.includes('declaredColumns')
+  const { flags } = getCapabilities(dialect)
+  const declaredColumns = flags.includes('declaredColumns')
   const onAddColumn = declaredColumns ? addColumn : undefined
-  const onInsertDocument = declaredColumns ? undefined : insertDocument
+  const onInsertDocument =
+    declaredColumns || flags.includes('readOnly') ? undefined : insertDocument
   const { data = [], isPending } = useTableColumnsQuery({
     connectionResource,
     schema,

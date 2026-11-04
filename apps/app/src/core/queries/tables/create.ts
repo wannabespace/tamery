@@ -1,4 +1,5 @@
 import { Dialect } from '@tamery/shared/enums/connection-type'
+import { unsupported } from '@tamery/shared/unsupported'
 
 import { createQuery } from '~/core/runtime/query'
 
@@ -23,6 +24,7 @@ export const createTableQuery = (target: {
         db.executeQuery(createTableStatement(Dialect.Oracle, db, target)),
       postgres: (db) =>
         db.executeQuery(createTableStatement(Dialect.Postgres, db, target)),
+      posthog: unsupported('Editing tables'),
       sqlite: (db) =>
         db.executeQuery(createTableStatement(Dialect.SQLite, db, target)),
     },

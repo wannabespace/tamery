@@ -30,6 +30,7 @@ export const createFunctionQuery = ({
           unit: { name: shape.name, schema, type: routineType(shape.kind) },
         }),
       postgres: (db) => create.postgres.execute(db),
+      posthog: unsupported('Functions'),
       sqlite: unsupported('Functions'),
     },
   })

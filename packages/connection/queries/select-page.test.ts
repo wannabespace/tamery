@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import { EQUAL_FILTER } from '@tamery/shared/filters'
@@ -54,4 +54,26 @@ test('mongoPage binds filter values by column type and breaks sort ties on _id',
 test('mongoPage keeps an explicit _id sort instead of appending its own', () => {
   const [sort] = mongoPage({ limit: 10, offset: 0, orderBy: { _id: 'DESC' } })
   expect(sort).toEqual({ $sort: { _id: -1 } })
+})
+
+describe('PostHog compiles what HogQL accepts', () => {
+  test.each([
+    ['a bare name loses its catalog label', 'public', 'events', '`events`'],
+    ['a warehouse label is dropped too', 'warehouse', 'orders', '`orders`'],
+    [
+      'a dotted name keeps its namespace',
+      'public',
+      'posthog.ai_events',
+      '`posthog`.`ai_events`',
+    ],
+  ])('%s', (_name, schema, table, target) => {
+    const { sql } = selectPage(coldDialect(Dialect.PostHog), {
+      limit: 10,
+      offset: 0,
+      schema,
+      table,
+    }).compile()
+
+    expect(sql.trim()).toBe(`select * from ${target} limit ?`)
+  })
 })

@@ -158,6 +158,7 @@ const query = createQuery({
         using: row.qual,
       }))
     },
+    posthog: unsupported('Row policies'),
     sqlite: unsupported('Row policies'),
   },
   type: policyType.array(),

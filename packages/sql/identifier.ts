@@ -12,6 +12,7 @@ const QUOTE_IDENTIFIER_MAP: Record<Dialect, (name: string) => string> = {
   mysql: quoteWithBackticks,
   oracle: quoteWithDoubleQuotes,
   postgres: quoteWithDoubleQuotes,
+  posthog: quoteWithBackticks,
   sqlite: quoteWithDoubleQuotes,
 }
 

@@ -20,6 +20,7 @@ export const createEnumQuery = ({
       oracle: unsupported('Editing enums'),
       postgres: (db) =>
         db.withSchema(schema).schema.createType(name).asEnum(values).execute(),
+      posthog: unsupported('Editing enums'),
       sqlite: unsupported('Editing enums'),
     },
   })

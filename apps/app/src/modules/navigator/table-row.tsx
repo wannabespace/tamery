@@ -54,7 +54,7 @@ export const TableRow = ({
   row: Extract<TreeRow, { kind: 'table' }>
   search?: string
   onRename?: () => void
-  onDrop: () => void
+  onDrop?: () => void
 }) => {
   const { connectionResource, dialect } = useConnectionContext()
   const router = useRouter()
@@ -112,12 +112,16 @@ export const TableRow = ({
       ? [{ icon: PencilEdit01Icon, label: 'Rename', onSelect: onRename }]
       : []),
     ...rowLevelSecurityItems,
-    {
-      icon: Delete02Icon,
-      label: 'Drop',
-      onSelect: onDrop,
-      variant: 'destructive',
-    },
+    ...(onDrop
+      ? [
+          {
+            icon: Delete02Icon,
+            label: 'Drop',
+            onSelect: onDrop,
+            variant: 'destructive' as const,
+          },
+        ]
+      : []),
   ]
 
   return (

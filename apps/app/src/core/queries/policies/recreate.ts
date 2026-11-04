@@ -21,6 +21,7 @@ export const recreatePolicyQuery = (
           await sql`DROP POLICY ${policyOn(target)}`.execute(tx)
           await createPolicyStatement(target).execute(tx)
         }),
+      posthog: unsupported('Row policies'),
       sqlite: unsupported('Row policies'),
     },
   })

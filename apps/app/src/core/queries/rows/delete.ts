@@ -1,5 +1,6 @@
 import type { ColumnTypes } from '@tamery/connection/queries/value-binding'
 import { Dialect } from '@tamery/shared/enums/connection-type'
+import { unsupported } from '@tamery/shared/unsupported'
 import type { Kysely } from 'kysely'
 import { memoize } from 'memoza'
 
@@ -104,6 +105,7 @@ export const deleteRowsQuery = memoize((params: DeleteParams) => {
           rowsPerStatement(Dialect.Postgres, keyWidth),
           params
         ),
+      posthog: unsupported('Editing rows'),
       sqlite: (db) =>
         deleteInBatches(
           db,

@@ -56,6 +56,7 @@ export const recreateIndexQuery = ({
           await sql`DROP INDEX ${sql.id(schema, name)}`.execute(tx)
           await create.execute(tx)
         }),
+      posthog: unsupported('Indexes'),
       sqlite: (db) =>
         db.transaction().execute(async (tx) => {
           await tx.withSchema(schema).schema.dropIndex(name).execute()

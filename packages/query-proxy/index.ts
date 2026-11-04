@@ -156,6 +156,7 @@ export const createQueryRouter = <
     mysql: createQueryDialect(Dialect.MySQL, orpc, resolve),
     oracle: createQueryDialect(Dialect.Oracle, orpc, resolve),
     postgres: createQueryDialect(Dialect.Postgres, orpc, resolve),
+    posthog: createQueryDialect(Dialect.PostHog, orpc, resolve),
     sqlite: createQueryDialect(Dialect.SQLite, orpc, resolve),
   }) satisfies Record<Dialect, Record<keyof QueryExecutor, unknown>>
 

@@ -64,6 +64,7 @@ export const transactionQuery = ({
       mysql: run,
       oracle: run,
       postgres: run,
+      posthog: run,
       sqlite: run,
     },
   })

@@ -118,6 +118,7 @@ export const recreateEnumQuery = ({
 
           await tx.withSchema(schema).schema.dropType(replacedName).execute()
         }),
+      posthog: unsupported('Editing enums'),
       sqlite: unsupported('Editing enums'),
     },
   })

@@ -33,6 +33,7 @@ export const renameConstraintQuery = ({
           .schema.alterTable(table)
           .renameConstraint(name, newName)
           .execute(),
+      posthog: unsupported('Renaming constraints'),
       sqlite: unsupported('Renaming constraints'),
     },
   })

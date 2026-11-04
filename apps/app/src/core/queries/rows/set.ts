@@ -1,4 +1,5 @@
 import type { ColumnTypes } from '@tamery/connection/queries/value-binding'
+import { unsupported } from '@tamery/shared/unsupported'
 import type { Kysely } from 'kysely'
 
 import { createQuery } from '~/core/runtime/query'
@@ -50,6 +51,7 @@ export const setQuery = (params: SetParams) =>
       mysql: (db) => updateRow(db, bindValue.mysql, params),
       oracle: (db) => updateRow(db, bindValue.oracle, params),
       postgres: (db) => updateRow(db, bindValue.postgres, params),
+      posthog: unsupported('Editing rows'),
       sqlite: (db) => updateRow(db, bindValue.sqlite, params),
     },
   })

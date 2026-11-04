@@ -1,3 +1,5 @@
+import { unsupported } from '@tamery/shared/unsupported'
+
 import { createQuery } from '~/core/runtime/query'
 
 import type { IndexShape } from './shape'
@@ -36,6 +38,7 @@ export const createIndexQuery = (shape: IndexShape) => {
       mysql: (db) => create.execute(db),
       oracle: (db) => oracleCreateIndexStatement(shape).execute(db),
       postgres: (db) => create.execute(db),
+      posthog: unsupported('Indexes'),
       sqlite: (db) => sqliteCreateIndexStatement(shape).execute(db),
     },
   })

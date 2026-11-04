@@ -1,4 +1,5 @@
 import type { ColumnTypes } from '@tamery/connection/queries/value-binding'
+import { unsupported } from '@tamery/shared/unsupported'
 import type { InsertQueryBuilder, Kysely } from 'kysely'
 import { sql } from 'kysely'
 
@@ -118,6 +119,7 @@ export const insertQuery = (params: InsertParams) =>
           (into) => into.defaultValues(),
           params
         ),
+      posthog: unsupported('Editing rows'),
       sqlite: (db) =>
         insertRows(
           db,
