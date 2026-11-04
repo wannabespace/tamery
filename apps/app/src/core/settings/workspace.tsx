@@ -9,9 +9,9 @@ import {
 } from '@tamery/ui/components/custom/settings-group'
 import { useState } from 'react'
 
+import { NameGlyph } from '~/components/name-glyph'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
 import type { Workspace } from '~/core/workspace/sync'
-import { WorkspaceGlyph } from '~/core/workspace/workspace-glyph'
 import { WorkspaceNameDialog } from '~/core/workspace/workspace-name-dialog'
 import { useIsAnonymous } from '~/lib/auth'
 import { useIsOnline } from '~/store'
@@ -25,12 +25,8 @@ const WorkspaceIdentity = ({ workspace }: { workspace: Workspace }) => {
   return (
     <SettingsGroup>
       <SettingsRow
-        icon={
-          <WorkspaceGlyph
-            workspace={workspace}
-            className="size-8 rounded-lg text-sm"
-          />
-        }
+        icon={<NameGlyph name={workspace.name} size="lg" />}
+        iconVariant="avatar"
         title={<span data-mask>{workspace.name}</span>}
       >
         {MEMBER_MANAGER_ROLES.includes(workspace.role) && (

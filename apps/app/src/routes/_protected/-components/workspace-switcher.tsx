@@ -20,6 +20,7 @@ import {
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { NameGlyph } from '~/components/name-glyph'
 import { checkOrUpgrade } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
 import {
@@ -27,7 +28,6 @@ import {
   useInvitations,
 } from '~/core/workspace/invitations'
 import { workspaceSelection } from '~/core/workspace/utils'
-import { WorkspaceGlyph } from '~/core/workspace/workspace-glyph'
 import { WorkspaceNameDialog } from '~/core/workspace/workspace-name-dialog'
 import { useIsAnonymous } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
@@ -78,7 +78,7 @@ export const WorkspaceSwitcher = () => {
         >
           {activeWorkspace ? (
             <>
-              <WorkspaceGlyph workspace={activeWorkspace} />
+              <NameGlyph name={activeWorkspace.name} />
               <span data-mask className="truncate">
                 {activeWorkspace.name}
               </span>
@@ -129,7 +129,7 @@ export const WorkspaceSwitcher = () => {
                 key={workspace.id}
                 onClick={() => switchWorkspace(workspace.id)}
               >
-                <WorkspaceGlyph workspace={workspace} />
+                <NameGlyph name={workspace.name} />
                 <span data-mask className="truncate">
                   {workspace.name}
                 </span>

@@ -41,12 +41,14 @@ export const SettingsRow = ({
   description,
   htmlFor,
   icon,
+  iconVariant,
   title,
 }: {
   children?: ReactNode
   description?: ReactNode
   htmlFor?: string
   icon?: ReactNode
+  iconVariant?: 'avatar'
   title: ReactNode
 }) => (
   <Item
@@ -55,7 +57,7 @@ export const SettingsRow = ({
     // oxlint-disable-next-line jsx-a11y/label-has-associated-control -- Item renders the title and description into this label
     render={htmlFor ? <label htmlFor={htmlFor} /> : undefined}
   >
-    {icon && <ItemMedia>{icon}</ItemMedia>}
+    {icon && <ItemMedia variant={iconVariant}>{icon}</ItemMedia>}
     <ItemContent>
       <ItemTitle>{title}</ItemTitle>
       {description && <ItemDescription>{description}</ItemDescription>}

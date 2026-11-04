@@ -30,6 +30,7 @@ import { capitalCase } from 'change-case'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { NameGlyph } from '~/components/name-glyph'
 import type { Workspace } from '~/core/workspace/sync'
 import { orpc } from '~/lib/orpc'
 import { queryClient } from '~/lib/query-client'
@@ -112,6 +113,8 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
           {data.members.map((member) => (
             <SettingsRow
               key={member.id}
+              icon={<NameGlyph name={member.name} size="lg" />}
+              iconVariant="avatar"
               title={
                 <span data-mask>
                   {member.isYou ? `${member.name} (you)` : member.name}
@@ -211,6 +214,8 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
           {data.invitations.map((invitation) => (
             <SettingsRow
               key={invitation.id}
+              icon={<NameGlyph name={invitation.email} size="lg" />}
+              iconVariant="avatar"
               title={<span data-mask>{invitation.email}</span>}
               description={`Invited as ${capitalCase(invitation.role)}`}
             >

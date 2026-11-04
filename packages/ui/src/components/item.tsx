@@ -86,6 +86,7 @@ const itemMediaVariants = cva(
     },
     variants: {
       variant: {
+        avatar: `group-has-data-[slot=item-description]/item:translate-y-0 group-has-data-[slot=item-description]/item:self-center`,
         default: 'bg-transparent',
         icon: "[&_svg:not([class*='size-'])]:size-4",
         image: `size-10 overflow-hidden rounded-xl group-data-[size=sm]/item:size-8 group-data-[size=xs]/item:size-6 group-data-[size=xs]/item:rounded-lg [&_img]:size-full [&_img]:object-cover`,
