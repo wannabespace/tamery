@@ -400,6 +400,15 @@
   display: none;
 }
 
+/* Both, or the page loses :hover during a transition: a captured root and the transition's own layer each take the pointer, so hover-revealed row actions blink on every tab swap. */
+:root {
+  view-transition-name: none;
+}
+
+::view-transition {
+  pointer-events: none;
+}
+
 @utility focus-ring {
   @apply ring-ring/50 ring-3 transition-none;
 }
