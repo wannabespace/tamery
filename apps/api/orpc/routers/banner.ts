@@ -55,7 +55,7 @@ export const banner = orpc
     }
 
     items.push({
-      text: "Tamery early access is open! Sign in at tamery.app for an invite — we'd love to hear your feedback.",
+      text: 'Tamery is now open to everyone: get it at tamery.app/download. Conar will shut down by the end of the year.',
       type: 'info',
       dismissible: false,
     })
