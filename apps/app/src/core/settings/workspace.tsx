@@ -25,7 +25,12 @@ const WorkspaceIdentity = ({ workspace }: { workspace: Workspace }) => {
   return (
     <SettingsGroup>
       <SettingsRow
-        icon={<WorkspaceGlyph workspace={workspace} />}
+        icon={
+          <WorkspaceGlyph
+            workspace={workspace}
+            className="size-8 rounded-lg text-sm"
+          />
+        }
         title={<span data-mask>{workspace.name}</span>}
       >
         {MEMBER_MANAGER_ROLES.includes(workspace.role) && (

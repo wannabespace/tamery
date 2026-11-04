@@ -2,7 +2,7 @@
 
 ## Window chrome
 
-- Window dimming is token-based: `.electron.window-blurred` greys `--primary`, so all chrome dims for free. No transition — AppKit snaps.
+- Window dimming is token-based: `.electron.window-blurred` greys `--primary`, so all chrome dims for free. No transition — AppKit snaps. That grey is a fill tone, so `text-primary` text and glyphs turn `muted-foreground` there instead of vanishing into the surface.
 - `body` is `overscroll-none`; inner scrollers keep native bounce.
 - The window is inset (`p-2`) and never fills the screen, so there are no infinite screen edges to throw the pointer at. The substitute is the surface edge: a control sits at the edge of the thing it acts on, a context menu opens at the pointer, a row's controls stay inside the row.
 - The top-left corner belongs to the traffic lights (`trafficLightPosition` in `apps/desktop/src/main/main.ts`). Branding never sits there — near but unaligned with the lights, it reads as a mistake. The auth side panel keeps its logo at the bottom with the tagline and starts below the title bar while the lights show, so no rounded corner or gradient sits under them; on Windows, Linux and in fullscreen the controls are elsewhere, so it keeps the even inset.
