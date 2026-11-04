@@ -7,6 +7,7 @@ import type { TabView } from '~/core/tabs/types'
 
 import { TableRefresh } from './components/table-refresh'
 import { prefetchReferenceLabels } from './lib/labels'
+import { seedNewestFirst } from './lib/newest-first'
 import { tablePageStore } from './lib/store'
 import type { TableParams } from './lib/tab'
 import { TableTab } from './table-tab'
@@ -15,10 +16,9 @@ const prefetch = async (
   connectionResource: ConnectionResource,
   params: TableParams
 ) => {
-  const { columnLabels, filters, hiddenColumns, orderBy } = tablePageStore({
-    id: connectionResource.id,
-    ...params,
-  }).get()
+  const store = tablePageStore({ id: connectionResource.id, ...params })
+  await seedNewestFirst(store, connectionResource, params)
+  const { columnLabels, filters, hiddenColumns, orderBy } = store.get()
 
   const rows = await prefetchConnectionResourceTableCore({
     connectionResource,

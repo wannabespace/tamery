@@ -12,12 +12,14 @@ import { guessJson } from './json'
 import { guessKeyValue } from './key-value'
 import { guessOracle } from './oracle'
 import { mergeParts } from './parts'
+import { guessPosthog } from './posthog'
 import { guessRemoteSqlite } from './remote-sqlite'
 import { guessSqlite } from './sqlite'
 import { guessSsh, throughForwards } from './ssh'
 import type { ConnectionGuess, DatabaseGuess, GuessFix } from './types'
 import { guessGoDsn, guessUrl, guessWebUrl } from './url'
 
+export { guessPosthogServer } from './posthog'
 export type { ConnectionGuess, GuessFix, GuessFormat } from './types'
 
 const getDetectors = (isConnection: boolean) => [
@@ -31,6 +33,7 @@ const getDetectors = (isConnection: boolean) => [
   guessKeyValue,
   guessRemoteSqlite,
   guessEnv,
+  guessPosthog,
   (text: string) => guessWebUrl(text, text, isConnection),
   guessPgpass,
   guessHost,

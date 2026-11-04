@@ -1,3 +1,4 @@
+import { toError } from '@tamery/shared/utils'
 import { type } from 'arktype'
 
 import type { RunOptions } from '../..'
@@ -34,7 +35,13 @@ const request = async (
       // The host comes from the string, so a redirect must not carry a cloud proxy request past its public-host check.
       redirect: 'error',
     }
-  )
+  ).catch((error: unknown) => {
+    // `fetch` says only "fetch failed" and keeps what happened in `cause`.
+    const { cause, message } = toError(error)
+    throw new Error(
+      `Could not reach PostHog at ${host}: ${toError(cause ?? message).message}`
+    )
+  })
   if (response.ok) {
     return response
   }

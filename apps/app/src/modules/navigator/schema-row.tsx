@@ -43,15 +43,19 @@ export const SchemaRow = ({
   controlId?: string
   row: Extract<TreeRow, { kind: 'schema' }>
   onCreateTable: () => void
-  onCreateView: () => void
-  onDrop: () => void
+  onCreateView?: () => void
+  onDrop?: () => void
   onRename?: () => void
   onToggle: () => void
 }) => {
   const schemaParam = useActiveTable()?.schema
   const items: AppMenuNode[] = [
-    { icon: ViewIcon, label: 'New View', onSelect: onCreateView },
-    { type: 'separator' },
+    ...(onCreateView
+      ? [
+          { icon: ViewIcon, label: 'New View', onSelect: onCreateView },
+          { type: 'separator' as const },
+        ]
+      : []),
     ...(onRename
       ? [{ icon: PencilEdit01Icon, label: 'Rename', onSelect: onRename }]
       : []),
@@ -60,13 +64,17 @@ export const SchemaRow = ({
       label: 'Copy Name',
       onSelect: () => copyToClipboard(row.name, 'Schema name copied'),
     },
-    { type: 'separator' },
-    {
-      icon: Delete02Icon,
-      label: 'Drop',
-      onSelect: onDrop,
-      variant: 'destructive',
-    },
+    ...(onDrop
+      ? [
+          { type: 'separator' as const },
+          {
+            icon: Delete02Icon,
+            label: 'Drop',
+            onSelect: onDrop,
+            variant: 'destructive' as const,
+          },
+        ]
+      : []),
   ]
 
   return (

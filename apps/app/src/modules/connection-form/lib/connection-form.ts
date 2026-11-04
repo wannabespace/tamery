@@ -2,7 +2,7 @@ import type { ConnectionParts } from '@tamery/connection/connection-parts'
 import { connectionParts } from '@tamery/connection/connection-parts'
 import type { ConnectionPatch } from '@tamery/connection/diagnosis'
 import type { ConnectionGuess } from '@tamery/connection/guess'
-import { guessConnection } from '@tamery/connection/guess'
+import { guessConnection, guessPosthogServer } from '@tamery/connection/guess'
 import type { GuessedParts } from '@tamery/connection/guess/types'
 import { isLocalHost } from '@tamery/connection/hosts'
 import type { SshTunnel } from '@tamery/connection/ssh/params'
@@ -226,12 +226,16 @@ const expandField = (
   const { values } = form.state
   const { field } = getEngineFields(values)
   const value = values[field]
-  const guess = guessConnection(value, true)
+  const guess =
+    (values.type === ConnectionType.PostHog && guessPosthogServer(value)) ||
+    guessConnection(value, true)
   const read = guess?.parts[field]
   if (
     guess &&
     ((read !== undefined && read !== value) ||
-      !sharesFields(values, getGuessedEngine(values, guess.parts)))
+      !sharesFields(values, getGuessedEngine(values, guess.parts)) ||
+      (guess.parts.type === ConnectionType.PostHog &&
+        values.type !== ConnectionType.PostHog))
   ) {
     fill(form, guess)
     onFill(guess, false)

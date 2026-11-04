@@ -56,6 +56,20 @@ describe('runQuery', () => {
     ).rejects.toThrow('Unable to resolve field: nope')
   })
 
+  test('names the host and the reason when PostHog cannot be reached', async () => {
+    spyOn(globalThis, 'fetch').mockRejectedValue(
+      new TypeError('fetch failed', {
+        cause: new Error('getaddrinfo ENOTFOUND'),
+      })
+    )
+
+    await expect(
+      runQuery({ connectionString: CONNECTION_STRING, query: 'SELECT 1' })
+    ).rejects.toThrow(
+      'Could not reach PostHog at eu.posthog.com: getaddrinfo ENOTFOUND'
+    )
+  })
+
   test('refuses an SSH tunnel it cannot open', async () => {
     const fetched = answerWith({ columns: [], results: [] })
 

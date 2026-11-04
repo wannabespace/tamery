@@ -114,7 +114,8 @@ const ENGINE_FIELDS: Record<ConnectionType | Provider, EngineFields> = {
       {
         label: 'Host',
         name: 'host',
-        placeholder: 'eu.posthog.com or us.posthog.com',
+        placeholder: 'eu.posthog.com, us.posthog.com or a project link',
+        port: true,
       },
       {
         label: 'API key',

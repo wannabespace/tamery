@@ -71,12 +71,14 @@ export const TablesPanel = ({
     )
   }, [connectionResource, tablesAndSchemas])
 
+  const { flags } = getCapabilities(dialect)
   const rows = buildTreeRows({
+    canCreateSchema: flags.includes('schemas') && !flags.includes('readOnly'),
     openedSchemas,
     pinnedTables,
     schemas: tablesAndSchemas?.schemas ?? [],
     search,
-    showSchemaRows: getCapabilities(dialect).flags.includes('schemas'),
+    showSchemaRows: flags.includes('schemas'),
   })
 
   const toggleSchema = (name: string) => {
@@ -144,8 +146,7 @@ export const TablesPanel = ({
             <div className="flex flex-col gap-0.5">
               <span>
                 Refresh {names.table}s
-                {getCapabilities(dialect).flags.includes('schemas') &&
-                  ' and schemas'}
+                {flags.includes('schemas') && ' and schemas'}
               </span>
               <span className="opacity-70">
                 Last updated:{' '}

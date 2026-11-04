@@ -10,14 +10,16 @@ Tamery reads a PostHog project through PostHog's query API. You can browse its t
 ## Connect
 
 1. Create a personal API key with the **Query Read** permission in PostHog's [personal API keys settings](https://eu.posthog.com/settings/user-api-keys#personal-api-keys). Use the US address if your project is in the US.
-2. In Tamery, click **New connection** and choose **PostHog** as the engine.
-3. Fill in **Host**, **API key**, and **Project ID**.
+2. In Tamery, click **New connection** and press ⌘V with a link to your project copied, or choose **PostHog** as the engine.
+3. Fill in what is still empty: **Host**, **API key**, and **Project ID**.
 
 | Field | Value |
 | --- | --- |
 | **Host** | `eu.posthog.com`, `us.posthog.com`, or your self-hosted address |
-| **API key** | Your personal API key |
+| **API key** | Your personal API key, starting with `phx_` |
 | **Project ID** | The number after `/project/` in the project's URL |
+
+Tamery reads the host and the project from any project link, such as `https://eu.posthog.com/project/12345/activity/explore`. It also understands an app's `.env` file: an ingestion host like `eu.i.posthog.com` becomes `eu.posthog.com`, the only host that answers queries.
 
 You can also paste a connection string:
 
@@ -27,6 +29,24 @@ posthog://:phx_yourkey@eu.posthog.com/12345
 
 Tamery always connects over HTTPS.
 
+## Browse
+
+- A table opens with its newest rows first, sorted by its time column. Change or clear the sort in the toolbar, and Tamery remembers your choice.
+- PostHog's own objects are in the **system** schema of the navigator: dashboards, insights, feature flags, cohorts and more. Warehouse tables and other groups get a schema of their own too.
+
+## Query
+
+Read an event property with a dot path, and a person's through `person`:
+
+```sql
+SELECT properties.$browser AS browser, person.properties.email, count() AS total
+FROM events
+WHERE event = '$pageview' AND timestamp > now() - INTERVAL 7 DAY
+GROUP BY browser, person.properties.email
+ORDER BY total DESC
+LIMIT 20
+```
+
 ## Differences to know
 
 - The table browser shows up to the first 1,000 rows, because PostHog refuses paging for API keys. Filter or sort to reach others, or write a query.
@@ -34,5 +54,4 @@ Tamery always connects over HTTPS.
 - Tables show no total row count. Counting a large table can use up your project's read budget.
 - Tables are read-only, and there is no **Schema** section, visualizer, or sharing.
 - A query without a `LIMIT` returns 100 rows. With one, it can return up to 50,000.
-- PostHog stops a query after 10 seconds and runs at most 3 at once per project. It also limits how much API queries read per hour. When you pass a limit, the error from PostHog tells you which one.
-- PostHog's system tables aren't listed in the navigator. Query them in the editor, for example `SELECT * FROM system.dashboards`.
+- PostHog stops a query after 10 seconds and runs at most 3 at once per project. It also limits how much API queries read per hour. When you pass a limit, the error from PostHog tells you which one. On a very large project, sorting a table can pass the 10 seconds: add a filter on the time column, or clear the sort.

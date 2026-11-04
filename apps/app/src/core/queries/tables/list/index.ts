@@ -7,6 +7,7 @@ import { memoize } from 'memoza'
 import { getCapabilities, getDefaultSchema } from '~/core/catalog/capabilities'
 import { getConnectionResourceStore } from '~/core/connection/stores'
 import type { ConnectionResource } from '~/core/connection/sync'
+import { getPosthogTable } from '~/core/queries/shared/posthog-catalog'
 import { userTables } from '~/core/queries/shared/sqlite-catalog'
 import {
   connectionResourceToQueryParams,
@@ -215,15 +216,14 @@ export const resourceTablesAndSchemasQuery = memoize(
           }>`
             SELECT table_schema, table_name, description
             FROM system.information_schema.tables
-            WHERE table_schema NOT IN ('system', 'information_schema')
+            WHERE table_schema != 'information_schema'
               AND table_name NOT IN ('numbers', 'range', 'generate_series')
             LIMIT ${sql.lit(POSTHOG_CATALOG_LIMIT)}
           `.execute(db)
           // Nothing in PostHog takes a write, and a view is what the grid and the menus never offer one on.
           return rows.map((row) => ({
             comment: row.description,
-            schema: row.table_schema,
-            table: row.table_name,
+            ...getPosthogTable(row.table_schema, row.table_name),
             type: 'view' as const,
           }))
         },

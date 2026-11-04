@@ -1,6 +1,8 @@
+import { POSTHOG_SCHEMA_LABELS } from '@tamery/connection/queries/dialects/posthog/query-compiler'
 import type { Kysely } from 'kysely'
 import { sql } from 'kysely'
 
+import { getPosthogTable } from '../../shared/posthog-catalog'
 import type { ColumnsFilter } from '../shape'
 
 interface PosthogColumn {
@@ -27,8 +29,8 @@ export const posthogColumns = async (
       AND NOT column_name LIKE '%.%'
       AND ${
         filter
-          ? sql`table_schema = ${filter.schema} AND table_name = ${filter.table}`
-          : sql`table_schema NOT IN ('system', 'information_schema')`
+          ? sql`table_name = ${POSTHOG_SCHEMA_LABELS.has(filter.schema) ? filter.table : `${filter.schema}.${filter.table}`}`
+          : sql`table_schema != 'information_schema'`
       }
     ORDER BY table_name, ordinal_position
     LIMIT ${sql.lit(POSTHOG_CATALOG_LIMIT)}
@@ -40,8 +42,7 @@ export const posthogColumns = async (
     editable: false,
     id: row.column_name,
     nullable: row.is_nullable === 1,
-    schema: row.table_schema,
-    table: row.table_name,
+    ...getPosthogTable(row.table_schema, row.table_name),
     type: row.data_type,
   }))
 }

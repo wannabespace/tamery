@@ -18,7 +18,7 @@ export interface PasteFlash {
 }
 
 export const PASTE_FORMATS =
-  'Connection URLs, .env files, JDBC strings, SQLite files, Turso and D1 links, and psql, mysql or ssh commands.'
+  'Connection URLs, .env files, JDBC strings, SQLite files, Turso, D1 and PostHog links, and psql, mysql or ssh commands.'
 
 const MAX_DROP_BYTES = 256 * 1024
 const FLASH_SHOWN_MS = 3000

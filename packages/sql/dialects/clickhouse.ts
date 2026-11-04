@@ -28,6 +28,7 @@ export const clickhouse = spec({
     'ENGINE',
     'FINAL',
     'FORMAT',
+    'INTERVAL',
     'LIMIT',
     'MATERIALIZED',
     'OPTIMIZE',

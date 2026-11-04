@@ -95,9 +95,8 @@ const keywordsRun = (
   })
 
 /** Additive writes (INSERT, CREATE) are left out on purpose. */
-export const destructiveKeywords = (text: string, dialect: DialectSpec) => [
-  ...new Set(keywordsRun(DESTRUCTIVE, text, dialect)),
-]
+export const destructiveKeywords = (text: string, dialect: DialectSpec) =>
+  dialect.readOnly ? [] : [...new Set(keywordsRun(DESTRUCTIVE, text, dialect))]
 
 // COMMENT counts only as a statement's first word: as a keyword it would make `SELECT comment` a write to `readsOnly`.
 export const invalidatesCatalog = (text: string, dialect: DialectSpec) =>

@@ -226,11 +226,13 @@ const resolveQualifier = (
 const qualifiedColumnDiagnostics = (
   tokens: Token[],
   scope: StatementScope,
-  catalog: SqlCatalog
+  catalog: SqlCatalog,
+  dialect: DialectSpec
 ): Diagnostic[] => {
   const diagnostics: Diagnostic[] = []
   const refTokens = new Set(scope.tables.map((table) => table.token))
-  const checksQualifiers = isKeyword(tokens[0], ...QUERY_VERBS)
+  const checksQualifiers =
+    !dialect.fieldPaths && isKeyword(tokens[0], ...QUERY_VERBS)
   for (const [index, token] of tokens.entries()) {
     const qualifier = tokens[index - 2]
     if (
@@ -494,7 +496,8 @@ const withoutLockingClauses = (tokens: Token[]) => {
 
 const catalogDiagnostics = (
   statement: Statement,
-  catalog: SqlCatalog
+  catalog: SqlCatalog,
+  dialect: DialectSpec
 ): Diagnostic[] => {
   const tokens = withoutLockingClauses(statement.tokens)
   const scope = statementScope(tokens)
@@ -511,7 +514,7 @@ const catalogDiagnostics = (
         message: `Unknown table \`${ref.schema ? `${ref.schema}.` : ''}${ref.name}\``,
         severity: 'warning',
       })),
-    ...qualifiedColumnDiagnostics(tokens, scope, catalog),
+    ...qualifiedColumnDiagnostics(tokens, scope, catalog, dialect),
     ...unqualifiedColumnDiagnostics(tokens, scope, catalog),
     ...literalDiagnostics(tokens, scope, catalog),
   ]
@@ -532,7 +535,7 @@ export const diagnose = (
       ...unknownStatementDiagnostics(statement),
       ...nullComparisonDiagnostics(statement),
       ...(catalog && catalog.schemas.length > 0
-        ? catalogDiagnostics(statement, catalog)
+        ? catalogDiagnostics(statement, catalog, dialect)
         : []),
     ]),
   ].toSorted((a, b) => a.start - b.start)

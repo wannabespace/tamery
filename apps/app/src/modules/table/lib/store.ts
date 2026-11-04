@@ -21,6 +21,7 @@ export const tablePageType = type({
     },
   },
   hiddenColumns: 'string[]',
+  'newestFirstSeeded?': 'boolean',
   orderBy: {
     '[string]': '"ASC" | "DESC"',
   },

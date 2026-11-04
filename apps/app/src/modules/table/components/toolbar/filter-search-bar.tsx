@@ -88,7 +88,7 @@ export const FilterSearchBar = ({
       loop
       value={highlighted}
       onValueChange={setHighlighted}
-      className="relative min-w-0 flex-1"
+      className="relative min-w-40 flex-1"
     >
       <div className="bg-input ring-foreground/4 has-[input:focus]:focus-ring flex min-h-8 w-full items-center gap-1 rounded-xl border border-transparent py-0.75 pr-1.5 pl-2 shadow-xs ring transition-[color,box-shadow] duration-200">
         <LoadingContent
