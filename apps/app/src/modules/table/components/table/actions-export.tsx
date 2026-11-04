@@ -2,14 +2,19 @@ import { FileExportIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
-import { NumberFlow } from '@tamery/ui/components/custom/number-flow'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@tamery/ui/components/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@tamery/ui/components/tooltip'
 import { useSubscription } from 'seitu/react'
 
+import { useObjectNames } from '~/core/catalog/names'
 import { ExportFormatItems, useExportMutation } from '~/core/export/export-data'
 import {
   getRowKeyByPrimaryKeys,
@@ -26,6 +31,7 @@ export const ActionsExport = ({
   keys: string[]
   rows: Record<string, unknown>[]
 }) => {
+  const names = useObjectNames()
   const selected = useSubscription(useTableSessionStore(), {
     selector: (state) => state.selected,
   })
@@ -40,24 +46,27 @@ export const ActionsExport = ({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost-muted"
-            size="sm"
-            aria-label={`Export (${ticked.length})`}
-            disabled={isPending}
-          />
-        }
-      >
-        <LoadingContent loading={isPending}>
-          <HugeiconsIcon icon={FileExportIcon} strokeWidth={2} />
-        </LoadingContent>
-        <span>
-          Export (
-          <NumberFlow spinTiming={{ duration: 200 }} value={ticked.length} />)
-        </span>
-      </DropdownMenuTrigger>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost-muted"
+                  size="icon-sm"
+                  aria-label={`Export selected ${names.row}s`}
+                  disabled={isPending}
+                />
+              }
+            />
+          }
+        >
+          <LoadingContent loading={isPending}>
+            <HugeiconsIcon icon={FileExportIcon} strokeWidth={2} />
+          </LoadingContent>
+        </TooltipTrigger>
+        <TooltipContent>Export selected {names.row}s</TooltipContent>
+      </Tooltip>
       <DropdownMenuContent side="top">
         <ExportFormatItems onExport={mutate} />
       </DropdownMenuContent>
