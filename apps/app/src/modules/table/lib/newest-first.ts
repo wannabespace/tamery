@@ -1,13 +1,8 @@
-import { silently } from '@tamery/shared/utils'
+import type { Dialect } from '@tamery/shared/enums/connection-type'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
-import type { ConnectionResource } from '~/core/connection/sync'
-import { resourceTableColumnsQueryOptions } from '~/core/queries/tables/columns'
-import { connectionResourceToQueryParams } from '~/core/runtime/query'
-import { queryClient } from '~/lib/query-client'
 
-import type { TablePageStore } from './store'
-import type { TableParams } from './tab'
+import type { TablePageStore, tablePageType } from './store'
 
 const TIME_COLUMNS = [
   'timestamp',
@@ -16,27 +11,17 @@ const TIME_COLUMNS = [
   'min_first_timestamp',
 ]
 
-export const seedNewestFirst = (
-  store: TablePageStore,
-  connectionResource: ConnectionResource,
-  params: TableParams
-) =>
-  silently(async () => {
-    if (store.get().newestFirstSeeded) {
-      return
-    }
-    const { dialect } =
-      await connectionResourceToQueryParams(connectionResource)
-    if (!getCapabilities(dialect).flags.includes('firstRowsOnly')) {
-      return
-    }
-    const columns = await queryClient.query(
-      resourceTableColumnsQueryOptions({ connectionResource, ...params })
-    )
+export const newestFirst = {
+  /** While true, nothing may read the table's rows: the first read would be an arbitrary old page, a second query against the engine's small concurrency limit. */
+  isPending: (dialect: Dialect, state: typeof tablePageType.infer) =>
+    getCapabilities(dialect).flags.includes('firstRowsOnly') &&
+    !state.newestFirstSeeded,
+
+  // Only once, or a sort the user clears comes back on the next open.
+  seed: (store: TablePageStore, columns: { id: string }[]) => {
     const newest = TIME_COLUMNS.find((name) =>
       columns.some((column) => column.id === name)
     )
-    // Only once, or a sort the user clears comes back on the next open.
     store.set(
       (state) =>
         ({
@@ -48,4 +33,5 @@ export const seedNewestFirst = (
               : state.orderBy,
         }) satisfies typeof state
     )
-  })
+  },
+}

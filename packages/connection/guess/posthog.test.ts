@@ -2,8 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 
-import { guessConnection } from '.'
-import { guessPosthogServer } from './posthog'
+import { guessConnection, guessConnectionField } from '.'
 
 const posthog = (parts: Record<string, string>) =>
   expect.objectContaining({
@@ -84,10 +83,13 @@ describe('PostHog in a paste', () => {
   })
 })
 
-describe('guessPosthogServer', () => {
+describe("PostHog's own Host field", () => {
   test('reads a URL under any name as the server', () => {
     expect(
-      guessPosthogServer('https://analytics.acme.com:8443/project/7')
+      guessConnectionField(
+        'https://analytics.acme.com:8443/project/7',
+        ConnectionType.PostHog
+      )
     ).toEqual(
       posthog({
         database: '7',
@@ -97,7 +99,16 @@ describe('guessPosthogServer', () => {
     )
   })
 
-  test('leaves a bare host to the shared guess', () => {
-    expect(guessPosthogServer('analytics.acme.com')).toBeNull()
+  test('leaves a bare host as it is', () => {
+    expect(
+      guessConnectionField('analytics.acme.com', ConnectionType.PostHog)?.parts
+    ).toMatchObject({ host: 'analytics.acme.com' })
+  })
+
+  test('on another engine a web URL is still ClickHouse', () => {
+    expect(
+      guessConnectionField('https://db.acme.com', ConnectionType.Postgres)
+        ?.parts.type
+    ).toBe(ConnectionType.ClickHouse)
   })
 })

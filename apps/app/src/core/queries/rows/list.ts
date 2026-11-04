@@ -19,7 +19,7 @@ import { fromMongodbDocument } from './shape'
 
 const rowType = type('Record<string, unknown>')
 
-const POSTHOG_ROWS_LIMIT = 1000
+export const POSTHOG_ROWS_LIMIT = 1000
 
 interface PageResult {
   isLast: boolean

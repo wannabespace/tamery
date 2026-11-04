@@ -49,7 +49,7 @@ LIMIT 20
 
 ## Differences to know
 
-- The table browser shows up to the first 1,000 rows, because PostHog refuses paging for API keys. Filter or sort to reach others, or write a query.
+- The table browser shows up to the first 1,000 rows, because PostHog refuses paging for API keys, and the counter then reads **1k+**. Filter or sort to reach others, or write a query.
 - Export from a table goes up to the first 5,000 rows, so it has no **All rows** option. For more, use [PostHog's batch exports](https://posthog.com/docs/cdp/batch-exports).
 - Tables show no total row count. Counting a large table can use up your project's read budget.
 - Tables are read-only, and there is no **Schema** section, visualizer, or sharing.

@@ -12,14 +12,13 @@ import { guessJson } from './json'
 import { guessKeyValue } from './key-value'
 import { guessOracle } from './oracle'
 import { mergeParts } from './parts'
-import { guessPosthog } from './posthog'
+import { guessPosthog, guessPosthogServer } from './posthog'
 import { guessRemoteSqlite } from './remote-sqlite'
 import { guessSqlite } from './sqlite'
 import { guessSsh, throughForwards } from './ssh'
 import type { ConnectionGuess, DatabaseGuess, GuessFix } from './types'
 import { guessGoDsn, guessUrl, guessWebUrl } from './url'
 
-export { guessPosthogServer } from './posthog'
 export type { ConnectionGuess, GuessFix, GuessFormat } from './types'
 
 const getDetectors = (isConnection: boolean) => [
@@ -95,3 +94,8 @@ export const guessConnection = (
       parts: fixed,
     }
   }).unwrapOr(null)
+
+/** A form's field for where the database is: it already knows the engine, and for PostHog a URL there is never a ClickHouse. */
+export const guessConnectionField = (text: string, engine: ConnectionType) =>
+  (engine === ConnectionType.PostHog && guessPosthogServer(text)) ||
+  guessConnection(text, true)

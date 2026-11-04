@@ -36,13 +36,20 @@ export const posthogColumns = async (
     LIMIT ${sql.lit(POSTHOG_CATALOG_LIMIT)}
   `.execute(db)
 
-  return rows.map((row) => ({
-    comment: row.description,
-    default: null,
-    editable: false,
-    id: row.column_name,
-    nullable: row.is_nullable === 1,
-    ...getPosthogTable(row.table_schema, row.table_name),
-    type: row.data_type,
-  }))
+  return rows.flatMap((row) => {
+    const table = getPosthogTable(row.table_schema, row.table_name)
+    return table
+      ? [
+          {
+            comment: row.description,
+            default: null,
+            editable: false,
+            id: row.column_name,
+            nullable: row.is_nullable === 1,
+            ...table,
+            type: row.data_type,
+          },
+        ]
+      : []
+  })
 }

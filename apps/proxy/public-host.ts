@@ -1,5 +1,6 @@
 import type { LookupAddress } from 'node:dns'
 import { lookup } from 'node:dns/promises'
+import { once } from 'node:events'
 import { BlockList, connect } from 'node:net'
 
 import { ORPCError } from '@orpc/server'
@@ -9,6 +10,8 @@ import { readConnectionString } from '@tamery/connection/parse-connection-string
 import { SSH_ELSEWHERE } from '@tamery/connection/ssh/params'
 import { tunnelSocket } from '@tamery/connection/ssh/socket'
 import { describeConnectionString, FILE_PARAMS } from '@tamery/connection/utils'
+import { toError } from '@tamery/shared/utils'
+import { Result } from 'better-result'
 
 const NON_PUBLIC_NETWORKS = new BlockList()
 for (const [network, prefix, family] of [
@@ -51,22 +54,38 @@ const publicAddresses = async (
   return [first, ...rest]
 }
 
-const guardedConnect = async ({ host, port }: Destination) => {
-  const [address] = await publicAddresses(host)
+const openSocket = async ({ address, family }: LookupAddress, port: number) => {
   // Set here: the facade `tunnelSocket` hands the driver makes its own `setKeepAlive` and `setNoDelay` calls no-ops.
-  return connect({
-    family: address.family,
-    host: address.address,
+  const socket = connect({
+    family,
+    host: address,
     keepAlive: true,
     noDelay: true,
     port,
   })
+  await once(socket, 'connect')
+  return socket
+}
+
+const guardedConnect = async ({ host, port }: Destination) => {
+  const addresses = await publicAddresses(host)
+  let failure: unknown
+  // IPv4 first and each in turn: a dual-stack name may list IPv6 first, and a host with no IPv6 route fails on it outright.
+  for (const address of addresses.toSorted((a, b) => a.family - b.family)) {
+    // oxlint-disable-next-line no-await-in-loop -- an address is dialed only once the one before has failed
+    const opened = await Result.tryPromise(() => openSocket(address, port))
+    if (opened.isOk()) {
+      return opened.value
+    }
+    failure = opened.error.cause
+  }
+  throw toError(failure)
 }
 
 /**
  * Plugged in as every dialect's socket source, so each socket a driver opens dials an address checked just before: a name
  * re-resolving to a private host after `assertReachable` (DNS rebinding) is refused, and so is a MongoDB replica set
- * member at a literal private IP, which a DNS lookup never sees. Oracle, libsql and PostHog's `fetch` open their own sockets and skip it.
+ * member at a literal private IP, which a DNS lookup never sees. Oracle and libsql open their own sockets and skip it.
  */
 export const guardedForwarding = (
   connectionString: string

@@ -1,17 +1,42 @@
 import { afterEach, describe, expect, mock, spyOn, test } from 'bun:test'
+import https from 'node:https'
+import { Readable, Writable } from 'node:stream'
 
 import { runQuery } from './run'
 
 const CONNECTION_STRING = 'posthog://:phx_key@eu.posthog.com/12345'
 
-const answerWith = (body: unknown, status = 200) =>
-  spyOn(globalThis, 'fetch').mockResolvedValue(Response.json(body, { status }))
+const answerWith = (body: unknown, status = 200) => {
+  const sent: string[] = []
+  const requested = spyOn(https, 'request').mockImplementation((() => {
+    const request = new Writable({
+      final: (done) => {
+        request.emit(
+          'response',
+          Object.assign(
+            Readable.from([
+              typeof body === 'string' ? body : JSON.stringify(body),
+            ]),
+            { statusCode: status }
+          )
+        )
+        done()
+      },
+      write: (chunk, _encoding, done) => {
+        sent.push(String(chunk))
+        done()
+      },
+    })
+    return request
+  }) as never)
+  return { requested, sent }
+}
 
 afterEach(() => mock.restore())
 
 describe('runQuery', () => {
-  test('sends HogQL to the project with the key, fresh and with no redirects', async () => {
-    const fetched = answerWith({ columns: ['one'], results: [[1]] })
+  test('sends HogQL to the project with the key, fresh', async () => {
+    const { requested, sent } = answerWith({ columns: ['one'], results: [[1]] })
 
     await runQuery({
       connectionString: CONNECTION_STRING,
@@ -19,13 +44,16 @@ describe('runQuery', () => {
       queryId: 'q1',
     })
 
-    const [url, init] = fetched.mock.calls[0] ?? []
+    const [url, options] = requested.mock.calls[0] as unknown as [
+      string,
+      https.RequestOptions,
+    ]
     expect(url).toBe('https://eu.posthog.com/api/projects/12345/query/')
-    expect(init?.redirect).toBe('error')
-    expect(new Headers(init?.headers).get('Authorization')).toBe(
-      'Bearer phx_key'
-    )
-    expect(JSON.parse(String(init?.body))).toMatchObject({
+    expect(options.method).toBe('POST')
+    expect(options.headers).toMatchObject({
+      Authorization: 'Bearer phx_key',
+    })
+    expect(JSON.parse(sent.join(''))).toMatchObject({
       client_query_id: 'q1',
       query: { kind: 'HogQLQuery', query: 'SELECT 1' },
       refresh: 'force_blocking',
@@ -56,12 +84,25 @@ describe('runQuery', () => {
     ).rejects.toThrow('Unable to resolve field: nope')
   })
 
+  test.each([
+    ['an HTML page', '<!DOCTYPE html>', 403],
+    ['a redirect', '', 301],
+  ])('names only the status for %s', async (_name, body, status) => {
+    answerWith(body, status)
+
+    await expect(
+      runQuery({ connectionString: CONNECTION_STRING, query: 'SELECT 1' })
+    ).rejects.toThrow(`PostHog answered ${status}`)
+  })
+
   test('names the host and the reason when PostHog cannot be reached', async () => {
-    spyOn(globalThis, 'fetch').mockRejectedValue(
-      new TypeError('fetch failed', {
-        cause: new Error('getaddrinfo ENOTFOUND'),
+    spyOn(https, 'request').mockImplementation((() => {
+      const request = new Writable({
+        final: (done) => done(new Error('getaddrinfo ENOTFOUND')),
+        write: (_chunk, _encoding, done) => done(),
       })
-    )
+      return request
+    }) as never)
 
     await expect(
       runQuery({ connectionString: CONNECTION_STRING, query: 'SELECT 1' })
@@ -71,7 +112,7 @@ describe('runQuery', () => {
   })
 
   test('refuses an SSH tunnel it cannot open', async () => {
-    const fetched = answerWith({ columns: [], results: [] })
+    const { requested } = answerWith({ columns: [], results: [] })
 
     await expect(
       runQuery({
@@ -79,6 +120,6 @@ describe('runQuery', () => {
         query: 'SELECT 1',
       })
     ).rejects.toThrow('SSH tunnel')
-    expect(fetched).not.toHaveBeenCalled()
+    expect(requested).not.toHaveBeenCalled()
   })
 })

@@ -48,7 +48,7 @@ export const TreeRowContent = ({
         <SchemaRow
           controlId={controlId}
           row={row}
-          onCreateTable={() => onCreateTable(row.name)}
+          onCreateTable={readOnly ? undefined : () => onCreateTable(row.name)}
           onCreateView={
             readOnly
               ? undefined

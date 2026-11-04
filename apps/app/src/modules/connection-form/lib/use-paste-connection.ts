@@ -1,6 +1,7 @@
 import type { ConnectionGuess } from '@tamery/connection/guess'
-import { guessConnection } from '@tamery/connection/guess'
+import { guessConnection, guessConnectionField } from '@tamery/connection/guess'
 import { sqliteFile } from '@tamery/connection/sqlite-file'
+import type { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { isMac } from '@tamery/ui/lib/os'
 import { useLocation } from '@tanstack/react-router'
 import { Result } from 'better-result'
@@ -26,10 +27,12 @@ const SQLITE_HEADER = 'SQLite format 3\0'
 
 export const usePasteConnection = ({
   enabled,
+  getEngine,
   onPaste,
   pitchShown,
 }: {
   enabled: boolean
+  getEngine: () => ConnectionType
   onPaste: (guess: ConnectionGuess, via: PasteVia) => void
   pitchShown: boolean
 }) => {
@@ -106,7 +109,7 @@ export const usePasteConnection = ({
       read(text, 'paste')
       return
     }
-    const guess = guessConnection(text, true)
+    const guess = guessConnectionField(text, getEngine())
     if (
       guess &&
       guess.format !== 'host' &&

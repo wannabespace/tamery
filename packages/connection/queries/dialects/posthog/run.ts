@@ -1,8 +1,16 @@
-import { toError } from '@tamery/shared/utils'
+import { once } from 'node:events'
+import https from 'node:https'
+import { text } from 'node:stream/consumers'
+import tls from 'node:tls'
+
 import { type } from 'arktype'
+import { Result } from 'better-result'
+import { memoize } from 'memoza'
 
 import type { RunOptions } from '../..'
 import { resultSet } from '../..'
+import type { Destination } from '../../../forwarding'
+import { forwarding } from '../../../forwarding'
 import { readConnectionString } from '../../../parse-connection-string'
 import { cancellable } from '../../cancellation'
 
@@ -14,41 +22,54 @@ const answer = type({
 
 const refusal = type({ detail: 'string' })
 
+// Through `forwarding`, like every driver: on the cloud proxy each socket dials an address checked just before, which a DNS rebind past `assertReachable` cannot dodge. `fetch` has no socket to give.
+const getAgent = memoize(async (connectionString: string) => {
+  const tunnel = await forwarding.of(connectionString)
+  return tunnel
+    ? Object.assign(new https.Agent({ keepAlive: true }), {
+        createConnection: (options: tls.ConnectionOptions & Destination) =>
+          tls.connect({ ...options, socket: tunnel.socketTo(options) }),
+      })
+    : undefined
+})
+
 const request = async (
   connectionString: string,
   path: string,
-  init: RequestInit
+  { body, method }: { body?: string; method: 'DELETE' | 'POST' }
 ) => {
   const { database, host, password, port, searchParams } =
     readConnectionString(connectionString)
   if ([...searchParams.keys()].some((key) => key.startsWith('ssh_'))) {
     throw new Error('PostHog connections cannot use an SSH tunnel.')
   }
-  const response = await fetch(
+  const agent = await getAgent(connectionString)
+  // A redirect is not followed, so it cannot carry a cloud proxy request past its public-host check: it reads as a refusal below.
+  const sent = https.request(
     `https://${host}${port ? `:${port}` : ''}/api/projects/${encodeURIComponent(database)}/query/${path}`,
     {
-      ...init,
+      agent,
       headers: {
         Authorization: `Bearer ${password}`,
         'Content-Type': 'application/json',
       },
-      // The host comes from the string, so a redirect must not carry a cloud proxy request past its public-host check.
-      redirect: 'error',
+      method,
     }
-  ).catch((error: unknown) => {
-    // `fetch` says only "fetch failed" and keeps what happened in `cause`.
-    const { cause, message } = toError(error)
-    throw new Error(
-      `Could not reach PostHog at ${host}: ${toError(cause ?? message).message}`
-    )
+  )
+  const answered = once(sent, 'response')
+  sent.end(body)
+  const [response] = await answered.catch((error: Error) => {
+    throw new Error(`Could not reach PostHog at ${host}: ${error.message}`)
   })
-  if (response.ok) {
-    return response
+  const content = await text(response)
+  const { statusCode = 0 } = response
+  if (statusCode >= 200 && statusCode < 300) {
+    return content
   }
-  const failure = refusal(await response.json().catch(() => null))
+  const failure = refusal(Result.try(() => JSON.parse(content)).unwrapOr(null))
   throw new Error(
     failure instanceof type.errors
-      ? `PostHog answered ${response.status}`
+      ? `PostHog answered ${statusCode}`
       : failure.detail
   )
 }
@@ -72,7 +93,7 @@ export const runQuery = ({
     },
     async () => {
       const startedAt = performance.now()
-      const response = await request(connectionString, '', {
+      const content = await request(connectionString, '', {
         body: JSON.stringify({
           client_query_id: queryId,
           name: 'tamery',
@@ -82,7 +103,7 @@ export const runQuery = ({
         }),
         method: 'POST',
       })
-      const { columns, hasMore, results } = answer.assert(await response.json())
+      const { columns, hasMore, results } = answer.assert(JSON.parse(content))
       const set = resultSet(
         { affectedRows: null, columns, rows: results },
         maxRows

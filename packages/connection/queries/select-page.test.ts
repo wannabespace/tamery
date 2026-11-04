@@ -22,6 +22,21 @@ test('a column name with a space or a dot stays one identifier', () => {
   )
 })
 
+test.each([
+  ['public', 'events', '`events`'],
+  ['system', 'dashboards', '`system`.`dashboards`'],
+  ['postgres.public', 'users', '`postgres`.`public`.`users`'],
+])("PostHog's schema %s reads table %s as %s", (schema, table, from) => {
+  const { sql } = selectPage(coldDialect(Dialect.PostHog), {
+    limit: 10,
+    offset: 0,
+    schema,
+    table,
+  }).compile()
+
+  expect(sql.trim()).toBe(`select * from ${from} limit ?`)
+})
+
 test('mongoPage binds filter values by column type and breaks sort ties on _id', () => {
   expect(
     mongoPage({

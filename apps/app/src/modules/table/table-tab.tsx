@@ -1,3 +1,7 @@
+import { TableSkeleton } from '@tamery/table'
+import { useEffect } from 'react'
+import { useSubscription } from 'seitu/react'
+
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { useConnectionContext } from '~/core/connection/route'
 import {
@@ -19,7 +23,12 @@ import {
 import { Table } from './components/table/table'
 import { TableToolbar } from './components/toolbar/toolbar'
 import { ColumnsContext, useTableColumnsQuery } from './lib/columns'
-import { tablePageStore, TablePageStoreContext } from './lib/store'
+import { newestFirst } from './lib/newest-first'
+import {
+  tablePageStore,
+  TablePageStoreContext,
+  useTablePageStore,
+} from './lib/store'
 import type { TableParams } from './lib/tab'
 
 const addColumn = () => columnDialogRef.current?.add()
@@ -32,11 +41,29 @@ const TableContent = ({ table, schema }: { table: string; schema: string }) => {
   const onAddColumn = declaredColumns ? addColumn : undefined
   const onInsertDocument =
     declaredColumns || flags.includes('readOnly') ? undefined : insertDocument
-  const { data = [], isPending } = useTableColumnsQuery({
+  const {
+    data = [],
+    error,
+    isPending,
+  } = useTableColumnsQuery({
     connectionResource,
     schema,
     table,
   })
+  const store = useTablePageStore()
+  const isSeedPending = useSubscription(store, {
+    selector: (state) => newestFirst.isPending(dialect, state),
+  })
+
+  useEffect(() => {
+    if (isSeedPending && !isPending && !error) {
+      newestFirst.seed(store, data)
+    }
+  }, [data, error, isPending, isSeedPending, store])
+
+  if (isSeedPending && !error) {
+    return <TableSkeleton selectable={false} />
+  }
 
   return (
     <ColumnsContext value={{ columns: data, isPending }}>

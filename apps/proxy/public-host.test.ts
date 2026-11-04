@@ -1,5 +1,8 @@
-import { expect, test } from 'bun:test'
+import { expect, spyOn, test } from 'bun:test'
 import { once } from 'node:events'
+
+import { forwarding } from '@tamery/connection/forwarding'
+import { runQuery } from '@tamery/connection/queries/dialects/posthog/run'
 
 import { assertReachable, guardedForwarding } from './public-host'
 
@@ -58,9 +61,22 @@ test.each([
   }
 )
 
+test('PostHog reaches a host only through the guard, so a rebind to a private address is refused', async () => {
+  const of = spyOn(forwarding, 'of').mockImplementation(guardedForwarding)
+
+  await expect(
+    runQuery({
+      connectionString: 'posthog://:phx_key@localhost/1',
+      query: 'SELECT 1',
+    })
+  ).rejects.toThrow('only public hosts')
+
+  of.mockRestore()
+})
+
 test('a driver socket refuses a host that resolves to a private address', async () => {
-  const forwarding = await guardedForwarding('postgres://u:p@localhost/db')
-  const [error] = await once(forwarding.socket(), 'error')
+  const guarded = await guardedForwarding('postgres://u:p@localhost/db')
+  const [error] = await once(guarded.socket(), 'error')
   expect(error).toBeInstanceOf(Error)
   expect(String(error)).toContain('only public hosts')
 })

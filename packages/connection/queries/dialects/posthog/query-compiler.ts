@@ -1,5 +1,5 @@
 import type { OffsetNode, SchemableIdentifierNode } from 'kysely'
-import { ValueNode } from 'kysely'
+import { IdentifierNode, ValueNode } from 'kysely'
 
 import { ClickhouseQueryCompiler } from '../clickhouse/query-compiler'
 
@@ -8,11 +8,14 @@ export const POSTHOG_SCHEMA_LABELS = new Set(['public', 'views', 'warehouse'])
 
 export class PosthogQueryCompiler extends ClickhouseQueryCompiler {
   protected override visitSchemableIdentifier(node: SchemableIdentifierNode) {
-    super.visitSchemableIdentifier(
-      node.schema && POSTHOG_SCHEMA_LABELS.has(node.schema.name)
-        ? { ...node, schema: undefined }
-        : node
-    )
+    const parts = node.schema?.name.split('.') ?? []
+    if (!POSTHOG_SCHEMA_LABELS.has(parts[0] ?? '')) {
+      for (const part of parts) {
+        this.visitNode(IdentifierNode.create(part))
+        this.append('.')
+      }
+    }
+    this.visitNode(node.identifier)
   }
 
   // PostHog answers 400 to any OFFSET from a personal API key, `OFFSET 0` included.

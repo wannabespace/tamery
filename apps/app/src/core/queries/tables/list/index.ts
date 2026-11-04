@@ -221,11 +221,12 @@ export const resourceTablesAndSchemasQuery = memoize(
             LIMIT ${sql.lit(POSTHOG_CATALOG_LIMIT)}
           `.execute(db)
           // Nothing in PostHog takes a write, and a view is what the grid and the menus never offer one on.
-          return rows.map((row) => ({
-            comment: row.description,
-            ...getPosthogTable(row.table_schema, row.table_name),
-            type: 'view' as const,
-          }))
+          return rows.flatMap((row) => {
+            const table = getPosthogTable(row.table_schema, row.table_name)
+            return table
+              ? [{ comment: row.description, ...table, type: 'view' as const }]
+              : []
+          })
         },
         sqlite: (db) =>
           userTables(db, ['table', 'view', 'virtual'])

@@ -42,7 +42,7 @@ export const SchemaRow = ({
 }: {
   controlId?: string
   row: Extract<TreeRow, { kind: 'schema' }>
-  onCreateTable: () => void
+  onCreateTable?: () => void
   onCreateView?: () => void
   onDrop?: () => void
   onRename?: () => void
@@ -125,26 +125,28 @@ export const SchemaRow = ({
           />
         }
       />
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <SidebarMenuAction
-              showOnHover
-              tabIndex={-1}
-              aria-label={`New table in ${row.name}`}
-              className="top-1/2 right-6 -translate-y-1/2"
-              onClick={onCreateTable}
+      {onCreateTable && (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <SidebarMenuAction
+                showOnHover
+                tabIndex={-1}
+                aria-label={`New table in ${row.name}`}
+                className="top-1/2 right-6 -translate-y-1/2"
+                onClick={onCreateTable}
+              />
+            }
+          >
+            <HugeiconsIcon
+              icon={PlusSignIcon}
+              strokeWidth={2}
+              className="size-3.5!"
             />
-          }
-        >
-          <HugeiconsIcon
-            icon={PlusSignIcon}
-            strokeWidth={2}
-            className="size-3.5!"
-          />
-        </TooltipTrigger>
-        <TooltipContent side="right">New table</TooltipContent>
-      </Tooltip>
+          </TooltipTrigger>
+          <TooltipContent side="right">New table</TooltipContent>
+        </Tooltip>
+      )}
     </AppContextMenu>
   )
 }
