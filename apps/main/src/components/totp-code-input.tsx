@@ -3,10 +3,8 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from '@tamery/ui/components/input-otp'
-import { Label } from '@tamery/ui/components/label'
 import { Spinner } from '@tamery/ui/components/spinner'
 import type { ComponentProps } from 'react'
-import { useId } from 'react'
 
 const TOTP_LENGTH = 6
 const TOTP_SLOTS = Array.from({ length: TOTP_LENGTH }, (_, i) => ({
@@ -15,34 +13,24 @@ const TOTP_SLOTS = Array.from({ length: TOTP_LENGTH }, (_, i) => ({
 }))
 
 export const TotpCodeInput = ({
-  label,
   loading = false,
   ...props
-}: { label?: string; loading?: boolean } & Omit<
+}: { loading?: boolean; 'aria-label': string } & Omit<
   ComponentProps<typeof InputOTP>,
-  'maxLength' | 'id' | 'children' | 'render' | 'disabled'
->) => {
-  const id = useId()
-
-  return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor={id}>
-        <span className="text-muted-foreground">{label}</span>
-      </Label>
-      <div className="relative">
-        <InputOTP id={id} maxLength={TOTP_LENGTH} disabled={loading} {...props}>
-          <InputOTPGroup>
-            {TOTP_SLOTS.map((slot) => (
-              <InputOTPSlot key={slot.key} index={slot.index} />
-            ))}
-          </InputOTPGroup>
-        </InputOTP>
-        {loading && (
-          <span className="text-muted-foreground absolute top-1/2 left-full ml-3 flex -translate-y-1/2">
-            <Spinner />
-          </span>
-        )}
-      </div>
-    </div>
-  )
-}
+  'maxLength' | 'children' | 'render' | 'disabled'
+>) => (
+  <div className="relative w-full">
+    <InputOTP maxLength={TOTP_LENGTH} disabled={loading} {...props}>
+      <InputOTPGroup>
+        {TOTP_SLOTS.map((slot) => (
+          <InputOTPSlot key={slot.key} index={slot.index} />
+        ))}
+      </InputOTPGroup>
+    </InputOTP>
+    {loading && (
+      <span className="text-muted-foreground absolute inset-0 flex items-center justify-center">
+        <Spinner />
+      </span>
+    )}
+  </div>
+)

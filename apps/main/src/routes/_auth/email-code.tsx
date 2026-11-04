@@ -82,7 +82,7 @@ const EmailCodePage = () => {
         </p>
       </div>
       <TotpCodeInput
-        label="Code"
+        aria-label="Code"
         value={code}
         onChange={setCode}
         onComplete={verify}
