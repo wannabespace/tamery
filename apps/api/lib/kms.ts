@@ -6,7 +6,7 @@ import process from 'node:process'
 import { type } from 'arktype'
 
 const METADATA_TOKEN_URL =
-  'http://metadata.google.internal/computeMetadata/v1/instance/service-account/token'
+  'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token'
 
 const tokenResponse = type({ access_token: 'string' })
 const decryptResponse = type({ plaintext: 'string' })
