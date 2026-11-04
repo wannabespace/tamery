@@ -45,7 +45,7 @@ import { UpdateButton, VersionButton } from '~/modules/updates/update-button'
 import { UserButton } from '~/modules/user-menu/user-button'
 
 import { RemoveConnectionDialog } from './remove-connection-dialog'
-import { TitleBarPicker } from './title-bar-picker'
+import { TitleBarPicker, useHomeLink } from './title-bar-picker'
 import { WorkspaceSwitcher } from './workspace-switcher'
 
 interface ConnectionGroup {
@@ -166,6 +166,7 @@ const ConnectionsDropdown = ({
   onRemove: (connection: Connection) => void
 }) => {
   const [open, setOpen] = useState(false)
+  const homeLink = useHomeLink()
   const { connectionStringsCollection } = useCollections()
   const lastOpenedResources = useSubscription(lastOpenedResourcesStorageValue)
   const atGuestLimit = !usePermissions().check('connection.create', {
@@ -178,13 +179,7 @@ const ConnectionsDropdown = ({
       open={open}
       onOpenChange={setOpen}
       label="Switch connection"
-      link={
-        current && currentResourceId ? (
-          <ConnectionResourceLink resourceId={currentResourceId} />
-        ) : (
-          <Link to="/" />
-        )
-      }
+      link={current ? undefined : homeLink}
       name={
         current ? (
           <>
@@ -298,7 +293,6 @@ const ResourcesDropdown = ({
       }
     }}
     label="Switch database"
-    link={<ConnectionResourceLink resourceId={current.id} />}
     name={
       <span data-mask className="text-muted-foreground truncate">
         <ResourceLabel connection={connection} name={current.name} />

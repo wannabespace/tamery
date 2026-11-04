@@ -20,7 +20,6 @@ import {
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
-import { Link } from '~/components/link'
 import { checkOrUpgrade } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
 import {
@@ -33,7 +32,7 @@ import { useIsAnonymous } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { useIsOnline } from '~/store'
 
-import { TitleBarPicker } from './title-bar-picker'
+import { TitleBarPicker, useHomeLink } from './title-bar-picker'
 import { WorkspaceNameDialog } from './workspace-name-dialog'
 
 const WorkspaceGlyph = ({
@@ -52,6 +51,7 @@ const WorkspaceGlyph = ({
 
 export const WorkspaceSwitcher = () => {
   const navigate = useNavigate()
+  const homeLink = useHomeLink()
   const [open, setOpen] = useState(false)
   const isAnonymous = useIsAnonymous()
   const [createOpen, setCreateOpen] = useState(false)
@@ -88,7 +88,7 @@ export const WorkspaceSwitcher = () => {
         open={open}
         onOpenChange={setOpen}
         label="Switch workspace"
-        link={<Link to="/" />}
+        link={homeLink}
         name={
           <>
             {activeWorkspace ? (
