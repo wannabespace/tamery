@@ -1,5 +1,4 @@
 import {
-  ArrowDataTransferHorizontalIcon,
   Mail01Icon,
   PlusSignIcon,
   Tick02Icon,
@@ -16,9 +15,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@tamery/ui/components/dropdown-menu'
 import { useNavigate } from '@tanstack/react-router'
@@ -137,6 +133,31 @@ export const WorkspaceSwitcher = () => {
               <DropdownMenuSeparator />
             </>
           )}
+          {workspaces
+            .toSorted(
+              (a, b) =>
+                Number(isDefaultWorkspaceMetadata(b.metadata)) -
+                Number(isDefaultWorkspaceMetadata(a.metadata))
+            )
+            .map((workspace) => (
+              <DropdownMenuItem
+                key={workspace.id}
+                onClick={() => switchWorkspace(workspace.id)}
+              >
+                <WorkspaceGlyph workspace={workspace} />
+                <span data-mask className="truncate">
+                  {workspace.name}
+                </span>
+                {workspace.id === activeWorkspace?.id && (
+                  <HugeiconsIcon
+                    icon={Tick02Icon}
+                    strokeWidth={2}
+                    className="ml-auto"
+                  />
+                )}
+              </DropdownMenuItem>
+            ))}
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() =>
               navigate({
@@ -148,51 +169,14 @@ export const WorkspaceSwitcher = () => {
             <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} />
             Invite and manage members
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <HugeiconsIcon
-                icon={ArrowDataTransferHorizontalIcon}
-                strokeWidth={2}
-              />
-              Switch workspace
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="min-w-48">
-              {workspaces
-                .toSorted(
-                  (a, b) =>
-                    Number(isDefaultWorkspaceMetadata(b.metadata)) -
-                    Number(isDefaultWorkspaceMetadata(a.metadata))
-                )
-                .map((workspace) => (
-                  <DropdownMenuItem
-                    key={workspace.id}
-                    onClick={() => switchWorkspace(workspace.id)}
-                  >
-                    <WorkspaceGlyph workspace={workspace} />
-                    <span data-mask className="truncate">
-                      {workspace.name}
-                    </span>
-                    {workspace.id === activeWorkspace?.id && (
-                      <HugeiconsIcon
-                        icon={Tick02Icon}
-                        strokeWidth={2}
-                        className="ml-auto"
-                      />
-                    )}
-                  </DropdownMenuItem>
-                ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className={isAnonymous ? 'opacity-50' : undefined}
-                disabled={!isOnline}
-                onClick={handleCreate}
-              >
-                <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
-                Create workspace
-              </DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+          <DropdownMenuItem
+            className={isAnonymous ? 'opacity-50' : undefined}
+            disabled={!isOnline}
+            onClick={handleCreate}
+          >
+            <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
+            Create workspace
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <CreateWorkspaceDialog open={createOpen} onOpenChange={setCreateOpen} />
