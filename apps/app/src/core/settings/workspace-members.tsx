@@ -97,14 +97,14 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
 
   return (
     <>
-      {canManage && (
-        <InviteForm
-          workspaceId={workspace.id}
-          disabled={!isOnline}
-          onInvited={refresh}
-        />
-      )}
       <SettingsGroup title="Members">
+        {canManage && (
+          <InviteForm
+            workspaceId={workspace.id}
+            disabled={!isOnline}
+            onInvited={refresh}
+          />
+        )}
         {data.members.map((member) => (
           <SettingsRow
             key={member.id}

@@ -2,7 +2,8 @@ import type { InvitableRole } from '@tamery/shared/workspace'
 import { INVITABLE_ROLES } from '@tamery/shared/workspace'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
-import { Input } from '@tamery/ui/components/input'
+import { InputGroup, InputGroupInput } from '@tamery/ui/components/input-group'
+import { Item } from '@tamery/ui/components/item'
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -34,36 +35,46 @@ export const InviteForm = ({
   })
 
   return (
-    <form
-      className="flex gap-2"
-      onSubmit={(event) => {
-        event.preventDefault()
-        invite.mutate()
-      }}
+    <Item
+      size="sm"
+      variant="grouped"
+      render={
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            invite.mutate()
+          }}
+        />
+      }
     >
-      <Input
-        type="email"
-        aria-label="Email"
-        placeholder="Email"
-        value={email}
-        disabled={disabled}
-        onChange={(event) => setEmail(event.target.value)}
-        data-mask
-      />
+      <InputGroup variant="inset" className="-ml-2.5 flex-1">
+        <InputGroupInput
+          type="email"
+          aria-label="Email"
+          placeholder="Invite by email"
+          value={email}
+          disabled={disabled}
+          onChange={(event) => setEmail(event.target.value)}
+          data-mask
+        />
+      </InputGroup>
       <RoleSelect
         label="Role"
         roles={INVITABLE_ROLES}
-        size="default"
+        size="sm"
+        variant="flat"
         value={role}
         disabled={disabled}
         onChange={setRole}
       />
       <Button
         type="submit"
+        size="sm"
+        variant="outline"
         disabled={disabled || !email.trim() || invite.isPending}
       >
         <LoadingContent loading={invite.isPending}>Invite</LoadingContent>
       </Button>
-    </form>
+    </Item>
   )
 }

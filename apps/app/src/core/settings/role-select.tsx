@@ -15,6 +15,7 @@ export const RoleSelect = <TRole extends WorkspaceRole>({
   roles,
   size,
   value,
+  variant,
 }: {
   disabled?: boolean
   label: string
@@ -22,6 +23,7 @@ export const RoleSelect = <TRole extends WorkspaceRole>({
   roles: readonly TRole[]
   size: 'sm' | 'default'
   value: TRole
+  variant?: 'flat'
 }) => (
   <Select
     items={roles.map((role) => ({ label: capitalCase(role), value: role }))}
@@ -29,7 +31,12 @@ export const RoleSelect = <TRole extends WorkspaceRole>({
     disabled={disabled}
     onValueChange={(next) => next && onChange(next)}
   >
-    <SelectTrigger size={size} aria-label={label} className="w-24">
+    <SelectTrigger
+      size={size}
+      variant={variant}
+      aria-label={label}
+      className="w-24"
+    >
       <SelectValue />
     </SelectTrigger>
     <SelectContent size={size}>

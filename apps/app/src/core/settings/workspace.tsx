@@ -2,15 +2,13 @@ import {
   isDefaultWorkspaceMetadata,
   MEMBER_MANAGER_ROLES,
 } from '@tamery/shared/workspace'
-import { Button } from '@tamery/ui/components/button'
-import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
 import {
   SettingsGroup,
   SettingsRow,
 } from '@tamery/ui/components/custom/settings-group'
-import { Input } from '@tamery/ui/components/input'
+import { InputGroup, InputGroupInput } from '@tamery/ui/components/input-group'
 import { useMutation } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { useActiveWorkspace } from '~/core/workspace/hooks'
@@ -23,32 +21,36 @@ import { WorkspaceMembers } from './workspace-members'
 
 const WorkspaceName = ({ workspace }: { workspace: Workspace }) => {
   const isOnline = useIsOnline()
+  const inputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState<string | null>(null)
-  const name = draft ?? workspace.name
-  const trimmedName = name.trim()
   const canRename = MEMBER_MANAGER_ROLES.includes(workspace.role)
   const rename = useMutation({
     meta: { event: 'workspace_renamed' },
-    mutationFn: () =>
-      orpc.workspaces.rename.call({
-        name: trimmedName,
-        workspaceId: workspace.id,
-      }),
-    onSuccess: () => {
-      setDraft(null)
-      toast.success('Workspace renamed')
-    },
+    mutationFn: (name: string) =>
+      orpc.workspaces.rename.call({ name, workspaceId: workspace.id }),
+    onSettled: () => setDraft(null),
+    onSuccess: () => toast.success('Workspace renamed'),
   })
+
+  const commit = () => {
+    const name = draft?.trim()
+    if (name && name !== workspace.name) {
+      rename.mutate(name)
+    } else {
+      setDraft(null)
+    }
+  }
 
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault()
-        rename.mutate()
+        inputRef.current?.blur()
       }}
     >
       <SettingsGroup>
         <SettingsRow
+          htmlFor="workspace-name"
           title="Name"
           description={
             canRename
@@ -56,27 +58,19 @@ const WorkspaceName = ({ workspace }: { workspace: Workspace }) => {
               : 'Only owners and admins can rename this workspace.'
           }
         >
-          <Input
-            aria-label="Workspace name"
-            className="w-56"
-            value={name}
-            disabled={!canRename}
-            onChange={(event) => setDraft(event.target.value)}
-            data-mask
-          />
-          {canRename && (
-            <Button
-              type="submit"
-              disabled={
-                !isOnline ||
-                !trimmedName ||
-                trimmedName === workspace.name ||
-                rename.isPending
-              }
-            >
-              <LoadingContent loading={rename.isPending}>Save</LoadingContent>
-            </Button>
-          )}
+          <InputGroup variant="inset" className="-mr-2.5 w-56">
+            <InputGroupInput
+              ref={inputRef}
+              id="workspace-name"
+              autoComplete="off"
+              className="text-right"
+              value={draft ?? workspace.name}
+              disabled={!(canRename && isOnline) || rename.isPending}
+              onBlur={commit}
+              onChange={(event) => setDraft(event.target.value)}
+              data-mask
+            />
+          </InputGroup>
         </SettingsRow>
       </SettingsGroup>
     </form>
