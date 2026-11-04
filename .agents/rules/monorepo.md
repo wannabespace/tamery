@@ -47,7 +47,7 @@ Three Cloud Run Jobs reuse `apps/api/Dockerfile`, and the workflow keeps their i
 
 Constraints the service settings must keep:
 
-- **api and proxy need instance-based billing and at least one minimum instance.** Chat streams, the proxy's idle transaction timeouts and fire-and-forget emails and publishes all run outside any request, which request-based billing would freeze.
+- **api and proxy need instance-based billing, and api at least one minimum instance.** Chat streams, the proxy's idle transaction timeouts and fire-and-forget emails and publishes all run outside any request, which request-based billing would freeze. proxy scales to zero, so a transaction left open past its instance's idle shutdown is lost, and the next query starts on a cold instance.
 - **proxy runs with one maximum instance.** Open transactions and running queries' cancel handles live in its process, so a second instance answers "The transaction is no longer open" for another's `txId`.
 - **api needs a concurrency high enough for its streams**, since each open client holds up to seven sync streams and each counts as a request, and a request timeout of an hour. A cut stream reconnects with its `lastEventId`.
 - **Client IP is `x-real-ip`, set by a Cloudflare request-header transform rule from `ip.src`.** It is only trustworthy while Cloudflare is the sole way in: every service has `internal-and-cloud-load-balancing` ingress and no default URL, and Cloud Armor admits only Cloudflare's ranges at the load balancer. Otherwise anyone can pick their own rate-limit bucket.

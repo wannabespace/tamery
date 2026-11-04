@@ -7,6 +7,7 @@ locals {
   web_service = {
     account  = "tamery-web"
     memory   = "512Mi"
+    min      = 0
     max      = 5
     cpu_idle = true
     timeout  = "300s"
@@ -27,6 +28,7 @@ locals {
     proxy = {
       account  = "tamery-proxy"
       memory   = "1Gi"
+      min      = 0
       max      = 1
       cpu_idle = false
       timeout  = "3600s"
@@ -40,6 +42,7 @@ locals {
     api = {
       account  = "tamery-api"
       memory   = "1Gi"
+      min      = 1
       max      = 5
       cpu_idle = false
       timeout  = "3600s"
@@ -96,7 +99,7 @@ resource "google_cloud_run_v2_service" "this" {
     max_instance_request_concurrency = 80
 
     scaling {
-      min_instance_count = 0
+      min_instance_count = each.value.min
       max_instance_count = each.value.max
     }
 
