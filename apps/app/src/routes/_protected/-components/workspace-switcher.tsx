@@ -26,27 +26,12 @@ import {
   openedInvitationId,
   useInvitations,
 } from '~/core/workspace/invitations'
-import type { Workspace } from '~/core/workspace/sync'
 import { workspaceSelection } from '~/core/workspace/utils'
+import { WorkspaceGlyph } from '~/core/workspace/workspace-glyph'
+import { WorkspaceNameDialog } from '~/core/workspace/workspace-name-dialog'
 import { useIsAnonymous } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { useIsOnline } from '~/store'
-
-import { CreateWorkspaceDialog } from './create-workspace-dialog'
-
-const WorkspaceGlyph = ({
-  workspace,
-}: {
-  workspace: Pick<Workspace, 'name'>
-}) => (
-  <span
-    aria-hidden
-    data-mask
-    className="bg-muted text-2xs text-accent-foreground flex size-4 shrink-0 items-center justify-center rounded font-medium"
-  >
-    {[...workspace.name][0]?.toUpperCase() ?? ''}
-  </span>
-)
 
 export const WorkspaceSwitcher = () => {
   const navigate = useNavigate()
@@ -186,7 +171,7 @@ export const WorkspaceSwitcher = () => {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <CreateWorkspaceDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <WorkspaceNameDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
   )
 }

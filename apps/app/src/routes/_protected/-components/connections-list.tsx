@@ -5,6 +5,7 @@ import {
   providers,
 } from '@tamery/shared/enums/connection-type'
 import { matchesSearch } from '@tamery/shared/utils'
+import { addRowClass } from '@tamery/ui/components/card.utils'
 import { HighlightText } from '@tamery/ui/components/custom/highlight'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { SearchInput } from '@tamery/ui/components/custom/search-input'
@@ -245,10 +246,8 @@ export const ConnectionsList = () => {
                   onClick={() =>
                     checkOrUpgrade('connection.create', { count: data.length })
                   }
-                  className={cn(
-                    'text-muted-foreground hover:bg-popover hover:text-foreground focus-visible:focus-ring flex h-9 cursor-default items-center justify-center gap-2 rounded-xl border border-dashed text-sm outline-hidden transition-colors duration-150',
-                    !canCreate && 'opacity-50'
-                  )}
+                  // oxlint-disable-next-line shadcn/require-static-classes -- addRowClass is shared with Invite member in workspace settings
+                  className={cn(addRowClass, !canCreate && 'opacity-50')}
                 />
               }
             >

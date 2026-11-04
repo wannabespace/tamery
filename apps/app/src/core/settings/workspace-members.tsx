@@ -12,6 +12,7 @@ import {
   WORKSPACE_ROLES,
 } from '@tamery/shared/workspace'
 import { Button } from '@tamery/ui/components/button'
+import { addRowClass } from '@tamery/ui/components/card.utils'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import {
   SettingsGroup,
@@ -22,6 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
+import { cn } from '@tamery/ui/lib/utils'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { capitalCase } from 'change-case'
@@ -105,96 +107,92 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
         onOpenChange={setInviteOpen}
         onInvited={refresh}
       />
-      <SettingsGroup
-        title={
-          <span className="flex items-center justify-between">
-            Members
-            {canManage && (
-              <Button
-                size="xs"
-                variant="outline"
-                disabled={!isOnline}
-                onClick={() => setInviteOpen(true)}
-              >
-                <HugeiconsIcon
-                  icon={PlusSignIcon}
-                  strokeWidth={2}
-                  data-icon="inline-start"
-                />
-                Invite
-              </Button>
-            )}
-          </span>
-        }
-      >
-        {data.members.map((member) => (
-          <SettingsRow
-            key={member.id}
-            title={
-              <span data-mask>
-                {member.isYou ? `${member.name} (you)` : member.name}
-              </span>
-            }
-            description={<span data-mask>{member.email}</span>}
-          >
-            {canChange(member) ? (
-              <RoleSelect
-                label={`Role of ${member.name}`}
-                roles={isOwner ? WORKSPACE_ROLES : INVITABLE_ROLES}
-                size="sm"
-                value={member.role}
-                disabled={!isOnline}
-                onChange={(role) =>
-                  role === 'viewer' && EDITOR_ROLES.includes(member.role)
-                    ? setConfirmation({ action: 'demote', member })
-                    : updateRole.mutate({ memberId: member.id, role })
-                }
-              />
-            ) : (
-              <span className="text-muted-foreground text-xs">
-                {capitalCase(member.role)}
-              </span>
-            )}
-            {member.isYou && data.members.length > 1 && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      focusableWhenDisabled
-                      disabled={!isOnline || isSoleOwner || leave.isPending}
-                      onClick={() =>
-                        setConfirmation({
-                          action: 'leave',
-                          member: { id: member.id, name: workspace.name },
-                        })
-                      }
-                    />
+      <div className="flex flex-col gap-2">
+        <SettingsGroup title="Members">
+          {data.members.map((member) => (
+            <SettingsRow
+              key={member.id}
+              title={
+                <span data-mask>
+                  {member.isYou ? `${member.name} (you)` : member.name}
+                </span>
+              }
+              description={<span data-mask>{member.email}</span>}
+            >
+              {canChange(member) ? (
+                <RoleSelect
+                  label={`Role of ${member.name}`}
+                  roles={isOwner ? WORKSPACE_ROLES : INVITABLE_ROLES}
+                  size="sm"
+                  value={member.role}
+                  disabled={!isOnline}
+                  onChange={(role) =>
+                    role === 'viewer' && EDITOR_ROLES.includes(member.role)
+                      ? setConfirmation({ action: 'demote', member })
+                      : updateRole.mutate({ memberId: member.id, role })
                   }
-                >
-                  Leave
-                </TooltipTrigger>
-                <TooltipContent>
-                  {isSoleOwner
-                    ? 'Make another member an owner with the role picker on their row, then you can leave.'
-                    : 'Leave this workspace. Its connections disappear from your devices.'}
-                </TooltipContent>
-              </Tooltip>
-            )}
-            {canChange(member) && (
-              <IconButton
-                icon={UserRemove01Icon}
-                label="Remove from workspace"
-                size="icon-xs"
-                variant="ghost-destructive"
-                disabled={!isOnline}
-                onClick={() => setConfirmation({ action: 'remove', member })}
-              />
-            )}
-          </SettingsRow>
-        ))}
-      </SettingsGroup>
+                />
+              ) : (
+                <span className="text-muted-foreground text-xs">
+                  {capitalCase(member.role)}
+                </span>
+              )}
+              {member.isYou && data.members.length > 1 && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        focusableWhenDisabled
+                        disabled={!isOnline || isSoleOwner || leave.isPending}
+                        onClick={() =>
+                          setConfirmation({
+                            action: 'leave',
+                            member: { id: member.id, name: workspace.name },
+                          })
+                        }
+                      />
+                    }
+                  >
+                    Leave
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isSoleOwner
+                      ? 'Make another member an owner with the role picker on their row, then you can leave.'
+                      : 'Leave this workspace. Its connections disappear from your devices.'}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {canChange(member) && (
+                <IconButton
+                  icon={UserRemove01Icon}
+                  label="Remove from workspace"
+                  size="icon-xs"
+                  variant="ghost-destructive"
+                  disabled={!isOnline}
+                  onClick={() => setConfirmation({ action: 'remove', member })}
+                />
+              )}
+            </SettingsRow>
+          ))}
+        </SettingsGroup>
+        {canManage && (
+          <button
+            type="button"
+            disabled={!isOnline}
+            onClick={() => setInviteOpen(true)}
+            className={cn(addRowClass, 'disabled:opacity-50')}
+          >
+            <HugeiconsIcon
+              icon={PlusSignIcon}
+              strokeWidth={2}
+              className="size-4"
+            />
+            Invite member
+          </button>
+        )}
+      </div>
       <MemberConfirmDialog
         confirmation={confirmation}
         onCancel={() => setConfirmation(null)}

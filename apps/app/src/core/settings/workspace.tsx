@@ -2,76 +2,49 @@ import {
   isDefaultWorkspaceMetadata,
   MEMBER_MANAGER_ROLES,
 } from '@tamery/shared/workspace'
+import { Button } from '@tamery/ui/components/button'
 import {
   SettingsGroup,
   SettingsRow,
 } from '@tamery/ui/components/custom/settings-group'
-import { Input } from '@tamery/ui/components/input'
-import { useMutation } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
-import { toast } from 'sonner'
+import { useState } from 'react'
 
 import { useActiveWorkspace } from '~/core/workspace/hooks'
 import type { Workspace } from '~/core/workspace/sync'
+import { WorkspaceGlyph } from '~/core/workspace/workspace-glyph'
+import { WorkspaceNameDialog } from '~/core/workspace/workspace-name-dialog'
 import { useIsAnonymous } from '~/lib/auth'
-import { orpc } from '~/lib/orpc'
 import { useIsOnline } from '~/store'
 
 import { WorkspaceMembers } from './workspace-members'
 
-const WorkspaceName = ({ workspace }: { workspace: Workspace }) => {
+const WorkspaceIdentity = ({ workspace }: { workspace: Workspace }) => {
   const isOnline = useIsOnline()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [draft, setDraft] = useState<string | null>(null)
-  const canRename = MEMBER_MANAGER_ROLES.includes(workspace.role)
-  const rename = useMutation({
-    meta: { event: 'workspace_renamed' },
-    mutationFn: (name: string) =>
-      orpc.workspaces.rename.call({ name, workspaceId: workspace.id }),
-    onSettled: () => setDraft(null),
-    onSuccess: () => toast.success('Workspace renamed'),
-  })
-
-  const commit = () => {
-    const name = draft?.trim()
-    if (name && name !== workspace.name) {
-      rename.mutate(name)
-    } else {
-      setDraft(null)
-    }
-  }
+  const [renameOpen, setRenameOpen] = useState(false)
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault()
-        inputRef.current?.blur()
-      }}
-    >
-      <SettingsGroup>
-        <SettingsRow
-          htmlFor="workspace-name"
-          title="Name"
-          description={
-            canRename
-              ? undefined
-              : 'Only owners and admins can rename this workspace.'
-          }
-        >
-          <Input
-            ref={inputRef}
-            id="workspace-name"
-            autoComplete="off"
-            className="w-56"
-            value={draft ?? workspace.name}
-            disabled={!(canRename && isOnline) || rename.isPending}
-            onBlur={commit}
-            onChange={(event) => setDraft(event.target.value)}
-            data-mask
-          />
-        </SettingsRow>
-      </SettingsGroup>
-    </form>
+    <SettingsGroup>
+      <SettingsRow
+        icon={<WorkspaceGlyph workspace={workspace} />}
+        title={<span data-mask>{workspace.name}</span>}
+      >
+        {MEMBER_MANAGER_ROLES.includes(workspace.role) && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!isOnline}
+            onClick={() => setRenameOpen(true)}
+          >
+            Rename
+          </Button>
+        )}
+      </SettingsRow>
+      <WorkspaceNameDialog
+        workspace={workspace}
+        open={renameOpen}
+        onOpenChange={setRenameOpen}
+      />
+    </SettingsGroup>
   )
 }
 
@@ -85,9 +58,7 @@ export const WorkspaceSettings = () => {
 
   return (
     <>
-      {!isAnonymous && (
-        <WorkspaceName key={workspace.id} workspace={workspace} />
-      )}
+      {!isAnonymous && <WorkspaceIdentity workspace={workspace} />}
       {isAnonymous || isDefaultWorkspaceMetadata(workspace.metadata) ? (
         <SettingsGroup>
           <SettingsRow
