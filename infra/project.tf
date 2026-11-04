@@ -11,6 +11,7 @@ locals {
     "iamcredentials.googleapis.com",
     "logging.googleapis.com",
     "monitoring.googleapis.com",
+    "networksecurity.googleapis.com",
     "redis.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",

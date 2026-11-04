@@ -91,10 +91,36 @@ resource "google_certificate_manager_certificate_map_entry" "this" {
   certificates = [google_certificate_manager_certificate.tamery.id]
 }
 
+resource "google_certificate_manager_trust_config" "cloudflare" {
+  name     = "cloudflare-origin-pull"
+  location = "global"
+
+  trust_stores {
+    trust_anchors {
+      pem_certificate = file("${path.module}/cloudflare-origin-pull-ca.pem")
+    }
+  }
+}
+
+# Cloudflare presents this CA's client certificate, so nothing else can reach the load balancer and forge x-real-ip.
+resource "google_network_security_server_tls_policy" "cloudflare_only" {
+  name     = "cloudflare-only"
+  location = "global"
+
+  mtls_policy {
+    client_validation_mode = "REJECT_INVALID"
+    # The API stores the project number, and a project ID here replaces the policy on every plan.
+    client_validation_trust_config = "projects/${data.google_project.current.number}/locations/global/trustConfigs/${google_certificate_manager_trust_config.cloudflare.name}"
+  }
+
+  depends_on = [google_project_service.this["networksecurity.googleapis.com"]]
+}
+
 resource "google_compute_target_https_proxy" "tamery" {
-  name            = "tamery"
-  url_map         = google_compute_url_map.tamery.id
-  certificate_map = "https://certificatemanager.googleapis.com/v1/${google_certificate_manager_certificate_map.tamery.id}"
+  name              = "tamery"
+  url_map           = google_compute_url_map.tamery.id
+  certificate_map   = "https://certificatemanager.googleapis.com/v1/${google_certificate_manager_certificate_map.tamery.id}"
+  server_tls_policy = google_network_security_server_tls_policy.cloudflare_only.id
 }
 
 resource "google_compute_global_forwarding_rule" "https" {

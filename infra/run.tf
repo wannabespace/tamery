@@ -93,6 +93,10 @@ resource "google_cloud_run_v2_service" "this" {
   location = local.region
   ingress  = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
 
+  # Public by design, so all three must stay together: the load balancer's mTLS is the only way in.
+  invoker_iam_disabled = true
+  default_uri_disabled = true
+
   template {
     service_account                  = google_service_account.this[each.value.account].email
     timeout                          = each.value.timeout
@@ -237,4 +241,30 @@ resource "google_cloud_run_v2_job" "this" {
   }
 
   depends_on = [google_secret_manager_secret_iam_member.access]
+}
+
+resource "google_cloud_run_v2_job_iam_member" "scheduler_runs_purge" {
+  name     = google_cloud_run_v2_job.this["api-purge-deleted-records"].name
+  location = local.region
+  role     = "roles/run.jobsExecutor"
+  member   = google_service_account.this["tamery-scheduler"].member
+}
+
+resource "google_cloud_scheduler_job" "purge_deleted_records" {
+  name      = "api-purge-deleted-records"
+  region    = local.region
+  schedule  = "0 3 * * *"
+  time_zone = "Etc/UTC"
+  paused    = true
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://run.googleapis.com/v2/${google_cloud_run_v2_job.this["api-purge-deleted-records"].id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.this["tamery-scheduler"].email
+    }
+  }
+
+  depends_on = [google_cloud_run_v2_job_iam_member.scheduler_runs_purge]
 }
