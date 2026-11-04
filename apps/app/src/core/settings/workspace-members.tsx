@@ -1,4 +1,9 @@
-import { Cancel01Icon, UserRemove01Icon } from '@hugeicons/core-free-icons'
+import {
+  Cancel01Icon,
+  PlusSignIcon,
+  UserRemove01Icon,
+} from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import type { WorkspaceRole } from '@tamery/shared/workspace'
 import {
   EDITOR_ROLES,
@@ -28,7 +33,7 @@ import { orpc } from '~/lib/orpc'
 import { queryClient } from '~/lib/query-client'
 import { useIsOnline } from '~/store'
 
-import { InviteForm } from './invite-form'
+import { InviteDialog } from './invite-dialog'
 import type { MemberConfirmation } from './member-confirm-dialog'
 import { MemberConfirmDialog } from './member-confirm-dialog'
 import { RoleSelect } from './role-select'
@@ -37,6 +42,7 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
   const navigate = useNavigate()
   const isOnline = useIsOnline()
   const input = { workspaceId: workspace.id }
+  const [inviteOpen, setInviteOpen] = useState(false)
   const [confirmation, setConfirmation] = useState<MemberConfirmation | null>(
     null
   )
@@ -90,21 +96,37 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
     isOwner && data.members.filter(({ role }) => role === 'owner').length === 1
   const canChange = (member: (typeof data.members)[number]) =>
     canManage && !member.isYou && (isOwner || member.role !== 'owner')
-  const soleOwnerLeaveHint =
-    data.members.length === 1
-      ? 'You are the only member. Invite someone, make them an owner once they join, then you can leave.'
-      : 'Make another member an owner with the role picker on their row, then you can leave.'
 
   return (
     <>
-      <SettingsGroup title="Members">
-        {canManage && (
-          <InviteForm
-            workspaceId={workspace.id}
-            disabled={!isOnline}
-            onInvited={refresh}
-          />
-        )}
+      <InviteDialog
+        workspace={workspace}
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        onInvited={refresh}
+      />
+      <SettingsGroup
+        title={
+          <span className="flex items-center justify-between">
+            Members
+            {canManage && (
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={!isOnline}
+                onClick={() => setInviteOpen(true)}
+              >
+                <HugeiconsIcon
+                  icon={PlusSignIcon}
+                  strokeWidth={2}
+                  data-icon="inline-start"
+                />
+                Invite
+              </Button>
+            )}
+          </span>
+        }
+      >
         {data.members.map((member) => (
           <SettingsRow
             key={member.id}
@@ -133,7 +155,7 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
                 {capitalCase(member.role)}
               </span>
             )}
-            {member.isYou ? (
+            {member.isYou && data.members.length > 1 && (
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -155,21 +177,20 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
                 </TooltipTrigger>
                 <TooltipContent>
                   {isSoleOwner
-                    ? soleOwnerLeaveHint
+                    ? 'Make another member an owner with the role picker on their row, then you can leave.'
                     : 'Leave this workspace. Its connections disappear from your devices.'}
                 </TooltipContent>
               </Tooltip>
-            ) : (
-              canChange(member) && (
-                <IconButton
-                  icon={UserRemove01Icon}
-                  label="Remove from workspace"
-                  size="icon-xs"
-                  variant="ghost-destructive"
-                  disabled={!isOnline}
-                  onClick={() => setConfirmation({ action: 'remove', member })}
-                />
-              )
+            )}
+            {canChange(member) && (
+              <IconButton
+                icon={UserRemove01Icon}
+                label="Remove from workspace"
+                size="icon-xs"
+                variant="ghost-destructive"
+                disabled={!isOnline}
+                onClick={() => setConfirmation({ action: 'remove', member })}
+              />
             )}
           </SettingsRow>
         ))}

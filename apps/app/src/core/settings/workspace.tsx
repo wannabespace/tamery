@@ -6,7 +6,7 @@ import {
   SettingsGroup,
   SettingsRow,
 } from '@tamery/ui/components/custom/settings-group'
-import { InputGroup, InputGroupInput } from '@tamery/ui/components/input-group'
+import { Input } from '@tamery/ui/components/input'
 import { useMutation } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -58,19 +58,17 @@ const WorkspaceName = ({ workspace }: { workspace: Workspace }) => {
               : 'Only owners and admins can rename this workspace.'
           }
         >
-          <InputGroup variant="inset" className="-mr-2.5 w-56">
-            <InputGroupInput
-              ref={inputRef}
-              id="workspace-name"
-              autoComplete="off"
-              className="text-right"
-              value={draft ?? workspace.name}
-              disabled={!(canRename && isOnline) || rename.isPending}
-              onBlur={commit}
-              onChange={(event) => setDraft(event.target.value)}
-              data-mask
-            />
-          </InputGroup>
+          <Input
+            ref={inputRef}
+            id="workspace-name"
+            autoComplete="off"
+            className="w-56"
+            value={draft ?? workspace.name}
+            disabled={!(canRename && isOnline) || rename.isPending}
+            onBlur={commit}
+            onChange={(event) => setDraft(event.target.value)}
+            data-mask
+          />
         </SettingsRow>
       </SettingsGroup>
     </form>
