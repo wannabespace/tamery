@@ -1,3 +1,6 @@
+// The rotate scripts have no config import of their own: arktype, which @tamery/db/env
+// loads for them, is configured only by this preload.
+import '@tamery/shared/arktype-config'
 import process from 'node:process'
 import { setTimeout as delay } from 'node:timers/promises'
 
