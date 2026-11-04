@@ -45,6 +45,7 @@
 - **Command popups**: state lives as rows in the one `CommandList` — a pinned block outside it is invisible to filter and arrows. The row is the button (state = glyph on the row), a two-state control is one flipping icon, and a picker belongs in the same popover's body, never a child popover. A hover-only ✕ is never the only way out; a nested trailing control `stopPropagation`s on `onPointerDown` *and* `onClick` (cmdk selects on click) and sits absolutely inside the row.
 - A hidden control still holds its space, and a control that only appears on hover never moves out from under the pointer.
 - **Dashboard rows are one ↑/↓ list** — Last Opened, the connection rows and New connection — entered with ↓ from an unfocused page; a focused connection row takes the hover fill plus an inset focus ring, since the card clips an outer one.
+- **A dashboard row with no link yet shows its loading state**, never a normal look that ignores clicks: while its database's resource row is being fetched, it pulses with the spinner beside the name.
 - The `AppMenuButton` ⋯ is always visible in dashboard rows, definitions tables and column headers. Only the navigator's sidebar rows reveal it on hover, because the row's pin can take its place there. A row or header carrying a ⋯ also opens the same items on right-click (`AppContextMenu` on the row or header, one shared `items` function).
 
 ## Lists and tables

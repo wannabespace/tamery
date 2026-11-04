@@ -133,7 +133,7 @@ export const ConnectionCard = ({
   }
 
   const isLoadingVisible =
-    (isFetching && connectionResourcesNames.length === 0) || refresh.isPending
+    (isFetching && !selectedResource) || refresh.isPending
 
   const items = buildConnectionMenuItems({
     ...transfer,
