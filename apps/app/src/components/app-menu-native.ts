@@ -1,6 +1,7 @@
 import {
   AppWindowIcon,
   ArrowDown02Icon,
+  ArrowLeft02Icon,
   ArrowLeftRightIcon,
   ArrowRight02Icon,
   ArrowTurnBackwardIcon,
@@ -29,6 +30,7 @@ import {
   PinIcon,
   PinOffIcon,
   PlayIcon,
+  PlayListAddIcon,
   PlusSignIcon,
   Refresh01Icon,
   SaveIcon,
@@ -57,6 +59,7 @@ import { SHORTCUTS } from '~/core/keyboard/shortcuts'
 const sfSymbols = new Map<IconSvgElement, SFSymbol>([
   [AppWindowIcon, 'macwindow'],
   [ArrowDown02Icon, 'arrow.down'],
+  [ArrowLeft02Icon, 'arrow.left'],
   [ArrowLeftRightIcon, 'arrow.left.and.right'],
   [ArrowRight02Icon, 'arrow.right'],
   [ArrowTurnBackwardIcon, 'arrow.uturn.backward'],
@@ -85,6 +88,7 @@ const sfSymbols = new Map<IconSvgElement, SFSymbol>([
   [PinIcon, 'pin'],
   [PinOffIcon, 'pin.slash'],
   [PlayIcon, 'play'],
+  [PlayListAddIcon, 'text.badge.plus'],
   [PlusSignIcon, 'plus'],
   [Refresh01Icon, 'arrow.clockwise'],
   [SaveIcon, 'square.and.arrow.down'],
