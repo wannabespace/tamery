@@ -184,6 +184,7 @@ export const Table = ({
         bar={tableBar({
           canDelete: !!isBaseTable && hasSelection,
           hasChanges,
+          hasSelection,
           keys: identityColumns,
           rows,
           schema,
