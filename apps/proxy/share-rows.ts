@@ -2,7 +2,11 @@ import { MemoryRateLimiter } from '@orpc/ratelimit/memory'
 import { ORPCError } from '@orpc/server'
 import { executors } from '@tamery/connection/queries/executors'
 import { coldDialect, toQueryPayload } from '@tamery/connection/queries/kysely'
-import { mongoPage, selectPage } from '@tamery/connection/queries/select-page'
+import {
+  mongoPage,
+  POSTHOG_ROWS_LIMIT,
+  selectPage,
+} from '@tamery/connection/queries/select-page'
 import { filterValueBindings } from '@tamery/connection/queries/value-binding'
 import { toShell } from '@tamery/mongo/shell'
 import { fromWire } from '@tamery/mongo/values'
@@ -102,10 +106,14 @@ const pages = new LRUCache<
   sizeCalculation: ({ rows }) => JSON.stringify(rows).length,
 })
 
-export const readCachedShareRows = (
-  share: { id: string; refresh: ShareRefresh; updatedAt: Date },
-  read: ShareRead
-) =>
+interface CachedShare {
+  id: string
+  maxRows: number
+  refresh: ShareRefresh
+  updatedAt: Date
+}
+
+const fetchCachedRows = (share: CachedShare, read: ShareRead) =>
   pages.forceFetch(
     JSON.stringify([share.id, share.updatedAt, read.limit, read.offset]),
     {
@@ -113,3 +121,19 @@ export const readCachedShareRows = (
       ttl: SHARE_REFRESH_MS[share.refresh],
     }
   )
+
+export const readCachedShareRows = async (
+  share: CachedShare,
+  read: ShareRead
+) => {
+  if (read.dialect !== Dialect.PostHog) {
+    return fetchCachedRows(share, read)
+  }
+  // PostHog answers any real OFFSET with HTTP 400, so every page has to come out of one read.
+  const { fetchedAt, rows } = await fetchCachedRows(share, {
+    ...read,
+    limit: Math.min(share.maxRows, POSTHOG_ROWS_LIMIT),
+    offset: 0,
+  })
+  return { fetchedAt, rows: rows.slice(read.offset, read.offset + read.limit) }
+}

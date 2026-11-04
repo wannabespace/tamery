@@ -32,7 +32,8 @@ Tamery always connects over HTTPS.
 - The table browser shows up to the first 1,000 rows, because PostHog refuses paging for API keys. Filter or sort to reach others, or write a query.
 - Export from a table goes up to the first 5,000 rows, so it has no **All rows** option. For more, use [PostHog's batch exports](https://posthog.com/docs/cdp/batch-exports).
 - Tables show no total row count. Counting a large table can use up your project's read budget.
-- Tables are read-only, and there is no **Schema** section, visualizer, or sharing.
+- Tables are read-only, and there is no **Schema** section or visualizer.
+- A [shared link](/features/sharing) shows up to the first 1,000 rows and refreshes at most every minute. Each refresh uses your project's read budget and your API key, even when someone you don't know opens the link.
 - A query without a `LIMIT` returns 100 rows. With one, it can return up to 50,000.
 - PostHog stops a query after 10 seconds and runs at most 3 at once per project. It also limits how much API queries read per hour. When you pass a limit, the error from PostHog tells you which one.
 - PostHog's system tables aren't listed in the navigator. Query them in the editor, for example `SELECT * FROM system.dashboards`.

@@ -1,4 +1,8 @@
-import { mongoPage, selectPage } from '@tamery/connection/queries/select-page'
+import {
+  mongoPage,
+  POSTHOG_ROWS_LIMIT,
+  selectPage,
+} from '@tamery/connection/queries/select-page'
 import type { ColumnTypes } from '@tamery/connection/queries/value-binding'
 import { filterValueBindings } from '@tamery/connection/queries/value-binding'
 import type { ActiveFilter } from '@tamery/shared/filters'
@@ -18,8 +22,6 @@ import {
 import { fromMongodbDocument } from './shape'
 
 const rowType = type('Record<string, unknown>')
-
-const POSTHOG_ROWS_LIMIT = 1000
 
 interface PageResult {
   isLast: boolean

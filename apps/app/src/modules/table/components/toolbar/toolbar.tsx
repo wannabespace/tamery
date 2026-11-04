@@ -188,14 +188,13 @@ export const TableToolbar = ({
                 Code
               </DropdownMenuItem>
             )}
-            {isSqlDialect(dialect) &&
-              !getCapabilities(dialect).flags.includes('readOnly') && (
-                <ShareMenuItem
-                  schema={schema}
-                  table={table}
-                  onOpen={() => setShareOpen(true)}
-                />
-              )}
+            {isSqlDialect(dialect) && (
+              <ShareMenuItem
+                schema={schema}
+                table={table}
+                onOpen={() => setShareOpen(true)}
+              />
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
         <Dialog open={shareOpen} onOpenChange={setShareOpen}>

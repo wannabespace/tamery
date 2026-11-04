@@ -1,5 +1,7 @@
 import { Alert02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { POSTHOG_ROWS_LIMIT } from '@tamery/connection/queries/select-page'
+import type { Dialect } from '@tamery/shared/enums/connection-type'
 import {
   ShareRefresh,
   shareRefreshLabels,
@@ -35,6 +37,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { OptionField } from '~/components/option-field'
+import { getCapabilities } from '~/core/catalog/capabilities'
 import { useConnectionContext } from '~/core/connection/route'
 import { checkOrUpgrade } from '~/core/user/permissions'
 import { orpc, orpcProxy } from '~/lib/orpc'
@@ -54,19 +57,41 @@ const REFRESH_ITEMS = objectEntries(shareRefreshLabels).map(
   ([value, label]) => ({ label, value })
 )
 
-const ROW_LIMIT_PRESETS: readonly number[] = SHARE_ROW_LIMITS
-
 const rowsLabel = (value: number) => `${value.toLocaleString()} rows`
 
-const formDefaults = (share: Share | null, table: string) => ({
+const shareOptions = (dialect: Dialect) => {
+  const { flags } = getCapabilities(dialect)
+  const meteredReads = flags.includes('meteredReads')
+  const maxRows = flags.includes('firstRowsOnly')
+    ? POSTHOG_ROWS_LIMIT
+    : SHARE_MAX_ROWS
+  const rowLimitPresets: number[] = SHARE_ROW_LIMITS.filter(
+    (limit) => limit <= maxRows
+  )
+  return {
+    defaultRefresh: meteredReads ? ShareRefresh.Hour : ShareRefresh.Minute,
+    maxRows,
+    meteredReads,
+    refreshItems: meteredReads
+      ? REFRESH_ITEMS.filter(({ value }) => value !== ShareRefresh.Live)
+      : REFRESH_ITEMS,
+    rowLimitPresets,
+  }
+}
+
+const formDefaults = (
+  share: Share | null,
+  table: string,
+  { defaultRefresh, maxRows }: ReturnType<typeof shareOptions>
+) => ({
   description: share?.description ?? '',
   expires: (share?.expiresAt ? 'current' : 'never') as Expiry,
   includeFilters: !share || share.view.filters.length > 0,
-  maxRows: String(share?.maxRows ?? SHARE_MAX_ROWS),
+  maxRows: String(share?.maxRows ?? maxRows),
   name: share?.name ?? table,
   password: '',
   protect: share?.hasPassword ?? false,
-  refresh: share?.refresh ?? ShareRefresh.Minute,
+  refresh: share?.refresh ?? defaultRefresh,
 })
 
 export const ShareLinkForm = ({
@@ -80,13 +105,15 @@ export const ShareLinkForm = ({
 }) => {
   const { connectionResource, dialect } = useConnectionContext()
   const { filters } = view
+  const options = shareOptions(dialect)
+  const { maxRows, meteredReads, refreshItems, rowLimitPresets } = options
   const [rowsQuery, setRowsQuery] = useState('')
   const typedRows = Number(rowsQuery.trim())
   const canAddRows =
     /^\d+$/u.test(rowsQuery.trim()) &&
     typedRows >= 1 &&
-    typedRows <= SHARE_MAX_ROWS &&
-    !ROW_LIMIT_PRESETS.includes(typedRows)
+    typedRows <= maxRows &&
+    !rowLimitPresets.includes(typedRows)
 
   const save = useMutation({
     meta: { event: share ? 'share_updated' : 'share_created' },
@@ -128,7 +155,7 @@ export const ShareLinkForm = ({
   })
 
   const form = useAppForm({
-    defaultValues: formDefaults(share, view.table),
+    defaultValues: formDefaults(share, view.table, options),
     onSubmit: ({ value }) => {
       const count = (
         queryClient.getQueryData(sharesQueryOptions.queryKey) ?? []
@@ -187,7 +214,7 @@ export const ShareLinkForm = ({
             {(field) => (
               <field.Field>
                 <field.Label>Refresh</field.Label>
-                <field.Select items={REFRESH_ITEMS} />
+                <field.Select items={refreshItems} />
               </field.Field>
             )}
           </form.AppField>
@@ -207,8 +234,8 @@ export const ShareLinkForm = ({
             const trimmed = rowsQuery.trim()
             const items = [
               ...new Set([
-                ...ROW_LIMIT_PRESETS.map(String),
-                ...(ROW_LIMIT_PRESETS.includes(Number(field.state.value))
+                ...rowLimitPresets.map(String),
+                ...(rowLimitPresets.includes(Number(field.state.value))
                   ? []
                   : [field.state.value]),
                 ...(canAddRows ? [trimmed] : []),
@@ -250,7 +277,7 @@ export const ShareLinkForm = ({
                       )}
                     </ComboboxList>
                     <ComboboxEmpty>
-                      {`Up to ${rowsLabel(SHARE_MAX_ROWS)}.`}
+                      {`Up to ${rowsLabel(maxRows)}.`}
                     </ComboboxEmpty>
                   </ComboboxContent>
                 </Combobox>
@@ -334,7 +361,7 @@ export const ShareLinkForm = ({
           </form.Subscribe>
         )}
         <p className="text-muted-foreground text-xs">
-          {`Anyone with the link sees the ${plural(view.columns.length, 'column')} the table shows, in its order. Tamery’s servers read the rows from your database each time the link refreshes; viewers can scroll and open any cell to read it, never sort or edit.`}
+          {`Anyone with the link sees the ${plural(view.columns.length, 'column')} the table shows, in its order. Tamery’s servers read the rows from your database each time the link refreshes; viewers can scroll and open any cell to read it, never sort or edit.${meteredReads ? ' Each read spends your project’s hourly read budget.' : ''}`}
         </p>
         {save.error && (
           <Alert variant="error">

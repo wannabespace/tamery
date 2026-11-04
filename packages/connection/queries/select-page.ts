@@ -6,6 +6,8 @@ import { sql } from 'kysely'
 
 import type { ColumnTypes } from './value-binding'
 
+export const POSTHOG_ROWS_LIMIT = 1000
+
 // Columns go through `sql.id`: a plain string is parsed, so `first name` reads as a column and a direction, `a.b` as a table and a column.
 export const selectPage = (
   // oxlint-disable-next-line ts/no-explicit-any

@@ -117,7 +117,9 @@ export type CapabilityFlag =
   | 'foreignKeyOnUpdate'
   | 'ilike'
   | 'materializedViews'
-  /** Nothing in the engine takes a write: no schema tabs, no share, no create or drop anywhere. */
+  /** Every read spends a budget the engine meters, so a share cannot refresh Live. */
+  | 'meteredReads'
+  /** Nothing in the engine takes a write: no schema tabs, no create or drop anywhere. */
   | 'readOnly'
   | 'renameColumns'
   | 'renameConstraints'
