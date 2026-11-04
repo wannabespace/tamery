@@ -4,17 +4,21 @@ import {
   PlusSignIcon,
   Settings02Icon,
   Tick02Icon,
+  UnfoldMoreIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { AppLogo } from '@tamery/ui/components/brand/app-logo'
+import { Button } from '@tamery/ui/components/button'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import {
+  DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from '@tamery/ui/components/dropdown-menu'
 import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 import { cn } from '@tamery/ui/lib/utils'
@@ -45,7 +49,6 @@ import { UpdateButton, VersionButton } from '~/modules/updates/update-button'
 import { UserButton } from '~/modules/user-menu/user-button'
 
 import { RemoveConnectionDialog } from './remove-connection-dialog'
-import { resourceHomeLink, TitleBarPicker } from './title-bar-picker'
 import { WorkspaceSwitcher } from './workspace-switcher'
 
 interface ConnectionGroup {
@@ -158,27 +161,15 @@ const ConnectionsDropdown = ({
   groups,
   current,
   currentResourceId,
-  isOnHome,
   onRemove,
 }: {
   groups: ConnectionGroup[]
   current: Connection | undefined
   currentResourceId: string | undefined
-  isOnHome: boolean
   onRemove: (connection: Connection) => void
 }) => {
   const [open, setOpen] = useState(false)
   const { connectionStringsCollection } = useCollections()
-  const currentResources = groups.find(
-    (group) => group.connection.id === current?.id
-  )?.resources
-  const homeResource =
-    currentResources?.find(
-      (resource) =>
-        current &&
-        resource.name ===
-          connectionStringsCollection.get(current.id)?.defaultResourceName
-    ) ?? currentResources?.find((resource) => resource.id === currentResourceId)
   const lastOpenedResources = useSubscription(lastOpenedResourcesStorageValue)
   const atGuestLimit = !usePermissions().check('connection.create', {
     count: groups.length,
@@ -186,17 +177,18 @@ const ConnectionsDropdown = ({
   const viewOnly = isViewOnly(useActiveWorkspace().data)
 
   return (
-    <TitleBarPicker
-      open={open}
-      onOpenChange={setOpen}
-      label="Switch connection"
-      link={
-        homeResource && !(isOnHome && homeResource.id === currentResourceId)
-          ? resourceHomeLink(homeResource.id)
-          : undefined
-      }
-      name={
-        current ? (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            // oxlint-disable-next-line shadcn/no-restyle -- title-bar pickers sit tighter than a toolbar button
+            className="max-w-64 gap-1.5 px-2"
+          />
+        }
+      >
+        {current ? (
           <>
             <ConnectionIcon
               type={current.type}
@@ -216,9 +208,13 @@ const ConnectionsDropdown = ({
           </>
         ) : (
           <span className="truncate">Connections</span>
-        )
-      }
-    >
+        )}
+        <HugeiconsIcon
+          icon={UnfoldMoreIcon}
+          strokeWidth={2}
+          className="text-muted-foreground/70 size-3 shrink-0"
+        />
+      </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
         className="max-h-[70vh] min-w-64 overflow-auto"
@@ -284,7 +280,7 @@ const ConnectionsDropdown = ({
           )}
         </DropdownMenuItem>
       </DropdownMenuContent>
-    </TitleBarPicker>
+    </DropdownMenu>
   )
 }
 
@@ -292,14 +288,12 @@ const ResourcesDropdown = ({
   connection,
   resources,
   current,
-  isOnHome,
 }: {
   connection: Connection
   resources: ConnectionResource[]
   current: ConnectionResource
-  isOnHome: boolean
 }) => (
-  <TitleBarPicker
+  <DropdownMenu
     onOpenChange={(open) => {
       // Pick up databases created since the catalog last synced, so the list is current when opened — no refresh button needed.
       if (open) {
@@ -309,14 +303,27 @@ const ResourcesDropdown = ({
         })
       }
     }}
-    label="Switch database"
-    link={isOnHome ? undefined : resourceHomeLink(current.id)}
-    name={
+  >
+    <DropdownMenuTrigger
+      render={
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Switch database"
+          // oxlint-disable-next-line shadcn/no-restyle -- title-bar pickers sit tighter than a toolbar button
+          className="max-w-64 gap-1.5 px-2"
+        />
+      }
+    >
       <span data-mask className="text-muted-foreground truncate">
         <ResourceLabel connection={connection} name={current.name} />
       </span>
-    }
-  >
+      <HugeiconsIcon
+        icon={UnfoldMoreIcon}
+        strokeWidth={2}
+        className="text-muted-foreground/70 size-3 shrink-0"
+      />
+    </DropdownMenuTrigger>
     <DropdownMenuContent
       align="start"
       className="max-h-[70vh] min-w-48 overflow-auto"
@@ -338,7 +345,7 @@ const ResourcesDropdown = ({
         </DropdownMenuItem>
       ))}
     </DropdownMenuContent>
-  </TitleBarPicker>
+  </DropdownMenu>
 )
 
 const ConnectionsBreadcrumb = ({
@@ -348,7 +355,7 @@ const ConnectionsBreadcrumb = ({
 }) => {
   const { connectionsCollection, connectionsResourcesCollection } =
     useCollections()
-  const { resourceId, tabId } = useParams({ strict: false })
+  const { resourceId } = useParams({ strict: false })
   const { data: activeWorkspace } = useActiveWorkspace()
   const { data } = useLiveQuery({
     query: (q) => {
@@ -393,7 +400,6 @@ const ConnectionsBreadcrumb = ({
         groups={groups}
         current={current?.connection}
         currentResourceId={resourceId}
-        isOnHome={!tabId}
         onRemove={onRemove}
       />
       {current && currentGroup && currentGroup.resources.length > 1 && (
@@ -408,7 +414,6 @@ const ConnectionsBreadcrumb = ({
             connection={current.connection}
             resources={currentGroup.resources}
             current={current.resource}
-            isOnHome={!tabId}
           />
         </>
       )}

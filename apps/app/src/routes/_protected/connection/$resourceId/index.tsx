@@ -4,14 +4,12 @@ import { Button } from '@tamery/ui/components/button'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
-import { type } from 'arktype'
 import { useEffect } from 'react'
 
 import { useObjectNames } from '~/core/catalog/names'
 import { useConnectionContext } from '~/core/connection/route'
 import { getConnectionResourceStore } from '~/core/connection/stores'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
-import { setActiveTab } from '~/core/tabs/actions'
 import { resolveTab } from '~/core/tabs/kinds'
 import { createTableDialogRef } from '~/modules/navigator/create-table-dialog'
 import { RecentTables } from '~/modules/table/components/recent-tables'
@@ -32,10 +30,6 @@ const EmptyPane = () => {
       router.routesById['/_protected/connection/$resourceId/$tabId']
     )
   }, [router])
-
-  useEffect(() => {
-    setActiveTab(connectionResource.id, null)
-  }, [connectionResource.id])
 
   return (
     <IconEmpty
@@ -65,8 +59,7 @@ const EmptyPane = () => {
 
 export const Route = createFileRoute('/_protected/connection/$resourceId/')({
   component: EmptyPane,
-  validateSearch: type({ 'home?': 'boolean' }),
-  beforeLoad: ({ params, search }) => {
+  beforeLoad: ({ params }) => {
     const { activeTabId, tabs } = getConnectionResourceStore(
       params.resourceId
     ).get()
@@ -76,7 +69,7 @@ export const Route = createFileRoute('/_protected/connection/$resourceId/')({
       !!resolveTab(activeTabId) &&
       tabs.some((tab) => tab.id === activeTabId)
 
-    if (isOpenable && !search.home) {
+    if (isOpenable) {
       throw redirect({
         params: { resourceId: params.resourceId, tabId: activeTabId },
         to: '/connection/$resourceId/$tabId',
