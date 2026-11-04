@@ -18,7 +18,7 @@ const limiter = new RedisRateLimiter(redis, {
 export const hasPasskey = orpc
   .use(
     ratelimit({
-      // Only X-Real-IP is set by Railway's edge; any other client-IP header can be spoofed.
+      // Only X-Real-IP is set by Cloudflare's transform rule, and origins accept only Cloudflare; any other client-IP header can be spoofed.
       key: ({ context }) => context.headers.get('x-real-ip') ?? 'unknown',
       limiter,
     })

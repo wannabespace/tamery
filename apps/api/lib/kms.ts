@@ -1,65 +1,58 @@
+// This preload evaluates before the entry's own config import, so arktype first loads here.
+import '@tamery/shared/arktype-config'
 import { Buffer } from 'node:buffer'
 import process from 'node:process'
 
-import { InfisicalSDK } from '@infisical/sdk'
+import { type } from 'arktype'
+
+const METADATA_TOKEN_URL =
+  'http://metadata.google.internal/computeMetadata/v1/instance/service-account/token'
+
+const tokenResponse = type({ access_token: 'string' })
+const decryptResponse = type({ plaintext: 'string' })
 
 export class KmsConfigError extends Error {
   override name = 'KmsConfigError'
 }
 
-let connection: Promise<{ keyId: string; sdk: InfisicalSDK }> | null = null
+const fetchJson = async (url: string, init: RequestInit): Promise<unknown> => {
+  const response = await fetch(url, init)
 
-const login = async () => {
-  try {
-    // Reads process.env, not ./env: this runs inside the boot unwrap, before ./env can
-    // load (./env asserts ENCRYPTION_SECRET, which is only in env once unwrap finishes).
-    const {
-      INFISICAL_CLIENT_ID: clientId,
-      INFISICAL_CLIENT_SECRET: clientSecret,
-      INFISICAL_KMS_KEY_ID: keyId,
-    } = process.env
-
-    if (!(clientId && clientSecret && keyId)) {
-      throw new KmsConfigError(
-        'Set INFISICAL_CLIENT_ID, INFISICAL_CLIENT_SECRET and INFISICAL_KMS_KEY_ID'
-      )
-    }
-
-    const sdk = new InfisicalSDK()
-
-    await sdk.auth().universalAuth.login({ clientId, clientSecret })
-
-    return { keyId, sdk }
-  } catch (error) {
-    connection = null
-    throw error
+  if (!response.ok) {
+    throw new Error(
+      `${url} answered ${response.status}: ${await response.text()}`
+    )
   }
-}
 
-const connect = () => {
-  connection ??= login()
-  return connection
+  return response.json()
 }
 
 export const kms = {
   async unwrap(ciphertext: string) {
-    const { keyId, sdk } = await connect()
-    const plaintext = await sdk
-      .kms()
-      .encryption()
-      .decrypt({ ciphertext, keyId })
+    // Reads process.env, not ./env: this runs inside the boot unwrap, before ./env can
+    // load (./env asserts ENCRYPTION_SECRET, which is only in env once unwrap finishes).
+    const { KMS_KEY_NAME: keyName } = process.env
+
+    if (!keyName) {
+      throw new KmsConfigError('Set KMS_KEY_NAME')
+    }
+
+    const { access_token: token } = tokenResponse.assert(
+      await fetchJson(METADATA_TOKEN_URL, {
+        headers: { 'Metadata-Flavor': 'Google' },
+      })
+    )
+    const { plaintext } = decryptResponse.assert(
+      await fetchJson(`https://cloudkms.googleapis.com/v1/${keyName}:decrypt`, {
+        body: JSON.stringify({ ciphertext }),
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+      })
+    )
 
     return Buffer.from(plaintext, 'base64').toString('utf-8')
-  },
-  async wrap(secret: string) {
-    const { keyId, sdk } = await connect()
-
-    return sdk
-      .kms()
-      .encryption()
-      .encrypt({
-        keyId,
-        plaintext: Buffer.from(secret, 'utf-8').toString('base64'),
-      })
   },
 }

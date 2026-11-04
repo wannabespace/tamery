@@ -147,7 +147,7 @@ export const shares = {
         id,
         token: null,
         unlock: {
-          // Only X-Real-IP is set by Railway's edge; any other client-IP header can be spoofed.
+          // Only X-Real-IP is set by Cloudflare's transform rule, and origins accept only Cloudflare; any other client-IP header can be spoofed.
           client: context.headers.get('x-real-ip') ?? 'unknown',
           password,
         },

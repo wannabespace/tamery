@@ -27,16 +27,13 @@ const envType = type({
   GITHUB_TOKEN: 'string',
   GOOGLE_CLIENT_ID: 'string',
   GOOGLE_CLIENT_SECRET: 'string',
-  INFISICAL_CLIENT_ID: 'string?',
-  INFISICAL_CLIENT_SECRET: 'string?',
-  INFISICAL_KMS_KEY_ID: 'string?',
+  KMS_KEY_NAME: 'string?',
   MAIN_URL: 'string',
   MIN_DESKTOP_VERSION: type('string').pipe(Number),
   MISTRAL_API_KEY: 'string',
   OPENROUTER_API_KEY: 'string',
   POSTHOG_TOKEN: 'string?',
   PROXY_SHARED_SECRET: 'string >= 32',
-  RAILWAY_WEBHOOK_SECRET: 'string >= 32',
   REDIS_URL: 'string',
   RESEND_API_KEY: 'string',
   STRIPE_ANNUAL_PRICE_ID: 'string',
@@ -64,7 +61,6 @@ const devOptionalEnvs = [
   'CONTEXT7_API_KEY',
   'GITHUB_TOKEN',
   'TODESKTOP_WEBHOOK_SECRET',
-  'RAILWAY_WEBHOOK_SECRET',
 ] satisfies (keyof typeof envType.infer)[]
 
 const devOptional = new Set<string>(devOptionalEnvs)

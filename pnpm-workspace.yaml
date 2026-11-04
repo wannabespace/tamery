@@ -30,7 +30,6 @@ catalog:
   '@hackylabs/deep-redact': ^4.1.0
   '@hugeicons/core-free-icons': ^4.4.0
   '@hugeicons/react': ^1.1.10
-  '@infisical/sdk': ^5.0.2
   '@ip-location-db/dbip-city-mmdb': ^2.3.2026060513
   '@mistralai/mistralai': ^3.4.0
   '@modelcontextprotocol/sdk': ^1.32.2

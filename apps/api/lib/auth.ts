@@ -168,7 +168,7 @@ export const auth = betterAuth({
     database: {
       generateId: 'uuid',
     },
-    // x-forwarded-for has extra hops on Railway, and a multi-value chain is discarded into one global rate-limit bucket. The edge overwrites x-real-ip with the connecting client.
+    // x-forwarded-for has extra hops through Cloudflare and the load balancer, and a multi-value chain is discarded into one global rate-limit bucket. Cloudflare's transform rule overwrites x-real-ip with the connecting client.
     ipAddress: {
       ipAddressHeaders: ['x-real-ip'],
     },

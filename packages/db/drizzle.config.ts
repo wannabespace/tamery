@@ -3,7 +3,7 @@ import process from 'node:process'
 import { type } from 'arktype'
 import { defineConfig } from 'drizzle-kit'
 
-// Not ./env: migrations run as the deploy's pre-deploy command, outside the KMS unwrap,
+// Not ./env: migrations run as the deploy's own Cloud Run Job, outside the KMS unwrap,
 // so ENCRYPTION_SECRET/USER_KEY_SECRET are absent there and ./env would fail to load.
 const { DATABASE_URL, NODE_ENV } = type({
   DATABASE_URL: 'string',

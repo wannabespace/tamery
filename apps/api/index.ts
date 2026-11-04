@@ -133,8 +133,7 @@ const app = new Hono<{
       status >= 400 &&
       ![401, 403, 404, 409, 499].includes(status) &&
       (status >= 500 || !path.startsWith('/auth/')) &&
-      env.ALERTS_EMAIL &&
-      !c.req.url.includes('healthcheck.railway.app')
+      env.ALERTS_EMAIL
     ) {
       sendEmail({
         props: {

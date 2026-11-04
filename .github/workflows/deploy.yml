@@ -1,0 +1,216 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GCP_ARTIFACT_REPOSITORY: ${{ vars.GCP_ARTIFACT_REPOSITORY }}
+  GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      app: ${{ steps.filter.outputs.app }}
+      docs: ${{ steps.filter.outputs.docs }}
+      main: ${{ steps.filter.outputs.main }}
+      proxy: ${{ steps.filter.outputs.proxy }}
+      share: ${{ steps.filter.outputs.share }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Find the services this push changed
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            shared: &shared
+              - '*'
+              - '.dockerignore'
+              - 'packages/**'
+            api:
+              - *shared
+              - 'apps/api/**'
+            app:
+              - *shared
+              - 'apps/api/**'
+              - 'apps/app/**'
+              - 'apps/cli/**'
+              - 'apps/proxy/**'
+            docs:
+              - *shared
+              - 'apps/docs/**'
+              - 'docs/**'
+            main:
+              - *shared
+              - 'apps/api/**'
+              - 'apps/main/**'
+            proxy:
+              - *shared
+              - 'apps/api/**'
+              - 'apps/proxy/**'
+            share:
+              - *shared
+              - 'apps/api/**'
+              - 'apps/proxy/**'
+              - 'apps/share/**'
+
+  api:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    concurrency: deploy-api
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build image
+        uses: ./.github/actions/build-image
+        with:
+          service: api
+
+      - name: Point the jobs at the new image
+        run: |
+          for job in api-migrate api-purge-deleted-records api-rotate; do
+            gcloud run jobs update "$job" --image="$IMAGE" --region="$GCP_REGION"
+          done
+
+      - name: Migrate the database
+        run: gcloud run jobs execute api-migrate --region="$GCP_REGION" --wait
+
+      - name: Deploy
+        run: gcloud run services update api --image="$IMAGE" --region="$GCP_REGION"
+
+  proxy:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.proxy == 'true'
+    runs-on: ubuntu-latest
+    concurrency: deploy-proxy
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build image
+        uses: ./.github/actions/build-image
+        with:
+          service: proxy
+
+      - name: Deploy
+        run: gcloud run services update proxy --image="$IMAGE" --region="$GCP_REGION"
+
+  app:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    concurrency: deploy-app
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build image
+        uses: ./.github/actions/build-image
+        with:
+          service: app
+          build-args: |
+            VITE_PUBLIC_API_URL=${{ secrets.API_URL }}
+            VITE_PUBLIC_MAIN_URL=${{ secrets.MAIN_URL }}
+            VITE_PUBLIC_POSTHOG_TOKEN=${{ secrets.POSTHOG_TOKEN }}
+            VITE_PUBLIC_PROXY_URL=${{ secrets.PROXY_URL }}
+            VITE_PUBLIC_SHARE_URL=${{ secrets.SHARE_URL }}
+            VITE_PUBLIC_WEB_URL=${{ secrets.WEB_URL }}
+          secrets: |
+            POSTHOG_PERSONAL_API_KEY=${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+
+      - name: Deploy
+        run: gcloud run services update app --image="$IMAGE" --region="$GCP_REGION"
+
+  main:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.main == 'true'
+    runs-on: ubuntu-latest
+    concurrency: deploy-main
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build image
+        uses: ./.github/actions/build-image
+        with:
+          service: main
+          build-args: |
+            VITE_PUBLIC_API_URL=${{ secrets.API_URL }}
+            VITE_PUBLIC_SHARE_URL=${{ secrets.SHARE_URL }}
+            VITE_PUBLIC_WEB_URL=${{ secrets.WEB_URL }}
+
+      - name: Deploy
+        run: gcloud run services update main --image="$IMAGE" --region="$GCP_REGION"
+
+  docs:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    concurrency: deploy-docs
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build image
+        uses: ./.github/actions/build-image
+        with:
+          service: docs
+          build-args: |
+            GIT_COMMIT_SHA=${{ github.sha }}
+
+      - name: Deploy
+        run: gcloud run services update docs --image="$IMAGE" --region="$GCP_REGION"
+
+  share:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.share == 'true'
+    runs-on: ubuntu-latest
+    concurrency: deploy-share
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build image
+        uses: ./.github/actions/build-image
+        with:
+          service: share
+          build-args: |
+            VITE_PUBLIC_API_URL=${{ secrets.API_URL }}
+            VITE_PUBLIC_MAIN_URL=${{ secrets.MAIN_URL }}
+            VITE_PUBLIC_POSTHOG_TOKEN=${{ secrets.POSTHOG_TOKEN }}
+            VITE_PUBLIC_PROXY_URL=${{ secrets.PROXY_URL }}
+
+      - name: Deploy
+        run: gcloud run services update share --image="$IMAGE" --region="$GCP_REGION"
