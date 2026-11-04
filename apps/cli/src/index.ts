@@ -1,52 +1,148 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 import process from 'node:process'
 
-import { run } from '@drizzle-team/brocli'
-import { consola } from 'consola'
+import { log } from '@clack/prompts'
+import { PORTS } from '@tamery/shared/ports'
+import { redactSecrets } from '@tamery/shared/sanitize-log'
+import { toError } from '@tamery/shared/utils'
+import { Result } from 'better-result'
+import type { ArgsDef, CommandContext } from 'citty'
+import { defineCommand, runMain } from 'citty'
 
-import { loginCommand } from '~/commands/login'
-import { logoutCommand } from '~/commands/logout'
-import { proxyCommand } from '~/commands/proxy'
-import { queryCommand } from '~/commands/query'
-import { whoamiCommand } from '~/commands/whoami'
-import { checkForUpdate } from '~/update-check'
+import { pairings } from './bridge/pairings'
+import { approve } from './commands/approve'
+import { bridge } from './commands/bridge'
+import { login } from './commands/login'
+import { logout } from './commands/logout'
+import { update } from './commands/update'
+import { whoami } from './commands/whoami'
+import { env } from './env'
+import { printHelp } from './help'
+import { paint } from './paint'
 
-const currentVersion: string = import.meta.env.VERSION
+const MAX_PORT = 65_535
 
-const commands = [
-  loginCommand,
-  logoutCommand,
-  proxyCommand,
-  queryCommand,
-  whoamiCommand,
-]
-
-const updateCheck = checkForUpdate(currentVersion)
-
-const main = async () => {
-  try {
-    await run(commands, {
-      description:
-        'Tamery CLI – manage and query your connections from the terminal.',
-      name: 'tamery',
-      version: currentVersion,
+/** citty prints any error but its own usage errors with a stack trace; the CLI shows only the message, secrets redacted. */
+const reportingErrors =
+  <T extends ArgsDef>(run: (context: CommandContext<T>) => unknown) =>
+  async (context: CommandContext<T>) => {
+    const done = await Result.tryPromise(async () => {
+      await run(context)
     })
-  } catch (error: unknown) {
-    consola.error(error instanceof Error ? error.message : String(error))
-    process.exit(1)
-  } finally {
-    const latestVersion = await updateCheck
-
-    if (latestVersion) {
-      consola.box({
-        message: `${currentVersion} → ${latestVersion}\nRun \`npm i -g tamery\` to update`,
-        style: {
-          borderColor: 'yellow',
-        },
-        title: 'Update available',
-      })
+    if (done.isErr()) {
+      log.error(redactSecrets(toError(done.error.cause).message))
+      process.exit(1)
     }
   }
-}
 
-void main()
+const bridgeArgs = {
+  port: {
+    default: String(PORTS.BRIDGE),
+    description: 'Port on 127.0.0.1',
+    type: 'string',
+    valueHint: 'port',
+  },
+  'public-url': {
+    description: 'The HTTPS URL a tunnel on this computer serves the bridge at',
+    type: 'string',
+    valueHint: 'url',
+  },
+} satisfies ArgsDef
+
+// A parent's `run` would also run after each subcommand's, so plain `tamery bridge` is the hidden default `start`.
+const bridgeCommand = defineCommand({
+  args: bridgeArgs,
+  default: 'start',
+  meta: {
+    description: 'Let the web app run your connections on this computer',
+    name: 'tamery bridge',
+  },
+  subCommands: {
+    approve: defineCommand({
+      meta: {
+        description:
+          'Allow a browser waiting to connect, when the bridge has no terminal',
+        name: 'tamery bridge approve',
+      },
+      run: reportingErrors(approve),
+    }),
+    start: defineCommand({
+      args: bridgeArgs,
+      meta: { hidden: true, name: 'tamery bridge' },
+      run: reportingErrors(({ args }) => {
+        const port = Number(args.port)
+        if (!Number.isInteger(port) || port < 1 || port > MAX_PORT) {
+          throw new Error('--port must be a number from 1 to 65535.')
+        }
+        return bridge({ port, publicUrl: args['public-url'] })
+      }),
+    }),
+    'unpair-all': defineCommand({
+      meta: {
+        description: 'Disconnect every browser',
+        name: 'tamery bridge unpair-all',
+      },
+      run: reportingErrors(() => {
+        pairings.reset()
+        log.success(
+          `Every browser is unpaired. Pair again with ${paint.accent('tamery bridge')}.`
+        )
+      }),
+    }),
+  },
+})
+
+const main = defineCommand({
+  default: 'help',
+  meta: {
+    description: 'Tamery from your terminal.',
+    name: 'tamery',
+    version: env.VERSION,
+  },
+  subCommands: {
+    bridge: bridgeCommand,
+    help: defineCommand({
+      meta: { hidden: true, name: 'tamery' },
+      run: () => printHelp(main),
+    }),
+    login: defineCommand({
+      meta: {
+        description: 'Sign this computer in to your Tamery account',
+        name: 'tamery login',
+      },
+      run: reportingErrors(login),
+    }),
+    logout: defineCommand({
+      meta: {
+        description: 'Sign out, forgetting saved secrets and paired browsers',
+        name: 'tamery logout',
+      },
+      run: reportingErrors(logout),
+    }),
+    proxy: defineCommand({
+      meta: { hidden: true, name: 'tamery proxy' },
+      run: reportingErrors(() => {
+        throw new Error(
+          `${paint.accent('tamery proxy')} is now ${paint.accent('tamery bridge')}.`
+        )
+      }),
+    }),
+    update: defineCommand({
+      meta: {
+        description: 'Update the CLI the way you installed it',
+        name: 'tamery update',
+      },
+      run: reportingErrors(update),
+    }),
+    whoami: defineCommand({
+      meta: {
+        description: 'Show which account this computer is signed in to',
+        name: 'tamery whoami',
+      },
+      run: reportingErrors(whoami),
+    }),
+  },
+})
+
+// Each name is the full command line, which the help prints as it is.
+await runMain(main, { showUsage: printHelp })

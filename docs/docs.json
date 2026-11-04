@@ -41,7 +41,7 @@
       },
       {
         "group": "CLI",
-        "pages": ["cli/overview", "cli/commands"]
+        "pages": ["cli/overview", "cli/commands", "cli/remote"]
       },
       {
         "group": "Account and billing",

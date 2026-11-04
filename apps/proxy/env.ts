@@ -17,7 +17,7 @@ if (nodeEnv === 'development') {
 const envType = type({
   API_URL: 'string',
   MAIN_URL: 'string',
-  PROXY_SHARED_SECRET: 'string',
+  PROXY_SHARED_SECRET: 'string >= 32',
 })
 
 export const env = envType.assert(process.env)

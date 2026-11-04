@@ -1,9 +1,5 @@
 import type { DiagnosisRule } from '../diagnosis'
-import {
-  SSH_DESKTOP_ONLY,
-  SSH_FIELD_AT_FAULT,
-  SSH_TUNNEL_ERROR,
-} from './params'
+import { SSH_ELSEWHERE, SSH_FIELD_AT_FAULT, SSH_TUNNEL_ERROR } from './params'
 
 const SSH_TUNNEL_TITLE = "Couldn't open the SSH tunnel"
 
@@ -18,8 +14,8 @@ export const SSH_RULES: DiagnosisRule[] = [
     tunnel: true,
   },
   {
-    diagnose: () => ({ hint: SSH_DESKTOP_ONLY, title: SSH_TUNNEL_TITLE }),
-    match: new RegExp(`^${RegExp.escape(SSH_DESKTOP_ONLY)}$`, 'u'),
+    diagnose: () => ({ hint: SSH_ELSEWHERE, title: SSH_TUNNEL_TITLE }),
+    match: new RegExp(`^${RegExp.escape(SSH_ELSEWHERE)}$`, 'u'),
     tunnel: true,
   },
   {

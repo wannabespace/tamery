@@ -3,12 +3,13 @@ import process from 'node:process'
 
 import { ORPCError, ValidationError } from '@orpc/server'
 import { RPCHandler } from '@orpc/server/fetch'
+import { isDevelopmentOrigin, ORIGINS } from '@tamery/shared/origins'
 import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 
 import { env, nodeEnv } from './env'
-import { auth } from './lib/auth'
+import { handleAuth } from './lib/auth'
 import { sendEmail } from './lib/resend'
 import { createContext } from './orpc/context'
 import { router } from './orpc/routers'
@@ -66,26 +67,19 @@ const isDesktopVersionOutdated = (
   !!parsedAppVersion?.minor &&
   parsedAppVersion.minor < env.MIN_DESKTOP_VERSION
 
+// The share site is left out: it renders other people's rows and calls the API only from its server.
+const isTrustedOrigin = (origin: string) =>
+  origin === ORIGINS.site ||
+  origin === ORIGINS.web ||
+  (nodeEnv === 'development' && isDevelopmentOrigin(origin))
+
 const app = new Hono<{
   Variables: AppVariables
 }>()
   .use(
     cors({
       credentials: true,
-      origin(origin) {
-        const allowedOrigins = ['https://tamery.app']
-        if (
-          nodeEnv === 'development' &&
-          origin.startsWith('http://localhost:')
-        ) {
-          return origin
-        }
-        return (origin.startsWith('https://') &&
-          origin.endsWith('.tamery.app')) ||
-          allowedOrigins.includes(origin)
-          ? origin
-          : null
-      },
+      origin: (origin) => (isTrustedOrigin(origin) ? origin : null),
     })
   )
   .get('/', (c) => c.redirect(env.MAIN_URL))
@@ -137,7 +131,7 @@ const app = new Hono<{
 
     if (
       status >= 400 &&
-      ![401, 403, 404, 499].includes(status) &&
+      ![401, 403, 404, 409, 499].includes(status) &&
       (status >= 500 || !path.startsWith('/auth/')) &&
       env.ALERTS_EMAIL &&
       !c.req.url.includes('healthcheck.railway.app')
@@ -169,15 +163,31 @@ const app = new Hono<{
   .on(['GET', 'POST'], '/auth/*', (c) => {
     const req = c.req.raw
 
-    const origin = req.headers.get('origin')
+    // Better Auth checks the origin of cookie-carrying requests only. A browser request without an Origin must not pass as
+    // the desktop app; a page cannot send `x-desktop` without a preflight the CORS allowlist refuses.
+    const passesAsDesktop =
+      !req.headers.get('origin') &&
+      (!req.headers.has('cookie') || req.headers.get('x-desktop') === 'true')
 
-    if (!origin) {
+    if (passesAsDesktop) {
       req.headers.set('origin', 'file://')
     }
 
-    return auth.handler(req)
+    return handleAuth(req)
   })
   .use('/rpc/*', async (c, next) => {
+    // CORS only hides the answer: a form on any `*.tamery.app` page still posts with the session cookie, and oRPC takes
+    // a multipart body as input. A page cannot send `x-desktop` without a preflight.
+    const origin = c.req.header('origin')
+    if (
+      origin &&
+      c.req.header('cookie') &&
+      !isTrustedOrigin(origin) &&
+      c.req.header('x-desktop') !== 'true'
+    ) {
+      return c.text('Forbidden', 403)
+    }
+
     const { matched, response } = await handler.handle(c.req.raw.clone(), {
       context: createContext(c),
       prefix: '/rpc',

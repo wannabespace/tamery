@@ -14,7 +14,7 @@ export const Price = ({
   <>
     <NumberFlow
       value={plan.price[period]}
-      className="text-4xl font-semibold tracking-tight [--number-flow-mask-height:0px]"
+      className="text-4xl [--number-flow-mask-height:0px]"
       format={{
         currency: 'USD',
         currencyDisplay: 'narrowSymbol',

@@ -4,10 +4,10 @@
   "scripts": {
     "dev": "portless run vite dev",
     "build": "vite build",
-    "start": "bun run .output/server/index.mjs",
-    "check-types": "tsc"
+    "check-types": "bun check"
   },
   "dependencies": {
+    "@better-auth/passkey": "catalog:",
     "@mdx-js/rollup": "^3.1.0",
     "@orpc/client": "catalog:",
     "@orpc/tanstack-query": "catalog:",
@@ -32,13 +32,14 @@
     "react-qr-code": "catalog:",
     "remark-gfm": "^4.0.0",
     "sonner": "catalog:",
-    "ua-parser-js": "catalog:"
+    "takumi-js": "catalog:"
   },
   "devDependencies": {
     "@hugeicons/core-free-icons": "catalog:",
     "@hugeicons/react": "catalog:",
     "@orpc/server": "catalog:",
     "@rolldown/plugin-babel": "catalog:",
+    "@simplewebauthn/browser": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@tamery/api": "workspace:*",
     "@tamery/configs": "workspace:*",

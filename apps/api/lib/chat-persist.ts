@@ -10,11 +10,13 @@ import {
   chatsMessagesParts,
   schemaNotes,
 } from '@tamery/db/schema'
+import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { silently } from '@tamery/shared/utils'
 import { isDeepEqualData, isToolUIPart } from 'ai'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 
 import { aiUsage } from '~/lib/ai-usage'
+import { inMemberWorkspace } from '~/lib/workspace'
 import { publisher as chatsMessagesPartsPublisher } from '~/orpc/routers/chats-messages-parts/events'
 import { publisher as chatsMessagesPublisher } from '~/orpc/routers/chats-messages/events'
 import { publisher as chatsPublisher } from '~/orpc/routers/chats/events'
@@ -27,7 +29,7 @@ export const chatPersist = {
     const resource = await db.query.connectionsResources.findFirst({
       columns: { name: true },
       where: {
-        connection: { userId: { eq: data.userId } },
+        connection: { RAW: inMemberWorkspace(data.userId) },
         id: { eq: data.connectionResourceId },
       },
       with: { connection: { columns: { id: true, name: true, type: true } } },
@@ -336,7 +338,8 @@ export const chatPersist = {
 
       const [updated] = await db
         .update(chats)
-        .set({ title })
+        // Titles are stored in plaintext, and one summarizing a pasted connection string would carry its password.
+        .set({ title: redactSecrets(title) })
         .where(
           and(
             eq(chats.id, data.chatId),

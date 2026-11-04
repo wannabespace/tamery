@@ -2,7 +2,7 @@
 
 Rules and reasons: `.agents/rules/api.md` → Secrets / environment.
 
-`ENCRYPTION_SECRET` encrypts every `encryptedText`/`encryptedJson` column. `USER_KEY_SECRET` encrypts the per-user keys in `user_encryption_keys`, which are the inner layer of connection strings. In dev both are plaintext in `apps/api/.env`, and Infisical is never contacted. In prod both are KMS-wrapped (`*_WRAPPED`).
+`ENCRYPTION_SECRET` encrypts every `encryptedText`/`encryptedJson` column. `USER_KEY_SECRET` encrypts the per-workspace keys in `workspace_encryption_keys`, which are the inner layer of connection strings. In dev both are plaintext in `apps/api/.env`, and Infisical is never contacted. In prod both are KMS-wrapped (`*_WRAPPED`).
 
 Either secret may be a comma-separated keyring, current key first. A key must never contain a comma.
 
@@ -50,7 +50,7 @@ NODE_ENV=production bun run rotate:encryption-secret [--execute]   # or rotate:u
 
 **New KMS key, same value:** wrap the same plaintext under the new key, then update `INFISICAL_KMS_KEY_ID` and both `*_WRAPPED` values. Stored data is untouched.
 
-**Per-user keys:** `bun run rotate:connection-keys --execute [userId ...]`. It needs no env change.
+**Per-workspace keys:** `bun run rotate:connection-keys --execute [workspaceId ...]`. It needs no env change.
 
 ## Incidents
 
@@ -61,10 +61,10 @@ NODE_ENV=production bun run rotate:encryption-secret [--execute]   # or rotate:u
   4. Rotate everything else in the env (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `PROXY_SHARED_SECRET`, API and OAuth keys).
   5. Rotate the key values as well.
 - **Lost KMS key:** wrap the backed-up plaintext under a new key. Without the backup, the data is gone.
-- **Lost user key row:**
-  1. Mint a new key with `userEncryptionKey.create(userId)`.
-  2. Clear `connection_string` on that user's workspace connections.
-  3. Have the user re-enter their connection strings.
+- **Lost workspace key row:**
+  1. Mint a new key with `workspaceEncryptionKey.create(workspaceId, db)`.
+  2. Clear `connection_string` on that workspace's connections.
+  3. Have the members re-enter their connection strings.
 - **Restoring a backup from before a rotation:**
   1. Set `<current>,<retired>`.
   2. Restore the backup.

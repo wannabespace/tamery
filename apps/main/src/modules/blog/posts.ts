@@ -12,6 +12,14 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
+    slug: 'connect-to-mongodb',
+    title: 'How to connect to MongoDB',
+    description:
+      'Connect to MongoDB or MongoDB Atlas: mongodb+srv strings, authSource and "Authentication failed", TLS, and querying in mongosh syntax.',
+    publishedAt: '2026-10-31',
+    engine: 'MongoDB',
+  },
+  {
     slug: 'connect-to-sql-server',
     title: 'How to connect to SQL Server',
     description:

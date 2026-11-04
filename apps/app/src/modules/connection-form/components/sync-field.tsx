@@ -1,4 +1,4 @@
-import { SyncType } from '@tamery/shared/enums/sync-type'
+import { SYNC_TYPE_LABELS, SyncType } from '@tamery/shared/enums/sync-type'
 import { SelectItem } from '@tamery/ui/components/select'
 
 import type { ConnectionForm } from '../lib/connection-form'
@@ -6,15 +6,15 @@ import type { ConnectionForm } from '../lib/connection-form'
 const SYNC_OPTIONS: Record<SyncType, { description: string; label: string }> = {
   [SyncType.Cloud]: {
     description: 'Everything syncs, encrypted.',
-    label: 'Full',
+    label: SYNC_TYPE_LABELS[SyncType.Cloud],
   },
   [SyncType.CloudWithoutSecrets]: {
     description: 'Passwords and keys stay on this device.',
-    label: 'No password',
+    label: SYNC_TYPE_LABELS[SyncType.CloudWithoutSecrets],
   },
   [SyncType.CloudWithoutConnectionString]: {
     description: 'Only the name and color sync.',
-    label: 'Metadata only',
+    label: SYNC_TYPE_LABELS[SyncType.CloudWithoutConnectionString],
   },
 }
 

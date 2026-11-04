@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "portless run cross-env NODE_ENV=development bun --watch run ./index.ts",
     "start": "cross-env NODE_ENV=production bun run ./index.ts",
-    "check-types": "tsc",
+    "check-types": "bun check",
     "test:start": "cross-env NODE_ENV=test bun --env-file=.env.test run ./index.ts"
   },
   "dependencies": {

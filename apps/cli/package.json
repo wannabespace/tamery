@@ -1,7 +1,8 @@
 {
-  "name": "tamery",
-  "version": "0.0.1",
-  "description": "Tamery CLI – manage and query your connections from the terminal.",
+  "name": "@tamery/cli",
+  "version": "0.99.0",
+  "private": true,
+  "description": "Tamery from your terminal.",
   "keywords": [
     "cli",
     "clickhouse",
@@ -27,39 +28,20 @@
     "url": "git+https://github.com/wannabespace/tamery.git",
     "directory": "apps/cli"
   },
-  "bin": {
-    "tamery": "./dist/index.js"
-  },
-  "files": [
-    "LICENSE",
-    "README.md",
-    "dist"
-  ],
   "type": "module",
   "scripts": {
-    "build": "tsdown",
-    "check-types": "tsc",
-    "prepublishOnly": "tsdown"
-  },
-  "dependencies": {
-    "@clickhouse/client": "catalog:",
-    "@drizzle-team/brocli": "catalog:",
-    "@hono/node-server": "catalog:",
-    "@libsql/client": "catalog:",
-    "@mongodb-js/shell-bson-parser": "catalog:",
-    "@orpc/client": "catalog:",
-    "better-result": "catalog:",
-    "consola": "catalog:",
-    "hono": "catalog:",
-    "mongodb": "catalog:",
-    "mssql": "catalog:",
-    "mysql2": "catalog:",
-    "open": "catalog:",
-    "ora": "catalog:",
-    "oracledb": "catalog:",
-    "pg": "catalog:"
+    "build": "bun scripts/build.ts",
+    "check-types": "bun check",
+    "tamery": "bun --use-system-ca src/index.ts",
+    "test": "bun test"
   },
   "devDependencies": {
+    "@clack/prompts": "catalog:",
+    "@clickhouse/client": "catalog:",
+    "@libsql/client": "catalog:",
+    "@mongodb-js/shell-bson-parser": "catalog:",
+    "@mongodb-js/socksv5": "catalog:",
+    "@orpc/client": "catalog:",
     "@orpc/server": "catalog:",
     "@tamery/api": "workspace:*",
     "@tamery/configs": "workspace:*",
@@ -67,13 +49,17 @@
     "@tamery/query-proxy": "workspace:*",
     "@tamery/shared": "workspace:*",
     "@types/bun": "catalog:",
-    "@types/mssql": "catalog:",
-    "@types/pg": "catalog:",
-    "memoza": "catalog:",
-    "tsdown": "catalog:",
+    "arktype": "catalog:",
+    "better-result": "catalog:",
+    "citty": "catalog:",
+    "mongodb": "catalog:",
+    "mssql": "catalog:",
+    "mysql2": "catalog:",
+    "oracledb": "catalog:",
+    "pg": "catalog:",
+    "portless": "catalog:",
+    "ssh-config": "catalog:",
+    "ssh2": "catalog:",
     "typescript": "catalog:"
-  },
-  "engines": {
-    "node": ">=22.16"
   }
 }

@@ -1,7 +1,7 @@
 import { getCollections } from '~/core/collections'
 import { fetchingConfig } from '~/core/connection/fetching-config'
-import { getConnectionStore } from '~/core/connection/stores'
 import type { Connection } from '~/core/connection/sync'
+import { getBridgeRoute } from '~/core/runtime/bridge/pairing'
 import { queryClient } from '~/lib/query-client'
 
 const AGENT_STALE_TIME = 5000
@@ -47,8 +47,8 @@ export const resolveTarget = ({
 
   const connectionString = connectionStringsCollection.get(connectionId) ?? null
   const { canSend, reason } = fetchingConfig(connection, {
+    bridge: getBridgeRoute(connectionId),
     connectionString,
-    proxy: getConnectionStore(connectionId).get().proxy,
   })
   if (!canSend) {
     throw new Error(reason ?? `Open "${connection.name}" in Tamery first.`)

@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer'
 import crypto from 'node:crypto'
 
 import { Octokit } from '@octokit/rest'
@@ -7,6 +6,7 @@ import { GITHUB_REPO_NAME, GITHUB_REPO_OWNER } from '@tamery/shared/constants'
 import { silently } from '@tamery/shared/utils'
 
 import { env } from '~/env'
+import { safeEqual } from '~/lib/safe-equal'
 import { orpc } from '~/orpc'
 
 interface ToDesktopWebhookPayload {
@@ -46,10 +46,7 @@ const verifyWebhookSignature = (
     .update(requestBody)
     .digest('hex')
 
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  )
+  return safeEqual(signature, expectedSignature)
 }
 
 export const todesktop = orpc
@@ -117,6 +114,9 @@ export const todesktop = orpc
             owner: GITHUB_REPO_OWNER,
             release_id: release.id,
             repo: GITHUB_REPO_NAME,
+            // Without tag_name GitHub resets a draft's tag to untagged-<hash>,
+            // and the next release's notes then start from an older version.
+            tag_name: release.tag_name,
           })
         })
       }

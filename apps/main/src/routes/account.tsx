@@ -9,7 +9,6 @@ import {
   Link,
   Outlet,
   redirect,
-  useRouter,
   useRouterState,
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
@@ -23,18 +22,19 @@ import {
   SidebarLink,
 } from '~/components/sidebar-button'
 import { ThemeButton } from '~/components/theme-button'
-import { authClient } from '~/lib/auth'
+import { authClient, useReloadSession } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
 import { AiUsageLink } from '~/modules/ai-usage/ai-usage-link'
 import { BillingLink } from '~/modules/billing/billing-link'
 import { CreditsLink } from '~/modules/credits/credits-link'
+import { AuthenticationLink } from '~/modules/settings/authentication-link'
 import { SettingsLink } from '~/modules/settings/settings-link'
 import { SupportButton } from '~/modules/support/support-button'
 
 const { useRouteContext } = getRouteApi('/account')
 
 const AccountLayout = () => {
-  const router = useRouter()
+  const reloadSession = useReloadSession()
   const { user } = useRouteContext()
   const isChangingPage = useRouterState({
     select: (state) =>
@@ -43,14 +43,14 @@ const AccountLayout = () => {
   })
 
   useEffect(() => {
-    void posthog.identify(user.id)
-  }, [user.id])
+    void posthog.identify(user.id, { email: user.email, name: user.name })
+  }, [user.id, user.email, user.name])
 
   const signOut = async () => {
     void posthog.capture('signed_out')
     void posthog.reset()
     await authClient.signOut()
-    await router.invalidate()
+    await reloadSession()
   }
 
   return (
@@ -101,6 +101,7 @@ const AccountLayout = () => {
             <BillingLink />
             <CreditsLink />
             <AiUsageLink />
+            <AuthenticationLink />
             <SettingsLink />
             <SupportButton />
             <Separator className="mx-2 my-1.5 hidden w-auto! md:block" />

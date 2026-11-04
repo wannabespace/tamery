@@ -69,9 +69,28 @@ const getEngineString = (connectionString: string) => {
   return type ? ENGINE_STRINGS[provider ?? type] : SERVER_STRING
 }
 
+/** The drivers read each of these as a path on the disk of whatever runs them. */
+export const FILE_PARAMS = [
+  'sslca',
+  'sslcert',
+  'sslkey',
+  'sslrootcert',
+  'tlscafile',
+  'tlscertificatekeyfile',
+  'tlscrlfile',
+]
+
+/** The MongoDB driver takes these logins' credentials from the machine running it: its environment, `~/.aws`, a cloud metadata service or a Kerberos ticket. */
+const MACHINE_CREDENTIAL_MECHANISMS = new Set([
+  'GSSAPI',
+  'MONGODB-AWS',
+  'MONGODB-OIDC',
+])
+
 export const describeConnectionString = (connectionString: string) => {
   const { database, host, password, searchParams, user } =
     readConnectionString(connectionString)
+  const authMechanism = searchParams.get('authmechanism')
   const { defaultDatabase, defaultSchema, label, resource } =
     getEngineString(connectionString)
   return {
@@ -86,6 +105,9 @@ export const describeConnectionString = (connectionString: string) => {
     isInternal: isInternalHost(host),
     isPasswordPopulated: !!password,
     missingSecrets: connectionSecrets.missing(searchParams),
+    usesMachineCredentials:
+      !!authMechanism &&
+      MACHINE_CREDENTIAL_MECHANISMS.has(authMechanism.toUpperCase()),
     usesSsh: !!searchParams.get(SSH_PARAMS.host),
   }
 }

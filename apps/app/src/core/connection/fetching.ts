@@ -1,7 +1,6 @@
 import type { ActiveFilter } from '@tamery/shared/filters'
 import { noop } from '@tamery/shared/utils'
 import { eq, useLiveQuery } from '@tanstack/react-db'
-import { useSubscription } from 'seitu/react'
 
 import { getCollections, useCollections } from '~/core/collections'
 import type { Connection, ConnectionResource } from '~/core/connection/sync'
@@ -11,17 +10,16 @@ import { resourceRowsQueryInfiniteOptions } from '~/core/queries/rows/list'
 import { resourceTableTotalQueryOptions } from '~/core/queries/rows/total'
 import { resourceTableColumnsQueryOptions } from '~/core/queries/tables/columns'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
-import { useLocalProxyAvailable } from '~/core/runtime/proxy'
+import { getBridgeRoute, useBridgeRoute } from '~/core/runtime/bridge/pairing'
 import { queryClient } from '~/lib/query-client'
 
 import { fetchingConfig } from './fetching-config'
-import { getConnectionStore } from './stores'
 
 export const canQueryConnection = (connection: Connection) =>
   fetchingConfig(connection, {
+    bridge: getBridgeRoute(connection.id),
     connectionString:
       getCollections().connectionStringsCollection.get(connection.id) ?? null,
-    proxy: getConnectionStore(connection.id).get().proxy,
   }).canSend
 
 export const prefetchConnectionResourceCore = async (
@@ -87,7 +85,7 @@ export const prefetchConnectionResourceTableCore = async ({
 export const useFetchingConfig = (
   connection: Pick<Connection, 'id' | 'syncType' | 'isPasswordExists'>
 ) => {
-  const localProxyAvailable = useLocalProxyAvailable()
+  const bridge = useBridgeRoute(connection.id)
   const { connectionStringsCollection } = useCollections()
   const { data: connectionString } = useLiveQuery({
     query: (q) =>
@@ -96,13 +94,9 @@ export const useFetchingConfig = (
         .where(({ cs }) => eq(cs.connectionId, connection.id))
         .findOne(),
   })
-  const proxy = useSubscription(getConnectionStore(connection.id), {
-    selector: (s) => s.proxy,
-  })
 
   return fetchingConfig(connection, {
+    bridge,
     connectionString: connectionString ?? null,
-    isLocalProxyAvailable: localProxyAvailable,
-    proxy,
   })
 }

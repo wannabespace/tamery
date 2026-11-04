@@ -44,7 +44,7 @@ const RESULTS = [
 ]
 
 export const AskIllustration = () => (
-  <ProductCrop className="min-w-0">
+  <ProductCrop stage className="min-w-0">
     <div inert className="flex h-8 items-center gap-0.5 border-b pr-1 pl-3">
       <span className="min-w-0 flex-1 truncate text-sm font-medium">
         Top customers

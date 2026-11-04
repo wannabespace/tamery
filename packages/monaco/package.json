@@ -8,7 +8,7 @@
     "./query-language": "./src/query-language/index.ts"
   },
   "scripts": {
-    "check-types": "tsc",
+    "check-types": "bun check",
     "test": "bun test"
   },
   "dependencies": {

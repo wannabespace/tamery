@@ -72,8 +72,9 @@ export const DeleteAccountDialog = ({
         <DialogHeader>
           <DialogTitle>Delete account</DialogTitle>
           <DialogDescription>
-            Your account, subscription, settings and sessions are removed for
-            good. This cannot be undone.
+            Your account, subscription, settings and sessions are removed, and
+            our copy of your data is erased after 90 days. This cannot be
+            undone.
           </DialogDescription>
         </DialogHeader>
         <Field>

@@ -3,7 +3,12 @@ import { lookup } from 'node:dns/promises'
 import { BlockList, connect } from 'node:net'
 
 import { ORPCError } from '@orpc/server'
+import { connectionParts } from '@tamery/connection/connection-parts'
+import type { Destination, Forwarding } from '@tamery/connection/forwarding'
 import { readConnectionString } from '@tamery/connection/parse-connection-string'
+import { SSH_ELSEWHERE } from '@tamery/connection/ssh/params'
+import { tunnelSocket } from '@tamery/connection/ssh/socket'
+import { describeConnectionString, FILE_PARAMS } from '@tamery/connection/utils'
 
 const NON_PUBLIC_NETWORKS = new BlockList()
 for (const [network, prefix, family] of [
@@ -28,19 +33,8 @@ for (const [network, prefix, family] of [
   NON_PUBLIC_NETWORKS.addSubnet(network, prefix, family)
 }
 
-/** The drivers read each of these as a path on the proxy's own disk. */
-const FILE_PARAMS = [
-  'sslca',
-  'sslcert',
-  'sslkey',
-  'sslrootcert',
-  'tlscafile',
-  'tlscertificatekeyfile',
-  'tlscrlfile',
-]
-
 export const PRIVATE_HOST_MESSAGE =
-  'The cloud proxy reaches only public hosts. Run `tamery proxy` or open this connection in the desktop app.'
+  'The cloud proxy reaches only public hosts. Run `tamery bridge` or open this connection in the desktop app.'
 
 const SRV_SCHEME = 'mongodb+srv'
 
@@ -57,23 +51,40 @@ const publicAddresses = async (
   return [first, ...rest]
 }
 
-/**
- * Dials the address it just checked, so the MongoDB driver reaches every server it discovers — a replica set member at a
- * literal private IP among them, which a DNS lookup never sees — only after that server passed the public-host check.
- */
-export const guardedConnect = async ({
-  host,
-  port,
-}: {
-  host: string
-  port: number
-}) => {
+const guardedConnect = async ({ host, port }: Destination) => {
   const [address] = await publicAddresses(host)
-  return connect({ family: address.family, host: address.address, port })
+  // Set here: the facade `tunnelSocket` hands the driver makes its own `setKeepAlive` and `setNoDelay` calls no-ops.
+  return connect({
+    family: address.family,
+    host: address.address,
+    keepAlive: true,
+    noDelay: true,
+    port,
+  })
 }
 
 /**
- * A fast pre-check that refuses the seed before the driver starts; `guardedConnect` re-checks every socket it opens, the
+ * Plugged in as every dialect's socket source, so each socket a driver opens dials an address checked just before: a name
+ * re-resolving to a private host after `assertReachable` (DNS rebinding) is refused, and so is a MongoDB replica set
+ * member at a literal private IP, which a DNS lookup never sees. Oracle and libsql open their own sockets and skip it.
+ */
+export const guardedForwarding = (
+  connectionString: string
+): Promise<Forwarding> => {
+  if (describeConnectionString(connectionString).usesSsh) {
+    throw new Error(SSH_ELSEWHERE)
+  }
+  const parts = connectionParts.parse(connectionString)
+  const target = { host: parts.host, port: Number(connectionParts.port(parts)) }
+  return Promise.resolve({
+    encrypted: false,
+    socket: () => tunnelSocket(guardedConnect(target)),
+    socketTo: (to) => tunnelSocket(guardedConnect(to)),
+  })
+}
+
+/**
+ * A fast pre-check that refuses the seed before the driver starts; `guardedConnect` re-checks every socket a driver opens, the
  * seed included, so this one need not be authoritative. An empty host is refused too: drivers fall back to localhost for it.
  */
 export const assertReachable = async (connectionString: string) => {
@@ -81,7 +92,13 @@ export const assertReachable = async (connectionString: string) => {
   if (FILE_PARAMS.some((param) => searchParams.has(param))) {
     throw new ORPCError('FORBIDDEN', {
       message:
-        'The cloud proxy cannot read certificate files. Run `tamery proxy` or open this connection in the desktop app.',
+        'The cloud proxy cannot read certificate files. Run `tamery bridge` or open this connection in the desktop app.',
+    })
+  }
+  if (describeConnectionString(connectionString).usesMachineCredentials) {
+    throw new ORPCError('FORBIDDEN', {
+      message:
+        'The cloud proxy cannot sign in with AWS, OIDC or Kerberos credentials. Run `tamery bridge` or open this connection in the desktop app.',
     })
   }
   // An SRV name has no address of its own: the servers it lists are checked by `guardedConnect` as the driver dials them.

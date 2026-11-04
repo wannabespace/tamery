@@ -1,5 +1,6 @@
 import { once } from 'node:events'
 
+import { hasErrnoCode } from '@tamery/shared/errno'
 import { noop, toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import type { Client, ConnectConfig } from 'ssh2'
@@ -28,7 +29,7 @@ const sshErrorMessage = (
   if (error.level === 'agent') {
     return AGENT_UNAVAILABLE
   }
-  if (error.level === 'client-timeout' || error.code === 'ETIMEDOUT') {
+  if (error.level === 'client-timeout' || hasErrnoCode(error, 'ETIMEDOUT')) {
     return 'Timed out reaching the SSH host'
   }
   if (error.level === 'client-socket') {

@@ -27,6 +27,7 @@ import { ConnectionCardMeta } from './connection-card-meta'
 import { ConnectionCardStatus } from './connection-card-status'
 import { ConnectionIconWithVersion } from './connection-icon-with-version'
 import { buildConnectionMenuItems } from './connection-menu-items'
+import { useConnectionTransfer } from './use-connection-transfer'
 
 export const ConnectionCard = ({
   connection,
@@ -40,6 +41,7 @@ export const ConnectionCard = ({
   const router = useRouter()
   const { connectionStringsCollection, connectionsResourcesCollection } =
     useCollections()
+  const transfer = useConnectionTransfer(connection)
   const { data: connectionString } = useLiveQuery({
     query: (q) =>
       q
@@ -131,9 +133,10 @@ export const ConnectionCard = ({
   }
 
   const isLoadingVisible =
-    (isFetching && connectionResourcesNames.length === 0) || refresh.isPending
+    (isFetching && !selectedResource) || refresh.isPending
 
   const items = buildConnectionMenuItems({
+    ...transfer,
     canSend,
     connection,
     onClearPassword: handleClearPassword,

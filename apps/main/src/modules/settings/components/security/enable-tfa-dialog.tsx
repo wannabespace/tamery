@@ -1,3 +1,4 @@
+import { downloadFile } from '@tamery/shared/files'
 import { Button } from '@tamery/ui/components/button'
 import {
   Dialog,
@@ -9,17 +10,21 @@ import {
 } from '@tamery/ui/components/dialog'
 import { copy } from '@tamery/ui/lib/copy'
 import { useMutation } from '@tanstack/react-query'
-import { useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { QRCode } from 'react-qr-code'
 import { toast } from 'sonner'
 
 import { TotpCodeInput } from '~/components/totp-code-input'
 import { authClient } from '~/lib/auth'
+import { posthog } from '~/lib/posthog'
 import { handleError } from '~/utils/error'
+
+import { useReloadTwoFactor } from './two-factor-methods'
 
 export interface TotpSetup {
   backupCodes: string[]
+  // Starting setup on an account with 2FA on has already replaced its backup codes, so they must be saved before anything else can be abandoned.
+  codesFirst: boolean
   totpURI: string
 }
 
@@ -50,9 +55,38 @@ const BackupCodes = ({
       >
         Copy
       </Button>
+      <Button
+        variant="outline"
+        onClick={() => {
+          downloadFile(
+            codes.join('\n'),
+            'tamery-backup-codes.txt',
+            'text/plain'
+          )
+          void posthog.capture('backup_codes_downloaded')
+        }}
+      >
+        Download
+      </Button>
       <Button onClick={onDone}>Done</Button>
     </DialogFooter>
   </>
+)
+
+export const BackupCodesDialog = ({
+  codes,
+  open,
+  onOpenChange,
+}: {
+  codes: string[]
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) => (
+  <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="sm:max-w-xs">
+      <BackupCodes codes={codes} onDone={() => onOpenChange(false)} />
+    </DialogContent>
+  </Dialog>
 )
 
 export const EnableTfaDialog = ({
@@ -64,12 +98,15 @@ export const EnableTfaDialog = ({
   onOpenChange: (open: boolean) => void
   setup: TotpSetup
 }) => {
-  const router = useRouter()
+  const reloadTwoFactor = useReloadTwoFactor()
   const [code, setCode] = useState('')
   const [isVerified, setIsVerified] = useState(false)
+  const [codesSaved, setCodesSaved] = useState(false)
 
   const { mutate: verifyTotp, isPending } = useMutation({
-    meta: { event: 'two_factor_enabled' },
+    meta: {
+      event: setup.codesFirst ? 'authenticator_added' : 'two_factor_enabled',
+    },
     mutationFn: (codeValue: string) =>
       authClient.twoFactor.verifyTotp({
         code: codeValue,
@@ -81,9 +118,15 @@ export const EnableTfaDialog = ({
       setCode('')
     },
     onSuccess: async () => {
-      toast.success('2FA enabled')
-      setIsVerified(true)
-      await router.invalidate()
+      if (setup.codesFirst) {
+        toast.success('Authenticator app added')
+        onOpenChange(false)
+      } else {
+        toast.success('2FA enabled')
+        setIsVerified(true)
+      }
+
+      await reloadTwoFactor()
     },
   })
 
@@ -95,21 +138,25 @@ export const EnableTfaDialog = ({
         if (!nextOpen) {
           setCode('')
           setIsVerified(false)
+          setCodesSaved(false)
         }
       }}
     >
       <DialogContent className="sm:max-w-xs">
-        {isVerified ? (
+        {(setup.codesFirst ? !codesSaved : isVerified) ? (
           <BackupCodes
             codes={setup.backupCodes}
-            onDone={() => onOpenChange(false)}
+            onDone={() =>
+              setup.codesFirst ? setCodesSaved(true) : onOpenChange(false)
+            }
           />
         ) : (
           <>
             <DialogHeader>
               <DialogTitle>Scan QR Code</DialogTitle>
               <DialogDescription>
-                Scan this QR Code with your authenticator app.
+                Scan this QR Code with your authenticator app, then enter the
+                code it shows.
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col items-center gap-4">
@@ -117,7 +164,7 @@ export const EnableTfaDialog = ({
                 <QRCode value={setup.totpURI} size={176} />
               </div>
               <TotpCodeInput
-                label="Verification code"
+                aria-label="Verification code"
                 value={code}
                 onChange={setCode}
                 onComplete={verifyTotp}

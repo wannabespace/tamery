@@ -7,8 +7,8 @@ import { toError } from '@tamery/shared/utils'
 import type { TransactionSettings } from 'kysely'
 import { memoize } from 'memoza'
 
-import type { DialectOptions } from './driver'
 import { createStatementRunner } from './driver'
+import type { DialectOptions } from './transport'
 
 /** A document as it crosses the wire: relaxed Extended JSON, so an `_id` reads `{ $oid: '…' }`. */
 export type MongoDocument = Record<string, unknown>

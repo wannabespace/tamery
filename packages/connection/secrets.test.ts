@@ -20,16 +20,30 @@ describe('connectionSecrets', () => {
     ])
   })
 
-  it('keeps a ClickHouse access token off the synced string', () => {
+  it('keeps a ClickHouse access token and Authorization header off the synced string', () => {
     const synced = new URL(
       connectionSecrets.strip(
-        'https://default@ch.example.com:8443/?access_token=jwt-secret'
+        'https://default@ch.example.com:8443/?access_token=jwt-secret&http_header_authorization=Basic%20abc'
       )
     )
 
     expect(synced.searchParams.get('access_token')).toBe('')
+    expect(synced.searchParams.get('http_header_authorization')).toBe('')
     expect(connectionSecrets.missing(synced.searchParams)).toEqual([
       'access_token',
+      'http_header_authorization',
+    ])
+  })
+
+  it('keeps a MongoDB AWS session token and the fragment off the synced string', () => {
+    const stripped = connectionSecrets.strip(
+      'mongodb://AKIA:aws-secret@db.example.com/app?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:aws-token#ssh_password=x'
+    )
+
+    expect(stripped).not.toContain('aws-token')
+    expect(stripped).not.toContain('#')
+    expect(connectionSecrets.missing(new URL(stripped).searchParams)).toEqual([
+      'authmechanismproperties',
     ])
   })
 
@@ -73,6 +87,33 @@ describe('connectionSecrets', () => {
     )
 
     expect(restored.password).toBe('')
+  })
+
+  it.each([
+    ['another scheme', 'postgres:', 'mysql:'],
+    ['another host', '@db.internal', '@x.example'],
+    ['another port', ':5432', ':6543'],
+    ['another user', 'app@', 'admin@'],
+    ['another SSH hop', 'ssh_host=bastion', 'ssh_host=x.example'],
+    ['a MongoDB proxy', 'ssh_auth=', 'proxyHost=x.example&ssh_auth='],
+    ['TLS turned off', 'ssh_auth=', 'sslmode=disable&ssh_auth='],
+  ])('never restores a secret onto %s', (_, from, to) => {
+    const restored = connectionSecrets.restore(
+      connectionSecrets.strip(LOCAL).replace(from, to),
+      { isPasswordExists: true, local: LOCAL }
+    )
+
+    expect(restored).not.toContain('db-pass')
+    expect(restored).not.toContain('ssh-pass')
+  })
+
+  it('restores the secrets onto another database of the same server', () => {
+    const restored = connectionSecrets.restore(
+      connectionSecrets.strip(LOCAL).replace(':5432/app', ':5432/other'),
+      { isPasswordExists: true, local: LOCAL }
+    )
+
+    expect(restored).toBe(LOCAL.replace(':5432/app', ':5432/other'))
   })
 
   it('never restores a secret the synced string dropped', () => {

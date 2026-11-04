@@ -4,6 +4,7 @@ export {
   authRelations,
   invitations,
   members,
+  passkeys,
   sessions,
   twoFactors,
   users,
@@ -41,8 +42,9 @@ export {
   syncType,
 } from './connections'
 export { creditAccounts, creditTopUps } from './credits'
+export { copies, deletedRecords } from './deleted-records'
 export { earlyAccess } from './early-access'
-export { userEncryptionKeys } from './encryption'
+export { workspaceEncryptionKeys } from './encryption'
 export {
   queries,
   queriesUpdateSchema,

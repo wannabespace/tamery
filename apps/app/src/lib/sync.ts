@@ -1,10 +1,9 @@
+import { hasErrorCode } from '@tamery/shared/orpc-error'
 import { sleep } from '@tamery/shared/utils'
 import { NonRetriableError } from '@tanstack/offline-transactions'
 import type { PendingMutation, SyncConfig } from '@tanstack/react-db'
 import { BasicIndex } from '@tanstack/react-db'
 import { Result } from 'better-result'
-
-import { isUnauthorizedError } from '~/utils/error'
 
 import { database } from './database'
 import { posthog } from './posthog'
@@ -195,7 +194,7 @@ export const syncCollectionOptions = <T extends { updatedAt: Date }>(
             failures = 0
           } else if (signal.aborted) {
             return
-          } else if (isUnauthorizedError(result.error)) {
+          } else if (hasErrorCode(result.error, 'UNAUTHORIZED')) {
             abortController.abort(`${config.id} sync unauthorized`)
             return
           } else {

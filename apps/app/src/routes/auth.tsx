@@ -38,22 +38,27 @@ const AuthPage = () => {
   const [verifier, setVerifier] = useState<string | null>(null)
   const [codeChallenge, setCodeChallenge] = useState<string | null>(null)
 
-  const signInWithChallenge = () => {
-    const {
-      verifier: nextVerifier,
-      codeChallenge: nextCodeChallenge,
-      url,
-    } = signInUrl(window.electron ? 'desktop' : 'web')
+  const startSignIn = useMutation({
+    mutationFn: async () => {
+      const signIn = signInUrl(window.electron ? 'desktop' : 'web')
 
-    setVerifier(nextVerifier)
-    setCodeChallenge(nextCodeChallenge)
+      if (!window.electron) {
+        location.assign(signIn.url)
+        return
+      }
 
-    if (window.electron) {
-      window.open(url, '_blank')
-    } else {
-      location.assign(url)
-    }
-  }
+      // The confirm page refuses a challenge no device listens for, so the browser opens only once this one does.
+      const events = await orpc.account.challenge.listen.call({
+        codeChallenge: signIn.codeChallenge,
+      })
+      await events.next()
+      await events.return()
+
+      setVerifier(signIn.verifier)
+      setCodeChallenge(signIn.codeChallenge)
+      window.open(signIn.url, '_blank')
+    },
+  })
 
   const { data, error } = useQuery(
     orpc.account.challenge.listen.liveOptions({
@@ -62,6 +67,7 @@ const AuthPage = () => {
   )
 
   const isWaiting = !!codeChallenge && !data?.ready && !error
+  const failure = error ?? startSignIn.error
 
   const cancelSignIn = () => {
     setVerifier(null)
@@ -81,11 +87,22 @@ const AuthPage = () => {
         }
 
         await router.navigate({ href: lastLocationStorageValue.get() ?? '/' })
-        posthog.capture(exchangeData.newUser ? 'signed_up' : 'signed_in')
+        posthog.capture('signed_in')
         successAuthToast(!!exchangeData.newUser)
       },
     })
   )
+
+  const { mutate: continueAnonymously, isPending: isContinuing } = useMutation({
+    meta: { event: 'signed_in_as_guest' },
+    mutationFn: () =>
+      authClient.signIn.anonymous({ fetchOptions: { throw: true } }),
+    onSuccess: async ({ token }) => {
+      bearerToken.set(token)
+      await refetch()
+      router.navigate({ to: '/' })
+    },
+  })
 
   useEffect(() => {
     if (!data?.ready || !codeChallenge || !verifier) {
@@ -97,9 +114,7 @@ const AuthPage = () => {
 
   return (
     <>
-      {window.electron && (
-        <TitleBar className="traffic-lights:mb-0 -mb-10.25" />
-      )}
+      {window.electron && <TitleBar className="traffic-lights:mb-0 -mb-10" />}
       <div className="relative grid flex-1 overflow-hidden lg:grid-cols-2">
         <AuthSidePanel />
         <div className="relative flex flex-col overflow-hidden px-4 py-6">
@@ -138,8 +153,7 @@ const AuthPage = () => {
                 Sign in to continue
               </h1>
               <p className="text-muted-foreground mt-2 mb-8">
-                Tamery is in early access. Sign in to request access. We’ll
-                email you when it’s ready.
+                Sync your connections, queries, and chats across every device.
               </p>
             </motion.div>
             <motion.div
@@ -159,7 +173,7 @@ const AuthPage = () => {
               <Button
                 className="mb-2 w-full"
                 size="lg"
-                onClick={() => signInWithChallenge()}
+                onClick={() => startSignIn.mutate()}
               >
                 {isWaiting ? (
                   <span className="animate-pulse">Waiting for sign in...</span>
@@ -168,28 +182,62 @@ const AuthPage = () => {
                 )}
               </Button>
               {isWaiting ? (
-                <div className="mb-2 flex justify-center">
+                <div className="mb-2 flex flex-col items-center gap-1">
+                  <p className="text-muted-foreground text-center text-xs">
+                    Continue in your browser.
+                  </p>
                   <Button variant="link-muted" size="xs" onClick={cancelSignIn}>
                     Cancel
                   </Button>
                 </div>
               ) : (
                 <p className="text-muted-foreground mb-4 text-center text-xs">
-                  If you already have access, sign in as usual.
+                  Sign-in unlocks AI and cloud sync.
                 </p>
               )}
             </motion.div>
-            {!!error && (
+            {failure && (
               <div className="text-muted-foreground flex items-center gap-2 text-sm">
                 <HugeiconsIcon
                   icon={Alert02Icon}
                   strokeWidth={2}
                   className="text-destructive size-4"
                 />
-                {error.message}
+                {failure.message}
               </div>
             )}
           </div>
+          {window.electron && (
+            <motion.div
+              className="relative mx-auto mt-auto w-full max-w-87.5 pt-10 will-change-transform"
+              initial={{
+                opacity: 0,
+                transform: 'translateY(10px)',
+                filter: 'blur(4px)',
+              }}
+              animate={{
+                opacity: 1,
+                transform: 'translateY(0)',
+                filter: 'none',
+              }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+            >
+              <Button
+                className="w-full"
+                variant="outline"
+                disabled={isContinuing}
+                onClick={() =>
+                  session?.user.isAnonymous
+                    ? router.navigate({
+                        href: lastLocationStorageValue.get() ?? '/',
+                      })
+                    : continueAnonymously()
+                }
+              >
+                Continue without an account
+              </Button>
+            </motion.div>
+          )}
         </div>
       </div>
     </>

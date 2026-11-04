@@ -25,6 +25,7 @@ import type { GridBarItem } from '~/core/table/grid-bar'
 import type { GridEntry } from '~/core/table/session'
 
 import { ActionsDelete } from './actions-delete'
+import { ActionsExport } from './actions-export'
 import { DraftsActions } from './drafts-actions'
 import { LeadingCell, LeadingHeaderCell } from './table-selection'
 
@@ -92,6 +93,7 @@ export const addColumnColumn = (onAddColumn?: () => void): ExtraColumn => ({
 export const tableBar = ({
   canDelete,
   hasChanges,
+  hasSelection,
   keys,
   rows,
   schema,
@@ -99,11 +101,26 @@ export const tableBar = ({
 }: {
   canDelete: boolean
   hasChanges: boolean
+  hasSelection: boolean
   keys: string[]
   rows: GridRow[]
   schema: string
   table: string
 }): GridBarItem[] => [
+  ...(hasSelection
+    ? [
+        {
+          content: (
+            <ActionsExport
+              filename={`${schema}_${table}`}
+              keys={keys}
+              rows={rows}
+            />
+          ),
+          id: 'export',
+        },
+      ]
+    : []),
   ...(canDelete
     ? [
         {

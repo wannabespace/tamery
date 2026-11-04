@@ -4,6 +4,7 @@ import {
   ItemActions,
   ItemContent,
   ItemDescription,
+  ItemMedia,
   smallItemInsetClassName,
   ItemTitle,
 } from '@tamery/ui/components/item'
@@ -39,11 +40,15 @@ export const SettingsRow = ({
   children,
   description,
   htmlFor,
+  icon,
+  iconVariant,
   title,
 }: {
   children?: ReactNode
   description?: ReactNode
   htmlFor?: string
+  icon?: ReactNode
+  iconVariant?: 'avatar'
   title: ReactNode
 }) => (
   <Item
@@ -52,6 +57,7 @@ export const SettingsRow = ({
     // oxlint-disable-next-line jsx-a11y/label-has-associated-control -- Item renders the title and description into this label
     render={htmlFor ? <label htmlFor={htmlFor} /> : undefined}
   >
+    {icon && <ItemMedia variant={iconVariant}>{icon}</ItemMedia>}
     <ItemContent>
       <ItemTitle>{title}</ItemTitle>
       {description && <ItemDescription>{description}</ItemDescription>}

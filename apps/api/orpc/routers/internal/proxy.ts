@@ -6,6 +6,7 @@ import { db } from '@tamery/db'
 import { SyncType } from '@tamery/shared/enums/sync-type'
 import { type } from 'arktype'
 
+import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { proxySecretMiddleware } from './proxy-secret'
@@ -30,7 +31,7 @@ export const proxy = {
       NOT_FOUND: { message: 'Connection not found' },
     })
     .handler(async ({ context, errors, input }) => {
-      const owned = { userId: { eq: context.user.id } }
+      const owned = { RAW: inMemberWorkspace(context.user.id) }
       const resource =
         'resourceId' in input
           ? await db.query.connectionsResources.findFirst({

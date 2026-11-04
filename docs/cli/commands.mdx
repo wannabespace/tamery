@@ -2,12 +2,10 @@
 title: 'CLI commands'
 sidebarTitle: 'Commands'
 description: 'Every tamery command and its flags.'
-keywords: ['reference', 'options', 'arguments', 'usage']
+keywords: ['reference', 'options', 'arguments', 'usage', 'login']
 ---
 
-`tamery --help` or `tamery <command> --help` shows help in your terminal. `tamery --version` prints the version.
-
-Once a day the CLI checks npm for a newer version and tells you when there is one.
+`tamery --help` (`-h`) lists the commands, and `--help` after a command, such as `tamery bridge --help`, shows its options and subcommands. `tamery --version` (`-v`) prints the version.
 
 ## tamery login
 
@@ -15,24 +13,9 @@ Once a day the CLI checks npm for a newer version and tells you when there is on
 tamery login
 ```
 
-Opens the browser, where you confirm the sign-in, and saves your session locally. The link is printed too, in case the browser opens somewhere you are not looking. It expires after 5 minutes.
+Opens the browser to sign this computer in to your Tamery account, and prints the link too. The link expires after 5 minutes. Confirm only if you started signing in yourself.
 
-| Flag            | Use                                            |
-| --------------- | ---------------------------------------------- |
-| `--no-open`     | Only print the sign-in link. Useful over SSH.  |
-| `--force`, `-f` | Sign in again, for example to switch accounts. |
-
-Without `--force`, signing in while you already are just tells you so.
-
-The session lives in `~/.config/tamery/cli.json`, readable only by you.
-
-## tamery logout
-
-```bash
-tamery logout
-```
-
-Signs the CLI session out on our side and removes it from your computer.
+If the computer is already signed in, it prints the account. To switch accounts, run `tamery logout` first. Signing in to a different account removes the secrets and paired browsers saved for the old one.
 
 ## tamery whoami
 
@@ -40,48 +23,64 @@ Signs the CLI session out on our side and removes it from your computer.
 tamery whoami
 ```
 
-Shows which account is signed in. If the session has expired, it clears it and asks you to sign in again.
+Prints the account this computer is signed in to, or says it isn't signed in and exits with code 1.
 
-## tamery query
-
-Run SQL against a connection saved in the app:
+## tamery bridge
 
 ```bash
-tamery query --list-connections
-tamery query -c my-db "SELECT 1 AS hello"
-tamery query -c my-db --file ./report.sql
-tamery query -c my-db --json "SELECT 1 AS hello"
+tamery bridge
 ```
+
+Lets the web app run your connections on this computer until you press **Ctrl+C**. If the computer isn't signed in yet, it signs in first, as `tamery login` does. [Tamery CLI](/cli/overview#run-the-bridge) walks through pairing.
+
+It prints the account, the address it listens on and a link to connect a browser. When a browser clicks **Connect**, it asks you whether to allow it. It also reports requests it refused because of a wrong host or origin.
 
 | Flag | Use |
 | --- | --- |
-| `--connection`, `-c` | Connection name or ID. Not needed if you have only one. Names must match exactly; use the ID if two share a name. |
-| `--file`, `-f` | Read SQL from a file instead of the argument. |
-| `--json` | Print rows as JSON instead of a table. |
-| `--list-connections` | List the connections you can use and exit. |
+| `--port <port>` | Listen on another port. The default is `26380`. |
+| `--public-url <url>` | The HTTPS address a tunnel or reverse proxy on this computer serves the bridge at. See [Reach a bridge on another computer](/cli/remote). |
 
-The CLI prints every row it gets back. There is no row limit, so add one to the SQL when the table is large.
+If the port is taken, usually by another bridge, it says so and exits. Stop the other one or pass `--port`.
 
-The CLI needs the full connection string from sync, secrets included:
-
-- **Full** connections work.
-- **No password** connections arrive without their password, SSH secrets, SSL key passphrase, or access token, so most won't connect.
-- **Metadata only** connections don't show up at all.
-
-SSH tunnels need the desktop app. SQLite paths, `~/` included, point to files on the computer running the command.
-
-SQL runs against the database exactly as written, writes included. The CLI does not ask for confirmation the way the app does.
-
-## tamery proxy
+## tamery bridge approve
 
 ```bash
-tamery proxy
+tamery bridge approve
 ```
 
-Lets the web app reach localhost, private networks, and SQLite files through this computer. Run `tamery login` first, with the same account you use in the browser. The web app finds the proxy on its own within 10 seconds.
+Answers for a bridge that runs without a terminal to ask in, such as a service, a container or a detached session. When `tamery bridge` runs in a terminal you can see, the question appears there instead.
 
-While the proxy runs, the web app sends queries through it, not only for local databases. That also makes **No password** connections usable in the browser once you enter the password.
+1. Keep the bridge running.
+2. On the same computer, run `tamery bridge approve`. It waits for a browser.
+3. In the web app, click **Connect** in **Settings → Bridge**.
+4. Answer the question in the `approve` terminal.
 
-Your queries go from your machine straight to the database. The proxy still needs the internet to check your Tamery session, and it refuses a browser signed in to a different account.
+The order of steps 2 and 3 doesn't matter, as long as you answer within 2 minutes of clicking **Connect**. At most 3 requests wait at a time; more are declined.
 
-It listens on `127.0.0.1:26380`. Stop it with **Ctrl+C**.
+## tamery bridge unpair-all
+
+```bash
+tamery bridge unpair-all
+```
+
+Disconnects every paired browser, also from a bridge that is already running. Each one needs to be allowed again. Saved secrets stay.
+
+## tamery update
+
+```bash
+tamery update
+```
+
+Installs the latest version the way you installed the CLI: with the install script, npm, pnpm or Bun. It shows that tool's output, then asks you to restart `tamery bridge` if it is running. When you already have the latest version, it says so and installs nothing. On a release candidate, it also installs a newer release candidate. It ignores `TAMERY_VERSION`: to install a specific version, run the install script with it.
+
+If the update fails, for example because npm needs permissions you don't have, it says why. Fix that and run `tamery update` again. On Windows, a `tamery bridge` that is still running can hold the file the update replaces: stop it and try again.
+
+If you installed with the script but run `tamery` from another folder, the update goes to `~/.tamery/bin` and the command says so. Delete the other copy, or replace it with the new one.
+
+## tamery logout
+
+```bash
+tamery logout
+```
+
+Signs the CLI out of your account and deletes what it stored on this computer: the session, the saved secrets, their key in the keychain, and every pairing. The next `tamery bridge` signs in again, so this is also how you switch accounts.

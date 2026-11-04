@@ -1,6 +1,6 @@
 import { RECONNECT_ERROR_PATTERNS } from './constants'
 
-export const isConnectionError = (error: unknown): boolean => {
+export const isConnectionError = (error: unknown): error is Error => {
   if (error instanceof Error) {
     const msg = error.message.toLowerCase()
     return (

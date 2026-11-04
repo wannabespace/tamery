@@ -1,4 +1,4 @@
-import { ORPCError } from '@orpc/server'
+import { hasErrorCode } from '@tamery/shared/orpc-error'
 import {
   SHARE_PAGE_SIZE,
   shareAccessErrors,
@@ -114,11 +114,7 @@ export const shares = {
         })
       )
 
-      if (
-        read.isErr() &&
-        read.error.cause instanceof ORPCError &&
-        read.error.cause.code === 'TOO_MANY_REQUESTS'
-      ) {
+      if (read.isErr() && hasErrorCode(read.error.cause, 'TOO_MANY_REQUESTS')) {
         throw read.error.cause
       }
 

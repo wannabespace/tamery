@@ -1,3 +1,4 @@
+import { logDriverError } from '@tamery/shared/sanitize-log'
 import type { PoolOptions } from 'mysql2'
 import type * as mysql2Promise from 'mysql2/promise'
 
@@ -102,7 +103,7 @@ export const query = {
     const { conf } = await getPool(connectionString)
     const connection = await mysql2.createConnection(conf)
     // An unhandled `error` (the server dropping the connection) would crash the process.
-    connection.on('error', console.error)
+    connection.on('error', logDriverError)
     const txId = register(connection, {
       conf,
       connectionString,

@@ -91,7 +91,7 @@ export const Hero = () => (
   <section className="overflow-x-clip pt-16 sm:pt-24">
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl lg:text-7xl">
+        <h1 className="max-w-4xl text-4xl tracking-tight text-balance sm:text-6xl lg:text-7xl">
           {HEADLINE_WORDS.map((word, index) => (
             <Fragment key={word}>
               {index > 0 && ' '}

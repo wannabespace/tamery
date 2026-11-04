@@ -5,11 +5,15 @@ description: 'Send anyone a read-only link to a table, with your filters and col
 keywords: ['public link', 'permalink', 'collaborate', 'share url']
 ---
 
-A share is a link like `share.tamery.app/…` that shows one table's rows to anyone who opens it, without a Tamery account. Viewers see it the way the table looks in Tamery and can scroll to load more rows, with the mouse or the keyboard (Tab into the table, arrows to move). They cannot edit or reorder anything, and the rows stay in the sort you set. Search engines and AI crawlers are told to keep shared links out of their results and training data, so only people you send the link to find it.
+A share is a link like `share.tamery.app/…` that shows one table's rows to anyone who opens it, without a Tamery account.
+
+Viewers see the table the way it looks in Tamery and can scroll to load more rows, with the mouse or the keyboard. They cannot edit or reorder anything.
+
+Search engines and AI crawlers are told to keep shared links out of their results and training data, so only people you send the link to find it.
 
 ## Share a table
 
-Sharing needs a Tamery account and a connection synced with **Full** (see [Security](/connections/security)), since Tamery's servers read the rows from your database each time the link refreshes.
+Sharing needs a Tamery account and a connection synced with **Full** (see [Security](/connections/security)), since Tamery's servers read the rows from your database each time the link refreshes. In a [shared workspace](/features/workspaces#share-a-workspace), viewers can't share its tables: **Share** shows **Editors only**.
 
 1. Open the table and set it up the way you want it seen: filters, hidden columns, column order and sort.
 2. Open the **⋯** menu in the table toolbar and choose **Share**.
@@ -25,7 +29,7 @@ The share shows the columns the table shows, in the same order, sorted the way t
 | **Refresh** | How long viewers see the same rows before Tamery reads them again: **Live**, **Every minute**, **Every hour** or **Every day**. An open page picks up new rows on its own until the viewer scrolls past the first rows. |
 | **Expires** | The link stops working after 1, 7 or 30 days, or never. |
 | **Max rows** | The most rows viewers can scroll through. Pick a preset (100, 500, 1,000, 5,000 or 10,000) or type your own number up to 10,000. Filter or sort the table so the rows that matter fall inside the limit. |
-| **Require a password** | Viewers enter the password once to open the link. It needs at least 4 characters. |
+| **Require a password** | Viewers enter the password once to open the link. It needs at least 6 characters. |
 
 ## Several links for one table
 
@@ -37,10 +41,10 @@ Choose **Share** in the same menu to copy a link or change it. The dialog opens 
 
 **Manage shares** in the dialog, or **Shares** in the account menu, opens [share.tamery.app](https://share.tamery.app), which lists every shared link once you sign in there with your Tamery account. A share whose rows stopped loading for viewers is marked there. Viewers of such a link see that the database is not answering, with **Try again** to load the rows once it is back. When only a later batch of rows fails, viewers keep the rows they have and get **Try again** at the bottom of the table. Click **Stop sharing** to turn a link off for everyone.
 
-Deleting a connection stops sharing its tables.
+Deleting a connection stops sharing its tables. In a [shared workspace](/features/workspaces#leave-or-remove-someone), your shares of its connections also stop when you leave it, are removed, or become a viewer.
 
 ## Limits
 
 The Free plan keeps up to 3 links at a time; expired links don't count, so a link that ran out frees its place. [Pro](/account/plans) has no limit.
 
-Viewers can scroll through as many rows as the link's **Max rows** allows, up to 10,000. Sort or filter the table so the rows that matter come first.
+Viewers can scroll through as many rows as the link's **Max rows** allows, up to 10,000.

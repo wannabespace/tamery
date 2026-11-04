@@ -1,93 +1,50 @@
-import fs from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
+import { log } from '@clack/prompts'
+import { type } from 'arktype'
+import { Result } from 'better-result'
 
-const PACKAGE_NAME = 'tamery'
-const CACHE_DIR = path.join(os.homedir(), '.config', 'tamery')
-const CACHE_FILE = path.join(CACHE_DIR, 'update-check.json')
-const CHECK_INTERVAL_MS = 1000 * 60 * 60 * 24
+import { env } from './env'
+import { paint } from './paint'
 
-interface UpdateCache {
-  lastCheck: number
-  latestVersion: string
-}
+const STARTUP_TIMEOUT_MS = 3000
 
-const readCache = (): UpdateCache | null => {
-  try {
-    const raw = fs.readFileSync(CACHE_FILE, 'utf-8')
-    return JSON.parse(raw) as UpdateCache
-  } catch {
-    return null
-  }
-}
+/** The version lands in a shell command, so anything but a version is refused. */
+const distTags = type({ latest: 'string.semver', 'next?': 'string.semver' })
 
-const writeCache = (cache: UpdateCache) => {
-  try {
-    fs.mkdirSync(CACHE_DIR, { recursive: true })
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache))
-  } catch {
-    /* empty */
-  }
-}
+let latestVersion: string | null = null
 
-const fetchLatestVersion = async (): Promise<string | null> => {
-  try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 3000)
+const isNewer = (version: string) =>
+  Bun.semver.order(version, env.VERSION) === 1
 
-    const res = await fetch(
-      `https://registry.npmjs.org/${PACKAGE_NAME}/latest`,
-      {
-        signal: controller.signal,
-      }
+/** A release candidate follows `next` too, so it is offered the next candidate and then the release. */
+const fetchLatest = (timeoutMs = STARTUP_TIMEOUT_MS) =>
+  Result.tryPromise(async () => {
+    const response = await fetch(
+      'https://registry.npmjs.org/-/package/tamery/dist-tags',
+      { signal: AbortSignal.timeout(timeoutMs) }
     )
-
-    clearTimeout(timeout)
-
-    if (!res.ok) {
-      return null
+    if (!response.ok) {
+      throw new Error(`The npm registry answered ${response.status}.`)
     }
+    const tags = distTags.assert(await response.json())
+    return tags.next &&
+      env.VERSION.includes('-') &&
+      Bun.semver.order(tags.next, tags.latest) === 1
+      ? tags.next
+      : tags.latest
+  })
 
-    const data = (await res.json()) as { version: string }
-    return data.version
-  } catch {
-    return null
-  }
-}
-
-const parse = (v: string) => v.replace(/^v/u, '').split('.').map(Number)
-
-const isNewerVersion = (current: string, latest: string): boolean => {
-  const [cMajor = 0, cMinor = 0, cPatch = 0] = parse(current)
-  const [lMajor = 0, lMinor = 0, lPatch = 0] = parse(latest)
-
-  if (lMajor !== cMajor) {
-    return lMajor > cMajor
-  }
-  if (lMinor !== cMinor) {
-    return lMinor > cMinor
-  }
-  return lPatch > cPatch
-}
-
-export const checkForUpdate = async (
-  currentVersion: string
-): Promise<string | null> => {
-  const cache = readCache()
-
-  if (cache && Date.now() - cache.lastCheck < CHECK_INTERVAL_MS) {
-    return isNewerVersion(currentVersion, cache.latestVersion)
-      ? cache.latestVersion
-      : null
-  }
-
-  const latest = await fetchLatestVersion()
-
-  if (!latest) {
-    return null
-  }
-
-  writeCache({ lastCheck: Date.now(), latestVersion: latest })
-
-  return isNewerVersion(currentVersion, latest) ? latest : null
+export const updates = {
+  /** Never awaited at startup: the registry must not hold the bridge back. */
+  check: async () => {
+    const fetched = await fetchLatest()
+    if (fetched.isOk() && isNewer(fetched.value)) {
+      latestVersion = fetched.value
+      log.warn(
+        `Update available: ${latestVersion}\n${paint.dim('Run')} ${paint.accent('tamery update')}`
+      )
+    }
+  },
+  fetchLatest,
+  isNewer,
+  latest: () => latestVersion,
 }

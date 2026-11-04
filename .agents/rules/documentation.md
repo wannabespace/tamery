@@ -8,4 +8,4 @@ Product docs = MDX under `docs/`, rendered by `apps/docs` (Fumadocs). `docs/docs
 
 ## Release notes
 
-The ToDesktop webhook prepares GitHub release drafts with AI-written user-facing highlights and the original GitHub notes in a collapsed technical changelog. AI failure keeps the original notes so it cannot block a release. The website renders the same body; Discord receives only the highlights because its Markdown does not render HTML details. Publication remains manual.
+The ToDesktop webhook prepares GitHub release drafts with AI-written user-facing highlights and the original GitHub notes in a collapsed technical changelog. AI failure keeps the original notes so it cannot block a release. The website renders the same body; Discord receives only the highlights because its Markdown does not render HTML details. Publication remains manual. A draft gets its git tag only when published, so its notes cover everything since the last published version: publish drafts in version order or they repeat each other's changes.

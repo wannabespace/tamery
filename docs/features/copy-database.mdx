@@ -15,7 +15,7 @@ Copy database moves a PostgreSQL database into another one: staging into your lo
 3. Under **Copy**, keep **Everything** or uncheck tables to copy only some.
 4. Click **Copy and replace**.
 
-The log shows each table and object as it is created, with the time. Press **Stop** or Escape to cancel. If the copy fails, the log ends with what blocked it, such as a view in the target that depends on a table being replaced. If your network drops mid-copy, nothing is committed: the target rolls back and frees its tables about half a minute after it loses you, or later when it sits behind an SSH bastion.
+The log shows each table and object as it is created, with the time. Press **Stop** or Escape to cancel. If the copy fails, the log ends with what blocked it.
 
 ## What gets copied
 
@@ -32,7 +32,9 @@ When you copy some tables, the types and functions they use must already be in t
 
 Everything the copy brings replaces the object of the same name in the target. Other objects in the target stay.
 
-The copy runs in one transaction. If anything fails, or you stop it, nothing changes in the target. A common failure is an object in the target that depends on a table being replaced, such as a view: the error names it, and you can drop it and copy again.
+The copy runs in one transaction. If anything fails, or you stop it, nothing changes in the target. If your network drops mid-copy, the target rolls back and frees its tables about half a minute after it loses you, or later when it sits behind an SSH bastion.
+
+A common failure is an object in the target that depends on a table being replaced, such as a view: the error names it, and you can drop it and copy again.
 
 The target can't be the source itself. Two connections can reach the same database, so Tamery checks the server before copying and stops if they match.
 

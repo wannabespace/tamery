@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
+import { once } from 'node:events'
 
-import { assertReachable } from './public-host'
+import { assertReachable, guardedForwarding } from './public-host'
 
 test.each([
   'postgres://u:p@127.0.0.1/db',
@@ -43,4 +44,23 @@ test.each([
   await expect(assertReachable(connectionString)).rejects.toThrow(
     'cannot read certificate files'
   )
+})
+
+test.each([
+  'mongodb://8.8.8.8/db?authMechanism=MONGODB-AWS',
+  'mongodb://8.8.8.8/db?authmechanism=mongodb-oidc&authMechanismProperties=ENVIRONMENT:gcp',
+])(
+  'refuses credentials from its own machine in %p',
+  async (connectionString) => {
+    await expect(assertReachable(connectionString)).rejects.toThrow(
+      'AWS, OIDC or Kerberos'
+    )
+  }
+)
+
+test('a driver socket refuses a host that resolves to a private address', async () => {
+  const forwarding = await guardedForwarding('postgres://u:p@localhost/db')
+  const [error] = await once(forwarding.socket(), 'error')
+  expect(error).toBeInstanceOf(Error)
+  expect(String(error)).toContain('only public hosts')
 })

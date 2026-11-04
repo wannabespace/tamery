@@ -1,21 +1,23 @@
 import { diagnoseConnection as diagnose } from '@tamery/ai/features'
 import { AiFeature } from '@tamery/ai/usage'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { type } from 'arktype'
 
 import { aiUsage } from '~/lib/ai-usage'
 import { authMiddleware, orpc } from '~/orpc'
 
-const truncated = (length: number) =>
-  type('string').pipe((value) => value.slice(0, length))
+/** The client already swaps secrets for placeholders; this keeps any client from sending one on to the model provider. */
+const redacted = (length: number) =>
+  type('string').pipe((value) => redactSecrets(value).slice(0, length))
 
 export const diagnoseConnection = orpc
   .use(authMiddleware)
   .input(
     type({
-      error: truncated(4000),
+      error: redacted(4000),
       hostKind: 'string <= 100',
-      options: truncated(2000),
+      options: redacted(2000),
       passwordSet: 'boolean',
       port: 'string <= 10',
       sshEnabled: 'boolean',

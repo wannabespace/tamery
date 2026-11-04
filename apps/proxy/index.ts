@@ -3,19 +3,21 @@ import process from 'node:process'
 
 import { ORPCError } from '@orpc/server'
 import { RPCHandler } from '@orpc/server/fetch'
-import { mongodbGuard } from '@tamery/connection/queries/dialects/mongodb/client'
+import { forwarding } from '@tamery/connection/forwarding'
 import { querySerializer } from '@tamery/query-proxy/serializer'
-import { sanitizeLogData } from '@tamery/shared/sanitize-log'
+import { ORIGINS } from '@tamery/shared/origins'
+import { redactSecrets, sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 
 import { env, nodeEnv } from './env'
+import { isWebOrigin } from './orpc'
 import { createContext } from './orpc/context'
 import { router } from './orpc/routers'
-import { guardedConnect } from './public-host'
+import { guardedForwarding } from './public-host'
 import type { AppVariables } from './variables'
 
-mongodbGuard.use(guardedConnect)
+forwarding.use(guardedForwarding)
 
 const handler = new RPCHandler(router, {
   interceptors: [
@@ -40,7 +42,7 @@ const handler = new RPCHandler(router, {
         if (error instanceof Error) {
           throw new ORPCError('INTERNAL_SERVER_ERROR', {
             cause: error,
-            message: error.message,
+            message: redactSecrets(error.message),
           })
         }
 
@@ -57,20 +59,8 @@ const app = new Hono<{
   .use(
     cors({
       credentials: true,
-      origin(origin) {
-        const allowedOrigins = ['https://tamery.app']
-        if (
-          nodeEnv === 'development' &&
-          origin.startsWith('http://localhost:')
-        ) {
-          return origin
-        }
-        return (origin.startsWith('https://') &&
-          origin.endsWith('.tamery.app')) ||
-          allowedOrigins.includes(origin)
-          ? origin
-          : null
-      },
+      origin: (origin) =>
+        isWebOrigin(origin) || origin === ORIGINS.share ? origin : null,
     })
   )
   .get('/', (c) => c.redirect(env.MAIN_URL))
@@ -93,7 +83,8 @@ const app = new Hono<{
       logEvent.userId = c.req.header('user-id')
     }
 
-    const body = status >= 400 ? await c.res.clone().text() : undefined
+    const body =
+      status >= 400 ? redactSecrets(await c.res.clone().text()) : undefined
 
     const logInfo = {
       duration: `${Date.now() - startTime}ms`,
@@ -102,8 +93,10 @@ const app = new Hono<{
       status,
       ...(version ? { version } : {}),
       ...(userAgent ? { userAgent } : {}),
-      ...(body === undefined ? {} : { body }),
-      ...sanitizeLogData(logEvent),
+      ...sanitizeLogData({
+        ...logEvent,
+        ...(body === undefined ? {} : { body }),
+      }),
     }
 
     const log = JSON.stringify(

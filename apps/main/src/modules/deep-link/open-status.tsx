@@ -8,7 +8,7 @@ export const OpenStatus = ({
 }: {
   children: ReactNode
   description: ReactNode
-  title: string
+  title: ReactNode
 }) => (
   <main className="flex min-h-dvh items-center justify-center p-4">
     <div className="flex w-full max-w-sm flex-col items-center gap-6 text-center">

@@ -12,6 +12,8 @@ const templates = { ...templatesNamespace }
 
 export const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
 
+const NO_REPLY_EMAIL = 'no-reply@tamery.app'
+
 // Anyone can make the API fail a request, and alerts share the Resend quota that sign-in codes need.
 const ALERTS_PER_MINUTE = 10
 
@@ -38,42 +40,45 @@ export const sendEmail = async <
     return
   }
 
-  if (template === 'Alert') {
-    const key = `resend:alerts:${Math.floor(Date.now() / 60_000)}`
-    const sent = await redis.incr(key)
-    if (sent === 1) {
-      await redis.expire(key, 60)
+  // Never throws: auth database hooks send mid-operation, and a Redis or Resend failure must not leave e.g. 2FA half-disabled.
+  try {
+    if (template === 'Alert') {
+      const key = `resend:alerts:${Math.floor(Date.now() / 60_000)}`
+      const sent = await redis.incr(key)
+      if (sent === 1) {
+        await redis.expire(key, 60)
+      }
+      if (sent > ALERTS_PER_MINUTE) {
+        return
+      }
     }
-    if (sent > ALERTS_PER_MINUTE) {
-      return
+
+    const Template = templates[template] as (props?: P) => React.ReactElement
+    const options: CreateEmailOptions = {
+      from: `Tamery <${NO_REPLY_EMAIL}>`,
+      react: Template(props),
+      replyTo: CONTACT_EMAIL,
+      subject,
+      to,
     }
-  }
 
-  const Template = templates[template] as (props?: P) => React.ReactElement
-  const options: CreateEmailOptions = {
-    from: `Tamery <${CONTACT_EMAIL}>`,
-    react: Template(props),
-    subject,
-    to,
-  }
-
-  await redisMemoize(
-    async () => {
-      try {
+    await redisMemoize(
+      async () => {
         const { error } = await resend.emails.send(options)
 
         if (error) {
           throw error
         }
-      } catch (error) {
-        console.error(
-          'Resend email service error:',
-          error instanceof Error ? error.message : 'Unknown error',
-          error
-        )
-      }
-    },
-    `resend:${JSON.stringify(options)}`,
-    10 * 60
-  )
+      },
+      // Keyed: the message carries a six-digit sign-in code, which a plain hash in a listed key name gives up to brute force.
+      `resend:${new Bun.CryptoHasher('sha256', env.BETTER_AUTH_SECRET).update(JSON.stringify(options)).digest('hex')}`,
+      10 * 60
+    )
+  } catch (error) {
+    console.error(
+      'Resend email service error:',
+      error instanceof Error ? error.message : 'Unknown error',
+      error
+    )
+  }
 }

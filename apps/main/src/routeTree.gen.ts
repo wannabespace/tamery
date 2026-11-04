@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as LlmsChar91DotChar93txtRouteImport } from './routes/llms[.]txt'
 import { Route as OpenRouteImport } from './modules/deep-link/routes/open'
-import { Route as AuthEarlyAccessRouteImport } from './routes/_auth/early-access'
+import { Route as SitemapChar91DotChar93xmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthEmailCodeRouteImport } from './routes/_auth/email-code'
+import { Route as AuthPasskeyRouteImport } from './routes/_auth/passkey'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthTwoFactorRouteImport } from './routes/_auth/two-factor'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
@@ -25,13 +27,16 @@ import { Route as LayoutReleasesRouteImport } from './modules/releases/routes/_l
 import { Route as LayoutTermsOfServiceRouteImport } from './modules/legal/routes/_layout/terms-of-service'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as AccountAiUsageRouteImport } from './modules/ai-usage/routes/account/ai-usage'
+import { Route as AccountAuthenticationRouteImport } from './modules/settings/routes/account/authentication'
 import { Route as AccountBillingRouteImport } from './modules/billing/routes/account/billing'
 import { Route as AccountCreditsRouteImport } from './modules/credits/routes/account/credits'
 import { Route as DeepDotshareRouteImport } from './modules/deep-link/routes/deep.share'
 import { Route as DeepDotsignInRouteImport } from './modules/deep-link/routes/deep.sign-in'
+import { Route as InvitationDotinvitationIdRouteImport } from './modules/deep-link/routes/invitation.$invitationId'
 import { Route as LayoutBlogDotindexRouteImport } from './modules/blog/routes/_layout/blog.index'
 import { Route as LayoutBlogDotslugRouteImport } from './modules/blog/routes/_layout/blog.$slug'
 import { Route as AccountSettingsIndexRouteImport } from './modules/settings/routes/account/settings/index'
+import { Route as BlogDotslugDotogChar91DotChar93pngRouteImport } from './modules/blog/routes/blog.$slug.og[.]png'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
@@ -46,19 +51,30 @@ const AccountRoute = AccountRouteImport.update({
   path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LlmsChar91DotChar93txtRoute = LlmsChar91DotChar93txtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OpenRoute = OpenRouteImport.update({
   id: '/open',
   path: '/open',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthEarlyAccessRoute = AuthEarlyAccessRouteImport.update({
-  id: '/early-access',
-  path: '/early-access',
-  getParentRoute: () => AuthRoute,
-} as any)
+const SitemapChar91DotChar93xmlRoute =
+  SitemapChar91DotChar93xmlRouteImport.update({
+    id: '/sitemap.xml',
+    path: '/sitemap.xml',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthEmailCodeRoute = AuthEmailCodeRouteImport.update({
   id: '/email-code',
   path: '/email-code',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthPasskeyRoute = AuthPasskeyRouteImport.update({
+  id: '/passkey',
+  path: '/passkey',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthSignInRoute = AuthSignInRouteImport.update({
@@ -111,6 +127,11 @@ const AccountAiUsageRoute = AccountAiUsageRouteImport.update({
   path: '/ai-usage',
   getParentRoute: () => AccountRoute,
 } as any)
+const AccountAuthenticationRoute = AccountAuthenticationRouteImport.update({
+  id: '/authentication',
+  path: '/authentication',
+  getParentRoute: () => AccountRoute,
+} as any)
 const AccountBillingRoute = AccountBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -131,6 +152,12 @@ const DeepDotsignInRoute = DeepDotsignInRouteImport.update({
   path: '/deep/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InvitationDotinvitationIdRoute =
+  InvitationDotinvitationIdRouteImport.update({
+    id: '/invitation/$invitationId',
+    path: '/invitation/$invitationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LayoutBlogDotindexRoute = LayoutBlogDotindexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
@@ -146,13 +173,21 @@ const AccountSettingsIndexRoute = AccountSettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => AccountRoute,
 } as any)
+const BlogDotslugDotogChar91DotChar93pngRoute =
+  BlogDotslugDotogChar91DotChar93pngRouteImport.update({
+    id: '/blog/$slug/og.png',
+    path: '/blog/$slug/og.png',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
   '/account': typeof AccountRouteWithChildren
+  '/llms.txt': typeof LlmsChar91DotChar93txtRoute
   '/open': typeof OpenRoute
-  '/early-access': typeof AuthEarlyAccessRoute
+  '/sitemap.xml': typeof SitemapChar91DotChar93xmlRoute
   '/email-code': typeof AuthEmailCodeRoute
+  '/passkey': typeof AuthPasskeyRoute
   '/sign-in': typeof AuthSignInRoute
   '/two-factor': typeof AuthTwoFactorRoute
   '/download': typeof LayoutDownloadRoute
@@ -161,20 +196,25 @@ export interface FileRoutesByFullPath {
   '/releases': typeof LayoutReleasesRoute
   '/terms-of-service': typeof LayoutTermsOfServiceRoute
   '/account/ai-usage': typeof AccountAiUsageRoute
+  '/account/authentication': typeof AccountAuthenticationRoute
   '/account/billing': typeof AccountBillingRoute
   '/account/credits': typeof AccountCreditsRoute
   '/deep/share': typeof DeepDotshareRoute
   '/deep/sign-in': typeof DeepDotsignInRoute
+  '/invitation/$invitationId': typeof InvitationDotinvitationIdRoute
   '/account/': typeof AccountIndexRoute
   '/blog/$slug': typeof LayoutBlogDotslugRoute
+  '/blog/$slug/og.png': typeof BlogDotslugDotogChar91DotChar93pngRoute
   '/blog/': typeof LayoutBlogDotindexRoute
   '/account/settings/': typeof AccountSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof LayoutIndexRoute
+  '/llms.txt': typeof LlmsChar91DotChar93txtRoute
   '/open': typeof OpenRoute
-  '/early-access': typeof AuthEarlyAccessRoute
+  '/sitemap.xml': typeof SitemapChar91DotChar93xmlRoute
   '/email-code': typeof AuthEmailCodeRoute
+  '/passkey': typeof AuthPasskeyRoute
   '/sign-in': typeof AuthSignInRoute
   '/two-factor': typeof AuthTwoFactorRoute
   '/download': typeof LayoutDownloadRoute
@@ -183,12 +223,15 @@ export interface FileRoutesByTo {
   '/releases': typeof LayoutReleasesRoute
   '/terms-of-service': typeof LayoutTermsOfServiceRoute
   '/account/ai-usage': typeof AccountAiUsageRoute
+  '/account/authentication': typeof AccountAuthenticationRoute
   '/account/billing': typeof AccountBillingRoute
   '/account/credits': typeof AccountCreditsRoute
   '/deep/share': typeof DeepDotshareRoute
   '/deep/sign-in': typeof DeepDotsignInRoute
+  '/invitation/$invitationId': typeof InvitationDotinvitationIdRoute
   '/account': typeof AccountIndexRoute
   '/blog/$slug': typeof LayoutBlogDotslugRoute
+  '/blog/$slug/og.png': typeof BlogDotslugDotogChar91DotChar93pngRoute
   '/blog': typeof LayoutBlogDotindexRoute
   '/account/settings': typeof AccountSettingsIndexRoute
 }
@@ -197,9 +240,11 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/_layout': typeof LayoutRouteWithChildren
   '/account': typeof AccountRouteWithChildren
+  '/llms.txt': typeof LlmsChar91DotChar93txtRoute
   '/open': typeof OpenRoute
-  '/_auth/early-access': typeof AuthEarlyAccessRoute
+  '/sitemap.xml': typeof SitemapChar91DotChar93xmlRoute
   '/_auth/email-code': typeof AuthEmailCodeRoute
+  '/_auth/passkey': typeof AuthPasskeyRoute
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/two-factor': typeof AuthTwoFactorRoute
   '/_layout/download': typeof LayoutDownloadRoute
@@ -208,13 +253,16 @@ export interface FileRoutesById {
   '/_layout/releases': typeof LayoutReleasesRoute
   '/_layout/terms-of-service': typeof LayoutTermsOfServiceRoute
   '/account/ai-usage': typeof AccountAiUsageRoute
+  '/account/authentication': typeof AccountAuthenticationRoute
   '/account/billing': typeof AccountBillingRoute
   '/account/credits': typeof AccountCreditsRoute
   '/deep/share': typeof DeepDotshareRoute
   '/deep/sign-in': typeof DeepDotsignInRoute
+  '/invitation/$invitationId': typeof InvitationDotinvitationIdRoute
   '/_layout/': typeof LayoutIndexRoute
   '/account/': typeof AccountIndexRoute
   '/_layout/blog/$slug': typeof LayoutBlogDotslugRoute
+  '/blog/$slug/og.png': typeof BlogDotslugDotogChar91DotChar93pngRoute
   '/_layout/blog/': typeof LayoutBlogDotindexRoute
   '/account/settings/': typeof AccountSettingsIndexRoute
 }
@@ -223,9 +271,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/account'
+    | '/llms.txt'
     | '/open'
-    | '/early-access'
+    | '/sitemap.xml'
     | '/email-code'
+    | '/passkey'
     | '/sign-in'
     | '/two-factor'
     | '/download'
@@ -234,20 +284,25 @@ export interface FileRouteTypes {
     | '/releases'
     | '/terms-of-service'
     | '/account/ai-usage'
+    | '/account/authentication'
     | '/account/billing'
     | '/account/credits'
     | '/deep/share'
     | '/deep/sign-in'
+    | '/invitation/$invitationId'
     | '/account/'
     | '/blog/$slug'
+    | '/blog/$slug/og.png'
     | '/blog/'
     | '/account/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/llms.txt'
     | '/open'
-    | '/early-access'
+    | '/sitemap.xml'
     | '/email-code'
+    | '/passkey'
     | '/sign-in'
     | '/two-factor'
     | '/download'
@@ -256,12 +311,15 @@ export interface FileRouteTypes {
     | '/releases'
     | '/terms-of-service'
     | '/account/ai-usage'
+    | '/account/authentication'
     | '/account/billing'
     | '/account/credits'
     | '/deep/share'
     | '/deep/sign-in'
+    | '/invitation/$invitationId'
     | '/account'
     | '/blog/$slug'
+    | '/blog/$slug/og.png'
     | '/blog'
     | '/account/settings'
   id:
@@ -269,9 +327,11 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/_layout'
     | '/account'
+    | '/llms.txt'
     | '/open'
-    | '/_auth/early-access'
+    | '/sitemap.xml'
     | '/_auth/email-code'
+    | '/_auth/passkey'
     | '/_auth/sign-in'
     | '/_auth/two-factor'
     | '/_layout/download'
@@ -280,13 +340,16 @@ export interface FileRouteTypes {
     | '/_layout/releases'
     | '/_layout/terms-of-service'
     | '/account/ai-usage'
+    | '/account/authentication'
     | '/account/billing'
     | '/account/credits'
     | '/deep/share'
     | '/deep/sign-in'
+    | '/invitation/$invitationId'
     | '/_layout/'
     | '/account/'
     | '/_layout/blog/$slug'
+    | '/blog/$slug/og.png'
     | '/_layout/blog/'
     | '/account/settings/'
   fileRoutesById: FileRoutesById
@@ -295,9 +358,13 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   LayoutRoute: typeof LayoutRouteWithChildren
   AccountRoute: typeof AccountRouteWithChildren
+  LlmsChar91DotChar93txtRoute: typeof LlmsChar91DotChar93txtRoute
   OpenRoute: typeof OpenRoute
+  SitemapChar91DotChar93xmlRoute: typeof SitemapChar91DotChar93xmlRoute
   DeepDotshareRoute: typeof DeepDotshareRoute
   DeepDotsignInRoute: typeof DeepDotsignInRoute
+  InvitationDotinvitationIdRoute: typeof InvitationDotinvitationIdRoute
+  BlogDotslugDotogChar91DotChar93pngRoute: typeof BlogDotslugDotogChar91DotChar93pngRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -323,6 +390,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsChar91DotChar93txtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/open': {
       id: '/open'
       path: '/open'
@@ -330,18 +404,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OpenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_auth/early-access': {
-      id: '/_auth/early-access'
-      path: '/early-access'
-      fullPath: '/early-access'
-      preLoaderRoute: typeof AuthEarlyAccessRouteImport
-      parentRoute: typeof AuthRoute
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapChar91DotChar93xmlRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_auth/email-code': {
       id: '/_auth/email-code'
       path: '/email-code'
       fullPath: '/email-code'
       preLoaderRoute: typeof AuthEmailCodeRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/passkey': {
+      id: '/_auth/passkey'
+      path: '/passkey'
+      fullPath: '/passkey'
+      preLoaderRoute: typeof AuthPasskeyRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/sign-in': {
@@ -414,6 +495,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountAiUsageRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/account/authentication': {
+      id: '/account/authentication'
+      path: '/authentication'
+      fullPath: '/account/authentication'
+      preLoaderRoute: typeof AccountAuthenticationRouteImport
+      parentRoute: typeof AccountRoute
+    }
     '/account/billing': {
       id: '/account/billing'
       path: '/billing'
@@ -442,6 +530,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeepDotsignInRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invitation/$invitationId': {
+      id: '/invitation/$invitationId'
+      path: '/invitation/$invitationId'
+      fullPath: '/invitation/$invitationId'
+      preLoaderRoute: typeof InvitationDotinvitationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_layout/blog/': {
       id: '/_layout/blog/'
       path: '/blog'
@@ -463,19 +558,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountSettingsIndexRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/blog/$slug/og.png': {
+      id: '/blog/$slug/og.png'
+      path: '/blog/$slug/og.png'
+      fullPath: '/blog/$slug/og.png'
+      preLoaderRoute: typeof BlogDotslugDotogChar91DotChar93pngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthRouteChildren {
-  AuthEarlyAccessRoute: typeof AuthEarlyAccessRoute
   AuthEmailCodeRoute: typeof AuthEmailCodeRoute
+  AuthPasskeyRoute: typeof AuthPasskeyRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthTwoFactorRoute: typeof AuthTwoFactorRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthEarlyAccessRoute: AuthEarlyAccessRoute,
   AuthEmailCodeRoute: AuthEmailCodeRoute,
+  AuthPasskeyRoute: AuthPasskeyRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthTwoFactorRoute: AuthTwoFactorRoute,
 }
@@ -509,6 +611,7 @@ const LayoutRouteWithChildren =
 
 interface AccountRouteChildren {
   AccountAiUsageRoute: typeof AccountAiUsageRoute
+  AccountAuthenticationRoute: typeof AccountAuthenticationRoute
   AccountBillingRoute: typeof AccountBillingRoute
   AccountCreditsRoute: typeof AccountCreditsRoute
   AccountIndexRoute: typeof AccountIndexRoute
@@ -517,6 +620,7 @@ interface AccountRouteChildren {
 
 const AccountRouteChildren: AccountRouteChildren = {
   AccountAiUsageRoute: AccountAiUsageRoute,
+  AccountAuthenticationRoute: AccountAuthenticationRoute,
   AccountBillingRoute: AccountBillingRoute,
   AccountCreditsRoute: AccountCreditsRoute,
   AccountIndexRoute: AccountIndexRoute,
@@ -530,19 +634,25 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   LayoutRoute: LayoutRouteWithChildren,
   AccountRoute: AccountRouteWithChildren,
+  LlmsChar91DotChar93txtRoute: LlmsChar91DotChar93txtRoute,
   OpenRoute: OpenRoute,
+  SitemapChar91DotChar93xmlRoute: SitemapChar91DotChar93xmlRoute,
   DeepDotshareRoute: DeepDotshareRoute,
   DeepDotsignInRoute: DeepDotsignInRoute,
+  InvitationDotinvitationIdRoute: InvitationDotinvitationIdRoute,
+  BlogDotslugDotogChar91DotChar93pngRoute:
+    BlogDotslugDotogChar91DotChar93pngRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

@@ -8,11 +8,7 @@ import { connectionResourceStoreKey } from '~/lib/constants'
 
 const schema = type({
   lastOpenedResourceName: 'string | null',
-  proxy: {
-    enabled: 'boolean',
-    url: 'string | null',
-  },
-}).pipe(({ lastOpenedResourceName, proxy }) => ({
+}).pipe(({ lastOpenedResourceName }) => ({
   lastOpenedResourceName: (lastOpenedResourceName ===
   CONNECTION_RESOURCE_ROOT_SYMBOL.description
     ? CONNECTION_RESOURCE_ROOT_SYMBOL
@@ -20,15 +16,11 @@ const schema = type({
     | string
     | typeof CONNECTION_RESOURCE_ROOT_SYMBOL
     | null,
-  proxy,
 }))
 
 export const getConnectionStore = memoize((id: string) =>
   createWebStorageValue({
-    defaultValue: {
-      lastOpenedResourceName: null,
-      proxy: { enabled: !window.electron, url: null },
-    },
+    defaultValue: { lastOpenedResourceName: null },
     key: `connection-store-${id}`,
     schema,
     type: 'localStorage',

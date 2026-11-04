@@ -13,7 +13,7 @@ mongodb://user:password@localhost:27017/shop?authSource=admin
 
 The default port is **27017**. The path is the database Tamery opens first.
 
-For MongoDB Atlas, paste the `mongodb+srv://` string from **Connect** in Atlas — Tamery recognizes the cluster address on its own:
+For MongoDB Atlas, paste the `mongodb+srv://` string from **Connect** in Atlas. Tamery recognizes the cluster address on its own:
 
 ```text
 mongodb+srv://user:password@cluster0.abcde.mongodb.net/shop
@@ -35,17 +35,17 @@ Add `tls=true` to connect over TLS. A `mongodb+srv://` string uses TLS without i
 
 ## SSH tunnels
 
-On desktop, turn on **SSH tunnel** to reach MongoDB behind a bastion, as for any engine. Every server of a replica set connects through the tunnel, by the names the SSH host resolves, so members listed under internal hostnames work.
+On desktop or through `tamery bridge`, turn on **SSH tunnel** to reach MongoDB behind a bastion, as for any engine. Every server of a replica set connects through the tunnel, by the names the SSH host resolves, so members listed under internal hostnames work.
 
 ## Databases and collections
 
 Each database is a resource of the connection. `admin`, `config`, and `local` stay hidden. The Navigator lists the database's collections and views.
 
-A collection has no fixed columns, so Tamery infers them: a random sample of 100 documents, plus the fields the documents you have loaded carry, so more columns can appear as you scroll. Each field becomes a column with the type its values have, and `_id` is the key — shown even on an empty collection so you can add the first document.
+A collection has no fixed columns, so Tamery infers them: a random sample of 100 documents, plus the fields the documents you have loaded carry, so more columns can appear as you scroll. Each field becomes a column with the type its values have, and `_id` is the key. It shows even on an empty collection, so you can add the first document.
 
 In the [table browser](/features/table-browser) you can filter, sort, edit cells, and add or delete documents. **Add document** opens an editor where you paste or type a whole document in mongosh or Extended JSON syntax; BSON types like `ObjectId("…")` and `ISODate("…")` are kept as themselves. An edited cell is stored with its field's type too: an ObjectId stays an ObjectId and a date stays a date. Nested documents and arrays open in the JSON editor, where typed values read as Extended JSON, like `{ "$oid": "…" }`.
 
-**Schema** lists each collection's indexes, where you can add and drop them. MongoDB can't alter an index in place, so an existing one opens read-only — change it by dropping and recreating it.
+**Schema** lists each collection's indexes, where you can add and drop them. MongoDB can't alter an index in place, so an existing one opens read-only. To change it, drop and recreate it.
 
 ## Queries
 

@@ -1,0 +1,70 @@
+Most failed MongoDB connections come down to two things: the user lives in a different database than the one in the string, or Atlas does not know your IP yet. Paste your connection string into Tamery and it handles the first one for you and points you at the second.
+
+## The MongoDB connection string
+
+Choose **MongoDB** under Engine, or paste a string:
+
+```text
+mongodb://user:password@localhost:27017/shop?authSource=admin
+```
+
+The default port is **27017**. The path is the database Tamery opens first. Tamery supports MongoDB 5.0 and later.
+
+## MongoDB Atlas and mongodb+srv
+
+Copy the `mongodb+srv://` string from **Connect** in Atlas and paste it as is. Tamery recognizes the cluster address on its own:
+
+```text
+mongodb+srv://user:password@cluster0.abcde.mongodb.net/shop
+```
+
+Atlas only accepts connections from allowed IPs. If connecting ends with a TLS handshake error, add your current IP under **Network Access** in Atlas and try again.
+
+A string that lists several servers keeps the first one. Add `replicaSet=` with the set's name and the driver finds the other members from it.
+
+## authSource and "Authentication failed"
+
+MongoDB checks a user against the database in the string unless `authSource` names another one. A root user, like the one the official Docker image creates, lives in `admin`, so a string pointing at `shop` fails to sign in even with the right password. When that happens, Tamery offers to add `authSource=admin` for you.
+
+## TLS
+
+Add `tls=true` to connect over TLS. A `mongodb+srv://` string uses TLS without it. With neither, the connection is plain text. On desktop, an SSH tunnel reaches a server behind a bastion, and every member of a replica set connects through it.
+
+## Browsing collections
+
+A collection has no fixed columns, so Tamery infers them from a sample of documents and adds more as you scroll through fields it has not seen yet. You can filter, sort, edit cells and add documents in mongosh or Extended JSON syntax. An ObjectId stays an ObjectId and a date stays a date when you edit it.
+
+## Querying in mongosh syntax
+
+A Query tab runs `db` calls instead of SQL, with completion for your collections, their fields and the operators:
+
+```js
+db.orders
+  .find({ status: 'paid', total: { $gt: 100 } })
+  .sort({ total: -1 })
+  .limit(20)
+```
+
+Tamery asks before running anything that changes or removes data, the same way it does for `UPDATE` and `DROP` in SQL.
+
+## FAQ
+
+### What port does MongoDB use?
+
+27017 by default. A `mongodb+srv://` string has no port, because the driver looks the servers up from DNS.
+
+### How do I fix "Authentication failed" with the right password?
+
+The user is probably defined in another database. Add `authSource=admin` to the string, or let Tamery add it when it offers.
+
+### Why does Atlas fail with a TLS handshake error?
+
+Your IP is not on the cluster's access list. Add it under **Network Access** in Atlas.
+
+### Can I use mongosh commands like `use`?
+
+Tamery runs `db` calls only, not other JavaScript. Use `db.getSiblingDB('name')` to reach another database.
+
+---
+
+[Download Tamery](/download) and paste your `mongodb://` or `mongodb+srv://` string. The full reference, including indexes, transactions and the current limits, is in the [MongoDB docs](https://docs.tamery.app/connections/mongodb).

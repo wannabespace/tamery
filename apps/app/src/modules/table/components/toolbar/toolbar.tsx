@@ -1,7 +1,6 @@
 import { MoreHorizontalIcon, SourceCodeIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { isSqlDialect } from '@tamery/shared/enums/connection-type'
-import type { ActiveFilter } from '@tamery/shared/filters'
 import { enabledFilters } from '@tamery/shared/filters'
 import { Button } from '@tamery/ui/components/button'
 import { Dialog } from '@tamery/ui/components/dialog'
@@ -28,7 +27,6 @@ import {
 } from '~/core/queries/rows/list'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
-import { useTableSessionStore } from '~/core/table/session'
 import { ShareDialog } from '~/modules/share/share-dialog'
 import { ShareMenuItem } from '~/modules/share/share-menu-item'
 import {
@@ -63,7 +61,6 @@ export const TableToolbar = ({
   const { connectionResource, dialect } = useConnectionContext()
   const { columns } = useTableColumnsContext()
   const store = useTablePageStore()
-  const sessionStore = useTableSessionStore()
   const [seedOpen, setSeedOpen] = useState(false)
   const [codeOpen, setCodeOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
@@ -86,9 +83,6 @@ export const TableToolbar = ({
       orderBy: state.orderBy,
     }),
   })
-  const selected = useSubscription(sessionStore, {
-    selector: (state) => state.selected,
-  })
 
   const {
     data: rows = [],
@@ -107,13 +101,7 @@ export const TableToolbar = ({
     })
   )
 
-  const getData = async ({
-    filters: selection,
-    limit,
-  }: {
-    filters?: ActiveFilter[]
-    limit?: number
-  }) => {
+  const getData = async ({ limit }: { limit?: number }) => {
     const queryParams =
       await connectionResourceToQueryParams(connectionResource)
     const fetchRows = (offset: number, pageSize: number) =>
@@ -122,8 +110,7 @@ export const TableToolbar = ({
         limit: pageSize,
         offset,
         query: {
-          filters: selection ?? filters,
-          filtersConcatOperator: selection ? 'OR' : 'AND',
+          filters,
           orderBy: {
             ...orderBy,
             ...Object.fromEntries(
@@ -196,7 +183,6 @@ export const TableToolbar = ({
           </Tooltip>
           <DropdownMenuContent align="end" className="min-w-44">
             <ExportDataMenu
-              selected={selected}
               filename={`${schema}_${table}`}
               getData={getData}
               disabled={rows.length === 0 || isPending}

@@ -2,9 +2,10 @@ import { FolderOpenIcon } from '@hugeicons/core-free-icons'
 import { DEFAULT_PORTS } from '@tamery/connection/connection-parts'
 import { isLocalHost } from '@tamery/connection/hosts'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
+import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { FieldGroup } from '@tamery/ui/components/field'
 
-import { useLocalProxyAvailable } from '~/core/runtime/proxy'
+import { useBridgeRoute } from '~/core/runtime/bridge/pairing'
 import { posthog } from '~/lib/posthog'
 
 import type {
@@ -26,7 +27,7 @@ export const ConnectionFields = ({
   values: Pick<ConnectionFormValues, 'host' | 'provider' | 'type'>
 }) => {
   const sqliteFile = isSqliteFile(values)
-  const localProxyAvailable = useLocalProxyAvailable()
+  const bridge = useBridgeRoute(null)
 
   return (
     <>
@@ -71,16 +72,25 @@ export const ConnectionFields = ({
           )
         )}
       </FieldGroup>
-      {isLocalHost(values.host.trim()) &&
-        !window.electron &&
-        localProxyAvailable && (
-          <Footnote>
-            Local databases are reached through your tamery proxy.
-          </Footnote>
-        )}
+      {bridge && !sqliteFile && isLocalHost(values.host.trim()) && (
+        <Footnote>
+          Local databases are reached from the bridge on{' '}
+          <span data-mask>{bridge.name}</span>.
+        </Footnote>
+      )}
       {sqliteFile && !window.electron && (
         <Footnote>
-          The file opens on the computer running your tamery proxy.
+          {bridge ? (
+            <>
+              The file opens on <span data-mask>{bridge.name}</span>, the
+              computer running your bridge.
+            </>
+          ) : (
+            <>
+              The file opens on the computer running{' '}
+              <InlineCode>tamery bridge</InlineCode>.
+            </>
+          )}
         </Footnote>
       )}
     </>

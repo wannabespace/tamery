@@ -18,10 +18,12 @@ import { env } from '~/env'
 
 export const Base = ({
   children,
+  footnote,
   preview,
   title,
 }: {
   children: React.ReactNode
+  footnote?: React.ReactNode
   preview: string
   title: string
 }) => (
@@ -31,7 +33,8 @@ export const Base = ({
       theme: {
         extend: {
           colors: {
-            // Keep in sync with --primary in packages/ui/src/styles/globals.css; email clients need sRGB.
+            // Keep in sync with --muted-foreground and --primary in packages/ui/src/styles/globals.css; email clients need sRGB.
+            'muted-foreground': '#717171',
             primary: '#006eff',
           },
         },
@@ -71,6 +74,11 @@ export const Base = ({
                 Website
               </Link>
             </Text>
+            {footnote && (
+              <Text className="text-muted-foreground mt-0 text-center text-xs">
+                {footnote}
+              </Text>
+            )}
           </Section>
         </Container>
       </Body>

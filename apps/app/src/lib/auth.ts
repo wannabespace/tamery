@@ -12,6 +12,7 @@ import {
   isAuthLocation,
   lastLocationStorageValue,
 } from './last-location'
+import { posthog } from './posthog'
 import { API_QUERY_KEY, queryClient } from './query-client'
 import { apiUrl } from './urls'
 
@@ -97,12 +98,19 @@ export const useHasAccount = () =>
 export const isSignedIn = async () => !!(await getSessionUser())
 
 export const fullSignOut = async () => {
-  const [{ cleanCollections }, { clearDb }, { subscriptionsCache }] =
-    await Promise.all([
-      import('~/core/collections'),
-      import('./sync'),
-      import('~/core/user/use-subscription'),
-    ])
+  const [
+    { cleanCollections },
+    { clearDb },
+    { subscriptionsCache },
+    { bridge },
+  ] = await Promise.all([
+    import('~/core/collections'),
+    import('./sync'),
+    import('~/core/user/use-subscription'),
+    import('~/core/runtime/bridge/bridge'),
+  ])
+
+  await bridge.unpair()
 
   // Before the session is revoked: a sync loop still running reconnects into a 401.
   await cleanCollections()
@@ -116,6 +124,7 @@ export const fullSignOut = async () => {
   }
 
   subscriptionsCache.clear()
+  posthog.reset()
   queryClient.removeQueries({ queryKey: [API_QUERY_KEY] })
   await Promise.all([clearDb(), deviceEncryption.reset()])
 }

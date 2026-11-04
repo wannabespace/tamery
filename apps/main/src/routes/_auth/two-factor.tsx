@@ -1,21 +1,45 @@
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
-import { Field, FieldLabel } from '@tamery/ui/components/field'
+import { Field, FieldLabel, FieldSeparator } from '@tamery/ui/components/field'
 import { Input } from '@tamery/ui/components/input'
 import { useMutation } from '@tanstack/react-query'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, getRouteApi, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { TotpCodeInput } from '~/components/totp-code-input'
 import { authClient } from '~/lib/auth'
 import { handleError } from '~/utils/error'
 
+import { PasskeyButton } from './-components/passkey-button'
 import { useFinishSignIn } from './-lib/sign-in'
 
+const { useLoaderData } = getRouteApi('/_auth/two-factor')
+
+const getHint = ({
+  hasAuthenticator,
+  isBackupCode,
+}: {
+  hasAuthenticator: boolean
+  isBackupCode: boolean
+}) => {
+  if (isBackupCode) {
+    return 'Enter one of the backup codes you saved when you turned on 2FA.'
+  }
+
+  return hasAuthenticator
+    ? 'Enter the code from your authenticator app.'
+    : 'Continue with your passkey, or use a backup code.'
+}
+
 const TwoFactorPage = () => {
+  const { hasAuthenticator, hasPasskey } = useLoaderData()
+  const leaveBackupCodeLabel = hasAuthenticator
+    ? 'Use your authenticator app'
+    : 'Use your passkey'
   const finishSignIn = useFinishSignIn()
   const [code, setCode] = useState('')
   const [isBackupCode, setIsBackupCode] = useState(false)
+  const asksForCode = hasAuthenticator || isBackupCode
 
   const { mutate: verify, isPending } = useMutation({
     meta: { event: 'two_factor_verified' },
@@ -42,9 +66,7 @@ const TwoFactorPage = () => {
           Two-factor authentication
         </h1>
         <p className="text-muted-foreground text-sm">
-          {isBackupCode
-            ? 'Enter one of the backup codes you saved when you turned on 2FA.'
-            : 'Enter the code from your authenticator app.'}
+          {getHint({ hasAuthenticator, isBackupCode })}
         </p>
       </div>
       {isBackupCode ? (
@@ -77,13 +99,24 @@ const TwoFactorPage = () => {
           </Button>
         </form>
       ) : (
-        <TotpCodeInput
-          label="Verification code"
-          value={code}
-          onChange={setCode}
-          onComplete={verify}
-          loading={isPending}
-          autoFocus
+        hasAuthenticator && (
+          <TotpCodeInput
+            aria-label="Verification code"
+            value={code}
+            onChange={setCode}
+            onComplete={verify}
+            loading={isPending}
+            autoFocus
+          />
+        )
+      )}
+      {hasPasskey && asksForCode && (
+        <FieldSeparator className="w-full">Or</FieldSeparator>
+      )}
+      {hasPasskey && (
+        <PasskeyButton
+          variant={asksForCode ? 'outline' : 'default'}
+          autoFocus={!asksForCode}
         />
       )}
       <Button
@@ -94,7 +127,7 @@ const TwoFactorPage = () => {
           setIsBackupCode(!isBackupCode)
         }}
       >
-        {isBackupCode ? 'Use your authenticator app' : 'Use a backup code'}
+        {isBackupCode ? leaveBackupCodeLabel : 'Use a backup code'}
       </Button>
     </div>
   )
@@ -108,5 +141,12 @@ export const Route = createFileRoute('/_auth/two-factor')({
     if (session?.user) {
       throw redirect({ to: '/account' })
     }
+
+    const { data } = await authClient.$fetch<{
+      hasAuthenticator: boolean
+      hasPasskey: boolean
+    }>('/passkey/two-factor-methods', { method: 'GET' })
+
+    return data ?? { hasAuthenticator: true, hasPasskey: false }
   },
 })

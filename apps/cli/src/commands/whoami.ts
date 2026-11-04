@@ -1,32 +1,12 @@
-import { command } from '@drizzle-team/brocli'
-import { consola } from 'consola'
-import ora from 'ora'
+import { log } from '@clack/prompts'
 
-import { clearToken, getToken } from '~/config'
-import { getSession } from '~/session'
+import { paint } from '../paint'
+import { vault } from '../vault'
 
-export const whoamiCommand = command({
-  desc: 'Show the currently signed-in user',
-  handler: async () => {
-    if (!getToken()) {
-      consola.info('Not signed in.')
-      return
-    }
-
-    const spinner = ora('Verifying session...').start()
-    const session = await getSession()
-    spinner.stop()
-
-    if (!session) {
-      clearToken()
-      consola.warn(
-        'Saved session is no longer valid. Run `tamery login` to sign in again.'
-      )
-      return
-    }
-
-    consola.log(session.user.email)
-  },
-  name: 'whoami',
-  options: {},
-})
+export const whoami = async () => {
+  const account = await vault.account()
+  if (!account) {
+    throw new Error(`Not signed in. Run ${paint.accent('tamery login')}.`)
+  }
+  log.info(`Signed in as ${paint.bold(account.email)}`)
+}

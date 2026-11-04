@@ -1,6 +1,7 @@
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
+import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 export const resolve = orpc
@@ -10,12 +11,13 @@ export const resolve = orpc
     const connection = await db.query.connections.findFirst({
       columns: {
         connectionString: true,
+        isPasswordExists: true,
         updatedAt: true,
         workspaceId: true,
       },
       where: {
+        RAW: inMemberWorkspace(context.user.id),
         id: { eq: input.id },
-        userId: { eq: context.user.id },
       },
     })
 
@@ -24,11 +26,14 @@ export const resolve = orpc
     }
 
     if (
-      !connection.connectionString ||
-      (input.updatedAt &&
-        input.updatedAt.getTime() >= connection.updatedAt.getTime())
+      input.updatedAt &&
+      input.updatedAt.getTime() >= connection.updatedAt.getTime()
     ) {
       return { status: 'unchanged' as const }
+    }
+
+    if (!connection.connectionString) {
+      return { status: 'no-connection-string' as const }
     }
 
     const connectionString = await context.decryptConnectionString({
@@ -38,6 +43,7 @@ export const resolve = orpc
 
     return {
       connectionString,
+      isPasswordExists: connection.isPasswordExists,
       status: 'modified' as const,
       updatedAt: connection.updatedAt,
     }

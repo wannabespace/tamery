@@ -5,7 +5,7 @@ import { PRO_PLAN } from '~/utils/pricing'
 export const FAQ_QUESTIONS = [
   {
     answer:
-      'PostgreSQL, TimescaleDB, MySQL, MariaDB, Microsoft SQL Server, Oracle, ClickHouse, MongoDB and SQLite, including SQLite on Turso and Cloudflare D1, in the desktop app, the web app and the CLI. A local SQLite file opens in the desktop app, or on the web through tamery proxy.',
+      'PostgreSQL, TimescaleDB, MySQL, MariaDB, Microsoft SQL Server, Oracle, ClickHouse, MongoDB and SQLite, including SQLite on Turso and Cloudflare D1, in the desktop app, the web app and the CLI. A local SQLite file opens in the desktop app, or on the web through tamery bridge.',
     question: 'Which databases does Tamery support?',
   },
   {
@@ -15,7 +15,7 @@ export const FAQ_QUESTIONS = [
   },
   {
     answer:
-      'Yes. The desktop app runs a local proxy, so localhost and private-network databases work without setup. In the browser, run tamery proxy from the CLI.',
+      'Yes. The desktop app runs a local proxy, so localhost and private-network databases work without setup. In the browser, run tamery bridge from the CLI.',
     question: 'Can I connect to localhost and private databases?',
   },
   {

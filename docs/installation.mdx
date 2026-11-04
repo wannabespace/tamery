@@ -20,6 +20,10 @@ keywords: ['setup', 'system requirements']
 
 Windows and Linux builds are 64-bit x86 only.
 
+To sign in, the app opens your browser. Continue only if you started signing in yourself: someone who sends you a sign-in link of their own gets into your account if you confirm it.
+
+To try the desktop app first, click **Continue without an account**. You get one connection, whose connection string stays on this device, and one open tab. AI is limited to **Explain with AI** on a failed connection test. Sign in later from the user menu and your connection moves to your account.
+
 ## Updates
 
 The desktop app checks for updates every 10 minutes and downloads them in the background. When one is ready, **Restart to update** appears in the title bar. Click it when it suits you; nothing restarts on its own.
@@ -30,8 +34,4 @@ To check right now, click the version number in the title bar, or choose **Check
 
 Open [web.tamery.app](https://web.tamery.app) and sign in. Public database servers work without installing anything.
 
-For localhost, private networks, or SQLite files, keep the [local proxy](/cli/commands#tamery-proxy) running on the computer that can reach them. SSH tunnels need the desktop app.
-
-## CLI
-
-Install it with npm. It needs Node.js 22.16 or later. See [Tamery CLI](/cli/overview).
+For localhost, private networks, SQLite files, or SSH tunnels, [install the CLI](/cli/overview#install) and keep `tamery bridge` running on the computer that can reach them.

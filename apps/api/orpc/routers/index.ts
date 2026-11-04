@@ -14,6 +14,7 @@ import * as connections from './connections'
 import * as connectionsResources from './connections-resources'
 import { contact } from './contact'
 import { contactSales } from './contact-sales'
+import { hasPasskey } from './has-passkey'
 import * as internal from './internal'
 import * as queries from './queries'
 import { releases } from './releases'
@@ -36,6 +37,7 @@ export const router = {
   connectionsResources,
   contact,
   contactSales,
+  hasPasskey,
   internal,
   queries,
   releases,
