@@ -1,0 +1,49 @@
+name: Build image
+description: Signs in to Google Cloud, then builds apps/<service>/Dockerfile and pushes it to Artifact Registry. Exports IMAGE.
+
+inputs:
+  service:
+    description: The folder under apps/, which also names the image
+    required: true
+  build-args:
+    description: One KEY=value per line
+    required: false
+  secrets:
+    description: One id=value per line, for the Dockerfile's secret mounts
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+      with:
+        workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ env.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+    - name: Set up gcloud
+      uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+    - name: Name the image and sign in to its registry
+      shell: bash
+      env:
+        SERVICE: ${{ inputs.service }}
+      run: |
+        registry="$GCP_REGION-docker.pkg.dev"
+        gcloud auth configure-docker "$registry" --quiet
+        echo "IMAGE=$registry/$GCP_PROJECT_ID/$GCP_ARTIFACT_REPOSITORY/$SERVICE:$GITHUB_SHA" >> "$GITHUB_ENV"
+
+    - name: Set up Buildx
+      uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+    - name: Build and push
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      with:
+        context: .
+        file: apps/${{ inputs.service }}/Dockerfile
+        push: true
+        tags: ${{ env.IMAGE }}
+        build-args: ${{ inputs.build-args }}
+        secrets: ${{ inputs.secrets }}
+        cache-from: type=gha,scope=${{ inputs.service }}
+        cache-to: type=gha,mode=max,scope=${{ inputs.service }}

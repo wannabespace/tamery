@@ -1,3 +1,4 @@
+import { CLIENT_IP_HEADER } from '@tamery/shared/constants'
 import { hasErrorCode } from '@tamery/shared/orpc-error'
 import {
   SHARE_PAGE_SIZE,
@@ -147,8 +148,7 @@ export const shares = {
         id,
         token: null,
         unlock: {
-          // Only X-Real-IP is set by Railway's edge; any other client-IP header can be spoofed.
-          client: context.headers.get('x-real-ip') ?? 'unknown',
+          client: context.headers.get(CLIENT_IP_HEADER) ?? 'unknown',
           password,
         },
       })

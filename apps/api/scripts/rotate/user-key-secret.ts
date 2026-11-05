@@ -1,3 +1,4 @@
+import '@tamery/shared/arktype-config'
 import { env } from '@tamery/db/env'
 import { workspaceEncryptionKeys } from '@tamery/db/schema'
 

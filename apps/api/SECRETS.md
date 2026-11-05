@@ -1,46 +1,41 @@
-# Secrets & KMS: operator runbook
+# Secrets: operator runbook
 
-Rules and reasons: `.agents/rules/api.md` → Secrets / environment.
+Rules and reasons: `.agents/rules/api.md` → Secrets / environment. The key, the secrets and who reads them are in `infra/secrets.tf`.
 
-`ENCRYPTION_SECRET` encrypts every `encryptedText`/`encryptedJson` column. `USER_KEY_SECRET` encrypts the per-workspace keys in `workspace_encryption_keys`, which are the inner layer of connection strings. In dev both are plaintext in `apps/api/.env`, and Infisical is never contacted. In prod both are KMS-wrapped (`*_WRAPPED`).
+`ENCRYPTION_SECRET` encrypts every `encryptedText`/`encryptedJson` column. `USER_KEY_SECRET` encrypts the per-workspace keys in `workspace_encryption_keys`, which are the inner layer of connection strings. In dev both are plaintext in `apps/api/.env`. In prod both are Secret Manager secrets, encrypted by the Cloud KMS key `secrets`.
 
 Either secret may be a comma-separated keyring, current key first. A key must never contain a comma.
 
-## Setup
+**Back up both values in a password manager.** Without that backup, losing the KMS key loses all data.
 
-1. **Back up** both plaintext values in a password manager, never in a platform env. Without this backup, losing the KMS key loses all data.
-2. **KMS key:** Infisical → KMS project → Add Key, `Encrypt/Decrypt`, `AES-256-GCM`. Set **Allow Export OFF**; this cannot be changed later. Set **Delete Protection ON**.
-3. **Machine identity:**
-   - Organization → Access Control → Machine Identities → Create, then Add Client Secret.
-   - Add the identity to the KMS project with the role **Cryptographic Operator**.
-4. **Wrap** both values on your own machine (outside the platform), from the repo root, in zsh. Each run prints one `*_WRAPPED` value:
+## Setting a value
 
-   ```bash
-   read -rs "INFISICAL_CLIENT_ID?Client ID: "; echo
-   read -rs "INFISICAL_CLIENT_SECRET?Client Secret: "; echo
-   read -rs "INFISICAL_KMS_KEY_ID?KMS key id: "; echo
-   export INFISICAL_CLIENT_ID INFISICAL_CLIENT_SECRET INFISICAL_KMS_KEY_ID
-   read -rs "S?Secret: "; echo; printf %s "$S" | bun run apps/api/scripts/wrap-secret.ts; unset S
-   ```
+In zsh on your own machine, so the value stays out of your shell history:
 
-5. **Healthcheck first**, in every API service: path `/health`, timeout at least 120s. Without it, a deploy that fails to unwrap takes traffic and goes down instead of leaving the old instance serving.
-6. **Variables**, in every API service:
-   - Confirm the start command is `apps/api`'s `bun run start`. The unwrap is a preload inside that script.
-   - Add `ENCRYPTION_SECRET_WRAPPED`, `USER_KEY_SECRET_WRAPPED`, `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET` and `INFISICAL_KMS_KEY_ID`.
-   - Remove the plaintext `ENCRYPTION_SECRET` and `USER_KEY_SECRET`.
-   - Redeploy.
+```bash
+read -rs "S?Value: "; echo
+printf %s "$S" | gcloud secrets versions add ENCRYPTION_SECRET --project=gen-lang-client-0721016191 --data-file=-
+unset S
+```
+
+Only an instance that starts later sees the new value, so start a new revision. A job reads it on its next run.
+
+```bash
+gcloud run services update api --region=europe-west3 --revision-suffix="secrets-$(date +%s)"
+```
 
 ## Rotation
 
-Run the scripts inside an API service, which holds the wrapped env and the database network. Each one is a dry run unless you pass `--execute`, and each is safe to re-run:
+Run the scripts as the `api-rotate` Cloud Run Job. Its command is `bun`, and the arguments pick the script. Each one is a dry run unless you pass `--execute`, and each is safe to re-run:
 
 ```bash
-railway ssh --service <api-service>
-cd apps/api
-NODE_ENV=production bun run rotate:encryption-secret [--execute]   # or rotate:user-key-secret
+gcloud run jobs execute api-rotate --region=europe-west3 --wait --args=run,rotate:encryption-secret            # or rotate:user-key-secret
+gcloud run jobs execute api-rotate --region=europe-west3 --wait --args=run,rotate:encryption-secret,--execute
 ```
 
-**New key value**: every "set" below means wrap the value, update `*_WRAPPED`, and redeploy every API service.
+The output is in the execution's logs.
+
+**New key value:**
 
 1. Back up `<new>`.
 2. Set `<new>,<old>`. While the deploy overlaps, an instance still on `<old>` fails to read the rows a new instance just wrote; this lasts only seconds and is accepted.
@@ -48,19 +43,22 @@ NODE_ENV=production bun run rotate:encryption-secret [--execute]   # or rotate:u
 4. Set `<new>`.
 5. Keep `<old>` in the backup until every database backup that predates step 3 has expired.
 
-**New KMS key, same value:** wrap the same plaintext under the new key, then update `INFISICAL_KMS_KEY_ID` and both `*_WRAPPED` values. Stored data is untouched.
+**The KMS key** rotates itself every 90 days. Never destroy one of its versions while a secret version encrypted under it is still enabled.
 
-**Per-workspace keys:** `bun run rotate:connection-keys --execute [workspaceId ...]`. It needs no env change.
+**Per-workspace keys:** `--args=run,rotate:connection-keys,--execute[,<workspaceId>...]`. It needs no env change.
 
 ## Incidents
 
-- **Env leak:**
-  1. Revoke the machine identity.
-  2. Check the Infisical audit log for decrypt calls.
-  3. Create a new identity.
-  4. Rotate everything else in the env (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `PROXY_SHARED_SECRET`, API and OAuth keys).
-  5. Rotate the key values as well.
-- **Lost KMS key:** wrap the backed-up plaintext under a new key. Without the backup, the data is gone.
+- **Secret read by someone else** (the alert names who and from where):
+  1. Rotate that secret.
+  2. If it was `ENCRYPTION_SECRET` or `USER_KEY_SECRET`, run **New key value**.
+- **Running API instance compromised:** it holds both keys and every other secret.
+  1. Remove `tamery-api`'s `secretAccessor` bindings, which stops new instances from booting.
+  2. Check the audit log, then deploy under a new service account.
+  3. Rotate every secret and both key values.
+- **Stop everything at once:** remove Secret Manager's binding on the KMS key. No instance can boot until it returns.
+- **Key version scheduled for destruction by mistake:** restore it within the 120 days.
+- **Lost KMS key:** create the secrets again under a new key and set the backed-up values. Without the backup, the data is gone.
 - **Lost workspace key row:**
   1. Mint a new key with `workspaceEncryptionKey.create(workspaceId, db)`.
   2. Clear `connection_string` on that workspace's connections.

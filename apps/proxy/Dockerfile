@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Railway builds this with the repo root as the context.
+# Built with the repo root as the context.
 
 FROM node:24-slim
 COPY --from=oven/bun:1.4.4 /usr/local/bin/bun /usr/local/bin/bun

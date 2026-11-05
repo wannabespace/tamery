@@ -13,16 +13,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-      - name: Prepare Discord release notes
-        run: |
-          node --input-type=module <<'NODE'
-          import { readFileSync, writeFileSync } from 'node:fs'
-
-          const path = process.env.GITHUB_EVENT_PATH
-          const event = JSON.parse(readFileSync(path, 'utf8'))
-          event.release.body = (event.release.body ?? '').split('\n\n<details>')[0].trimEnd()
-          writeFileSync(path, JSON.stringify(event))
-          NODE
       - name: GitHub Releases to Discord
         uses: SethCohen/github-releases-to-discord@24d166886aee4646d448c8a389ff9e1ebcab3682 # v1
         with:

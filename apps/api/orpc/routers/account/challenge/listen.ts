@@ -1,3 +1,4 @@
+import { CLIENT_IP_HEADER } from '@tamery/shared/constants'
 import { type } from 'arktype'
 
 import { orpc } from '~/orpc'
@@ -20,7 +21,7 @@ export const listen = orpc
     })
 
     await challengeDeviceRedis.register(input.codeChallenge, {
-      ipAddress: headers.get('x-real-ip'),
+      ipAddress: headers.get(CLIENT_IP_HEADER),
       userAgent: headers.get('User-Agent'),
     })
 
