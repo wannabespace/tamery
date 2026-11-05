@@ -12,6 +12,14 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
+    slug: 'best-database-clients-compared',
+    title: 'Best database clients in 2026, compared by someone who builds one',
+    description:
+      'DBeaver, DataGrip, TablePlus, Beekeeper Studio, pgAdmin and Tamery compared on price, engines, AI, MCP and credentials, including where Tamery loses.',
+    publishedAt: '2026-11-05',
+    engine: 'Comparison',
+  },
+  {
     slug: 'connect-to-mongodb',
     title: 'How to connect to MongoDB',
     description:

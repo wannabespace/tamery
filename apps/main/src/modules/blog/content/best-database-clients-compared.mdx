@@ -1,0 +1,150 @@
+There is no best database client, and anyone who says otherwise, us included, is selling you the one they build. There is a good answer per job. Pick DBeaver or DataGrip if you work across many engines, TablePlus for a native app you buy once, Beekeeper Studio for an open source client with a clean interface, and pgAdmin for PostgreSQL administration. Pick Tamery if you want the same connections on your desktop, in a browser and in your coding agent.
+
+We build Tamery, so discount this post accordingly. I checked every competitor claim below on the vendor's own pages on November 5, 2026, and linked them so you can catch me if one goes stale.
+
+You won't find speed benchmarks here. A vendor timing its rivals' startup proves very little, so open each app against your own schema and judge for yourself.
+
+## What is a database client?
+
+A database client is an app that connects to a database and lets you browse tables, edit rows and run queries. `psql` is one. So is every GUI in this post.
+
+For years, these tools competed on engine count and polish. Both still matter, but two newer questions now separate them: where your credentials live when you work on several devices, and what happens when an AI agent decides to run a `DELETE`.
+
+## Database client pricing and supported engines
+
+| Client | Free option | Paid from | Engines |
+| --- | --- | --- | --- |
+| [DBeaver](https://dbeaver.com/edition/) | Community | $113 a year | Many, NoSQL is paid |
+| [DataGrip](https://www.jetbrains.com/datagrip/) | Non-commercial | $109 a year | Over 50 |
+| [TablePlus](https://tableplus.com/pricing) | Limited trial | $99 once | 23 |
+| [Beekeeper Studio](https://www.beekeeperstudio.io/pricing) | Community | $9 a month | 26 |
+| [pgAdmin](https://www.pgadmin.org/) | All of it | Nothing to buy | PostgreSQL |
+| [Tamery](https://tamery.app/home#pricing) | Free plan | $15 a month | 11 |
+
+The table flattens a lot, so here is what sits behind each row:
+
+- **DBeaver:** [Community](https://github.com/dbeaver/dbeaver) is Apache 2.0. MongoDB, Redis and Cassandra need a paid edition, starting with Lite.
+- **DataGrip:** [$109 for an individual's first year, $259 per user for organizations](https://www.jetbrains.com/datagrip/buy/). The list includes MongoDB, Redis, Snowflake and BigQuery.
+- **TablePlus:** $99 covers one device. The trial allows 2 tabs, 2 windows and 2 advanced filters at a time. Of the [23 engines it names](https://tableplus.com/), some are missing outside macOS, and Oracle is macOS only.
+- **Beekeeper Studio:** Community is GPLv3. Prices are per user and billed yearly: $9 for Indie, $14 for Professional. Community covers the common engines of the [26 it names](https://www.beekeeperstudio.io/db/), and Professional covers them all.
+- **Tamery:** the code is AGPL-3.0, and the [Free plan](https://docs.tamery.app/account/plans) has limits on AI and MCP use. Pro is $15 a month or $150 a year. The engines are PostgreSQL, TimescaleDB, MySQL, MariaDB, SQL Server, Oracle, ClickHouse, MongoDB, SQLite, Turso and Cloudflare D1.
+
+The sticker price is the easy part, and the license terms are where you can get caught out.
+
+DataGrip's free license excludes paid work, and JetBrains says there is [no way to opt out of anonymized telemetry](https://www.jetbrains.com/help/datagrip/2026.2/register.html) on it. Beekeeper's Community Edition is [intended for organizations](https://www.beekeeperstudio.io/pricing) with fewer than 10 employees and/or under $1m in revenue, and it asks larger ones to buy a license.
+
+On the buyer-friendly side, a TablePlus license is perpetual: you keep the app when your year of updates ends, and pay $59 per device if you want more of them. Beekeeper lets you keep paid features after 12 months of payments, even if you cancel, with the exception of cloud workspaces.
+
+## AI in database clients: who pays, and what the model can see
+
+| Client | What you get | Who supplies the model |
+| --- | --- | --- |
+| [DBeaver](https://dbeaver.com/docs/dbeaver/AI-Assistance-settings/) | AI chat, more when paid | Your API token |
+| [DataGrip](https://www.jetbrains.com/help/datagrip/ai-assistant.html) | AI Assistant plugin | Subscription, key or local |
+| [TablePlus](https://tableplus.com/docs/llm-plugin) | Built-in assistant | Your provider or agent |
+| [Beekeeper Studio](https://docs.beekeeperstudio.io/user_guide/sql-ai-shell/) | AI Shell, paid editions | Your API key |
+| [pgAdmin](https://www.pgadmin.org/docs/pgadmin4/latest/ai_tools.html) | AI Assistant and Reports | Your key or local |
+| [Tamery](https://docs.tamery.app/features/ai-assistant) | Chat, editor AI, AI filters | Tamery |
+
+There are two models here. With your own key, you pay the provider directly and, in tools like TablePlus and Beekeeper, your prompts go straight to them. With a managed model, you configure nothing but your requests pass through the vendor.
+
+Tamery is the managed kind, and that has a real cost. Our AI requests [go through our servers to external providers](https://docs.tamery.app/connections/security#ai-and-your-data), and you can't bring your own key or point Tamery at a local model. The chat and SQL help need Pro, and Free gets 20 AI filters a week. If your company only allows local models, look at TablePlus, pgAdmin, DataGrip or a paid DBeaver edition.
+
+Our chat is also more limited than you might assume. It [knows only what you send it](https://docs.tamery.app/features/ai-assistant) and doesn't read your schema or data, while the Query editor's AI does see the schema. Beekeeper's AI Shell can read schemas and run SQL with your permission, and pgAdmin's assistant can run queries in a read-only transaction capped at 1,000 rows, which is a nice bit of design.
+
+## MCP support: what stops an agent from running that DELETE
+
+MCP (Model Context Protocol) is how coding agents like Claude Code and Cursor talk to outside tools. In a database client, it lets an agent read your schema and run queries through connections you already saved, so no connection string lands in its config.
+
+| Client | MCP server |
+| --- | --- |
+| DataGrip | [Built in since 2025.2](https://www.jetbrains.com/help/datagrip/mcp-server.html) |
+| DBeaver | [Since 26.3](https://dbeaver.com/docs/dbeaver/Model-Context-Protocol-Server/), in Lite, Enterprise and Ultimate only |
+| TablePlus | [Built in](https://tableplus.com/docs/llm-plugin), under **Settings → MCP** |
+| Tamery | [Built in](https://docs.tamery.app/mcp/overview), desktop app only. Free accounts get 100 queries or writes a week. |
+| Beekeeper Studio | None mentioned on the pages I read |
+| pgAdmin | None mentioned on the pages I read |
+
+So having an MCP server no longer sets a client apart. The useful question is what happens on a write.
+
+This is the part of Tamery I'd show you first. Each connection gets its own access level: **Not shared**, **Read only**, **Ask before writing** or **Read and write**. **Ask before writing** is the default, so a statement waits in a dialog with **Decline** focused, and on PostgreSQL and MySQL it shows how many rows the database expects to change.
+
+I haven't audited every competitor's approval flow, so don't read that as an exclusive. And no client can give you a hard guarantee here, because a database function can have side effects nobody sees in the SQL. [DataGrip's docs](https://www.jetbrains.com/help/datagrip/mcp-server.html) recommend a read-only database user, and [so do ours](https://docs.tamery.app/mcp/overview#connection-access). If it matters, do that whichever client you pick.
+
+## Connection sync: where your credentials live
+
+This is where the tools differ most in philosophy.
+
+[TablePlus](https://tableplus.com/docs/overview) keeps credentials on your device, with passwords in the macOS Keychain, and I found no connection sync in its docs. [Beekeeper](https://www.beekeeperstudio.io/pricing) keeps everything on your machine unless you use a cloud workspace, which needs an active Professional or Business subscription. [DBeaver](https://dbeaver.com/edition/) shares connections through its Team Edition, at $1,630 a year.
+
+Tamery syncs every connection, and you choose how much of it when you create it:
+
+| Sync type | What reaches our cloud |
+| --- | --- |
+| **Full** | The complete connection string, encrypted. |
+| **No password** | Connection details without the password and other secrets. |
+| **Metadata only** | Name, engine, label and color. No connection string at all. |
+
+**Full** is not end-to-end encryption. Synced strings use a workspace key and are [decrypted on our server](https://docs.tamery.app/connections/security#connection-details) when another device retrieves them. If that's unacceptable for production credentials, use **Metadata only** for those and keep **Full** for the staging database you don't mind about. The choice is fixed at creation, so to change it you add the connection again.
+
+## Web-based database clients and private networks
+
+Most of this list is desktop only, as far as I could find. [CloudBeaver Enterprise](https://dbeaver.com/edition/) puts DBeaver in a browser for $1,025 a year, and pgAdmin has a [server mode](https://www.pgadmin.org/download/). You run both yourself.
+
+Tamery has a hosted web app, which raises the obvious problem: a browser can't reach `localhost`. There are three routes to a database:
+
+```text
+Desktop app ──────────────────▶ anything you can reach
+Browser ──▶ tamery bridge ────▶ anything its computer can reach
+Browser ──▶ cloud proxy ──────▶ public servers only
+```
+
+The last route means your queries and results pass through our infrastructure. The proxy refuses private addresses and SQLite files on purpose. If you'd rather it didn't touch your queries, use the desktop app or [`tamery bridge`](https://docs.tamery.app/cli/overview).
+
+## Which database client should you use?
+
+**DBeaver** suits you if you need a free client for a long list of relational engines, or a JDBC driver for something unusual. It runs on Java and Eclipse RCP, so expect a classic IDE rather than a small utility. MongoDB and Redis mean paying.
+
+**DataGrip** is the one for people who live in SQL all day and want a full JetBrains IDE around it. If your employer already pays for the JetBrains suite, the question mostly answers itself.
+
+**TablePlus** suits you if you dislike subscriptions and want a native app. Check the engine list on your platform first, because [the docs list](https://tableplus.com/docs/overview) reflects the macOS build.
+
+**Beekeeper Studio** suits solo developers and small teams who want an open source GUI that doesn't look like enterprise software. Like Tamery and pgAdmin, it's an Electron app.
+
+**pgAdmin** remains the answer for PostgreSQL administration. It has a debugger, a Grant Wizard, dashboards, pgAgent and a cloud deploy wizard, none of which Tamery tries to replace, and it costs nothing.
+
+**Tamery** suits you if you paste connection strings all day, work across devices, and have agents touching your databases. Paste a `.env` file, a JDBC URL, a `psql` command or a `docker-compose` service and [it fills in the form](https://docs.tamery.app/connections/overview). It also swaps a pooler address that breaks transactions for a direct one, and tells you it did.
+
+## Where Tamery loses
+
+You've seen most of these above, but they deserve a list of their own, because a comparison on a vendor's blog usually hides this section.
+
+- **Fewer engines.** There's no Redis, Snowflake, BigQuery, Cassandra or DynamoDB. If you need one of those daily, Tamery is out.
+- **You need an account for real use.** The desktop app works without one, but only with [one connection and one open tab](https://docs.tamery.app/installation). DBeaver Community, Beekeeper Community and pgAdmin don't ask you to sign up.
+- **No own key or local models for AI**, as covered above.
+- **No administration tools.** We have [Copy database](https://docs.tamery.app/features/copy-database) for PostgreSQL, but no debugger, role wizard or server dashboards.
+- **It's an Electron app.** Windows and Linux builds are also 64-bit x86 only.
+
+## FAQ
+
+### What is the best free database client?
+
+For many relational engines, DBeaver Community. For PostgreSQL alone, pgAdmin. Beekeeper Community is the friendlier option if your organization fits its size guidance. Tamery's Free plan includes the table browser, the Query editor, schema tools and unlimited synced connections, with limits on AI and MCP use.
+
+### Is DataGrip free?
+
+Only for non-commercial use, such as learning, hobby projects and open source. Paid work needs a subscription, and a 30-day trial is available.
+
+### Which database clients support MCP?
+
+Among the six here: DataGrip, DBeaver's paid desktop editions, TablePlus and Tamery. I found no mention of it on the Beekeeper Studio or pgAdmin pages I read.
+
+### Can I move my connections from DBeaver or TablePlus to Tamery?
+
+Yes, on desktop. The new connection form lists connections saved on your computer in DBeaver, TablePlus, DataGrip and pgAdmin, along with running Docker containers, `pg_service.conf`, `.pgpass` and `my.cnf`. On macOS, Tamery can take a saved password from the Keychain once macOS asks you.
+
+---
+
+Because of that import, trying Tamery alongside your current client takes a few minutes rather than an afternoon of retyping hosts. [Download it](/download), open a database you know well, and see whether it earns a place next to the tool you already have. Keeping both is a perfectly good outcome.
+
+If a price or feature above has gone stale, or I've been unfair to someone's product, [open an issue](https://github.com/wannabespace/tamery/issues) and I'll fix the post.
