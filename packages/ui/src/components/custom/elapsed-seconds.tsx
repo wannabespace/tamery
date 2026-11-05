@@ -11,16 +11,12 @@ export const Duration = ({
 }: {
   seconds: number
   className?: string
-}) => {
-  const minutes = Math.floor(seconds / 60)
-
-  return (
-    <span className={cn('inline-flex gap-1 tabular-nums', className)}>
-      {minutes > 0 && <NumberFlow value={minutes} suffix="m" />}
-      <NumberFlow value={seconds % 60} suffix="s" />
-    </span>
-  )
-}
+}) => (
+  <span className={cn('inline-flex gap-1 tabular-nums', className)}>
+    <NumberFlow value={Math.floor(seconds / 60)} suffix=" min" />
+    <NumberFlow value={seconds % 60} suffix=" sec" />
+  </span>
+)
 
 export const ElapsedSeconds = ({
   since,
