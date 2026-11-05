@@ -6,7 +6,7 @@ import { sleep } from '@tamery/shared/utils'
 import { posthog } from './posthog'
 import { redis } from './redis'
 
-// Stays under the 10 seconds Cloud Run allows between SIGTERM and its kill.
+// Must stay under the host's wait between SIGTERM and its kill (RAILWAY_DEPLOYMENT_DRAINING_SECONDS).
 const DRAIN_LIMIT_MS = 8000
 
 const drain = async () => {

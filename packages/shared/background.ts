@@ -2,14 +2,9 @@ import { silently } from './utils'
 
 const pending = new Set<Promise<unknown>>()
 
-const track = async (work: Promise<unknown>) => {
-  pending.add(work)
-  await silently(() => work)
-  pending.delete(work)
-}
-
 export const runInBackground = <T>(work: Promise<T>) => {
-  void track(work)
+  pending.add(work)
+  void silently(() => work).finally(() => pending.delete(work))
   return work
 }
 
