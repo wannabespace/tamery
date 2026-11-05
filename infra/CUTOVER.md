@@ -11,8 +11,8 @@ Railway stays intact until the last step, and that is the rollback.
 
    ```bash
    read -rs "S?Railway DATABASE_URL: "; echo
-   gcloud secrets create SOURCE_DATABASE_URL --project=gen-lang-client-0721016191 --replication-policy=user-managed --locations=europe-west3 \
-     --kms-key-name=projects/gen-lang-client-0721016191/locations/europe-west3/keyRings/tamery/cryptoKeys/secrets
+   echo '{"userManaged": {"replicas": [{"location": "europe-west3", "customerManagedEncryption": {"kmsKeyName": "projects/gen-lang-client-0721016191/locations/europe-west3/keyRings/tamery/cryptoKeys/secrets"}}]}}' > /tmp/replication.json
+   gcloud secrets create SOURCE_DATABASE_URL --project=gen-lang-client-0721016191 --replication-policy-file=/tmp/replication.json
    printf %s "$S" | gcloud secrets versions add SOURCE_DATABASE_URL --project=gen-lang-client-0721016191 --data-file=-
    unset S
    gcloud secrets add-iam-policy-binding SOURCE_DATABASE_URL --project=gen-lang-client-0721016191 \
