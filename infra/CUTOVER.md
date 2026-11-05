@@ -6,11 +6,9 @@ Railway stays intact until the last step, and that is the rollback.
 
 1. Tell customers who allowlist the proxy to add the addresses in `docs/connections/security.mdx`, next to the old ones. Their connections break at the cutover otherwise.
 2. Replace the random placeholders in `ENCRYPTION_SECRET` and `USER_KEY_SECRET` with the real values (`apps/api/SECRETS.md`). They must match Railway's exactly, or encrypted data stops working. `BETTER_AUTH_SECRET` and the other secrets must match Railway's too, or sessions stop working.
-3. In Cloudflare, add the certificate's DNS authorization record (`gcloud certificate-manager dns-authorizations describe tamery-app --project=tamery-prod`) as DNS only, and wait for the certificate to turn `ACTIVE`.
+3. In Cloudflare, add the certificate's DNS authorization record (`gcloud certificate-manager dns-authorizations describe tamery-app --project=gen-lang-client-0721016191`) as DNS only, and wait for the certificate to turn `ACTIVE`.
 4. In Cloudflare, set SSL/TLS to **Full (strict)**, upload the client certificate signed by `cloudflare-origin-pull-ca.pem`, and turn on zone-level **Authenticated Origin Pulls**.
 5. Turn off Railway's auto-deploy, then merge the PR. The first deploy targets only Google Cloud.
-
-6. Google sign-in's OAuth client still lives in the project this one replaced. In `tamery-prod`, under **Google Auth Platform**, publish a consent screen and create a web client with the redirect URI `https://api.tamery.app/auth/callback/google`. Set its id and secret in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` here and on Railway, then sign in with Google to check it.
 
 ## The cutover
 
@@ -20,15 +18,15 @@ Lower the TTL of the DNS records a day ahead. Pick a quiet hour: nobody can writ
 2. Copy the database from inside the VPC, since Cloud SQL has no public address. `SOURCE_DATABASE_URL` is Railway's public URL, added as a temporary secret:
 
    ```bash
-   gcloud run jobs create db-copy --project=tamery-prod --region=europe-west3 --image=postgres:18 \
-     --service-account=tamery-jobs@tamery-prod.iam.gserviceaccount.com --network=tamery --subnet=tamery-europe-west3 --vpc-egress=private-ranges-only \
+   gcloud run jobs create db-copy --project=gen-lang-client-0721016191 --region=europe-west3 --image=postgres:18 \
+     --service-account=tamery-jobs@gen-lang-client-0721016191.iam.gserviceaccount.com --network=tamery --subnet=tamery-europe-west3 --vpc-egress=private-ranges-only \
      --set-secrets=SOURCE=SOURCE_DATABASE_URL:latest,TARGET=DATABASE_URL:latest --task-timeout=3600 --max-retries=0 \
      --command=sh --args=-c,'pg_dump --no-owner --no-acl --clean --if-exists "$SOURCE" | psql --set ON_ERROR_STOP=1 "$TARGET"'
-   gcloud run jobs execute db-copy --project=tamery-prod --region=europe-west3 --wait
+   gcloud run jobs execute db-copy --project=gen-lang-client-0721016191 --region=europe-west3 --wait
    ```
 
 3. Run `api-migrate`, then compare row counts of `users` and `connections` on both sides.
-4. Point the Cloudflare records at the load balancer (`gcloud compute addresses describe tamery-lb --global --project=tamery-prod`), proxied.
+4. Point the Cloudflare records at the load balancer (`gcloud compute addresses describe tamery-lb --global --project=gen-lang-client-0721016191`), proxied.
 5. Check it:
    - Sign in on the website and open a connection through the cloud proxy.
    - The session's IP address in the account page is yours, not empty.
@@ -46,4 +44,4 @@ Lower the TTL of the DNS records a day ahead. Pick a quiet hour: nobody can writ
 
 ## A week later
 
-Delete the Railway services. Delete the Google Cloud project this one replaced only after step 6 of the first section, since Google sign-in breaks with it otherwise.
+Delete the Railway services.

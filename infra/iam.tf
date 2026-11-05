@@ -67,7 +67,8 @@ resource "google_service_account_iam_member" "github_deploys" {
 }
 
 # Compute's default account starts as a project editor, and nothing here runs as it.
-resource "google_project_default_service_accounts" "this" {
+resource "google_project_iam_member_remove" "default_compute_editor" {
   project = local.project
-  action  = "DEPRIVILEGE"
+  role    = "roles/editor"
+  member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
 }

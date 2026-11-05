@@ -14,7 +14,7 @@ In zsh on your own machine, so the value stays out of your shell history:
 
 ```bash
 read -rs "S?Value: "; echo
-printf %s "$S" | gcloud secrets versions add ENCRYPTION_SECRET --project=tamery-prod --data-file=-
+printf %s "$S" | gcloud secrets versions add ENCRYPTION_SECRET --project=gen-lang-client-0721016191 --data-file=-
 unset S
 ```
 

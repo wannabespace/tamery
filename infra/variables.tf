@@ -7,7 +7,7 @@ variable "alerts_email" {
 }
 
 locals {
-  project  = "tamery-prod"
+  project  = "gen-lang-client-0721016191"
   region   = "europe-west3"
   registry = "${local.region}-docker.pkg.dev/${local.project}/tamery"
   domain   = "tamery.app"

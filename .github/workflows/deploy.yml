@@ -72,7 +72,7 @@ jobs:
       contents: read
       id-token: write
     env:
-      IMAGE: europe-west3-docker.pkg.dev/tamery-prod/tamery/${{ matrix.service }}:${{ github.sha }}
+      IMAGE: europe-west3-docker.pkg.dev/gen-lang-client-0721016191/tamery/${{ matrix.service }}:${{ github.sha }}
       SERVICE: ${{ matrix.service }}
     steps:
       - name: Checkout
@@ -82,8 +82,8 @@ jobs:
         name: Authenticate to Google Cloud
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
-          workload_identity_provider: projects/248149914169/locations/global/workloadIdentityPools/github/providers/github
-          service_account: tamery-deploy@tamery-prod.iam.gserviceaccount.com
+          workload_identity_provider: projects/1095635632709/locations/global/workloadIdentityPools/github/providers/github
+          service_account: tamery-deploy@gen-lang-client-0721016191.iam.gserviceaccount.com
 
       - &setup-gcloud
         name: Set up gcloud

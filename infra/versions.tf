@@ -10,7 +10,7 @@ terraform {
 
   # The state holds the Redis auth string: only the operator may read this bucket.
   backend "gcs" {
-    bucket = "tamery-prod-tofu-state"
+    bucket = "gen-lang-client-0721016191-tofu-state"
   }
 }
 
