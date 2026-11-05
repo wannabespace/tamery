@@ -114,6 +114,9 @@ export const todesktop = orpc
             owner: GITHUB_REPO_OWNER,
             release_id: release.id,
             repo: GITHUB_REPO_NAME,
+            // Without tag_name GitHub resets a draft's tag to untagged-<hash>,
+            // and the next release's notes then start from an older version.
+            tag_name: release.tag_name,
           })
         })
       }

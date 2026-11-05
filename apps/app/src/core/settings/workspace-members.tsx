@@ -1,4 +1,9 @@
-import { Cancel01Icon, UserRemove01Icon } from '@hugeicons/core-free-icons'
+import {
+  Cancel01Icon,
+  PlusSignIcon,
+  UserRemove01Icon,
+} from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import type { WorkspaceRole } from '@tamery/shared/workspace'
 import {
   EDITOR_ROLES,
@@ -12,23 +17,27 @@ import {
   SettingsGroup,
   SettingsRow,
 } from '@tamery/ui/components/custom/settings-group'
+import { smallItemInsetClassName } from '@tamery/ui/components/item'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
+import { cn } from '@tamery/ui/lib/utils'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { capitalCase } from 'change-case'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { NameGlyph } from '~/components/name-glyph'
 import type { Workspace } from '~/core/workspace/sync'
 import { orpc } from '~/lib/orpc'
 import { queryClient } from '~/lib/query-client'
 import { useIsOnline } from '~/store'
+import { plural } from '~/utils/plural'
 
-import { InviteForm } from './invite-form'
+import { InviteDialog } from './invite-dialog'
 import type { MemberConfirmation } from './member-confirm-dialog'
 import { MemberConfirmDialog } from './member-confirm-dialog'
 import { RoleSelect } from './role-select'
@@ -37,6 +46,7 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
   const navigate = useNavigate()
   const isOnline = useIsOnline()
   const input = { workspaceId: workspace.id }
+  const [inviteOpen, setInviteOpen] = useState(false)
   const [confirmation, setConfirmation] = useState<MemberConfirmation | null>(
     null
   )
@@ -90,77 +100,100 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
     isOwner && data.members.filter(({ role }) => role === 'owner').length === 1
   const canChange = (member: (typeof data.members)[number]) =>
     canManage && !member.isYou && (isOwner || member.role !== 'owner')
-  const soleOwnerLeaveHint =
-    data.members.length === 1
-      ? 'You are the only member. Invite someone, make them an owner once they join, then you can leave.'
-      : 'Make another member an owner with the role picker on their row, then you can leave.'
 
   return (
     <>
-      {canManage && (
-        <InviteForm
-          workspaceId={workspace.id}
-          disabled={!isOnline}
-          onInvited={refresh}
-        />
-      )}
-      <SettingsGroup title="Members">
-        {data.members.map((member) => (
-          <SettingsRow
-            key={member.id}
-            title={
-              <span data-mask>
-                {member.isYou ? `${member.name} (you)` : member.name}
-              </span>
-            }
-            description={<span data-mask>{member.email}</span>}
-          >
-            {canChange(member) ? (
-              <RoleSelect
-                label={`Role of ${member.name}`}
-                roles={isOwner ? WORKSPACE_ROLES : INVITABLE_ROLES}
-                size="sm"
-                value={member.role}
-                disabled={!isOnline}
-                onChange={(role) =>
-                  role === 'viewer' && EDITOR_ROLES.includes(member.role)
-                    ? setConfirmation({ action: 'demote', member })
-                    : updateRole.mutate({ memberId: member.id, role })
-                }
-              />
-            ) : (
-              <span className="text-muted-foreground text-xs">
-                {capitalCase(member.role)}
-              </span>
+      <InviteDialog
+        workspace={workspace}
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        onInvited={refresh}
+      />
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-4">
+          <span
+            className={cn(
+              smallItemInsetClassName,
+              'text-2xs text-muted-foreground font-semibold tracking-wider uppercase'
             )}
-            {member.isYou ? (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      focusableWhenDisabled
-                      disabled={!isOnline || isSoleOwner || leave.isPending}
-                      onClick={() =>
-                        setConfirmation({
-                          action: 'leave',
-                          member: { id: member.id, name: workspace.name },
-                        })
-                      }
-                    />
+          >
+            {plural(data.members.length, 'member')}
+          </span>
+          {canManage && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!isOnline}
+              onClick={() => setInviteOpen(true)}
+            >
+              <HugeiconsIcon
+                icon={PlusSignIcon}
+                strokeWidth={2}
+                className="text-muted-foreground size-4"
+              />
+              Invite
+            </Button>
+          )}
+        </div>
+        <SettingsGroup>
+          {data.members.map((member) => (
+            <SettingsRow
+              key={member.id}
+              icon={<NameGlyph name={member.name} size="lg" />}
+              iconVariant="avatar"
+              title={
+                <span data-mask>
+                  {member.isYou ? `${member.name} (you)` : member.name}
+                </span>
+              }
+              description={<span data-mask>{member.email}</span>}
+            >
+              {canChange(member) ? (
+                <RoleSelect
+                  label={`Role of ${member.name}`}
+                  roles={isOwner ? WORKSPACE_ROLES : INVITABLE_ROLES}
+                  size="sm"
+                  value={member.role}
+                  disabled={!isOnline}
+                  onChange={(role) =>
+                    role === 'viewer' && EDITOR_ROLES.includes(member.role)
+                      ? setConfirmation({ action: 'demote', member })
+                      : updateRole.mutate({ memberId: member.id, role })
                   }
-                >
-                  Leave
-                </TooltipTrigger>
-                <TooltipContent>
-                  {isSoleOwner
-                    ? soleOwnerLeaveHint
-                    : 'Leave this workspace. Its connections disappear from your devices.'}
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              canChange(member) && (
+                />
+              ) : (
+                <span className="text-muted-foreground text-xs">
+                  {capitalCase(member.role)}
+                </span>
+              )}
+              {member.isYou && data.members.length > 1 && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        focusableWhenDisabled
+                        disabled={!isOnline || isSoleOwner || leave.isPending}
+                        onClick={() =>
+                          setConfirmation({
+                            action: 'leave',
+                            member: { id: member.id, name: workspace.name },
+                          })
+                        }
+                      />
+                    }
+                  >
+                    Leave
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isSoleOwner
+                      ? 'Make another member an owner with the role picker on their row, then you can leave.'
+                      : 'Leave this workspace. Its connections disappear from your devices.'}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {canChange(member) && (
                 <IconButton
                   icon={UserRemove01Icon}
                   label="Remove from workspace"
@@ -169,11 +202,11 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
                   disabled={!isOnline}
                   onClick={() => setConfirmation({ action: 'remove', member })}
                 />
-              )
-            )}
-          </SettingsRow>
-        ))}
-      </SettingsGroup>
+              )}
+            </SettingsRow>
+          ))}
+        </SettingsGroup>
+      </div>
       <MemberConfirmDialog
         confirmation={confirmation}
         onCancel={() => setConfirmation(null)}
@@ -192,6 +225,8 @@ export const WorkspaceMembers = ({ workspace }: { workspace: Workspace }) => {
           {data.invitations.map((invitation) => (
             <SettingsRow
               key={invitation.id}
+              icon={<NameGlyph name={invitation.email} size="lg" />}
+              iconVariant="avatar"
               title={<span data-mask>{invitation.email}</span>}
               description={`Invited as ${capitalCase(invitation.role)}`}
             >

@@ -1,3 +1,4 @@
+import { runInBackground } from '@tamery/shared/background'
 import type { LanguageModelUsage, TelemetryOptions } from 'ai'
 
 import { getModelCost } from '../models/price'
@@ -22,7 +23,8 @@ export const usageTelemetry = (
   onUsage: (modelId: string, usage: LanguageModelUsage) => Promise<void>
 ): TelemetryOptions => ({
   integrations: {
-    onLanguageModelCallEnd: ({ modelId, usage }) => onUsage(modelId, usage),
+    onLanguageModelCallEnd: ({ modelId, usage }) =>
+      runInBackground(onUsage(modelId, usage)),
   },
 })
 

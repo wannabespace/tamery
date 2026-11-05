@@ -1,3 +1,4 @@
+import { runInBackground } from '@tamery/shared/background'
 import type { TelemetryOptions } from 'ai'
 import { convertToModelMessages, streamText, toUIMessageStream } from 'ai'
 import { createRedisAdapter } from 'ai-resumable-stream/adapters/redis'
@@ -39,6 +40,7 @@ const activeStream = {
 
 const resumable = createResumableUIMessageStream({
   adapter: createRedisAdapter({ publisher: redis, subscriber }),
+  waitUntil: runInBackground,
 })
 
 interface ChatStreamInput {

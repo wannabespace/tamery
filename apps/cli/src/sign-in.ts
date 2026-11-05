@@ -34,7 +34,7 @@ const signIn = async () => {
 
   void openBrowser(url)
   note(
-    `${paint.link(url)}\n${paint.dim(`Continue only if the page shows ${paint.bold(challenge.getUserCode(codeChallenge))}. The link expires in 5 minutes.`)}`,
+    `${paint.link(url)}\n${paint.dim('The link expires in 5 minutes.')}`,
     'Sign in to Tamery'
   )
 
