@@ -14,4 +14,5 @@ RUN pnpm rebuild --filter @tamery/api... --filter .
 COPY . .
 WORKDIR /app/apps/api
 RUN pnpm run check-types
-CMD ["pnpm", "run", "start"]
+# Keep in step with package.json's `start`. Not `pnpm run start`: as PID 1 pnpm never passes SIGTERM on, so lib/shutdown.ts never drains.
+CMD ["env", "NODE_ENV=production", "bun", "run", "--preload", "./lib/unwrap-secrets.ts", "./index.ts"]

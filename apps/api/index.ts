@@ -3,6 +3,7 @@ import process from 'node:process'
 
 import { ORPCError, ValidationError } from '@orpc/server'
 import { RPCHandler } from '@orpc/server/fetch'
+import { runInBackground } from '@tamery/shared/background'
 import { isDevelopmentOrigin, ORIGINS } from '@tamery/shared/origins'
 import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { Hono } from 'hono'
@@ -11,6 +12,7 @@ import { cors } from 'hono/cors'
 import { env, nodeEnv } from './env'
 import { handleAuth } from './lib/auth'
 import { sendEmail } from './lib/resend'
+import { shutdown } from './lib/shutdown'
 import { createContext } from './orpc/context'
 import { router } from './orpc/routers'
 import { healthRouter } from './routers/health'
@@ -136,15 +138,17 @@ const app = new Hono<{
       env.ALERTS_EMAIL &&
       !c.req.url.includes('healthcheck.railway.app')
     ) {
-      sendEmail({
-        props: {
-          service: 'API',
-          text: JSON.stringify(logInfo, null, 2),
-        },
-        subject: `Alert from API: ${status} ${method} ${c.req.url}`,
-        template: 'Alert',
-        to: env.ALERTS_EMAIL,
-      })
+      runInBackground(
+        sendEmail({
+          props: {
+            service: 'API',
+            text: JSON.stringify(logInfo, null, 2),
+          },
+          subject: `Alert from API: ${status} ${method} ${c.req.url}`,
+          template: 'Alert',
+          to: env.ALERTS_EMAIL,
+        })
+      )
     }
 
     const log = JSON.stringify(
@@ -200,6 +204,8 @@ const app = new Hono<{
     return next()
   })
   .route('/health', healthRouter)
+
+process.once('SIGTERM', shutdown)
 
 export default {
   fetch: app.fetch,
