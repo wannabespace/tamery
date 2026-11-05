@@ -173,8 +173,8 @@ resource "google_cloud_run_v2_service" "this" {
   }
 
   lifecycle {
-    # deploy.yml owns the image.
-    ignore_changes = [client, client_version, template[0].containers[0].image]
+    # deploy.yml owns the image, and SECRETS.md names a revision to pick up a new secret value.
+    ignore_changes = [client, client_version, template[0].revision, template[0].containers[0].image]
   }
 
   depends_on = [google_secret_manager_secret_iam_member.access]
