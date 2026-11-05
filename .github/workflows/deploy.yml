@@ -14,6 +14,9 @@ permissions:
   contents: read
 
 env:
+  # The repo is public: anyone signed in to GitHub could download a build record.
+  DOCKER_BUILD_RECORD_UPLOAD: false
+  DOCKER_BUILD_SUMMARY: false
   REGION: europe-west3
 
 jobs:
