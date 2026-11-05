@@ -255,7 +255,7 @@ resource "google_cloud_scheduler_job" "purge_deleted_records" {
   region    = local.region
   schedule  = "0 3 * * *"
   time_zone = "Etc/UTC"
-  paused    = true
+  paused    = false
 
   http_target {
     http_method = "POST"
