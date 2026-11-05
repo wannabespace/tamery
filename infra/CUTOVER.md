@@ -10,6 +10,8 @@ Railway stays intact until the last step, and that is the rollback.
 4. In Cloudflare, set SSL/TLS to **Full (strict)**, upload the client certificate signed by `cloudflare-origin-pull-ca.pem`, and turn on zone-level **Authenticated Origin Pulls**.
 5. Turn off Railway's auto-deploy, then merge the PR. The first deploy targets only Google Cloud.
 
+6. Google sign-in's OAuth client still lives in the project this one replaced. In `tamery-prod`, under **Google Auth Platform**, publish a consent screen and create a web client with the redirect URI `https://api.tamery.app/auth/callback/google`. Set its id and secret in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` here and on Railway, then sign in with Google to check it.
+
 ## The cutover
 
 Lower the TTL of the DNS records a day ahead. Pick a quiet hour: nobody can write between steps 1 and 4.
@@ -44,4 +46,4 @@ Lower the TTL of the DNS records a day ahead. Pick a quiet hour: nobody can writ
 
 ## A week later
 
-Delete the Railway services, and the Google Cloud project this one replaced.
+Delete the Railway services. Delete the Google Cloud project this one replaced only after step 6 of the first section, since Google sign-in breaks with it otherwise.
