@@ -241,7 +241,10 @@ export const Table = ({
         renderLabel={(column) => (
           <TableFieldLabel column={column} {...getActions(column)} />
         )}
-        getSize={(column) => columnSizes[column.id] ?? defaultSize(column)}
+        getSize={(column) =>
+          columnSizes[column.id] ??
+          defaultSize(column, dialect, labels.has(column.id))
+        }
         cursorRef={tableGridRef}
         layout={view}
         pinned={pinned}

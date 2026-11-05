@@ -4,6 +4,7 @@ import {
   TableIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import type { Dialect } from '@tamery/shared/enums/connection-type'
 import type { GridRow } from '@tamery/table'
 import { getColumnSize } from '@tamery/table'
 import { LEADING_COLUMN_SIZE } from '@tamery/table/constants'
@@ -17,6 +18,7 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { cn } from '@tamery/ui/lib/utils'
 
+import { getCapabilities } from '~/core/catalog/capabilities'
 import { useObjectNames } from '~/core/catalog/names'
 import type { Column } from '~/core/table/cell/utils'
 import { INTERNAL_COLUMN_IDS } from '~/core/table/cell/utils'
@@ -31,11 +33,21 @@ import { LeadingCell, LeadingHeaderCell } from './table-selection'
 
 const TRAILING_COLUMN_SIZE = 48
 const REFERENCE_BUTTON_WIDTH = 24
+const REFERENCE_LABEL_WIDTH = 86
+const LOCAL_TIME_WIDTH = 40
 
-export const defaultSize = (column: Column) =>
+export const defaultSize = (
+  column: Column,
+  dialect: Dialect,
+  hasLabels: boolean
+) =>
   getColumnSize(column.type ?? null) +
   (column.foreign ? REFERENCE_BUTTON_WIDTH : 0) +
-  (column.references?.length ? REFERENCE_BUTTON_WIDTH : 0)
+  (column.references?.length ? REFERENCE_BUTTON_WIDTH : 0) +
+  (hasLabels ? REFERENCE_LABEL_WIDTH : 0) +
+  (getCapabilities(dialect).columnTypes.zoned?.test(column.type ?? '')
+    ? LOCAL_TIME_WIDTH
+    : 0)
 
 export const selectColumn = ({
   entryAt,
