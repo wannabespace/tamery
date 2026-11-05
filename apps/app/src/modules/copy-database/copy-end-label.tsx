@@ -6,9 +6,22 @@ export interface CopyEnd {
   resource: ConnectionResource
 }
 
+export const ConnectionNameLabel = ({
+  connection,
+}: {
+  connection: Connection
+}) => (
+  <>
+    {connection.name}
+    {connection.label && (
+      <span className="text-muted-foreground"> {connection.label}</span>
+    )}
+  </>
+)
+
 export const CopyEndLabel = ({ connection, resource }: CopyEnd) => (
   <span data-mask className="min-w-0 truncate">
-    {connection.name}
+    <ConnectionNameLabel connection={connection} />
     <span className="text-muted-foreground"> / </span>
     <ResourceLabel connection={connection} name={resource.name} />
   </span>

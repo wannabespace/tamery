@@ -7,6 +7,7 @@ import type { ComponentProps } from 'react'
 import { ResourceLabel } from '~/core/connection/resource-label'
 
 import type { CopyEnd } from './copy-end-label'
+import { ConnectionNameLabel } from './copy-end-label'
 import type { CopyStatus } from './copy-progress'
 
 const PROGRESS = {
@@ -28,7 +29,7 @@ const RouteEnd = ({ connection, resource }: CopyEnd) => (
     />
     <span className="flex min-w-0 flex-col">
       <span className="text-foreground truncate font-medium">
-        {connection.name}
+        <ConnectionNameLabel connection={connection} />
       </span>
       <span className="truncate text-xs">
         <ResourceLabel connection={connection} name={resource.name} />

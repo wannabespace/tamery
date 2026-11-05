@@ -1,7 +1,10 @@
 import { Tick02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
-import { ElapsedSeconds } from '@tamery/ui/components/custom/elapsed-seconds'
+import {
+  Duration,
+  ElapsedSeconds,
+} from '@tamery/ui/components/custom/elapsed-seconds'
 import { NumberFlow } from '@tamery/ui/components/custom/number-flow'
 import { DialogClose, DialogFooter } from '@tamery/ui/components/dialog'
 
@@ -57,7 +60,9 @@ export const CopyProgress = ({
               />
               <span>
                 Copied {tables} in{' '}
-                {Math.max(1, Math.round((copiedAt - since) / 1000))}s
+                <Duration
+                  seconds={Math.max(1, Math.round((copiedAt - since) / 1000))}
+                />
               </span>
             </span>
           )}

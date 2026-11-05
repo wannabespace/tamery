@@ -125,6 +125,7 @@ export const CopyDatabaseDialog = () => {
   return (
     <Dialog
       open={open}
+      disablePointerDismissal={copy.isPending}
       onOpenChange={(next) => {
         if (copy.isPending) {
           stop()
@@ -134,7 +135,10 @@ export const CopyDatabaseDialog = () => {
       }}
     >
       {source && (
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent
+          className="sm:max-w-xl"
+          showCloseButton={!copy.isPending}
+        >
           <DialogHeader>
             <DialogTitle>Copy database</DialogTitle>
             <DialogDescription>
