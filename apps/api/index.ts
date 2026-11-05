@@ -11,6 +11,7 @@ import { cors } from 'hono/cors'
 import { env, nodeEnv } from './env'
 import { handleAuth } from './lib/auth'
 import { sendEmail } from './lib/resend'
+import { shutdown } from './lib/shutdown'
 import { createContext } from './orpc/context'
 import { router } from './orpc/routers'
 import { healthRouter } from './routers/health'
@@ -200,6 +201,8 @@ const app = new Hono<{
     return next()
   })
   .route('/health', healthRouter)
+
+process.once('SIGTERM', shutdown)
 
 export default {
   fetch: app.fetch,

@@ -4,7 +4,7 @@ import { env } from '~/env'
 
 export const posthog = env.POSTHOG_TOKEN
   ? new PostHog(env.POSTHOG_TOKEN, {
-      // Nothing flushes on shutdown, so a batched event dies with the instance on a redeploy.
+      // A crash skips the flush on SIGTERM, and a batched event would die with the instance.
       flushAt: 1,
       host: 'https://eu.i.posthog.com',
     })
