@@ -48,12 +48,11 @@ resource "google_iam_workload_identity_pool_provider" "github" {
   workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
   workload_identity_pool_provider_id = "github"
 
-  # Pull requests run this repo's workflows too: only main may sign in as the deploy account.
-  attribute_condition = "assertion.repository == 'wannabespace/tamery' && assertion.ref == 'refs/heads/main'"
+  # Any workflow can ask GitHub for a token, and publish-cli.yml does: only deploy.yml on main may sign in as the deploy account.
+  attribute_condition = "assertion.workflow_ref == 'wannabespace/tamery/.github/workflows/deploy.yml@refs/heads/main'"
   attribute_mapping = {
     "google.subject"       = "assertion.sub"
     "attribute.repository" = "assertion.repository"
-    "attribute.ref"        = "assertion.ref"
   }
 
   oidc {
@@ -65,4 +64,10 @@ resource "google_service_account_iam_member" "github_deploys" {
   service_account_id = google_service_account.this["tamery-deploy"].name
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/wannabespace/tamery"
+}
+
+# Compute's default account starts as a project editor, and nothing here runs as it.
+resource "google_project_default_service_accounts" "this" {
+  project = local.project
+  action  = "DEPRIVILEGE"
 }

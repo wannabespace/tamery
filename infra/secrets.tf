@@ -10,7 +10,7 @@ resource "google_kms_key_ring" "tamery" {
 resource "google_kms_crypto_key" "secrets" {
   name                       = "secrets"
   key_ring                   = google_kms_key_ring.tamery.id
-  purpose                    = "ENCRYPT_DECRYPT"
+  rotation_period            = "7776000s"
   destroy_scheduled_duration = "10368000s"
 
   lifecycle {
@@ -18,16 +18,11 @@ resource "google_kms_crypto_key" "secrets" {
   }
 }
 
-resource "google_kms_crypto_key_iam_member" "api_decrypts" {
+# Secret Manager's own service agent, not the runtime accounts: revoking this stops every new instance from booting.
+resource "google_kms_crypto_key_iam_member" "secret_manager_uses_key" {
   crypto_key_id = google_kms_crypto_key.secrets.id
-  role          = "roles/cloudkms.cryptoKeyDecrypter"
-  member        = google_service_account.this["tamery-api"].member
-}
-
-resource "google_kms_crypto_key_iam_member" "operator_encrypts" {
-  crypto_key_id = google_kms_crypto_key.secrets.id
-  role          = "roles/cloudkms.cryptoKeyEncrypter"
-  member        = var.operator
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member        = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-secretmanager.iam.gserviceaccount.com"
 }
 
 locals {
@@ -36,7 +31,7 @@ locals {
     "BETTER_AUTH_SECRET",
     "CONTEXT7_API_KEY",
     "DATABASE_URL",
-    "ENCRYPTION_SECRET_WRAPPED",
+    "ENCRYPTION_SECRET",
     "EXA_API_KEY",
     "GITHUB_CLIENT_ID",
     "GITHUB_CLIENT_SECRET",
@@ -55,16 +50,14 @@ locals {
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",
     "TODESKTOP_WEBHOOK_SECRET",
-    "USER_KEY_SECRET_WRAPPED",
+    "USER_KEY_SECRET",
   ]
 
-  secret_access = merge(
-    { for name in local.api_secrets : "tamery-api/${name}" => { account = "tamery-api", secret = name } },
-    {
-      "tamery-proxy/PROXY_SHARED_SECRET" = { account = "tamery-proxy", secret = "PROXY_SHARED_SECRET" }
-      "tamery-jobs/DATABASE_URL"         = { account = "tamery-jobs", secret = "DATABASE_URL" }
-    },
-  )
+  secret_access = merge([
+    for workload in values(merge(local.services, local.jobs)) : {
+      for secret in workload.secrets : "${workload.account}/${secret}" => { account = workload.account, secret = secret }
+    }
+  ]...)
 }
 
 # Containers only: secret values are added with `gcloud secrets versions add`, so they stay out of the state.
@@ -77,9 +70,14 @@ resource "google_secret_manager_secret" "this" {
     user_managed {
       replicas {
         location = local.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secrets.id
+        }
       }
     }
   }
+
+  depends_on = [google_kms_crypto_key_iam_member.secret_manager_uses_key]
 }
 
 resource "google_secret_manager_secret_iam_member" "access" {

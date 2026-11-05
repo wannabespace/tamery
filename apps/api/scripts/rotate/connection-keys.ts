@@ -1,3 +1,4 @@
+import '@tamery/shared/arktype-config'
 import process from 'node:process'
 
 import { db } from '@tamery/db'

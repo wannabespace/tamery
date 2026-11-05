@@ -53,10 +53,10 @@ resource "google_compute_url_map" "tamery" {
   }
 
   dynamic "path_matcher" {
-    for_each = ["api", "proxy", "app", "docs", "share", "main"]
+    for_each = local.hosts
     content {
-      name            = "pm-${path_matcher.value}"
-      default_service = google_compute_backend_service.this[path_matcher.value].id
+      name            = "pm-${path_matcher.key}"
+      default_service = google_compute_backend_service.this[path_matcher.key].id
     }
   }
 }
@@ -102,7 +102,7 @@ resource "google_certificate_manager_trust_config" "cloudflare" {
   }
 }
 
-# Cloudflare presents this CA's client certificate, so nothing else can reach the load balancer and forge x-real-ip.
+# Cloudflare presents this CA's client certificate, so nothing else can reach the load balancer and forge cf-connecting-ip.
 resource "google_network_security_server_tls_policy" "cloudflare_only" {
   name     = "cloudflare-only"
   location = "global"

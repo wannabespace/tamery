@@ -4,7 +4,7 @@ resource "google_compute_network" "tamery" {
 }
 
 resource "google_compute_subnetwork" "tamery" {
-  name                     = local.subnet
+  name                     = "tamery-${local.region}"
   region                   = local.region
   network                  = google_compute_network.tamery.id
   ip_cidr_range            = "10.10.0.0/24"

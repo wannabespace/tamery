@@ -1,6 +1,6 @@
 import { ratelimit } from '@orpc/ratelimit'
 import { RedisRateLimiter } from '@orpc/ratelimit/redis'
-import { CONTACT_EMAIL } from '@tamery/shared/constants'
+import { CLIENT_IP_HEADER, CONTACT_EMAIL } from '@tamery/shared/constants'
 import { type } from 'arktype'
 
 import { redis } from '~/lib/redis'
@@ -18,8 +18,7 @@ export const contactSales = orpc
   .use(optionalAuthMiddleware)
   .use(
     ratelimit({
-      // Only X-Real-IP is set by Cloudflare's transform rule, and origins accept only Cloudflare; any other client-IP header can be spoofed.
-      key: ({ context }) => context.headers.get('x-real-ip') ?? 'unknown',
+      key: ({ context }) => context.headers.get(CLIENT_IP_HEADER) ?? 'unknown',
       limiter,
     })
   )

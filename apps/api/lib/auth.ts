@@ -7,6 +7,7 @@ import { users } from '@tamery/db/schema'
 import * as schema from '@tamery/db/schema'
 import {
   AUTH_COOKIE_PREFIX,
+  CLIENT_IP_HEADER,
   SOCIAL_PROVIDER_LABELS,
 } from '@tamery/shared/constants'
 import { formatDeviceLabel } from '@tamery/shared/device-label'
@@ -168,9 +169,9 @@ export const auth = betterAuth({
     database: {
       generateId: 'uuid',
     },
-    // x-forwarded-for has extra hops through Cloudflare and the load balancer, and a multi-value chain is discarded into one global rate-limit bucket. Cloudflare's transform rule overwrites x-real-ip with the connecting client.
+    // x-forwarded-for has extra hops through Cloudflare and the load balancer, and a multi-value chain is discarded into one global rate-limit bucket.
     ipAddress: {
-      ipAddressHeaders: ['x-real-ip'],
+      ipAddressHeaders: [CLIENT_IP_HEADER],
     },
   },
   appName: 'Tamery',

@@ -5,17 +5,18 @@ locals {
   }
 
   web_service = {
-    account  = "tamery-web"
-    memory   = "512Mi"
-    min      = 0
-    max      = 5
-    cpu_idle = true
-    timeout  = "300s"
-    egress   = null
-    tags     = []
-    env      = {}
-    secrets  = []
-    health   = null
+    account     = "tamery-web"
+    memory      = "512Mi"
+    min         = 0
+    max         = 5
+    concurrency = 80
+    cpu_idle    = true
+    timeout     = "300s"
+    egress      = null
+    tags        = []
+    env         = {}
+    secrets     = []
+    health      = null
   }
 
   services = {
@@ -24,35 +25,34 @@ locals {
     docs  = local.web_service
     share = local.web_service
 
-    # Holds transactions and the cancel map in memory, so it must stay a single instance.
-    proxy = {
-      account  = "tamery-proxy"
-      memory   = "1Gi"
-      min      = 0
-      max      = 1
-      cpu_idle = false
-      timeout  = "3600s"
-      egress   = "ALL_TRAFFIC"
-      tags     = ["tamery-proxy"]
-      env      = local.public_urls
-      secrets  = ["PROXY_SHARED_SECRET"]
-      health   = null
-    }
+    # Holds transactions and the cancel map in memory, so it stays one instance and takes every user's queries.
+    proxy = merge(local.web_service, {
+      account     = "tamery-proxy"
+      memory      = "1Gi"
+      max         = 1
+      concurrency = 500
+      cpu_idle    = false
+      timeout     = "3600s"
+      egress      = "ALL_TRAFFIC"
+      tags        = ["tamery-proxy"]
+      env         = local.public_urls
+      secrets     = ["PROXY_SHARED_SECRET"]
+    })
 
-    api = {
-      account  = "tamery-api"
-      memory   = "1Gi"
-      min      = 1
-      max      = 5
-      cpu_idle = false
-      timeout  = "3600s"
-      egress   = "PRIVATE_RANGES_ONLY"
-      tags     = []
-      env      = merge(local.public_urls, { KMS_KEY_NAME = local.kms_key_id })
-      secrets  = local.api_secrets
-      # A revision that cannot unwrap its secrets must never take traffic.
+    api = merge(local.web_service, {
+      account = "tamery-api"
+      memory  = "1Gi"
+      min     = 1
+      # Each open client holds up to seven sync streams, and each one counts.
+      concurrency = 1000
+      cpu_idle    = false
+      timeout     = "3600s"
+      egress      = "PRIVATE_RANGES_ONLY"
+      env         = merge(local.public_urls, { REDIS_CA = google_redis_instance.tamery.server_ca_certs[0].cert })
+      secrets     = local.api_secrets
+      # A revision that cannot reach its database must never take traffic.
       health = "/health"
-    }
+    })
   }
 
   jobs = {
@@ -80,8 +80,8 @@ locals {
       args    = ["run", "rotate:encryption-secret"]
       timeout = "3600s"
       retries = 0
-      env     = { NODE_ENV = "production", KMS_KEY_NAME = local.kms_key_id }
-      secrets = ["DATABASE_URL", "ENCRYPTION_SECRET_WRAPPED", "USER_KEY_SECRET_WRAPPED"]
+      env     = { NODE_ENV = "production" }
+      secrets = ["DATABASE_URL", "ENCRYPTION_SECRET", "USER_KEY_SECRET"]
     }
   }
 }
@@ -100,7 +100,7 @@ resource "google_cloud_run_v2_service" "this" {
   template {
     service_account                  = google_service_account.this[each.value.account].email
     timeout                          = each.value.timeout
-    max_instance_request_concurrency = 80
+    max_instance_request_concurrency = each.value.concurrency
 
     scaling {
       min_instance_count = each.value.min
@@ -120,7 +120,7 @@ resource "google_cloud_run_v2_service" "this" {
     }
 
     containers {
-      image = "${local.registry}/${each.key}:${local.bootstrap}"
+      image = "${local.registry}/${each.key}:bootstrap"
 
       resources {
         limits = {
@@ -201,7 +201,7 @@ resource "google_cloud_run_v2_job" "this" {
       }
 
       containers {
-        image   = "${local.registry}/api:${local.bootstrap}"
+        image   = "${local.registry}/api:bootstrap"
         command = each.value.command
         args    = each.value.args
 

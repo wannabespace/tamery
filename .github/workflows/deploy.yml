@@ -5,27 +5,23 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      rollback:
+        description: 'One of api, proxy, app, main, docs, share: put it back on the image it ran before its last deploy, without building or migrating. Empty deploys every service.'
+        type: string
 
 permissions:
   contents: read
 
 env:
-  GCP_ARTIFACT_REPOSITORY: ${{ vars.GCP_ARTIFACT_REPOSITORY }}
-  GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
-  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-  GCP_REGION: ${{ vars.GCP_REGION }}
-  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+  REGION: europe-west3
 
 jobs:
   changes:
+    if: ${{ !inputs.rollback }}
     runs-on: ubuntu-latest
     outputs:
-      api: ${{ steps.filter.outputs.api }}
-      app: ${{ steps.filter.outputs.app }}
-      docs: ${{ steps.filter.outputs.docs }}
-      main: ${{ steps.filter.outputs.main }}
-      proxy: ${{ steps.filter.outputs.proxy }}
-      share: ${{ steps.filter.outputs.share }}
+      services: ${{ github.event_name == 'workflow_dispatch' && '["api","proxy","app","main","docs","share"]' || steps.filter.outputs.changes }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,13 +30,10 @@ jobs:
         id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
+          # No top-level `shared` filter: every filter's name lands in the deploy matrix.
           filters: |
-            shared: &shared
-              - '*'
-              - '.dockerignore'
-              - 'packages/**'
             api:
-              - *shared
+              - &shared ['*', '.dockerignore', 'packages/**']
               - 'apps/api/**'
             app:
               - *shared
@@ -66,151 +59,88 @@ jobs:
               - 'apps/proxy/**'
               - 'apps/share/**'
 
-  api:
+  deploy:
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true'
+    if: needs.changes.outputs.services != '[]'
     runs-on: ubuntu-latest
-    concurrency: deploy-api
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
+    concurrency: deploy-${{ matrix.service }}
     permissions:
       contents: read
       id-token: write
+    env:
+      IMAGE: europe-west3-docker.pkg.dev/tamery-prod/tamery/${{ matrix.service }}:${{ github.sha }}
+      SERVICE: ${{ matrix.service }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Build image
-        uses: ./.github/actions/build-image
+      - &authenticate
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
-          service: api
+          workload_identity_provider: projects/248149914169/locations/global/workloadIdentityPools/github/providers/github
+          service_account: tamery-deploy@tamery-prod.iam.gserviceaccount.com
 
-      - name: Point the jobs at the new image
-        run: |
-          for job in api-migrate api-purge-deleted-records api-rotate; do
-            gcloud run jobs update "$job" --image="$IMAGE" --region="$GCP_REGION"
-          done
+      - &setup-gcloud
+        name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
-      - name: Migrate the database
-        run: gcloud run jobs execute api-migrate --region="$GCP_REGION" --wait
+      - name: Sign in to the registry
+        run: gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
 
-      - name: Deploy
-        run: gcloud run services update api --image="$IMAGE" --region="$GCP_REGION"
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-  proxy:
-    needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.proxy == 'true'
-    runs-on: ubuntu-latest
-    concurrency: deploy-proxy
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Build image
-        uses: ./.github/actions/build-image
+      - name: Build and push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          service: proxy
-
-      - name: Deploy
-        run: gcloud run services update proxy --image="$IMAGE" --region="$GCP_REGION"
-
-  app:
-    needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.app == 'true'
-    runs-on: ubuntu-latest
-    concurrency: deploy-app
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Build image
-        uses: ./.github/actions/build-image
-        with:
-          service: app
-          build-args: |
-            VITE_PUBLIC_API_URL=${{ secrets.API_URL }}
-            VITE_PUBLIC_MAIN_URL=${{ secrets.MAIN_URL }}
-            VITE_PUBLIC_POSTHOG_TOKEN=${{ secrets.POSTHOG_TOKEN }}
-            VITE_PUBLIC_PROXY_URL=${{ secrets.PROXY_URL }}
-            VITE_PUBLIC_SHARE_URL=${{ secrets.SHARE_URL }}
-            VITE_PUBLIC_WEB_URL=${{ secrets.WEB_URL }}
-          secrets: |
-            POSTHOG_PERSONAL_API_KEY=${{ secrets.POSTHOG_PERSONAL_API_KEY }}
-
-      - name: Deploy
-        run: gcloud run services update app --image="$IMAGE" --region="$GCP_REGION"
-
-  main:
-    needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.main == 'true'
-    runs-on: ubuntu-latest
-    concurrency: deploy-main
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Build image
-        uses: ./.github/actions/build-image
-        with:
-          service: main
-          build-args: |
-            VITE_PUBLIC_API_URL=${{ secrets.API_URL }}
-            VITE_PUBLIC_SHARE_URL=${{ secrets.SHARE_URL }}
-            VITE_PUBLIC_WEB_URL=${{ secrets.WEB_URL }}
-
-      - name: Deploy
-        run: gcloud run services update main --image="$IMAGE" --region="$GCP_REGION"
-
-  docs:
-    needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.docs == 'true'
-    runs-on: ubuntu-latest
-    concurrency: deploy-docs
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Build image
-        uses: ./.github/actions/build-image
-        with:
-          service: docs
+          context: .
+          file: apps/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE }}
+          # Each Dockerfile reads only the ARGs and secret mounts it declares.
           build-args: |
             GIT_COMMIT_SHA=${{ github.sha }}
+            VITE_PUBLIC_API_URL=https://api.tamery.app
+            VITE_PUBLIC_MAIN_URL=https://tamery.app
+            VITE_PUBLIC_POSTHOG_TOKEN=${{ secrets.POSTHOG_TOKEN }}
+            VITE_PUBLIC_PROXY_URL=https://proxy.tamery.app
+            VITE_PUBLIC_SHARE_URL=https://share.tamery.app
+            VITE_PUBLIC_WEB_URL=https://web.tamery.app
+          secrets: |
+            POSTHOG_PERSONAL_API_KEY=${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Migrate the database
+        if: matrix.service == 'api'
+        run: |
+          for job in api-migrate api-purge-deleted-records api-rotate; do
+            gcloud run jobs update "$job" --image="$IMAGE" --region="$REGION"
+          done
+          gcloud run jobs execute api-migrate --region="$REGION" --wait
 
       - name: Deploy
-        run: gcloud run services update docs --image="$IMAGE" --region="$GCP_REGION"
+        run: gcloud run services update "$SERVICE" --image="$IMAGE" --region="$REGION"
 
-  share:
-    needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.share == 'true'
+  rollback:
+    if: inputs.rollback
     runs-on: ubuntu-latest
-    concurrency: deploy-share
+    concurrency: deploy-${{ inputs.rollback }}
     permissions:
       contents: read
       id-token: write
+    env:
+      SERVICE: ${{ inputs.rollback }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - *authenticate
+      - *setup-gcloud
 
-      - name: Build image
-        uses: ./.github/actions/build-image
-        with:
-          service: share
-          build-args: |
-            VITE_PUBLIC_API_URL=${{ secrets.API_URL }}
-            VITE_PUBLIC_MAIN_URL=${{ secrets.MAIN_URL }}
-            VITE_PUBLIC_POSTHOG_TOKEN=${{ secrets.POSTHOG_TOKEN }}
-            VITE_PUBLIC_PROXY_URL=${{ secrets.PROXY_URL }}
-
-      - name: Deploy
-        run: gcloud run services update share --image="$IMAGE" --region="$GCP_REGION"
+      - name: Roll back
+        run: |
+          previous=$(gcloud run revisions list --service="$SERVICE" --region="$REGION" --sort-by=~metadata.creationTimestamp --format='value(spec.containers[0].image)' | uniq | sed -n 2p)
+          gcloud run services update "$SERVICE" --image="$previous" --region="$REGION"

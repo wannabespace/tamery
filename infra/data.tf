@@ -11,7 +11,6 @@ resource "google_sql_database_instance" "tamery" {
     disk_type                   = "PD_SSD"
     disk_autoresize             = true
     deletion_protection_enabled = true
-    enable_dataplex_integration = true
 
     backup_configuration {
       enabled                        = true
@@ -26,17 +25,9 @@ resource "google_sql_database_instance" "tamery" {
     }
 
     ip_configuration {
-      ipv4_enabled    = true
+      ipv4_enabled    = false
       private_network = google_compute_network.tamery.id
       ssl_mode        = "ENCRYPTED_ONLY"
-
-      dynamic "authorized_networks" {
-        for_each = var.sql_authorized_networks
-        content {
-          name  = authorized_networks.key
-          value = authorized_networks.value
-        }
-      }
     }
 
     maintenance_window {
@@ -80,7 +71,7 @@ resource "google_redis_instance" "tamery" {
   authorized_network      = google_compute_network.tamery.id
   connect_mode            = "PRIVATE_SERVICE_ACCESS"
   auth_enabled            = true
-  transit_encryption_mode = "DISABLED"
+  transit_encryption_mode = "SERVER_AUTHENTICATION"
 
   lifecycle {
     prevent_destroy = true

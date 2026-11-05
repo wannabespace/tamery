@@ -3,7 +3,6 @@ locals {
     "artifactregistry.googleapis.com",
     "billingbudgets.googleapis.com",
     "certificatemanager.googleapis.com",
-    "cloudbuild.googleapis.com",
     "cloudkms.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "cloudscheduler.googleapis.com",
@@ -34,10 +33,20 @@ resource "google_artifact_registry_repository" "tamery" {
   location      = local.region
   format        = "DOCKER"
 
-  cleanup_policy_dry_run = true
-
-  docker_config {
-    immutable_tags = false
+  # Rollback puts a service on an earlier image, so the newest ones stay however old they are.
+  cleanup_policies {
+    id     = "keep-recent"
+    action = "KEEP"
+    most_recent_versions {
+      keep_count = 10
+    }
+  }
+  cleanup_policies {
+    id     = "delete-old"
+    action = "DELETE"
+    condition {
+      older_than = "2592000s"
+    }
   }
 }
 
@@ -54,24 +63,15 @@ resource "google_billing_budget" "monthly" {
   amount {
     specified_amount {
       currency_code = "USD"
-      units         = "100"
+      units         = "250"
     }
   }
 
-  threshold_rules {
-    threshold_percent = 0.5
-    spend_basis       = "CURRENT_SPEND"
-  }
-  threshold_rules {
-    threshold_percent = 0.9
-    spend_basis       = "CURRENT_SPEND"
-  }
-  threshold_rules {
-    threshold_percent = 1.0
-    spend_basis       = "CURRENT_SPEND"
-  }
-  threshold_rules {
-    threshold_percent = 1.0
-    spend_basis       = "FORECASTED_SPEND"
+  dynamic "threshold_rules" {
+    for_each = [[0.5, "CURRENT_SPEND"], [0.9, "CURRENT_SPEND"], [1.0, "CURRENT_SPEND"], [1.0, "FORECASTED_SPEND"]]
+    content {
+      threshold_percent = threshold_rules.value[0]
+      spend_basis       = threshold_rules.value[1]
+    }
   }
 }

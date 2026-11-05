@@ -32,14 +32,13 @@ The cloud proxy cannot reach private addresses, open SQLite and certificate file
 If your database only accepts allowlisted IP addresses, add these so the cloud proxy can reach it:
 
 ```text
-208.77.244.241
-152.55.184.240
-152.55.185.189
+35.242.248.246
+34.179.188.139
 ```
 
-Add all three. The proxy can connect from any of them. Desktop and `tamery bridge` connect from your own network, so allow that address instead.
+Add both. The proxy can connect from either one. Desktop and `tamery bridge` connect from your own network, so allow that address instead.
 
-Other services at our hosting provider share these addresses. An allowlist narrows who can reach your database, but the database password still protects it.
+Only Tamery's cloud proxy uses these addresses, but it connects for every Tamery user. An allowlist narrows who can reach your database, and the database password still protects it.
 
 Encryption between Tamery and your database depends on the connection's SSL settings. The cloud proxy never connects to PostgreSQL or MySQL unencrypted unless the string turns SSL off.
 
