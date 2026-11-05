@@ -18,7 +18,7 @@ const INSTRUCTIONS = [
   'Keep conditions and platform limits from the source. Do not turn a narrow fix into a broad reliability, security or performance claim.',
   'Omit version bumps, build tooling, refactors, internal chores, author credits, PR links and conventional-commit prefixes from the summary and items.',
   'Documentation improvements belong in improvements when they help users. An empty group is an empty array; if there are no user-visible changes, say this is a maintenance release.',
-  'Return plain text in each field, without Markdown or HTML. The caller adds headings, bullets, links and the original technical changelog.',
+  'Return plain text in each field, without Markdown or HTML. The caller adds headings and bullets.',
 ].join('\n')
 
 export const generateReleaseNotes = async (data: {
@@ -45,6 +45,5 @@ export const generateReleaseNotes = async (data: {
     ...(output.fixes.length > 0
       ? ['### Fixes', output.fixes.map((item) => `- ${item}`).join('\n')]
       : []),
-    `<details>\n<summary>Technical changelog</summary>\n\n${data.notes}\n\n</details>`,
   ].join('\n\n')
 }
