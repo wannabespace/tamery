@@ -22,7 +22,7 @@
 
 Setup lives in `README.md`, the command list in the root `package.json`. Not obvious:
 
-- Feature branches start from `main` and PRs target it. `conar` is the legacy Conar app (conar.app, its own Railway services, same database): only Conar fixes go there, never feature work.
+- Feature branches start from `main` and PRs target it. `conar` is the legacy Conar app (conar.app, same database): only Conar fixes go there, never feature work.
 - `pnpm x` picks package + script; `pnpm run dev`'s picker takes `-a` to skip the prompt.
 - A dead backend shows up in the browser as a **CORS error**: portless answers for a stopped server with a 502 that has no CORS headers. `bun --watch` stays down after a crash until a watched file changes, and it ignores `node_modules`, so a crash on a not-yet-installed package needs `dev` restarted after `pnpm install`.
 - A Bun process that calls a portless HTTPS URL without being started by `portless run` (the CLI's `tamery` script) runs with `--use-system-ca`: Bun ignores the system keychain `portless trust` adds its CA to, and refuses the chain otherwise.
@@ -35,7 +35,7 @@ Setup lives in `README.md`, the command list in the root `package.json`. Not obv
 
 Every Tamery service is a Cloud Run service named after its app and built from its app's own `apps/<app>/Dockerfile` (the build context is the repo root, and BuildKit is required for `COPY --parents`), which installs only that app's workspace closure. The files repeat their install steps on purpose, so each app's build can change on its own. api and proxy ship the whole build, sources and `node_modules`; proxy runs the app's `start` and api the same command without pnpm; app's image holds `dist` behind `serve`; main, docs and share hold Nitro's self-contained `.output`.
 
-`infra/` is the OpenTofu definition of the whole Google Cloud project, the source of truth for everything but images, secret values and Cloudflare: change a setting there, never by hand. Run it from `infra/` as `GOOGLE_OAUTH_ACCESS_TOKEN=$(gcloud auth print-access-token) tofu plan`, with the operator's `billing_account` and `alerts_email` in a local `terraform.tfvars`, since the repo is public. The state lives in a versioned GCS bucket created outside OpenTofu, and it holds the Redis auth string. Cloud SQL and Redis have no public address, so anything that touches them directly (a data copy, a check) runs as a one-off Cloud Run Job in the VPC. Moving production off Railway: `infra/CUTOVER.md`.
+`infra/` is the OpenTofu definition of the whole Google Cloud project, the source of truth for everything but images, secret values and Cloudflare: change a setting there, never by hand. Run it from `infra/` as `GOOGLE_OAUTH_ACCESS_TOKEN=$(gcloud auth print-access-token) tofu plan`, with the operator's `billing_account` and `alerts_email` in a local `terraform.tfvars`, since the repo is public. The state lives in a versioned GCS bucket created outside OpenTofu, and it holds the Redis auth string. Cloud SQL and Redis have no public address, so anything that touches them directly (a data copy, a check) runs as a one-off Cloud Run Job in the VPC. The production move: `infra/CUTOVER.md`.
 
 `infra/alerts.tf` emails `alerts_email` on sensitive actions in the audit logs, error and capacity metrics, and a site going down. The audit alerts fire on the owner too, so a `tofu apply` sends some.
 
