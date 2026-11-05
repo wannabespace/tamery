@@ -3,7 +3,6 @@ import process from 'node:process'
 
 import { ORPCError, ValidationError } from '@orpc/server'
 import { RPCHandler } from '@orpc/server/fetch'
-import { runInBackground } from '@tamery/shared/background'
 import { isDevelopmentOrigin, ORIGINS } from '@tamery/shared/origins'
 import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { Hono } from 'hono'
@@ -138,17 +137,15 @@ const app = new Hono<{
       env.ALERTS_EMAIL &&
       !c.req.url.includes('healthcheck.railway.app')
     ) {
-      runInBackground(
-        sendEmail({
-          props: {
-            service: 'API',
-            text: JSON.stringify(logInfo, null, 2),
-          },
-          subject: `Alert from API: ${status} ${method} ${c.req.url}`,
-          template: 'Alert',
-          to: env.ALERTS_EMAIL,
-        })
-      )
+      sendEmail({
+        props: {
+          service: 'API',
+          text: JSON.stringify(logInfo, null, 2),
+        },
+        subject: `Alert from API: ${status} ${method} ${c.req.url}`,
+        template: 'Alert',
+        to: env.ALERTS_EMAIL,
+      })
     }
 
     const log = JSON.stringify(
