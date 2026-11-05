@@ -90,3 +90,6 @@ export const RECONNECT_ERROR_PATTERNS = [
   'the database system is not yet accepting connections',
   'the database system is starting up',
 ]
+
+/** Cloudflare sets it, and only Cloudflare reaches the origins (the load balancer's mTLS). Any other client-IP header can be spoofed. */
+export const CLIENT_IP_HEADER = 'cf-connecting-ip'

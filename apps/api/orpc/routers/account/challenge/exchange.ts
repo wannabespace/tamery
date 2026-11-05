@@ -1,6 +1,7 @@
 import { db } from '@tamery/db'
 import { connections, queries } from '@tamery/db/schema'
 import { challenge } from '@tamery/shared/challenge'
+import { CLIENT_IP_HEADER } from '@tamery/shared/constants'
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
 import { type } from 'arktype'
 import { eq } from 'drizzle-orm'
@@ -107,7 +108,7 @@ export const exchange = orpc
       data.userId,
       false,
       {
-        ipAddress: headers.get('x-real-ip'),
+        ipAddress: headers.get(CLIENT_IP_HEADER),
         userAgent: headers.get('User-Agent'),
       }
     )

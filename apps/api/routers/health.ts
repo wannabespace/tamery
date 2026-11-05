@@ -1,66 +1,18 @@
-import { probeAi } from '@tamery/ai/models'
 import { db } from '@tamery/db'
+import { logDriverError } from '@tamery/shared/sanitize-log'
+import { toError } from '@tamery/shared/utils'
+import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 
 export const healthRouter = new Hono().get('/', async (c) => {
-  const hostname = c.req.header('host')
-  if (hostname !== 'healthcheck.railway.app') {
-    return c.json(
-      {
-        message: 'Invalid healthcheck host',
-        status: 'error',
-      },
-      400
-    )
+  const database = await Result.tryPromise(() => db.execute(sql`select 1`))
+
+  if (database.isErr()) {
+    logDriverError(toError(database.error.cause))
+    // Public route: the driver's message can name the database host, so it stays in the logs.
+    return c.json({ status: 'error' }, 500)
   }
 
-  // oxlint-disable-next-line unicorn/consistent-function-scoping
-  const createAnswer = (
-    status: 'error' | 'ok',
-    service: string,
-    message: string
-  ) => ({
-    message,
-    service,
-    status,
-  })
-
-  const promises = await Promise.all([
-    db
-      .execute(sql`select 1`)
-      .then(() => createAnswer('ok', 'database', 'Database connection ok'))
-      .catch((error) =>
-        createAnswer(
-          'error',
-          'database',
-          error instanceof Error ? error.message : 'Database connection failed'
-        )
-      ),
-    probeAi()
-      .then((text) =>
-        text
-          ? createAnswer('ok', 'openrouter', text)
-          : createAnswer('error', 'openrouter', 'OpenRouter connection failed')
-      )
-      .catch((error) =>
-        createAnswer(
-          'error',
-          'openrouter',
-          error instanceof Error
-            ? error.message
-            : 'OpenRouter connection failed'
-        )
-      ),
-  ])
-
-  const error = promises.find((promise) => promise.status === 'error')
-
-  if (error) {
-    return c.json(error, 500)
-  }
-
-  return c.json({
-    status: 'ok',
-  })
+  return c.json({ status: 'ok' })
 })

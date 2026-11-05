@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Railway builds this with the repo root as the context.
+# Built with the repo root as the context.
 
 FROM node:24-slim
 COPY --from=oven/bun:1.4.4 /usr/local/bin/bun /usr/local/bin/bun
@@ -15,4 +15,4 @@ COPY . .
 WORKDIR /app/apps/api
 RUN pnpm run check-types
 # Keep in step with package.json's `start`. Not `pnpm run start`: as PID 1 pnpm never passes SIGTERM on, so lib/shutdown.ts never drains.
-CMD ["env", "NODE_ENV=production", "bun", "run", "--preload", "./lib/unwrap-secrets.ts", "./index.ts"]
+CMD ["env", "NODE_ENV=production", "bun", "run", "./index.ts"]
