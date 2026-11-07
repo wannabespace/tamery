@@ -65,6 +65,10 @@ const SERVER_FIELDS = [
 const port = type(/^\d{0,5}$/u).configure({ message: 'Use a port number' })
 
 const FULL_PATH = /^\s*(?:\/|~\/|[a-z]:[\\/])/iu
+const FULL_PATH_EXAMPLES = {
+  [ConnectionType.DuckDB]: '/Users/me/data.duckdb',
+  [ConnectionType.SQLite]: '/Users/me/app.db',
+}
 
 const connectionFormSchema = type({
   database: 'string',
@@ -91,16 +95,18 @@ const connectionFormSchema = type({
     }
     return empty.length === 0
   })
-  .narrow(
-    (values, ctx) =>
-      !getFileType(values) ||
+  .narrow((values, ctx) => {
+    const fileType = getFileType(values)
+    return (
+      !fileType ||
       !/\S/u.test(values.database) ||
       FULL_PATH.test(values.database) ||
       ctx.reject({
-        message: "Use the file's full path, like /Users/me/app.db",
+        message: `Use the file's full path, like ${FULL_PATH_EXAMPLES[fileType]}`,
         path: ['database'],
       })
-  )
+    )
+  })
   .narrow(
     (values, ctx) =>
       !values.sshEnabled ||

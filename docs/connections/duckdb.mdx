@@ -41,7 +41,7 @@ MotherDuck works in both the desktop and web apps. The token follows the same [s
 
 Browse and edit rows, run SQL, explore relationships, and manage schemas, views, and indexes.
 
-- You can add, rename, and drop columns, and change a column's type or nullability. DuckDB refuses to change a column that an index or key covers.
+- You can add, rename, and drop columns, and change a column's type or nullability. DuckDB refuses to change any column of a table that has an index, so drop the table's indexes first and add them back after. It also refuses to change a column a key covers.
 - Existing constraints are read-only. DuckDB adds no constraint to a table after it was created.
 - Lists, structs, maps, and JSON edit as JSON. Unions are read-only.
 - On MotherDuck, queries can't read files on your computer.
