@@ -31,7 +31,7 @@ interface OwnedTx {
 
 const IDLE_TX_TIMEOUT_MINUTES = 15
 
-const TRANSACTION_GONE = `The transaction is no longer open. One left idle for ${IDLE_TX_TIMEOUT_MINUTES} minutes rolls back.`
+const TRANSACTION_GONE = `The transaction is no longer open. One left idle for ${IDLE_TX_TIMEOUT_MINUTES} minutes, or open during a Tamery update, rolls back.`
 
 const activeTransactions = new Map<string, OwnedTx>()
 
