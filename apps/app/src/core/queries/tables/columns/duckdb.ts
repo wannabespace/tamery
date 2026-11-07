@@ -27,11 +27,9 @@ export const duckdbColumns = (
       'c.numeric_scale as scale',
       'c.comment',
       'c.is_nullable as nullable',
-      'c.is_generated as isGenerated',
-      // A union reads as its tag and value, which DuckDB casts back to no union.
-      sql<boolean>`NOT c.is_generated AND c.data_type NOT LIKE 'UNION(%'`.as(
-        'editable'
-      ),
+      // A union reads as its tag and value, which DuckDB casts back to no union. No `is_generated`: MotherDuck runs a
+      // DuckDB older than the column.
+      sql<boolean>`c.data_type NOT LIKE 'UNION(%'`.as('editable'),
     ])
     .where('c.database_name', '=', currentDatabase)
     .where('c.internal', '=', false)

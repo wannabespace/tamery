@@ -33,7 +33,6 @@ export interface CatalogFunctions {
     character_maximum_length: number | null
     numeric_precision: number | null
     numeric_scale: number | null
-    is_generated: boolean
   }
   duckdb_constraints: {
     database_name: string

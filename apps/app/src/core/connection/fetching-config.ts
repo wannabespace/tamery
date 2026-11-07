@@ -30,13 +30,18 @@ interface FetchingOptions {
   /** `null` while the row loads leaves the password unresolved. */
   connectionString: Pick<
     ConnectionString,
-    'isInternal' | 'isPasswordPopulated' | 'missingSecrets' | 'usesSsh'
+    | 'desktopOnly'
+    | 'isInternal'
+    | 'isPasswordPopulated'
+    | 'missingSecrets'
+    | 'usesSsh'
   > | null
   /** A string under test: the bridge runs saved connections only, never a string it is sent. */
   draft?: boolean
 }
 
 const REASONS = {
+  desktopOnly: 'DuckDB files open only in the Tamery desktop app.',
   connectionStringNotStored:
     'Only the name and color of this connection sync. Add its server details on this device to use it here.',
   passwordMissing: 'Enter the password to query this connection.',
@@ -86,7 +91,7 @@ const resolveFlags = (
   }
 }
 
-export const fetchingConfig = (
+const routedConfig = (
   connection: FetchingConnection,
   options: FetchingOptions
 ): FetchingConfig => {
@@ -156,3 +161,12 @@ export const fetchingConfig = (
 
   return allowed('cloud-proxy')
 }
+
+/** Ahead of the bridge too, which refuses these: its binary ships without their driver. */
+export const fetchingConfig = (
+  connection: FetchingConnection,
+  options: FetchingOptions
+): FetchingConfig =>
+  options.connectionString?.desktopOnly && !window.electron
+    ? blocked('local', REASONS.desktopOnly)
+    : routedConfig(connection, options)

@@ -19,6 +19,8 @@ interface EngineString {
   defaultDatabase?: (user: string) => string
   /** The schema unqualified names resolve in, where the engine takes it from the login rather than the database. */
   defaultSchema?: (user: string) => string
+  /** Only the desktop app ships the driver: the bridge refuses it and the cloud proxy opens no file. */
+  desktopOnly?: true
   label: (parts: { address: string; database: string; host: string }) => string
   /** The one resource the engine opens, kept out of the string's path; `null` when the path names it. */
   resource: ((database: string) => string) | null
@@ -48,6 +50,7 @@ const ENGINE_STRINGS: Record<ConnectionType | Provider, EngineString> = {
     defaultDatabase: () => 'default',
   },
   [ConnectionType.DuckDB]: {
+    desktopOnly: true,
     label: ({ database }) => fileName(database),
     resource: duckdbResource,
   },
@@ -109,12 +112,13 @@ export const describeConnectionString = (connectionString: string) => {
   const { database, host, password, searchParams, user } =
     readConnectionString(connectionString)
   const authMechanism = searchParams.get('authmechanism')
-  const { defaultDatabase, defaultSchema, label, resource } =
+  const { defaultDatabase, defaultSchema, desktopOnly, label, resource } =
     getEngineString(connectionString)
   return {
     defaultResourceName:
       resource?.(database) ?? (database || defaultDatabase?.(user) || null),
     defaultSchema: defaultSchema?.(user) || null,
+    desktopOnly: !!desktopOnly,
     displayUrl: label({
       address: new SafeURL(connectionString).host,
       database,
