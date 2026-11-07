@@ -4,6 +4,7 @@ import { ConnectionType } from '@tamery/shared/enums/connection-type'
 
 import type { ConnectionParts } from './connection-parts'
 import { connectionParts } from './connection-parts'
+import { getMotherduckHost } from './motherduck-host'
 import { getDriverConfig } from './parse-connection-string'
 import { connectionSecrets } from './secrets'
 import { EMPTY_SSH_TUNNEL } from './ssh/params'
@@ -110,5 +111,25 @@ describe('connectionParts', () => {
     expect(missingAfterEdit(tunnel)).toEqual(['ssh_password'])
     expect(missingAfterEdit({ ...tunnel, auth: 'agent' })).toEqual([])
     expect(missingAfterEdit(null)).toEqual([])
+  })
+})
+
+const tokenIn = (claims: object) =>
+  `header.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.signature`
+
+describe('getMotherduckHost', () => {
+  it("reads the endpoint from the token's region", () => {
+    expect(getMotherduckHost(tokenIn({ mdRegion: 'aws-eu-central-1' }))).toBe(
+      'pg.eu-central-1-aws.motherduck.com'
+    )
+  })
+
+  it('falls back to the first region for a token that names none', () => {
+    expect(getMotherduckHost(tokenIn({ userId: 'me' }))).toBe(
+      'pg.us-east-1-aws.motherduck.com'
+    )
+    expect(getMotherduckHost('not a token')).toBe(
+      'pg.us-east-1-aws.motherduck.com'
+    )
   })
 })

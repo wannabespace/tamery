@@ -2,6 +2,8 @@ import { Dialect } from '@tamery/shared/enums/connection-type'
 import type { AlterColumnBuilder } from 'kysely'
 import { sql } from 'kysely'
 
+import type { RenamedValue } from '~/core/queries/shared/inline-enum'
+
 import type { AlterColumnTarget, Db } from '.'
 import { clickhouseColumnType, mssqlDefaultConstraint } from '.'
 
@@ -90,24 +92,38 @@ export const alterColumnStatement = (
     .compile()
 }
 
-/** DuckDB takes one change per ALTER TABLE, so a retype and a nullability change are two statements. */
+/**
+ * DuckDB takes one change per ALTER TABLE, so a retype and a nullability change are two statements. A renamed enum value
+ * moves its rows in the retype, which fails on a value the new type lacks.
+ */
 export const duckdbAlterColumnStatements = (
   db: Db,
   {
     column,
     nullable,
     original,
+    renamedValues = [],
     schema,
     table,
     type: columnType,
-  }: AlterColumnTarget
+  }: AlterColumnTarget & { renamedValues?: RenamedValue[] }
 ) => {
   const alter = () => db.withSchema(schema).schema.alterTable(table)
+  const text = sql`CAST(${sql.id(column)} AS VARCHAR)`
+  const renames =
+    renamedValues.length > 0
+      ? sql` USING CASE ${text} ${sql.join(
+          renamedValues.map(
+            ({ from, to }) => sql`WHEN ${sql.lit(from)} THEN ${sql.lit(to)}`
+          ),
+          sql` `
+        )} ELSE ${text} END`
+      : sql``
   return [
     columnType !== original.type &&
       alter()
         .alterColumn(column, (builder) =>
-          builder.setDataType(sql.raw(columnType))
+          builder.setDataType(sql`${sql.raw(columnType)}${renames}`)
         )
         .compile(),
     nullable !== original.nullable &&

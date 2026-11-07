@@ -25,7 +25,7 @@ The web app and [`tamery bridge`](/cli/overview) don't open DuckDB files.
 
 ## MotherDuck
 
-Choose **MotherDuck** and enter your access token. Create one in MotherDuck under **Settings → Access Tokens**. Leave **Database** empty to see every database in your workspace.
+Choose **MotherDuck** and paste your access token. Create one in MotherDuck under **Settings → Access Tokens**. Leave **Database** empty to see every database in your workspace.
 
 Pasting an `md:` string fills in the form:
 
@@ -33,7 +33,7 @@ Pasting an `md:` string fills in the form:
 md:my_db?motherduck_token=your-token
 ```
 
-Tamery reaches MotherDuck through its Postgres endpoint. **Host** starts as `pg.us-east-1-aws.motherduck.com`. If your organization is in another region, use that region's host, like `pg.eu-central-1-aws.motherduck.com`. Pasting the endpoint's `postgresql://` URL from MotherDuck sets the host for you.
+Tamery reaches MotherDuck through its Postgres endpoint, in the region your token names. Pasting the endpoint's `postgresql://` URL from MotherDuck works too.
 
 MotherDuck works in both the desktop and web apps. The token follows the same [sync rules](/connections/overview#choose-what-syncs) as a password.
 
@@ -43,5 +43,5 @@ Browse and edit rows, run SQL, explore relationships, and manage schemas, views,
 
 - You can add, rename, and drop columns, and change a column's type or nullability. DuckDB refuses to change a column that an index or key covers.
 - Existing constraints are read-only. DuckDB adds no constraint to a table after it was created.
-- Lists, structs, and maps edit as JSON.
+- Lists, structs, maps, and JSON edit as JSON. Unions are read-only.
 - On MotherDuck, queries can't read files on your computer.

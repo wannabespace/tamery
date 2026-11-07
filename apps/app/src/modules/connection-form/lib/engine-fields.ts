@@ -1,7 +1,6 @@
 import {
   D1_HOST,
   MOTHERDUCK_DEFAULT_DATABASE,
-  MOTHERDUCK_HOST,
 } from '@tamery/connection/connection-parts'
 import type { ServerField } from '@tamery/connection/guess/types'
 import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
@@ -33,7 +32,7 @@ interface FieldRow {
 
 export interface EngineFields {
   /** Names where the database is: required, read whole on blur like a paste, focused when an edit opens. */
-  field: 'database' | 'host'
+  field: 'database' | 'host' | 'password'
   fixedHost?: string
   message: string
   rows: FieldRow[]
@@ -184,19 +183,13 @@ const ENGINE_FIELDS: Record<ConnectionType | Provider, EngineFields> = {
     sshTunnel: true,
   },
   [Provider.MotherDuck]: {
-    field: 'host',
-    message: 'Enter the host',
+    field: 'password',
+    message: 'Enter the access token',
     rows: [
-      {
-        label: 'Host',
-        name: 'host',
-        placeholder: `${MOTHERDUCK_HOST} or an md: string`,
-      },
       {
         label: 'Access token',
         name: 'password',
-        placeholder: 'From Settings → Access Tokens in MotherDuck',
-        required: 'Enter the access token',
+        placeholder: 'From Settings → Access Tokens, or an md: string',
         secret: true,
       },
       {
@@ -204,6 +197,12 @@ const ENGINE_FIELDS: Record<ConnectionType | Provider, EngineFields> = {
         name: 'database',
         optional: true,
         placeholder: MOTHERDUCK_DEFAULT_DATABASE,
+      },
+      {
+        label: 'Host',
+        name: 'host',
+        optional: true,
+        placeholder: "The token's region",
       },
     ],
   },

@@ -150,7 +150,6 @@ describe('guessConnection — snippets from configs and tools', () => {
       'md:analytics?motherduck_token=eyJhbGciOi.eyJpYXQi',
       {
         database: 'analytics',
-        host: 'pg.us-east-1-aws.motherduck.com',
         password: 'eyJhbGciOi.eyJpYXQi',
         provider: Provider.MotherDuck,
         type: ConnectionType.DuckDB,
@@ -168,7 +167,6 @@ describe('guessConnection — snippets from configs and tools', () => {
     [
       'MOTHERDUCK_TOKEN=eyJhbGciOi.eyJpYXQi',
       {
-        host: 'pg.us-east-1-aws.motherduck.com',
         password: 'eyJhbGciOi.eyJpYXQi',
         provider: Provider.MotherDuck,
       },

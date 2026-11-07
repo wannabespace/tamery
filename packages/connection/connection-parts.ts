@@ -3,6 +3,7 @@ import { SafeURL } from '@tamery/shared/safe-url'
 import { objectEntries } from '@tamery/shared/utils'
 
 import { databaseFile } from './database-file'
+import { getMotherduckHost } from './motherduck-host'
 import { readConnectionString } from './parse-connection-string'
 import type { SshTunnel } from './ssh/params'
 import { deleteSshParams, setSshParams, getSshTunnel } from './ssh/params'
@@ -53,8 +54,6 @@ export const CLICKHOUSE_HTTP_PORT_OF_NATIVE: Record<string, string> = {
   9440: CLICKHOUSE_HTTPS_PORT,
 }
 
-/** MotherDuck's Postgres endpoint in its first region; a workspace elsewhere names its own (`pg.<region>-aws.motherduck.com`). */
-export const MOTHERDUCK_HOST = 'pg.us-east-1-aws.motherduck.com'
 export const MOTHERDUCK_DEFAULT_DATABASE = 'my_db'
 /** The endpoint answers on Postgres's port in every region, whatever a string says. */
 const MOTHERDUCK_PORT = '5432'
@@ -161,7 +160,7 @@ const PROVIDER_FORMATS: Record<Provider, (parts: ConnectionParts) => string> = {
     ).toString(),
   [Provider.MotherDuck]: (parts) =>
     withCredentials(
-      `motherduck://${parts.host || MOTHERDUCK_HOST}/${encodeURIComponent(parts.database)}`,
+      `motherduck://${parts.host || getMotherduckHost(parts.password)}/${encodeURIComponent(parts.database)}`,
       parts
     ).toString(),
   [Provider.Turso]: (parts) =>

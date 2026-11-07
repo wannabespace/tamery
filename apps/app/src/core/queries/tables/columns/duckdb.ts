@@ -24,7 +24,10 @@ export const duckdbColumns = (
       'COLUMN_COMMENT as comment',
       sql<boolean>`is_nullable = 'YES'`.as('nullable'),
       sql<boolean>`is_generated = 'ALWAYS'`.as('isGenerated'),
-      sql<boolean>`is_generated <> 'ALWAYS'`.as('editable'),
+      // A union reads as its tag and value, which DuckDB casts back to no union.
+      sql<boolean>`is_generated <> 'ALWAYS' AND data_type NOT LIKE 'UNION(%'`.as(
+        'editable'
+      ),
     ])
     .where('table_catalog', '=', currentDatabase)
     .$call((qb) =>

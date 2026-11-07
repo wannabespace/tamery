@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -30,9 +30,9 @@ describe('duckdb executor', () => {
   test('answers each statement of a text with its own set', async () => {
     const { result } = await query.execute({
       ...file,
-      query: `CREATE TABLE t (id INTEGER PRIMARY KEY, big BIGINT, tag VARCHAR, tags VARCHAR[], span INTERVAL);
-        INSERT INTO t VALUES (1, 9007199254740993, 'a;b', ['x', 'y'], INTERVAL 3 DAY), (2, 1, NULL, NULL, NULL);
-        SELECT id, big, tag, tag, tags, span FROM t ORDER BY id;`,
+      query: `CREATE TABLE t (id INTEGER PRIMARY KEY, big BIGINT, tag VARCHAR, tags VARCHAR[], span INTERVAL, doc JSON, counts MAP(VARCHAR, INTEGER)[]);
+        INSERT INTO t VALUES (1, 9007199254740993, 'a;b', ['x', 'y'], INTERVAL 3 DAY, '{"k":[1]}', [MAP {'a': 1}]), (2, 1, NULL, NULL, NULL, NULL, NULL);
+        SELECT id, big, tag, tag, tags, span, doc, counts FROM t ORDER BY id;`,
     })
 
     expect(result).toEqual([
@@ -40,10 +40,19 @@ describe('duckdb executor', () => {
       { affectedRows: 2, columns: [], rows: [], truncated: false },
       {
         affectedRows: null,
-        columns: ['id', 'big', 'tag', 'tag', 'tags', 'span'],
+        columns: ['id', 'big', 'tag', 'tag', 'tags', 'span', 'doc', 'counts'],
         rows: [
-          [1, '9007199254740993', 'a;b', 'a;b', ['x', 'y'], '3 days'],
-          [2, '1', null, null, null, null],
+          [
+            1,
+            '9007199254740993',
+            'a;b',
+            'a;b',
+            ['x', 'y'],
+            '3 days',
+            { k: [1] },
+            [{ a: 1 }],
+          ],
+          [2, '1', null, null, null, null, null, null],
         ],
         truncated: false,
       },
@@ -121,6 +130,50 @@ describe('duckdb executor', () => {
     await run('ROLLBACK')
     expect(await query.transactionStatus({ txId })).toBe('ended')
   })
+
+  test('a symlink reaches the same instance as its target', async () => {
+    const link = path.join(directory, 'link.duckdb')
+    symlinkSync(path.join(directory, 'app data.duckdb'), link)
+    const { txId } = await query.beginTransaction(file)
+    await query.executeTransaction({
+      query: 'INSERT INTO t (id) VALUES (10)',
+      txId,
+      values: [],
+    })
+    await expect(
+      query.execute({ ...connectionTo('link.duckdb'), query: 'SELECT 1' })
+    ).resolves.toBeDefined()
+    await query.commitTransaction({ txId })
+
+    const { result } = await query.execute({
+      ...connectionTo('link.duckdb'),
+      query: 'SELECT count(*) FROM t WHERE id = 10',
+    })
+    expect(result[0]?.rows).toEqual([['1']])
+  })
+
+  test('a read-only call that times out leaves the open transaction alone', async () => {
+    const { txId } = await query.beginTransaction(file)
+    await query.executeTransaction({
+      query: 'INSERT INTO t (id) VALUES (11)',
+      txId,
+      values: [],
+    })
+    const read = query.beginTransaction({ ...file, accessMode: 'read only' })
+    await expect(read).rejects.toThrow('another mode')
+    await query.executeTransaction({
+      query: 'INSERT INTO t (id) VALUES (12)',
+      txId,
+      values: [],
+    })
+    await query.commitTransaction({ txId })
+
+    const { result } = await query.execute({
+      ...file,
+      query: 'SELECT count(*) FROM t WHERE id IN (11, 12)',
+    })
+    expect(result[0]?.rows).toEqual([['2']])
+  }, 15_000)
 
   test('never creates a file at a missing path', async () => {
     await expect(

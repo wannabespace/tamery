@@ -1,6 +1,9 @@
+import type { EventEmitter } from 'node:events'
+import { once } from 'node:events'
+
 import { logDriverError } from '@tamery/shared/sanitize-log'
 import { memoize } from 'memoza'
-import type { ClientBase, Pool, Query } from 'pg'
+import type { ClientBase, Pool } from 'pg'
 
 import { connectionParts } from '../../../connection-parts'
 import { forwarding } from '../../../forwarding'
@@ -40,13 +43,39 @@ const getPool = memoize(async (connectionString: string) => {
   return pool
 })
 
-// The endpoint has no `pg_cancel_backend`; pg's own cancel sends the protocol's CancelRequest over a connection of its own.
-const cancelOnWire: PrepareCancel = (client, pool) => (query) => {
-  // `cancel` is pg's own, left out of its types.
-  const canceller = new pg.Client(pool.options) as unknown as {
-    cancel: (busy: ClientBase, query: Query) => void
+const CANCEL_TIMEOUT_MS = 5000
+
+/** pg's own, left out of its types: the busy connection's cancel key and the protocol connection under a client. */
+interface PgInternals {
+  connection: EventEmitter & {
+    cancel: (processID: number, secretKey: number) => void
+    connect: (port?: number, host?: string) => void
+    requestSsl: () => void
+    stream: { destroy: () => void }
   }
-  canceller.cancel(client, query)
+  processID: number
+  secretKey: number
+}
+
+/**
+ * The endpoint has no `pg_cancel_backend`, so a cancel is the protocol's CancelRequest on a connection of its own. pg's
+ * `cancel` sends it before TLS, which the endpoint requires on every connection.
+ */
+const cancelOnWire: PrepareCancel = (client, pool) => async () => {
+  const busy = client as unknown as PgInternals
+  const { connection } = new pg.Client(pool.options) as unknown as PgInternals
+  connection.once('connect', () => connection.requestSsl())
+  connection.once('sslconnect', () =>
+    connection.cancel(busy.processID, busy.secretKey)
+  )
+  connection.connect(pool.options.port, pool.options.host)
+  try {
+    await once(connection, 'end', {
+      signal: AbortSignal.timeout(CANCEL_TIMEOUT_MS),
+    })
+  } finally {
+    connection.stream.destroy()
+  }
 }
 
 const handleOn = (

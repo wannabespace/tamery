@@ -28,7 +28,10 @@ const DUCKDB_MAGIC = 'DUCK'
 const DUCKDB_MAGIC_OFFSET = 8
 
 const getDatabaseFileType = async (file: File) => {
-  const header = await file.slice(0, SQLITE_HEADER.length).text()
+  // One character per byte: a DuckDB file's binary checksum would decode to fewer as UTF-8, moving its magic.
+  const header = new TextDecoder('latin1').decode(
+    await file.slice(0, SQLITE_HEADER.length).arrayBuffer()
+  )
   if (header === SQLITE_HEADER) {
     return ConnectionType.SQLite
   }

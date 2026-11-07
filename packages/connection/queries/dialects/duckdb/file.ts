@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { realpath } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import path from 'node:path'
@@ -46,13 +46,28 @@ const loadDuckdb = memoize(() => {
   }
 })
 
-/** The JSON converter, but an interval reads as DuckDB's own text, which a cell writes back as is. */
+/** The JSON converter, but a map reads as an object, which casts back through JSON, and an interval as DuckDB's own text, which a cell writes back as is. */
 const getConverter = memoize((): DuckDBValueConverter<Json> => {
-  const { DuckDBTypeId, JsonDuckDBValueConverter } = loadDuckdb()
-  return (value, type, converter) =>
-    type.typeId === DuckDBTypeId.INTERVAL && value !== null
-      ? String(value)
-      : JsonDuckDBValueConverter(value, type, converter)
+  const { DuckDBTypeId, JsonDuckDBValueConverter, objectArrayFromMapValue } =
+    loadDuckdb()
+  const convert: DuckDBValueConverter<Json> = (value, type, converter) => {
+    if (value === null) {
+      return null
+    }
+    if (type.typeId === DuckDBTypeId.INTERVAL) {
+      return String(value)
+    }
+    if (type.typeId === DuckDBTypeId.MAP) {
+      return Object.fromEntries(
+        objectArrayFromMapValue(value, type, converter).map((entry) => [
+          String(entry.key),
+          entry.value,
+        ])
+      )
+    }
+    return JsonDuckDBValueConverter(value, type, converter)
+  }
+  return convert
 })
 
 const toInput = (value: unknown): DuckDBValue => {
@@ -82,9 +97,17 @@ const readSet = async (
         rows: [],
       }
     }
+    // A JSON column reads as text, and its type reaches the converter without the alias that says so.
+    const json = result.columnTypes().map((type) => type.alias === 'JSON')
     const rows: unknown[][] = []
     for await (const chunk of result.yieldConvertedRows(getConverter())) {
-      rows.push(...chunk)
+      rows.push(
+        ...chunk.map((row) =>
+          row.map((value, index) =>
+            json[index] && value !== null ? JSON.parse(String(value)) : value
+          )
+        )
+      )
       if (rows.length > maxRows) {
         break
       }
@@ -155,27 +178,11 @@ interface OpenFile {
 }
 
 /**
- * One instance per file: two in one process each keep their own state of the file and never see the other's writes.
- * It closes once its last user is done, so another tool can open the file between Tamery's calls.
+ * One instance per file, keyed by its real path: two in one process each keep their own state of the file and never see
+ * the other's writes, a symlink's included. It closes once its last user is done, so another tool can open the file
+ * between Tamery's calls.
  */
 const openFiles = new Map<string, OpenFile>()
-
-const release = async (file: string) => {
-  const entry = openFiles.get(file)
-  if (!entry) {
-    return
-  }
-  entry.users -= 1
-  if (entry.users > 0) {
-    return
-  }
-  openFiles.delete(file)
-  await silently(async () => {
-    const instance = await entry.instance
-    instance.closeSync()
-  })
-  entry.closed.resolve()
-}
 
 const waitForClose = (entry: OpenFile) =>
   Promise.race([
@@ -185,24 +192,7 @@ const waitForClose = (entry: OpenFile) =>
     }),
   ])
 
-/** A read-only instance also turns off reading any other file or URL, which DuckDB allows only per instance. */
-const acquire = async (
-  file: string,
-  readOnly: boolean
-): Promise<DuckDBInstance> => {
-  const current = openFiles.get(file)
-  if (current && current.readOnly !== readOnly) {
-    await waitForClose(current)
-    return acquire(file, readOnly)
-  }
-  if (current) {
-    current.users += 1
-    return current.instance
-  }
-  // DuckDB would create an empty database at a mistyped path.
-  if (!existsSync(file)) {
-    throw new Error(`There is no file at ${file}.`)
-  }
+const open = (file: string, readOnly: boolean) => {
   const entry: OpenFile = {
     closed: Promise.withResolvers(),
     instance: loadDuckdb().DuckDBInstance.create(
@@ -212,29 +202,67 @@ const acquire = async (
         : {}
     ),
     readOnly,
-    users: 1,
+    users: 0,
   }
   openFiles.set(file, entry)
-  return entry.instance
+  return entry
+}
+
+/**
+ * Resolves only once this call holds a use of the file's instance, and its `release` gives back that use alone. A read-only
+ * instance also turns off reading any other file or URL, which DuckDB allows only per instance.
+ */
+const acquire = async (
+  file: string,
+  readOnly: boolean
+): Promise<{ instance: DuckDBInstance; release: () => Promise<void> }> => {
+  const current = openFiles.get(file)
+  if (current && current.readOnly !== readOnly) {
+    await waitForClose(current)
+    return acquire(file, readOnly)
+  }
+  const entry = current ?? open(file, readOnly)
+  entry.users += 1
+  const release = async () => {
+    entry.users -= 1
+    if (entry.users > 0) {
+      return
+    }
+    openFiles.delete(file)
+    await silently(async () => {
+      const instance = await entry.instance
+      instance.closeSync()
+    })
+    entry.closed.resolve()
+  }
+  try {
+    return { instance: await entry.instance, release }
+  } catch (error) {
+    await release()
+    throw error
+  }
 }
 
 const connectTo = async (connectionString: string, readOnly: boolean) => {
   const file = databaseFile.path(connectionString)
-  const local = file.startsWith('~/')
-    ? path.join(homedir(), file.slice(2))
-    : file
+  // DuckDB would create an empty database at a mistyped path.
+  const real = await realpath(
+    file.startsWith('~/') ? path.join(homedir(), file.slice(2)) : file
+  ).catch((error: unknown) => {
+    throw new Error(`There is no file at ${file}.`, { cause: error })
+  })
+  const { instance, release } = await acquire(real, readOnly)
   try {
-    const instance = await acquire(local, readOnly)
     const connection = await instance.connect()
     return {
       connection,
       release: () => {
         connection.closeSync()
-        return release(local)
+        return release()
       },
     }
   } catch (error) {
-    await release(local)
+    await release()
     throw error
   }
 }

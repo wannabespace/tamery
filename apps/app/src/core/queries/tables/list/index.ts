@@ -92,7 +92,14 @@ export const resourceTablesAndSchemasQuery = memoize(
               's.schema_name as schema',
               't.table_name as table',
               't.TABLE_COMMENT as comment',
-              't.table_type as type',
+              (eb) =>
+                eb
+                  .case()
+                  .when('t.table_type', '=', 'VIEW')
+                  .then('VIEW')
+                  .else('BASE TABLE')
+                  .end()
+                  .as('type'),
             ])
             .$narrowType<{ type: 'BASE TABLE' | 'VIEW' }>()
             .where('s.catalog_name', '=', currentDatabase)

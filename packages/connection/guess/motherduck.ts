@@ -1,7 +1,6 @@
 import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
 import { decodeURIComponentOrRaw } from '@tamery/shared/utils'
 
-import { MOTHERDUCK_HOST } from '../connection-parts'
 import { variablesOfLines } from './env'
 import { mergeParts } from './parts'
 import type { DatabaseGuess, GuessedParts } from './types'
@@ -38,7 +37,6 @@ const mdString = (text: string): GuessedParts | null => {
   return groups
     ? {
         database: decodeURIComponentOrRaw(groups.database ?? ''),
-        host: MOTHERDUCK_HOST,
         password:
           new URLSearchParams(groups.params).get(TOKEN_PARAM) ?? undefined,
       }
@@ -48,7 +46,7 @@ const mdString = (text: string): GuessedParts | null => {
 const tokenVariable = (text: string): GuessedParts | null => {
   const variables = variablesOfLines(text.split('\n'))
   const token = TOKEN_KEYS.map((key) => variables[key]).find(Boolean)
-  return token ? { host: MOTHERDUCK_HOST, password: token } : null
+  return token ? { password: token } : null
 }
 
 const motherduck = (parts: GuessedParts, text: string) =>
@@ -58,7 +56,7 @@ const motherduck = (parts: GuessedParts, text: string) =>
     { provider: Provider.MotherDuck, type: ConnectionType.DuckDB }
   )
 
-/** MotherDuck hands out an `md:` string or a Postgres URL to its endpoint, which names the region. */
+/** MotherDuck hands out an `md:` string or a Postgres URL to its endpoint; without the URL, the token names the region. */
 export const guessMotherduck = (text: string): DatabaseGuess | null => {
   const parts = endpointUrl(text) ?? mdString(text)
   return parts ? { format: 'url', parts: motherduck(parts, text) } : null
