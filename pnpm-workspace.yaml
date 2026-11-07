@@ -21,6 +21,7 @@ catalog:
   '@simplewebauthn/server': ^13.3.3
   '@clack/prompts': ^1.8.1
   '@clickhouse/client': ^1.24.1
+  '@duckdb/node-api': 2.0.0-r.1
   '@libsql/client': ^0.18.0
   '@manypkg/get-packages': ^3.1.0
   '@dagrejs/dagre': 3.1.3

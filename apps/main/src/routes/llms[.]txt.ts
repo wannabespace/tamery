@@ -20,11 +20,11 @@ export const Route = createFileRoute('/llms.txt')({
         return new Response(
           `# Tamery
 
-> Tamery is an AI-powered, open-source database client for PostgreSQL, TimescaleDB, MySQL, MariaDB, Microsoft SQL Server, Oracle, ClickHouse, MongoDB and SQLite, including Turso and Cloudflare D1. It lets developers write queries, explore and edit data, and manage databases with AI doing the heavy lifting. Available as a native desktop app for macOS, Windows and Linux, a web app and a CLI, with a local MCP server for AI agents.
+> Tamery is an AI-powered, open-source database client for PostgreSQL, TimescaleDB, MySQL, MariaDB, Microsoft SQL Server, Oracle, ClickHouse, MongoDB, SQLite, including Turso and Cloudflare D1, and DuckDB, including MotherDuck. It lets developers write queries, explore and edit data, and manage databases with AI doing the heavy lifting. Available as a native desktop app for macOS, Windows and Linux, a web app and a CLI, with a local MCP server for AI agents.
 
 ## Key facts
 
-- Supported databases: PostgreSQL, TimescaleDB, MySQL, MariaDB, Microsoft SQL Server (MSSQL), Oracle, ClickHouse, MongoDB (including Atlas), SQLite, Turso, Cloudflare D1
+- Supported databases: PostgreSQL, TimescaleDB, MySQL, MariaDB, Microsoft SQL Server (MSSQL), Oracle, ClickHouse, MongoDB (including Atlas), SQLite, Turso, Cloudflare D1, DuckDB, MotherDuck
 - Platforms: macOS (Apple Silicon and Intel), Windows, Linux (DEB, RPM, AppImage), web
 - Open source under AGPL-3.0: ${SOCIAL_LINKS.GITHUB}
 - Install via Homebrew: \`${BREW_INSTALL_COMMAND}\`

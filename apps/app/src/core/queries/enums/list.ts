@@ -81,6 +81,7 @@ const resourceEnumsQuery = createQuery({
         )
         .filter((res) => res.values.length > 0)
     },
+    duckdb: () => Promise.resolve([]),
     mongodb: () => Promise.resolve([]),
     mssql: () => Promise.resolve([]),
     mysql: async (db) => {

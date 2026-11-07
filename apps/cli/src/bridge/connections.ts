@@ -132,10 +132,16 @@ export const connections = {
       throw errors.NEEDS_SECRETS({ data: { connectionId, fields: 'all' } })
     }
     // Approval reads a string as its own connection type: SQLite under another dialect's name would open a file unasked.
-    const { type } = connectionParts.parse(known)
+    const { host, type } = connectionParts.parse(known)
     if (!type || getDialect(type) !== dialect) {
       throw errors.BAD_REQUEST({
         message: `This connection does not run as ${dialect}.`,
+      })
+    }
+    // The bridge's binary ships without DuckDB, and nothing confines what a DuckDB file's SQL reads.
+    if (type === ConnectionType.DuckDB && !host) {
+      throw errors.BAD_REQUEST({
+        message: 'DuckDB files open only in the Tamery desktop app.',
       })
     }
     // Any workspace editor can change the server's copy, so a file or machine login it names runs only as the user saved it here.

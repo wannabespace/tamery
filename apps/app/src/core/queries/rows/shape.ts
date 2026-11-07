@@ -24,6 +24,8 @@ export type ContainsText = (
 export const textContains: Record<SqlDialect, ContainsText> = {
   clickhouse: (eb, column, pattern) =>
     eb(eb.fn('toString', [eb.ref(column)]), 'ilike', pattern),
+  duckdb: (eb, column, pattern) =>
+    eb(eb.cast(eb.ref(column), 'varchar'), 'ilike', pattern),
   mssql: (eb, column, pattern) =>
     eb(eb.cast(eb.ref(column), sql`nvarchar(max)`), 'like', pattern),
   mysql: (eb, column, pattern) =>
@@ -85,6 +87,7 @@ export const bindValue: Record<Dialect, BindValue> = {
     (columnType, json) =>
       sql`(select v from format(JSONEachRow, ${`v ${columnType}`}, ${json}))`
   ),
+  duckdb: bindJsonAsText(Dialect.DuckDB),
   mongodb: toWire,
   mssql: bindJsonAsText(Dialect.MSSQL),
   mysql: bindJsonAsText(Dialect.MySQL),

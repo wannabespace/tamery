@@ -1,7 +1,11 @@
 import { SQLITE_BOOLEAN_TYPE } from '@tamery/connection/queries/value-binding'
 import { Dialect } from '@tamery/shared/enums/connection-type'
 
-import { clickhouseEnum, mysqlEnum } from '~/core/queries/shared/inline-enum'
+import {
+  clickhouseEnum,
+  duckdbEnum,
+  mysqlEnum,
+} from '~/core/queries/shared/inline-enum'
 
 import type { ColumnTypeCapabilities } from './capability-presets'
 import { JSON_COLUMN_TYPE } from './capability-presets'
@@ -36,6 +40,23 @@ const COLUMN_TYPES: Record<Dialect, readonly string[]> = {
     'DateTime',
     'DateTime64(3)',
     'Enum',
+  ],
+  [Dialect.DuckDB]: [
+    'INTEGER',
+    'BIGINT',
+    'SMALLINT',
+    'DOUBLE',
+    'DECIMAL(18, 3)',
+    'BOOLEAN',
+    'VARCHAR',
+    'UUID',
+    'DATE',
+    'TIMESTAMP',
+    'TIMESTAMPTZ',
+    'INTERVAL',
+    'JSON',
+    'BLOB',
+    'VARCHAR[]',
   ],
   [Dialect.MSSQL]: [
     'int',
@@ -136,6 +157,22 @@ export const COLUMN_TYPE_CAPABILITIES: Record<Dialect, ColumnTypeCapabilities> =
       uuid: /\bUUID\b/u,
       xml: null,
       zoned: /\bDateTime/u,
+    },
+    // DuckDB reads a blob as its `\x` text, and edits a list, struct or map as JSON, which casts back from text.
+    [Dialect.DuckDB]: {
+      array: { close: '[]', open: '' },
+      boolean: /^BOOLEAN$/iu,
+      bytes: null,
+      dateKeywords: /^(?:-?infinity|epoch)$/iu,
+      datesWithTime: null,
+      enum: duckdbEnum,
+      id: 'INTEGER',
+      incomparable: /^(?:MAP|UNION|VARIANT)\b/iu,
+      json: /^JSON$|\[\d*\]$|^(?:MAP|STRUCT|UNION)\(/iu,
+      options: COLUMN_TYPES[Dialect.DuckDB],
+      uuid: /^UUID$/iu,
+      xml: null,
+      zoned: / WITH TIME ZONE$/iu,
     },
     // BSON type names as `$type` reports them; a binary value stays Extended JSON, so it edits as JSON.
     [Dialect.MongoDB]: {

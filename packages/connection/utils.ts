@@ -1,7 +1,10 @@
 import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
 import { SafeURL } from '@tamery/shared/safe-url'
 
-import { connectionParts } from './connection-parts'
+import {
+  connectionParts,
+  MOTHERDUCK_DEFAULT_DATABASE,
+} from './connection-parts'
 import { isInternalHost } from './hosts'
 import { readConnectionString } from './parse-connection-string'
 import { connectionSecrets } from './secrets'
@@ -18,13 +21,20 @@ interface EngineString {
   defaultSchema?: (user: string) => string
   label: (parts: { address: string; database: string; host: string }) => string
   /** The one resource the engine opens, kept out of the string's path; `null` when the path names it. */
-  resource: string | null
+  resource: ((database: string) => string) | null
 }
 
 const SERVER_STRING: EngineString = {
   label: ({ address }) => address,
   resource: null,
 }
+
+const fileName = (path: string) => path.slice(path.lastIndexOf('/') + 1)
+
+const sqliteResource = () => SQLITE_RESOURCE_NAME
+
+/** DuckDB names a file's database after the file, cut at its first dot. */
+const duckdbResource = (path: string) => fileName(path).replace(/\..*$/u, '')
 
 const MONGODB_STRING: EngineString = {
   ...SERVER_STRING,
@@ -36,6 +46,10 @@ const ENGINE_STRINGS: Record<ConnectionType | Provider, EngineString> = {
   [ConnectionType.ClickHouse]: {
     ...SERVER_STRING,
     defaultDatabase: () => 'default',
+  },
+  [ConnectionType.DuckDB]: {
+    label: ({ database }) => fileName(database),
+    resource: duckdbResource,
   },
   [ConnectionType.MariaDB]: SERVER_STRING,
   [ConnectionType.MongoDB]: MONGODB_STRING,
@@ -50,17 +64,21 @@ const ENGINE_STRINGS: Record<ConnectionType | Provider, EngineString> = {
     defaultDatabase: (user) => user,
   },
   [ConnectionType.SQLite]: {
-    label: ({ database }) => database.slice(database.lastIndexOf('/') + 1),
-    resource: SQLITE_RESOURCE_NAME,
+    label: ({ database }) => fileName(database),
+    resource: sqliteResource,
   },
   [Provider.CloudflareD1]: {
     label: ({ database }) => database,
-    resource: SQLITE_RESOURCE_NAME,
+    resource: sqliteResource,
   },
   [Provider.MongoDBAtlas]: MONGODB_STRING,
+  [Provider.MotherDuck]: {
+    ...SERVER_STRING,
+    defaultDatabase: () => MOTHERDUCK_DEFAULT_DATABASE,
+  },
   [Provider.Turso]: {
     label: ({ host }) => host,
-    resource: SQLITE_RESOURCE_NAME,
+    resource: sqliteResource,
   },
 }
 
@@ -95,7 +113,7 @@ export const describeConnectionString = (connectionString: string) => {
     getEngineString(connectionString)
   return {
     defaultResourceName:
-      resource ?? (database || defaultDatabase?.(user) || null),
+      resource?.(database) ?? (database || defaultDatabase?.(user) || null),
     defaultSchema: defaultSchema?.(user) || null,
     displayUrl: label({
       address: new SafeURL(connectionString).host,

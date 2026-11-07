@@ -16,6 +16,7 @@ import type { AlterColumnTarget } from './shape'
 import { renameColumnStatement } from './shape'
 import {
   alterColumnStatement,
+  duckdbAlterColumnStatements,
   mysqlColumnDefinition,
 } from './shape/alter-column'
 
@@ -147,6 +148,29 @@ export const editColumnQuery = (target: EditColumnTarget) =>
           )
         }
       },
+      // DuckDB adds no key to a stored table.
+      duckdb: target.reference
+        ? unsupported('Foreign keys on a stored table')
+        : (db) =>
+            db.transaction().execute(async (tx) => {
+              const { column, comment, newName, schema, table } = target
+              const statements = [
+                ...duckdbAlterColumnStatements(tx, target),
+                ...(newName === column
+                  ? []
+                  : [renameColumnStatement(Dialect.DuckDB, tx, target)]),
+              ]
+              for (const statement of statements) {
+                // Sequential by design: under the old name first, so a failing alter leaves the column as it was.
+                // oxlint-disable-next-line no-await-in-loop
+                await tx.executeQuery(statement)
+              }
+              if (commented(target)) {
+                await sql`COMMENT ON COLUMN ${sql.id(schema, table, newName)} IS ${sql.lit(comment)}`.execute(
+                  tx
+                )
+              }
+            }),
       mongodb: unsupported('Column changes'),
       mssql: async (db) => {
         const { newName, original, schema, table } = target

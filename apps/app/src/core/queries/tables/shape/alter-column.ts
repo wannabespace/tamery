@@ -89,3 +89,32 @@ export const alterColumnStatement = (
     )
     .compile()
 }
+
+/** DuckDB takes one change per ALTER TABLE, so a retype and a nullability change are two statements. */
+export const duckdbAlterColumnStatements = (
+  db: Db,
+  {
+    column,
+    nullable,
+    original,
+    schema,
+    table,
+    type: columnType,
+  }: AlterColumnTarget
+) => {
+  const alter = () => db.withSchema(schema).schema.alterTable(table)
+  return [
+    columnType !== original.type &&
+      alter()
+        .alterColumn(column, (builder) =>
+          builder.setDataType(sql.raw(columnType))
+        )
+        .compile(),
+    nullable !== original.nullable &&
+      alter()
+        .alterColumn(column, (builder) =>
+          nullable ? builder.dropNotNull() : builder.setNotNull()
+        )
+        .compile(),
+  ].filter((statement) => statement !== false)
+}

@@ -26,6 +26,8 @@ export const renameColumnQuery = memoize(
           db.executeQuery(
             renameColumnStatement(Dialect.ClickHouse, db, target)
           ),
+        duckdb: (db) =>
+          db.executeQuery(renameColumnStatement(Dialect.DuckDB, db, target)),
         mongodb: unsupported('Column changes'),
         mssql: (db) =>
           db.executeQuery(renameColumnStatement(Dialect.MSSQL, db, target)),

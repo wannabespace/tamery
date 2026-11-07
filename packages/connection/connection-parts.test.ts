@@ -64,7 +64,7 @@ describe('connectionParts', () => {
 
   it.each(
     Object.values(ConnectionType).filter(
-      (type) => type !== ConnectionType.SQLite
+      (type) => type !== ConnectionType.SQLite && type !== ConnectionType.DuckDB
     )
   )('reads a %s string back as its type', (type) => {
     expect(

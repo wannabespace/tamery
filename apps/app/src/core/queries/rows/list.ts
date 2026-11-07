@@ -52,6 +52,7 @@ export const resourceRowsQuery = memoize(
             page,
             filterValueBindings.clickhouse?.(columns)
           ).execute(),
+        duckdb: (db) => selectPage(db, page).execute(),
         mongodb: async (db) => {
           const documents = await db
             .collection(page.table)

@@ -176,6 +176,15 @@ export const createMcpServer = (
             )
           }
         }
+        // A DuckDB file opens with Tamery's own file access too, and its SQL reads any other file the agent names.
+        if (
+          args.type === ConnectionType.DuckDB &&
+          !readConnectionString(args.connectionString).host
+        ) {
+          throw new Error(
+            'DuckDB files cannot be added through MCP. Ask the user to add this one in Tamery.'
+          )
+        }
         const connection = await askRenderer(
           { args, method: 'createConnection' },
           signal

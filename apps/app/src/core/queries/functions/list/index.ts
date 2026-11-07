@@ -75,6 +75,7 @@ export const functionsType = type({
 const resourceFunctionsQuery = createQuery({
   query: {
     clickhouse: unsupported('Functions'),
+    duckdb: unsupported('Functions'),
     mongodb: unsupported('Functions'),
     mssql: async (db) => {
       const rows = await db

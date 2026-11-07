@@ -19,7 +19,7 @@ import { posthog } from '~/lib/posthog'
 import { generateRandomName } from '~/utils/faker'
 
 import type { Engine } from './engine-fields'
-import { getEngineFields, isSqliteFile } from './engine-fields'
+import { getEngineFields, getFileType } from './engine-fields'
 import type { PasteVia } from './use-paste-connection'
 
 export interface ConnectionFormValues extends Omit<
@@ -93,7 +93,7 @@ const connectionFormSchema = type({
   })
   .narrow(
     (values, ctx) =>
-      !isSqliteFile(values) ||
+      !getFileType(values) ||
       !/\S/u.test(values.database) ||
       FULL_PATH.test(values.database) ||
       ctx.reject({
@@ -172,7 +172,7 @@ const clearFields = (form: ConnectionForm) => {
 }
 
 const sharesFields = (from: Engine, to: Engine) =>
-  from.provider === to.provider && isSqliteFile(from) === isSqliteFile(to)
+  from.provider === to.provider && getFileType(from) === getFileType(to)
 
 export const switchEngine = (form: ConnectionForm, engine: Engine) => {
   if (!sharesFields(form.state.values, engine)) {

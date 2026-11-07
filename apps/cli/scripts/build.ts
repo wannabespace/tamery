@@ -66,7 +66,8 @@ await Promise.all(
       },
       entrypoints: [path.join(import.meta.dirname, '..', 'src', 'index.ts')],
       // ssh2 loads these native addons inside a try and runs on pure JS without them; bundled, an unbuilt one fails the build.
-      external: ['cpu-features', '*.node'],
+      // DuckDB's are tens of megabytes per platform, and the bridge refuses DuckDB files before loading it.
+      external: ['cpu-features', '*.node', '@duckdb/node-api'],
       minify: true,
       plugins: [bundleDrivers],
     })

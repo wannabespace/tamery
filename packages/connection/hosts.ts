@@ -128,6 +128,12 @@ const HOST_HINTS: HostHint[] = [
     suffixes: ['.mongodb.net'],
     type: ConnectionType.MongoDB,
   },
+  {
+    label: 'MotherDuck',
+    provider: Provider.MotherDuck,
+    suffixes: ['.motherduck.com'],
+    type: ConnectionType.DuckDB,
+  },
   { label: 'Aiven', suffixes: ['.aivencloud.com'] },
   {
     label: 'DigitalOcean',

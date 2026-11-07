@@ -1,4 +1,8 @@
-import { D1_HOST } from '@tamery/connection/connection-parts'
+import {
+  D1_HOST,
+  MOTHERDUCK_DEFAULT_DATABASE,
+  MOTHERDUCK_HOST,
+} from '@tamery/connection/connection-parts'
 import type { ServerField } from '@tamery/connection/guess/types'
 import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
 
@@ -7,8 +11,12 @@ export interface Engine {
   type: ConnectionType
 }
 
-export const isSqliteFile = ({ provider, type }: Engine) =>
-  type === ConnectionType.SQLite && !provider
+/** A file type's string is its file path; a provider over it (Turso, D1, MotherDuck) is a server. */
+export const getFileType = ({ provider, type }: Engine) =>
+  (type === ConnectionType.DuckDB || type === ConnectionType.SQLite) &&
+  !provider
+    ? type
+    : null
 
 interface FieldRow {
   label: string
@@ -79,6 +87,13 @@ const ENGINE_FIELDS: Record<ConnectionType | Provider, EngineFields> = {
     database: 'default',
     user: 'default',
   }),
+  [ConnectionType.DuckDB]: {
+    field: 'database',
+    message: 'Choose the database file',
+    rows: [
+      { label: 'File', name: 'database', placeholder: '/path/to/data.duckdb' },
+    ],
+  },
   [ConnectionType.MariaDB]: MYSQL_FIELDS,
   [ConnectionType.MongoDB]: serverFields({
     database: 'test',
@@ -167,6 +182,30 @@ const ENGINE_FIELDS: Record<ConnectionType | Provider, EngineFields> = {
       },
     ],
     sshTunnel: true,
+  },
+  [Provider.MotherDuck]: {
+    field: 'host',
+    message: 'Enter the host',
+    rows: [
+      {
+        label: 'Host',
+        name: 'host',
+        placeholder: `${MOTHERDUCK_HOST} or an md: string`,
+      },
+      {
+        label: 'Access token',
+        name: 'password',
+        placeholder: 'From Settings → Access Tokens in MotherDuck',
+        required: 'Enter the access token',
+        secret: true,
+      },
+      {
+        label: 'Database',
+        name: 'database',
+        optional: true,
+        placeholder: MOTHERDUCK_DEFAULT_DATABASE,
+      },
+    ],
   },
   [Provider.Turso]: {
     field: 'host',

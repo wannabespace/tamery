@@ -37,6 +37,12 @@ export const kyselyDialects = {
     createIntrospector,
     createQueryCompiler: () => new ClickhouseQueryCompiler(),
   },
+  // DuckDB's SQL takes Postgres's quoting, `$1` parameters and RETURNING.
+  duckdb: {
+    createAdapter: () => new PostgresAdapter(),
+    createIntrospector,
+    createQueryCompiler: () => new PostgresQueryCompiler(),
+  },
   mssql: {
     createAdapter: () => new MssqlAdapter(),
     createIntrospector,

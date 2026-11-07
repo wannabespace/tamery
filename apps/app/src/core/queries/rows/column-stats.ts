@@ -63,6 +63,7 @@ export const columnStatsQuery = (params: ColumnStatsParams) =>
           params,
           filterValueBindings.clickhouse?.(params.columns)
         ),
+      duckdb: (db) => selectStats(db, params),
       mongodb: async (db) => {
         const field = `$${params.column}`
         const [result] = await db.collection(params.table).aggregate<{
