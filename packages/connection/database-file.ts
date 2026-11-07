@@ -4,6 +4,10 @@ import { readConnectionString } from './parse-connection-string'
 
 const WINDOWS_DRIVE = /^[a-z]:\//iu
 
+/** Only the desktop app ships DuckDB's driver: the bridge refuses a DuckDB file and the cloud proxy opens no file. */
+export const DUCKDB_FILES_ON_DESKTOP =
+  'DuckDB files open only in the Tamery desktop app.'
+
 /**
  * A SQLite or DuckDB file's string is its scheme and the file's absolute path, never a host. The cloud proxy refuses an
  * empty host, and the executor refuses any other, which together keep a server from ever opening a file on its own disk.

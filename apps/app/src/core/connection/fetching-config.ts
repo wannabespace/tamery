@@ -1,3 +1,4 @@
+import { DUCKDB_FILES_ON_DESKTOP } from '@tamery/connection/database-file'
 import { SSH_ELSEWHERE } from '@tamery/connection/ssh/params'
 import { SyncType } from '@tamery/shared/enums/sync-type'
 
@@ -41,7 +42,6 @@ interface FetchingOptions {
 }
 
 const REASONS = {
-  desktopOnly: 'DuckDB files open only in the Tamery desktop app.',
   connectionStringNotStored:
     'Only the name and color of this connection sync. Add its server details on this device to use it here.',
   passwordMissing: 'Enter the password to query this connection.',
@@ -168,5 +168,5 @@ export const fetchingConfig = (
   options: FetchingOptions
 ): FetchingConfig =>
   options.connectionString?.desktopOnly && !window.electron
-    ? blocked('local', REASONS.desktopOnly)
+    ? blocked('local', DUCKDB_FILES_ON_DESKTOP)
     : routedConfig(connection, options)

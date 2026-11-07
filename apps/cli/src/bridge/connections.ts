@@ -1,4 +1,5 @@
 import { connectionParts } from '@tamery/connection/connection-parts'
+import { DUCKDB_FILES_ON_DESKTOP } from '@tamery/connection/database-file'
 import { readConnectionString } from '@tamery/connection/parse-connection-string'
 import { connectionSecrets } from '@tamery/connection/secrets'
 import { getSshTunnel } from '@tamery/connection/ssh/params'
@@ -141,7 +142,7 @@ export const connections = {
     // The bridge's binary ships without DuckDB, and nothing confines what a DuckDB file's SQL reads.
     if (type === ConnectionType.DuckDB && !host) {
       throw errors.BAD_REQUEST({
-        message: 'DuckDB files open only in the Tamery desktop app.',
+        message: DUCKDB_FILES_ON_DESKTOP,
       })
     }
     // Any workspace editor can change the server's copy, so a file or machine login it names runs only as the user saved it here.
