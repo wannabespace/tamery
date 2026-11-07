@@ -4,21 +4,6 @@ export type Database = WithSchema<InformationSchema, 'information_schema'>
 
 /** Each lists every attached database, so a read keeps to `current_database()`. */
 interface InformationSchema {
-  columns: {
-    table_catalog: string
-    table_schema: string
-    table_name: string
-    column_name: string
-    ordinal_position: number
-    column_default: string | null
-    is_nullable: 'NO' | 'YES'
-    data_type: string
-    character_maximum_length: number | null
-    numeric_precision: number | null
-    numeric_scale: number | null
-    is_generated: 'ALWAYS' | 'NEVER'
-    COLUMN_COMMENT: string | null
-  }
   schemata: {
     catalog_name: string
     schema_name: string
@@ -34,6 +19,22 @@ interface InformationSchema {
 
 /** Read through `duckdbCatalog`: the bare names of some leave out everything DuckDB calls internal, its `main` schema among it. */
 export interface CatalogFunctions {
+  duckdb_columns: {
+    database_name: string
+    schema_name: string
+    table_name: string
+    column_name: string
+    column_index: number
+    comment: string | null
+    internal: boolean
+    column_default: string | null
+    is_nullable: boolean
+    data_type: string
+    character_maximum_length: number | null
+    numeric_precision: number | null
+    numeric_scale: number | null
+    is_generated: boolean
+  }
   duckdb_constraints: {
     database_name: string
     schema_name: string

@@ -92,12 +92,13 @@ export const resourceTablesAndSchemasQuery = memoize(
               's.schema_name as schema',
               't.table_name as table',
               't.TABLE_COMMENT as comment',
+              // Inlined: MotherDuck's endpoint prepares the statement and cannot type a parameter in the select list.
               (eb) =>
                 eb
                   .case()
                   .when('t.table_type', '=', 'VIEW')
-                  .then('VIEW')
-                  .else('BASE TABLE')
+                  .then(sql.lit('VIEW'))
+                  .else(sql.lit('BASE TABLE'))
                   .end()
                   .as('type'),
             ])

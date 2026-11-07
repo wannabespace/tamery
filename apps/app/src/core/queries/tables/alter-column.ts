@@ -14,14 +14,13 @@ export const alterColumnQuery = (target: AlterColumnTarget) =>
     query: {
       clickhouse: (db) =>
         db.executeQuery(alterColumnStatement(Dialect.ClickHouse, db, target)),
-      duckdb: (db) =>
-        db.transaction().execute(async (tx) => {
-          for (const statement of duckdbAlterColumnStatements(tx, target)) {
-            // Sequential by design: DuckDB takes one change per ALTER, in order.
-            // oxlint-disable-next-line no-await-in-loop
-            await tx.executeQuery(statement)
-          }
-        }),
+      duckdb: async (db) => {
+        for (const statement of duckdbAlterColumnStatements(db, target)) {
+          // Sequential by design: DuckDB takes one change per ALTER, in order.
+          // oxlint-disable-next-line no-await-in-loop
+          await db.executeQuery(statement)
+        }
+      },
       mongodb: unsupported('Column changes'),
       mssql: (db) =>
         db.executeQuery(alterColumnStatement(Dialect.MSSQL, db, target)),

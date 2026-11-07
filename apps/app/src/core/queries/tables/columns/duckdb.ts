@@ -1,43 +1,48 @@
 import type { Kysely } from 'kysely'
 import { sql } from 'kysely'
 
-import { currentDatabase } from '~/core/queries/shared/duckdb-catalog'
+import {
+  currentDatabase,
+  duckdbCatalog,
+} from '~/core/queries/shared/duckdb-catalog'
 import type { Database as DuckdbDatabase } from '~/core/runtime/dialects/duckdb/schema'
 
 import type { ColumnsFilter } from '../shape'
 
+/** Not `information_schema.columns`: MotherDuck's endpoint renames its types to Postgres's (`ARRAY`, `text`). */
 export const duckdbColumns = (
   db: Kysely<DuckdbDatabase>,
   filter: ColumnsFilter
 ) =>
   db
-    .selectFrom('information_schema.columns')
+    .selectFrom(duckdbCatalog('duckdb_columns').as('c'))
     .select([
-      'table_schema as schema',
-      'table_name as table',
-      'column_name as id',
-      'column_default as default',
-      'data_type as type',
-      'character_maximum_length as maxLength',
-      'numeric_precision as precision',
-      'numeric_scale as scale',
-      'COLUMN_COMMENT as comment',
-      sql<boolean>`is_nullable = 'YES'`.as('nullable'),
-      sql<boolean>`is_generated = 'ALWAYS'`.as('isGenerated'),
+      'c.schema_name as schema',
+      'c.table_name as table',
+      'c.column_name as id',
+      'c.column_default as default',
+      'c.data_type as type',
+      'c.character_maximum_length as maxLength',
+      'c.numeric_precision as precision',
+      'c.numeric_scale as scale',
+      'c.comment',
+      'c.is_nullable as nullable',
+      'c.is_generated as isGenerated',
       // A union reads as its tag and value, which DuckDB casts back to no union.
-      sql<boolean>`is_generated <> 'ALWAYS' AND data_type NOT LIKE 'UNION(%'`.as(
+      sql<boolean>`NOT c.is_generated AND c.data_type NOT LIKE 'UNION(%'`.as(
         'editable'
       ),
     ])
-    .where('table_catalog', '=', currentDatabase)
+    .where('c.database_name', '=', currentDatabase)
+    .where('c.internal', '=', false)
     .$call((qb) =>
       filter
         ? qb
-            .where('table_schema', '=', filter.schema)
-            .where('table_name', '=', filter.table)
+            .where('c.schema_name', '=', filter.schema)
+            .where('c.table_name', '=', filter.table)
         : qb
     )
-    .orderBy('table_schema')
-    .orderBy('table_name')
-    .orderBy('ordinal_position')
+    .orderBy('c.schema_name')
+    .orderBy('c.table_name')
+    .orderBy('c.column_index')
     .execute()
