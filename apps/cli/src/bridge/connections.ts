@@ -1,5 +1,4 @@
 import { connectionParts } from '@tamery/connection/connection-parts'
-import { DUCKDB_FILES_ON_DESKTOP } from '@tamery/connection/database-file'
 import { readConnectionString } from '@tamery/connection/parse-connection-string'
 import { connectionSecrets } from '@tamery/connection/secrets'
 import { getSshTunnel } from '@tamery/connection/ssh/params'
@@ -16,10 +15,12 @@ import {
 } from '@tamery/shared/enums/connection-type'
 import { hasErrorCode } from '@tamery/shared/orpc-error'
 import { SafeURL } from '@tamery/shared/safe-url'
+import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
 import { api } from '../api'
 import { vault } from '../vault'
+import { installDuckdb } from './duckdb'
 import type { QueryErrors } from './errors'
 
 const FRESH_MS = 60 * 1000
@@ -86,7 +87,9 @@ const getLocalAccess = (connectionString: string) => {
   const { searchParams } = readConnectionString(connectionString)
   const tunnel = getSshTunnel(searchParams)
   return [
-    type === ConnectionType.SQLite && !host ? `the file ${database}` : null,
+    (type === ConnectionType.SQLite || type === ConnectionType.DuckDB) && !host
+      ? `the file ${database}`
+      : null,
     ...FILE_PARAMS.map((param) =>
       searchParams.has(param) ? `${param} ${searchParams.get(param)}` : null
     ),
@@ -139,12 +142,6 @@ export const connections = {
         message: `This connection does not run as ${dialect}.`,
       })
     }
-    // The bridge's binary ships without DuckDB, and nothing confines what a DuckDB file's SQL reads.
-    if (type === ConnectionType.DuckDB && !host) {
-      throw errors.BAD_REQUEST({
-        message: DUCKDB_FILES_ON_DESKTOP,
-      })
-    }
     // Any workspace editor can change the server's copy, so a file or machine login it names runs only as the user saved it here.
     if (
       server.connectionString &&
@@ -166,6 +163,11 @@ export const connections = {
     ]
     if (missing.length > 0) {
       throw errors.NEEDS_SECRETS({ data: { connectionId, fields: missing } })
+    }
+    if (type === ConnectionType.DuckDB && !host) {
+      await installDuckdb().catch((error: unknown) => {
+        throw errors.BAD_REQUEST({ message: toError(error).message })
+      })
     }
     return input.resourceName
       ? resourceConnectionString(connectionString, input.resourceName)

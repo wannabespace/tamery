@@ -1,7 +1,6 @@
 import { FolderOpenIcon } from '@hugeicons/core-free-icons'
 import { DEFAULT_PORTS } from '@tamery/connection/connection-parts'
 import { isLocalHost } from '@tamery/connection/hosts'
-import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { FieldGroup } from '@tamery/ui/components/field'
@@ -80,10 +79,7 @@ export const ConnectionFields = ({
           <span data-mask>{bridge.name}</span>.
         </Footnote>
       )}
-      {fileType === ConnectionType.DuckDB && !window.electron && (
-        <Footnote>DuckDB files open only in the desktop app.</Footnote>
-      )}
-      {fileType === ConnectionType.SQLite && !window.electron && (
+      {fileType && !window.electron && (
         <Footnote>
           {bridge ? (
             <>

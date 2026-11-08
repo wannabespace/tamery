@@ -16,7 +16,7 @@ import type { ResultSet, RunOptions, TransactionStatus } from '../..'
 import { resultSet } from '../..'
 import { cancellable } from '../../cancellation'
 import type { TxHandle } from '../../transactions'
-import { loadDuckdb } from './driver'
+import { duckdbDriver } from './driver'
 import { connectTo } from './instances'
 import type { DuckdbTransport } from './run'
 import { DUCKDB } from './run'
@@ -24,7 +24,7 @@ import { DUCKDB } from './run'
 /** The JSON converter, but a map reads as an object, which casts back through JSON, and an interval as DuckDB's own text, which a cell writes back as is. */
 const getConverter = memoize((): DuckDBValueConverter<Json> => {
   const { DuckDBTypeId, JsonDuckDBValueConverter, objectArrayFromMapValue } =
-    loadDuckdb()
+    duckdbDriver.load()
   const convert: DuckDBValueConverter<Json> = (value, type, converter) => {
     if (value === null) {
       return null
@@ -50,7 +50,7 @@ const toInput = (value: unknown): DuckDBValue => {
     return value.toISOString()
   }
   if (value instanceof Uint8Array) {
-    return loadDuckdb().blobValue(value)
+    return duckdbDriver.load().blobValue(value)
   }
   return (value ?? null) as DuckDBValue
 }
@@ -60,7 +60,7 @@ const readSet = async (
   result: DuckDBResult,
   maxRows: number
 ): Promise<Omit<ResultSet, 'truncated'>> => {
-  const { ResultReturnType } = loadDuckdb()
+  const { ResultReturnType } = duckdbDriver.load()
   try {
     if (result.returnType !== ResultReturnType.QUERY_RESULT) {
       return {

@@ -7,7 +7,7 @@ import type { DuckDBInstance } from '@duckdb/node-api'
 import { silently } from '@tamery/shared/utils'
 
 import { databaseFile } from '../../../database-file'
-import { loadDuckdb } from './driver'
+import { duckdbDriver } from './driver'
 
 const FILE_BUSY_TIMEOUT_MS = 10_000
 
@@ -35,15 +35,20 @@ const waitForClose = (entry: OpenFile) =>
     }),
   ])
 
+let isConfined = false
+
+/** The bridge opens only files its terminal approved: a confined instance reads no other file or URL, writes included. */
+export const confineDuckdbFiles = () => {
+  isConfined = true
+}
+
 const open = (file: string, readOnly: boolean) => {
   const entry: OpenFile = {
     closed: Promise.withResolvers(),
-    instance: loadDuckdb().DuckDBInstance.create(
-      file,
-      readOnly
-        ? { access_mode: 'READ_ONLY', enable_external_access: 'false' }
-        : {}
-    ),
+    instance: duckdbDriver.load().DuckDBInstance.create(file, {
+      ...(readOnly && { access_mode: 'READ_ONLY' }),
+      ...((readOnly || isConfined) && { enable_external_access: 'false' }),
+    }),
     readOnly,
     users: 0,
   }

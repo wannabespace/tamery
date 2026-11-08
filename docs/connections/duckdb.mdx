@@ -7,7 +7,7 @@ keywords: ['parquet', 'csv', 'analytics', 'olap', 'md:']
 
 ## DuckDB files
 
-DuckDB files open in the desktop app. Drop the file onto Tamery, or choose **DuckDB** under **Engine** and pick the file with the folder button.
+On desktop, drop the file onto Tamery, or choose **DuckDB** under **Engine** and pick the file with the folder button.
 
 Pasting a path works too, as long as the file ends in `.duckdb` or `.ddb`. For any other name, paste `duckdb /path/to/file` or a URL:
 
@@ -21,7 +21,7 @@ Tamery opens the file only while it runs a query. Another program that has the f
 
 In a query you can read files and URLs straight away, like `SELECT * FROM read_csv('~/Downloads/orders.csv')`. Read-only queries an agent runs through [MCP](/mcp/overview) can't: they see only the database file itself.
 
-The web app and [`tamery bridge`](/cli/overview) don't open DuckDB files.
+In the web app, run [`tamery bridge`](/cli/overview) on the computer that holds the file. The bridge downloads DuckDB the first time it opens a DuckDB file, 20 to 30 MB, and keeps it for later. Through the bridge, queries see only the file itself, so `read_csv` and other files on that computer stay out of reach.
 
 ## MotherDuck
 

@@ -1,4 +1,3 @@
-import { DUCKDB_FILES_ON_DESKTOP } from '@tamery/connection/database-file'
 import { SSH_ELSEWHERE } from '@tamery/connection/ssh/params'
 import { SyncType } from '@tamery/shared/enums/sync-type'
 
@@ -31,11 +30,7 @@ interface FetchingOptions {
   /** `null` while the row loads leaves the password unresolved. */
   connectionString: Pick<
     ConnectionString,
-    | 'desktopOnly'
-    | 'isInternal'
-    | 'isPasswordPopulated'
-    | 'missingSecrets'
-    | 'usesSsh'
+    'isInternal' | 'isPasswordPopulated' | 'missingSecrets' | 'usesSsh'
   > | null
   /** A string under test: the bridge runs saved connections only, never a string it is sent. */
   draft?: boolean
@@ -91,7 +86,7 @@ const resolveFlags = (
   }
 }
 
-const routedConfig = (
+export const fetchingConfig = (
   connection: FetchingConnection,
   options: FetchingOptions
 ): FetchingConfig => {
@@ -161,12 +156,3 @@ const routedConfig = (
 
   return allowed('cloud-proxy')
 }
-
-/** Ahead of the bridge too, which refuses these: its binary ships without their driver. */
-export const fetchingConfig = (
-  connection: FetchingConnection,
-  options: FetchingOptions
-): FetchingConfig =>
-  options.connectionString?.desktopOnly && !window.electron
-    ? blocked('local', DUCKDB_FILES_ON_DESKTOP)
-    : routedConfig(connection, options)
