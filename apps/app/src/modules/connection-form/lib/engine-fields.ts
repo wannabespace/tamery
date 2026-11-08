@@ -198,12 +198,6 @@ const ENGINE_FIELDS: Record<ConnectionType | Provider, EngineFields> = {
         optional: true,
         placeholder: MOTHERDUCK_DEFAULT_DATABASE,
       },
-      {
-        label: 'Host',
-        name: 'host',
-        optional: true,
-        placeholder: "The token's region",
-      },
     ],
   },
   [Provider.Turso]: {
