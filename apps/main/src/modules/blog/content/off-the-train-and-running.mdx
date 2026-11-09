@@ -61,22 +61,13 @@ That's one fewer company in the chain that has to get everything right. It also 
 
 ## An AI review of the whole codebase before the move
 
-Attacks on developer tools are getting more common and more automated, and that worries me too. AI makes it cheap for an attacker to look for holes in thousands of projects at once.
+AI makes it cheap for attackers to look for holes everywhere at once, and that worries me too. But it works the other way as well. Before the move, we used AI to review all of Tamery, code and infrastructure, and fixed what it found. Some of the results:
 
-It also works the other way. Before and during the move, we used AI to review all of Tamery, code and infrastructure, file by file. We looked at how secrets are stored and passed around, who can reach what, and where an old shortcut could turn into a hole. We fixed what it found before switching anything over.
+- **Connection strings stay out of logs and session replays.**
+- **Stronger sign-in**, with passkeys, a passkey as your second factor, and an email when something sensitive changes on your account.
+- **New npm releases wait three days** before we install them, so a hijacked version is usually pulled before it reaches us.
 
-Here's some of what came out of that work over the last month:
-
-- **Connection strings stay out of logs and session replays**, and never get sent to hosts they weren't meant for.
-- **We closed a sign-in phishing path** and stopped sessions from being readable across our subdomains.
-- **Sign-in got stronger.** You can sign in with a passkey, use a passkey as your second factor, and download backup codes.
-- **You get an email about anything sensitive on your account**: a sign-in from a device you haven't used before, a newly linked provider, two-factor changes, regenerated backup codes, account deletion.
-- **New npm releases wait three days before we install them**, so a hijacked package version is usually pulled before it reaches us. CI also scans every change for leaked secrets with TruffleHog.
-- **Deleted rows are kept for 90 days**, so a mistake, ours or an attacker's, can be undone.
-
-The AI was also the reason the move went smoothly. It helped us write every piece of the new setup as code, check each service against how it ran on Railway, and write a step-by-step cutover plan. We did the cutover on November 5, and most of you didn't notice it.
-
-I don't want to oversell this part. An AI review finds a lot of real issues quickly, but it doesn't prove the code is secure. We treat it as one more reviewer, and a tireless one.
+AI also helped us write the new setup as code and plan the cutover, which is why most of you didn't notice the move on November 5. It doesn't prove the code is secure, but it's a tireless extra reviewer.
 
 ## What still isn't perfect
 
