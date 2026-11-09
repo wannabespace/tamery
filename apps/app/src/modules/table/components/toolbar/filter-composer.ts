@@ -1,6 +1,6 @@
 import type { Dialect } from '@tamery/shared/enums/connection-type'
 import type { ActiveFilter, Filter } from '@tamery/shared/filters'
-import { FILTERS_GROUPED } from '@tamery/shared/filters'
+import { FILTERS_GROUPED, SQL_FILTER } from '@tamery/shared/filters'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import type { RefObject } from 'react'
 import { useState } from 'react'
@@ -8,11 +8,12 @@ import { useSubscription } from 'seitu/react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { useConnectionContext } from '~/core/connection/route'
+import { posthog } from '~/lib/posthog'
 
 import { tableGridRef } from '../../lib/grid-ref'
 import { useTablePageStore } from '../../lib/store'
 
-export type FilterTarget = Pick<ActiveFilter, 'column' | 'via'>
+export type FilterTarget = Pick<ActiveFilter, 'column' | 'path' | 'via'>
 
 export type Stage =
   | { step: 'idle' }
@@ -85,6 +86,9 @@ export const useFilterComposer = ({
   const focus = () => inputRef.current?.focus()
 
   const add = (target: FilterTarget, ref: Filter, values: unknown[]) => {
+    if (target.path) {
+      posthog.capture('json_path_filter_added', { depth: target.path.length })
+    }
     setFilters((current) => [...current, { ...target, ref, values }])
     setStage({ step: 'idle' })
     setHighlighted('')
@@ -136,6 +140,10 @@ export const useFilterComposer = ({
   )
 
   return {
+    addSql: (condition: string) => {
+      posthog.capture('sql_filter_added')
+      add({ column: '' }, SQL_FILTER, [condition])
+    },
     applyValue: () => {
       if (stage.step === 'value') {
         add(stage.target, stage.ref, isArrayValue ? committedParts : [query])

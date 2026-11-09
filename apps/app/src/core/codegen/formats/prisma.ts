@@ -43,6 +43,7 @@ const PRISMA_OPERATORS: Record<FilterOperator, string | null> = {
   ne: 'not',
   notIn: 'notIn',
   notLike: null,
+  sql: null,
 }
 
 const likePatternToPrisma = (pattern: string): Record<string, string> => {

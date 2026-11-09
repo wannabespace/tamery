@@ -135,12 +135,16 @@ export const ActionsCopy = ({
   const [formatType, setFormatType] = useState<GeneratorFormat>('sql')
 
   const active = enabledFilters(filters)
-  const throughKeys = kind === 'query' && active.some((filter) => filter.via)
+  const sqlOnly =
+    kind === 'query' &&
+    active.some(
+      (filter) => filter.via || filter.path || filter.ref.operator === 'sql'
+    )
   const formats = FORMATS[kind].filter((f) => {
     const compatible = GENERATOR_COMPATIBILITY[f.type]
     return (
       (!compatible || compatible.includes(dialect)) &&
-      (!throughKeys || f.type === 'sql')
+      (!sqlOnly || f.type === 'sql')
     )
   })
   const format = formats.find((f) => f.type === formatType) ?? formats[0]

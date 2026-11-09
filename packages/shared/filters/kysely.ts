@@ -1,9 +1,9 @@
-import type { ExpressionBuilder } from 'kysely'
+import type { Expression, ExpressionBuilder } from 'kysely'
 import { isExpression, sql } from 'kysely'
 
 import type { ActiveFilter, FilterOperator } from './types'
 
-export const SQL_OPERATORS: Record<FilterOperator, string> = {
+export const SQL_OPERATORS: Record<Exclude<FilterOperator, 'sql'>, string> = {
   eq: '=',
   gt: '>',
   gte: '>=',
@@ -21,19 +21,30 @@ export const SQL_OPERATORS: Record<FilterOperator, string> = {
 
 export type FilterValueBinding = (column: string, value: unknown) => unknown
 
+/** How one engine spells what its SQL does not share. */
+export interface FilterSpelling {
+  bind?: FilterValueBinding
+  /** The text found at `path` inside a JSON column, null when nothing is there. */
+  jsonText: (column: string, path: string[]) => Expression<unknown>
+}
+
 const unbound: FilterValueBinding = (_, value) => value
 
 const predicate = (
   column: string,
-  { ref, values }: ActiveFilter,
-  bind: FilterValueBinding
+  { path, ref, values }: ActiveFilter,
+  { bind = unbound, jsonText }: FilterSpelling
 ) => {
-  const comparison = sql`${sql.id(column)} ${sql.raw(SQL_OPERATORS[ref.operator])}`
+  if (ref.operator === 'sql') {
+    return sql`(${sql.raw(String(values[0]))})`
+  }
+  const subject = path ? jsonText(column, path) : sql.id(column)
+  const comparison = sql`${subject} ${sql.raw(SQL_OPERATORS[ref.operator])}`
   if (ref.hasValue === false) {
     return comparison
   }
   const valueOf = (value: unknown) => {
-    const bound = bind(column, value)
+    const bound = path ? value : bind(column, value)
     return isExpression(bound) ? bound : sql.val(bound)
   }
   const value = ref.isArray
@@ -46,13 +57,13 @@ const predicate = (
 export const toKyselyFilter = <E extends ExpressionBuilder<any, any>>(
   eb: E,
   filters: ActiveFilter[],
-  concatOperator: 'AND' | 'OR' = 'AND',
-  bind: FilterValueBinding = unbound
+  concatOperator: 'AND' | 'OR',
+  spelling: FilterSpelling
 ) =>
   (concatOperator === 'AND' ? eb.and : eb.or)(
     filters.map(({ via, ...filter }) =>
       via
-        ? sql`${sql.id(filter.column)} in (select ${sql.id(via.key)} from ${sql.id(via.schema, via.table)} where ${predicate(via.target, filter, unbound)})`
-        : predicate(filter.column, filter, bind)
+        ? sql`${sql.id(filter.column)} in (select ${sql.id(via.key)} from ${sql.id(via.schema, via.table)} where ${predicate(via.target, filter, { jsonText: spelling.jsonText })})`
+        : predicate(filter.column, filter, spelling)
     )
   )

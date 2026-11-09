@@ -1,4 +1,4 @@
-import { Search01Icon } from '@hugeicons/core-free-icons'
+import { Search01Icon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { CommandPrimitive } from '@tamery/ui/components/command'
 import { Chip, ChipDivider } from '@tamery/ui/components/custom/filter-chip'
@@ -13,7 +13,7 @@ import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 
 import { useTableColumnsContext } from '../../lib/columns'
-import { AiSummaryRow, useFilterAi } from './filter-ai'
+import { useFilterAi } from './filter-ai'
 import { FilterChip, filterLabel } from './filter-chip'
 import { FilterCommandList } from './filter-command-list'
 import type { Stage } from './filter-composer'
@@ -22,15 +22,20 @@ import { useFilterComposer } from './filter-composer'
 const getFilterPlaceholder = ({
   isOnline,
   stage,
+  summary,
 }: {
   isOnline: boolean
   stage: Stage
+  summary: string | null
 }) => {
   if (stage.step === 'operator') {
     return 'Choose an operator…'
   }
   if (stage.step === 'value') {
     return stage.ref.isArray ? 'Values, comma-separated…' : 'Value…'
+  }
+  if (summary) {
+    return summary
   }
   if (!isOnline) {
     return 'Offline, AI unavailable'
@@ -97,9 +102,12 @@ export const FilterSearchBar = ({
           spinner={<Spinner className="text-muted-foreground" />}
         >
           <HugeiconsIcon
-            icon={Search01Icon}
+            icon={ai.summary ? Tick02Icon : Search01Icon}
             strokeWidth={2}
-            className="text-muted-foreground size-4"
+            className={cn(
+              'size-4',
+              ai.summary ? 'text-success' : 'text-muted-foreground'
+            )}
           />
         </LoadingContent>
         <div
@@ -141,10 +149,15 @@ export const FilterSearchBar = ({
             aria-label={`Filter ${names.row}s`}
             value={query}
             onValueChange={setQuery}
-            placeholder={getFilterPlaceholder({ isOnline: ai.isOnline, stage })}
+            placeholder={getFilterPlaceholder({
+              isOnline: ai.isOnline,
+              stage,
+              summary: ai.summary,
+            })}
             // Read-only, not disabled: a disabled input drops focus, and Esc must still cancel the request.
             readOnly={ai.isPending}
-            className="placeholder:text-muted-foreground h-6 min-w-32 flex-1 bg-transparent text-sm outline-none"
+            data-mask={ai.summary ? true : undefined}
+            className="placeholder:text-muted-foreground h-6 min-w-32 flex-1 truncate bg-transparent text-sm outline-none"
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
           />
@@ -159,7 +172,7 @@ export const FilterSearchBar = ({
         </span>
       </div>
       <AnimatePresence>
-        {(isOpen || ai.summary) && (
+        {isOpen && (
           <motion.div
             key="suggestion-panel"
             role="presentation"
@@ -170,12 +183,7 @@ export const FilterSearchBar = ({
             className="bg-popover ring-foreground/4 absolute top-full left-0 z-30 mt-2 w-full overflow-hidden rounded-xl shadow-lg ring-1"
             onMouseDown={(e) => e.preventDefault()}
           >
-            <AnimatePresence>
-              {ai.summary && (
-                <AiSummaryRow hasList={isOpen} summary={ai.summary} />
-              )}
-            </AnimatePresence>
-            {isOpen && <FilterCommandList ai={ai} composer={composer} />}
+            <FilterCommandList ai={ai} composer={composer} />
           </motion.div>
         )}
       </AnimatePresence>

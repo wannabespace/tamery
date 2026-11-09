@@ -23,6 +23,13 @@ export const IS_NULL_FILTER = {
   symbol: 'IS NULL',
 } as const satisfies Filter
 
+/** A raw `WHERE` condition, the one value; never offered as an operator or to AI. */
+export const SQL_FILTER = {
+  label: 'SQL',
+  operator: 'sql',
+  symbol: 'WHERE',
+} as const satisfies Filter
+
 export const FILTERS_GROUPED = [
   {
     filters: [
@@ -78,9 +85,12 @@ export const activeFilter = type({
   'disabled?': 'boolean',
   ref: type({ operator: 'string' }).pipe(
     ({ operator }, ctx): Filter | ArkError =>
-      FILTERS_LIST.find((filter) => filter.operator === operator) ??
+      [...FILTERS_LIST, SQL_FILTER].find(
+        (filter) => filter.operator === operator
+      ) ??
       ctx.error('a known filter operator')
   ),
+  'path?': 'string[]',
   values: 'unknown[]',
   'via?': {
     key: 'string',

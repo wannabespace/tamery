@@ -12,6 +12,7 @@ export type FilterOperator =
   | 'notIn'
   | 'isNull'
   | 'isNotNull'
+  | 'sql'
 
 export interface Filter {
   label: string
@@ -33,6 +34,8 @@ export interface ActiveFilter<F extends Filter = Filter, V = unknown> {
   ref: F
   values: V[]
   disabled?: boolean
+  /** Keys and array indexes into a JSON value, compared as text. */
+  path?: string[]
   via?: FilterVia
 }
 

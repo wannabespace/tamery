@@ -3,7 +3,7 @@ import { ORPCError } from '@orpc/server'
 import { executors } from '@tamery/connection/queries/executors'
 import { coldDialect, toQueryPayload } from '@tamery/connection/queries/kysely'
 import { mongoPage, selectPage } from '@tamery/connection/queries/select-page'
-import { filterValueBindings } from '@tamery/connection/queries/value-binding'
+import { filterSpellings } from '@tamery/connection/queries/value-binding'
 import { toShell } from '@tamery/mongo/shell'
 import { fromWire } from '@tamery/mongo/values'
 import { Dialect, isSqlDialect } from '@tamery/shared/enums/connection-type'
@@ -68,7 +68,7 @@ export const readShareRows = async (read: ShareRead) => {
       select: view.columns.map(({ id }) => id),
       table: view.table,
     },
-    filterValueBindings[dialect]?.(view.columnTypes)
+    filterSpellings[dialect](view.columnTypes)
   ).compile()
   const { result } = await executors[dialect].execute({
     connectionString: read.connectionString,

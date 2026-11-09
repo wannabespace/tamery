@@ -1,9 +1,11 @@
 import {
   CancelCircleIcon,
+  CodeIcon,
   FilterIcon,
   Tick02Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { FILTER_GROUPS } from '@tamery/shared/filters'
 import {
   CommandGroup,
@@ -30,7 +32,7 @@ export const FilterCommandList = ({
   ai: FilterAi
   composer: FilterComposer
 }) => {
-  const { matchingColumns, matchingRelated, matchingValues } =
+  const { jsonPathTarget, matchingColumns, matchingRelated, matchingValues } =
     useFilterTargets(composer)
   const { dialect } = useConnectionContext()
   const { applyValue, committedParts, filters, query, stage } = composer
@@ -78,6 +80,30 @@ export const FilterCommandList = ({
               <CommandShortcut data-mask>via {column}</CommandShortcut>
             </CommandItem>
           ))}
+          {jsonPathTarget && (
+            <CommandItem
+              value={`path:${filterLabel(jsonPathTarget)}`}
+              onSelect={() => composer.pickColumn(jsonPathTarget)}
+            >
+              <HugeiconsIcon icon={FilterIcon} strokeWidth={2} />
+              <span data-mask className="min-w-0 flex-1 truncate">
+                Filter by {filterLabel(jsonPathTarget)}
+              </span>
+              <CommandShortcut>JSON</CommandShortcut>
+            </CommandItem>
+          )}
+          {trimmedQuery.length > 0 && isSqlDialect(dialect) && (
+            <CommandItem
+              value={`sql:${trimmedQuery}`}
+              onSelect={() => composer.addSql(trimmedQuery)}
+            >
+              <HugeiconsIcon icon={CodeIcon} strokeWidth={2} />
+              <span className="min-w-0 flex-1 truncate">
+                Where <span data-mask>{trimmedQuery}</span>
+              </span>
+              <CommandShortcut>SQL</CommandShortcut>
+            </CommandItem>
+          )}
           {trimmedQuery.length > 0 && (
             <FilterAskAiItem ai={ai} prompt={trimmedQuery} />
           )}

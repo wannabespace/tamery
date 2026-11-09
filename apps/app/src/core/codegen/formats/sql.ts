@@ -1,4 +1,5 @@
 import { coldDialect } from '@tamery/connection/queries/kysely'
+import { filterSpellings } from '@tamery/connection/queries/value-binding'
 import { Dialect, isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { toKyselyFilter } from '@tamery/shared/filters'
 import { unsupported } from '@tamery/shared/unsupported'
@@ -67,7 +68,9 @@ export const generateQuerySQL = ({
     .selectFrom(table)
     .selectAll()
   const query =
-    filters.length > 0 ? base.where((eb) => toKyselyFilter(eb, filters)) : base
+    filters.length > 0 ? base.where((eb) =>
+          toKyselyFilter(eb, filters, 'AND', filterSpellings[dialect]([]))
+        ) : base
   const compiled = query.compile()
   return formatSql(
     inlineParameters(compiled.sql, compiled.parameters, dialect),

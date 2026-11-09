@@ -10,6 +10,10 @@ Open a connection and pick a table in the Navigator. A single click previews it 
 
 Type in the filter field to pick a column, an operator, and a value. Values are suggested as you go. On a foreign key column you can also filter by the related table's columns, like orders whose customer lives in Berlin.
 
+To filter inside a JSON column, type the path with dots, like `payload.customer.city` or `items.0.sku`, and pick **Filter by payload.customer.city**. The value there is compared as text. In MongoDB this works on any nested field.
+
+When the operators are not enough, type a condition and pick **Where … SQL**. Tamery adds it as written to the query's `WHERE`, like `price * quantity > 1000`. Click the chip's value to edit it. A table with a SQL filter cannot be shared with its filters. MongoDB has no SQL filter.
+
 Faster still: right-click a cell and choose **Filter by Value**. On a null cell it adds an `IS NULL` filter.
 
 Or describe it. Type “unpaid orders from last week” and pick **Ask AI**. It replaces your filters and may set a sort too, so glance at what it built. Free accounts get 20 of these a week; [Pro](/account/plans) has no limit.

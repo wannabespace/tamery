@@ -1,6 +1,6 @@
 import { useConnectionContext } from '~/core/connection/route'
 import type { Column } from '~/core/table/cell/utils'
-import { getColumnUiType } from '~/core/table/cell/utils'
+import { getColumnKind, getColumnUiType } from '~/core/table/cell/utils'
 import { useReferencedColumns } from '~/core/table/referenced-columns'
 
 import { useTableColumnsContext } from '../../lib/columns'
@@ -39,6 +39,15 @@ export const useFilterTargets = ({
     return name.startsWith(columnQuery) ? 1 : 2
   }
 
+  const [head = '', ...path] = query.trim().split('.')
+  const jsonColumn =
+    path.length > 0 &&
+    path.every(Boolean) &&
+    columns.find(
+      (column) =>
+        column.id === head && getColumnKind(dialect, column) === 'json'
+    )
+
   const target = stage.step === 'value' ? stage.target : undefined
   const via = target?.via
   const valueColumn: Pick<Column, 'availableValues' | 'uiType'> | undefined =
@@ -53,6 +62,7 @@ export const useFilterTargets = ({
     (valueColumn?.uiType === 'boolean' ? ['true', 'false'] : [])
 
   return {
+    jsonPathTarget: jsonColumn ? { column: jsonColumn.id, path } : undefined,
     matchingColumns: columns
       .filter((column) => column.id.toLowerCase().includes(columnQuery))
       .toSorted((a, b) => columnRank(a) - columnRank(b)),

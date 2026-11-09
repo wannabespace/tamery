@@ -3,11 +3,11 @@ import { expect, test } from 'bun:test'
 import type { SqlDialect } from '@tamery/shared/enums/connection-type'
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import type { ActiveFilter } from '@tamery/shared/filters'
-import { EQUAL_FILTER, toKyselyFilter } from '@tamery/shared/filters'
+import { EQUAL_FILTER, SQL_FILTER, toKyselyFilter } from '@tamery/shared/filters'
 
 import { prepareQuery } from './dialects/clickhouse/prepare-query'
 import { coldDialect } from './kysely'
-import { filterValueBindings } from './value-binding'
+import { filterSpellings } from './value-binding'
 
 const filtered = (
   dialect: SqlDialect,
@@ -23,7 +23,7 @@ const filtered = (
         eb,
         filters,
         'AND',
-        filterValueBindings[dialect]?.(columns)
+        filterSpellings[dialect](columns)
       )
     )
     .compile()
@@ -62,4 +62,50 @@ test('SQLite filters bind true and false as 1 and 0 on a boolean column only', (
   )
 
   expect(parameters).toEqual([1, 'false'])
+})
+
+test('a nested-value filter compares the text at its JSON path', () => {
+  const nested: ActiveFilter[] = [
+    {
+      column: 'payload',
+      path: ['user', '0', 'first name'],
+      ref: EQUAL_FILTER,
+      values: ['ada'],
+    },
+  ]
+
+  expect(filtered(Dialect.Postgres, nested, []).sql).toBe(
+    'select * from "events" where "payload" #>> array[$1, $2, $3]::text[] = $4'
+  )
+  expect(filtered(Dialect.MySQL, nested, []).sql).toBe(
+    `select * from \`events\` where json_unquote(json_extract(\`payload\`, '$.user[0]."first name"')) = ?`
+  )
+  expect(filtered(Dialect.Oracle, nested, []).sql).toContain(
+    `json_value("payload", '$.user[0]."first name"') = :1`
+  )
+})
+
+test('a JSON path cannot close its literal', () => {
+  const { sql } = filtered(
+    Dialect.SQLite,
+    [{ column: 'payload', path: ["a' or 1=1 --"], ref: EQUAL_FILTER, values: ['x'] }],
+    []
+  )
+
+  expect(sql).toContain(`'$."a'' or 1=1 --"'`)
+})
+
+test('a SQL filter goes in as its own parenthesized condition', () => {
+  const { sql } = filtered(
+    Dialect.Postgres,
+    [
+      { column: '', ref: SQL_FILTER, values: ['a = 1 or b = 2'] },
+      { column: 'note', ref: EQUAL_FILTER, values: ['x'] },
+    ],
+    []
+  )
+
+  expect(sql).toBe(
+    'select * from "events" where ((a = 1 or b = 2) and "note" = $1)'
+  )
 })
