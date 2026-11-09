@@ -89,6 +89,9 @@ export const useFilterComposer = ({
     if (target.path) {
       posthog.capture('json_path_filter_added', { depth: target.path.length })
     }
+    if (ref.operator === 'sql') {
+      posthog.capture('sql_filter_added')
+    }
     setFilters((current) => [...current, { ...target, ref, values }])
     setStage({ step: 'idle' })
     setHighlighted('')
@@ -103,7 +106,7 @@ export const useFilterComposer = ({
 
   const stepBack = () =>
     setStage(
-      stage.step === 'value'
+      stage.step === 'value' && stage.ref.operator !== 'sql'
         ? { step: 'operator', target: stage.target }
         : { step: 'idle' }
     )
@@ -140,10 +143,7 @@ export const useFilterComposer = ({
   )
 
   return {
-    addSql: (condition: string) => {
-      posthog.capture('sql_filter_added')
-      add({ column: '' }, SQL_FILTER, [condition])
-    },
+    addSql: (condition: string) => add({ column: '' }, SQL_FILTER, [condition]),
     applyValue: () => {
       if (stage.step === 'value') {
         add(stage.target, stage.ref, isArrayValue ? committedParts : [query])
@@ -169,6 +169,12 @@ export const useFilterComposer = ({
       setStage({ ...stage, ref, step: 'value' })
       setHighlighted('apply-value')
       setPrompt('')
+      focus()
+    },
+    pickSql: () => {
+      setStage({ ref: SQL_FILTER, step: 'value', target: { column: '' } })
+      setPrompt('')
+      setHighlighted('apply-value')
       focus()
     },
     pickValue: (value: string) => {

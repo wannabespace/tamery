@@ -35,6 +35,9 @@ const getFilterPlaceholder = ({
   if (stage.step === 'operator') {
     return 'Choose an operator…'
   }
+  if (stage.step === 'value' && stage.ref.operator === 'sql') {
+    return 'A condition, like total > 100…'
+  }
   if (stage.step === 'value') {
     return stage.ref.isArray ? 'Values, comma-separated…' : 'Value…'
   }
@@ -48,9 +51,11 @@ const getFilterPlaceholder = ({
 }
 
 export const FilterSearchBar = ({
+  rows,
   table,
   schema,
 }: {
+  rows: Record<string, unknown>[]
   table: string
   schema: string
 }) => {
@@ -133,15 +138,17 @@ export const FilterSearchBar = ({
           ))}
           {stage.step !== 'idle' && (
             <Chip>
-              <span
-                data-mask
-                className="flex items-center px-1.5 text-xs font-medium"
-              >
-                {filterLabel(stage.target)}
-              </span>
+              {stage.target.column && (
+                <span
+                  data-mask
+                  className="flex items-center px-1.5 text-xs font-medium"
+                >
+                  {filterLabel(stage.target)}
+                </span>
+              )}
               {stage.step === 'value' && (
                 <>
-                  <ChipDivider />
+                  {stage.target.column && <ChipDivider />}
                   <span className="text-muted-foreground flex items-center px-1.5 text-xs">
                     {stage.ref.symbol}
                   </span>
@@ -189,7 +196,7 @@ export const FilterSearchBar = ({
             className="bg-popover ring-foreground/4 absolute top-full left-0 z-30 mt-2 w-full overflow-hidden rounded-xl shadow-lg ring-1"
             onMouseDown={(e) => e.preventDefault()}
           >
-            <FilterCommandList ai={ai} composer={composer} />
+            <FilterCommandList ai={ai} composer={composer} rows={rows} />
           </motion.div>
         )}
       </AnimatePresence>

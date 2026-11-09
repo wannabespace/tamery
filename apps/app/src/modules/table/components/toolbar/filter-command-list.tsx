@@ -28,12 +28,14 @@ import { useFilterTargets } from './filter-targets'
 export const FilterCommandList = ({
   ai,
   composer,
+  rows,
 }: {
   ai: FilterAi
   composer: FilterComposer
+  rows: Record<string, unknown>[]
 }) => {
-  const { jsonPathTarget, matchingColumns, matchingRelated, matchingValues } =
-    useFilterTargets(composer)
+  const { jsonPaths, matchingColumns, matchingRelated, matchingValues } =
+    useFilterTargets(composer, rows)
   const { dialect } = useConnectionContext()
   const { applyValue, committedParts, filters, query, stage } = composer
   const trimmedQuery = query.trim()
@@ -80,18 +82,19 @@ export const FilterCommandList = ({
               <CommandShortcut data-mask>via {column}</CommandShortcut>
             </CommandItem>
           ))}
-          {jsonPathTarget && (
+          {jsonPaths.map((target) => (
             <CommandItem
-              value={`path:${filterLabel(jsonPathTarget)}`}
-              onSelect={() => composer.pickColumn(jsonPathTarget)}
+              key={filterLabel(target)}
+              value={`path:${filterLabel(target)}`}
+              onSelect={() => composer.pickColumn(target)}
             >
               <HugeiconsIcon icon={FilterIcon} strokeWidth={2} />
               <span data-mask className="min-w-0 flex-1 truncate">
-                Filter by {filterLabel(jsonPathTarget)}
+                Filter by {filterLabel(target)}
               </span>
               <CommandShortcut>JSON</CommandShortcut>
             </CommandItem>
-          )}
+          ))}
           {trimmedQuery.length > 0 && isSqlDialect(dialect) && (
             <CommandItem
               value={`sql:${trimmedQuery}`}
@@ -106,6 +109,13 @@ export const FilterCommandList = ({
           )}
           {trimmedQuery.length > 0 && (
             <FilterAskAiItem ai={ai} prompt={trimmedQuery} />
+          )}
+          {trimmedQuery.length === 0 && isSqlDialect(dialect) && (
+            <CommandItem value="sql" onSelect={() => composer.pickSql()}>
+              <HugeiconsIcon icon={CodeIcon} strokeWidth={2} />
+              Write a SQL condition
+              <CommandShortcut>SQL</CommandShortcut>
+            </CommandItem>
           )}
           {trimmedQuery.length === 0 && filters.length > 0 && (
             <CommandItem
@@ -161,10 +171,17 @@ export const FilterCommandList = ({
             </CommandGroup>
           )}
           <CommandGroup>
-            <CommandItem value="apply-value" onSelect={applyValue}>
+            <CommandItem
+              value="apply-value"
+              disabled={stage.ref.operator === 'sql' && query.trim() === ''}
+              onSelect={applyValue}
+            >
               <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} />
               <span data-mask className="min-w-0 flex-1 truncate">
-                Apply: {filterLabel(stage.target)} {stage.ref.symbol}{' '}
+                Apply:{' '}
+                {[filterLabel(stage.target), stage.ref.symbol]
+                  .filter(Boolean)
+                  .join(' ')}{' '}
                 {query === '' ? '(empty)' : query}
               </span>
               <CommandShortcut>
