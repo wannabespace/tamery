@@ -8,11 +8,35 @@ export interface Relation {
   columnNames: string[]
 }
 
+/** The names in a `(a, b)` column list at `from`, and the index right after it; none when `from` opens no list. */
+const columnList = (tokens: Token[], from: number) => {
+  const names: string[] = []
+  if (!isPunctuation(tokens[from], '(')) {
+    return { names, next: from }
+  }
+  let cursor = from
+  for (
+    let part = tokens[cursor];
+    part && !isPunctuation(part, ')');
+    part = tokens[cursor]
+  ) {
+    if (part.kind === 'identifier') {
+      names.push(identifierName(part))
+    }
+    cursor += 1
+  }
+  return { names, next: cursor + 1 }
+}
+
+/** The alias after a parenthesized group closing at `index`: `) AS name (a, b)`. */
 export const derivedAlias = (tokens: Token[], index: number) => {
-  const alias = isKeyword(tokens[index + 1], 'AS')
-    ? tokens[index + 2]
-    : tokens[index + 1]
-  return alias?.kind === 'identifier' ? identifierName(alias) : null
+  const at = isKeyword(tokens[index + 1], 'AS') ? index + 2 : index + 1
+  const alias = tokens[at]
+  if (alias?.kind !== 'identifier') {
+    return null
+  }
+  const { names, next } = columnList(tokens, at + 1)
+  return { columnNames: names, name: identifierName(alias), next }
 }
 
 export const cteAt = (tokens: Token[], index: number) => {
@@ -24,21 +48,8 @@ export const cteAt = (tokens: Token[], index: number) => {
   ) {
     return null
   }
-  const columnNames: string[] = []
-  let cursor = index + 1
-  if (isPunctuation(tokens[cursor], '(')) {
-    for (
-      let part = tokens[cursor];
-      part && !isPunctuation(part, ')');
-      part = tokens[cursor]
-    ) {
-      if (part.kind === 'identifier') {
-        columnNames.push(identifierName(part))
-      }
-      cursor += 1
-    }
-    cursor += 1
-  }
+  const { names: columnNames, next } = columnList(tokens, index + 1)
+  let cursor = next
   if (!isKeyword(tokens[cursor], 'AS')) {
     return null
   }

@@ -1,7 +1,7 @@
 import type { SqlCatalog, SqlColumn, SqlTable } from './catalog'
 import { findColumn, findTable } from './catalog'
 import type { ColumnRef } from './cursor'
-import { columnRefAt } from './cursor'
+import { columnRefAt, selectList } from './cursor'
 import type { Relation } from './relation'
 import type { StatementScope, TableRef } from './scope'
 import { statementScope } from './scope'
@@ -19,49 +19,8 @@ const refFor = (scope: NameScope, qualifier: string) =>
       sameName(ref.name, qualifier)
   )
 
-const topLevel = (tokens: Token[]) => {
-  let depth = 0
-  return tokens.map((token) => {
-    if (isPunctuation(token, ')')) {
-      depth -= 1
-    }
-    const level = depth
-    if (isPunctuation(token, '(')) {
-      depth += 1
-    }
-    return level === 0
-  })
-}
-
-const selectList = (body: Token[]) => {
-  const outside = topLevel(body)
-  const select = body.findIndex(
-    (token, index) => outside[index] && isKeyword(token, 'SELECT')
-  )
-  const segments: Token[][] = [[]]
-  let index = select + 1
-  while (isKeyword(body[index], 'DISTINCT', 'ALL')) {
-    index += 1
-  }
-  if (isKeyword(body[index], 'ON') && isPunctuation(body[index + 1], '(')) {
-    index += 2
-    while (body[index] && !outside[index]) {
-      index += 1
-    }
-  }
-  for (; body[index]; index += 1) {
-    const token = body[index]
-    if (outside[index] && isKeyword(token, 'FROM', 'UNION', 'INTO')) {
-      break
-    }
-    if (outside[index] && isPunctuation(token, ',')) {
-      segments.push([])
-    } else if (token) {
-      segments.at(-1)?.push(token)
-    }
-  }
-  return { at: body[select], segments }
-}
+/** A select item's column; an unaliased expression has no name until a column list gives it one. */
+type ItemColumn = Omit<SqlColumn, 'name'> & { name: string | null }
 
 /** Passed down rather than imported, since a relation's columns resolve through the tables it reads, relations included. */
 type TableLookup = (scope: NameScope, ref: TableRef) => SqlTable | undefined
@@ -92,9 +51,9 @@ const columnOf = (
   scope: NameScope,
   catalog: SqlCatalog,
   lookup: TableLookup,
-  name: string,
+  name: string | null,
   expression: Token[]
-): SqlColumn => {
+): ItemColumn => {
   const isColumnRef =
     expression.length === 1 ||
     (expression.length === 3 && isPunctuation(expression[1], '.'))
@@ -125,7 +84,7 @@ const relationColumns = (
     relations: [...outer, ...inner.relations],
     visible: inner.visible,
   }
-  const columns = segments.flatMap((segment): SqlColumn[] => {
+  const columns = segments.flatMap((segment): ItemColumn[] => {
     const last = segment.at(-1)
     if (last?.text === '*') {
       const refs =
@@ -135,7 +94,7 @@ const relationColumns = (
       return refs.flatMap((ref) => (ref && lookup(scope, ref)?.columns) ?? [])
     }
     if (last?.kind !== 'identifier') {
-      return []
+      return [columnOf(scope, catalog, lookup, null, segment)]
     }
     const name = identifierName(last)
     const beforeLast = segment.at(-2)
@@ -147,10 +106,10 @@ const relationColumns = (
     }
     return [columnOf(scope, catalog, lookup, name, segment)]
   })
-  return columns.map((column, index) => ({
-    ...column,
-    name: relation.columnNames[index] ?? column.name,
-  }))
+  return columns.flatMap((column, index) => {
+    const name = relation.columnNames[index] ?? column.name
+    return name === null ? [] : [{ ...column, name }]
+  })
 }
 
 /** A CTE or derived table shadows the catalog's table of the same name, as it does in the query. */

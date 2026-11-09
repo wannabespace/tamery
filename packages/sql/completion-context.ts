@@ -105,7 +105,8 @@ const readClause = (statementTokens: Token[]) => {
   const verb =
     flat.findLast((token) => isKeyword(token, ...VERBS))?.text.toUpperCase() ??
     ''
-  return { clause, clauseAt, flat, lastKeyword, opens, verb }
+  const nested = (opens.at(-1) ?? -1) > clauseAt
+  return { clause, clauseAt, flat, lastKeyword, nested, opens, verb }
 }
 
 const awaitsOperator = (flat: Token[], clause: string) =>
@@ -253,9 +254,9 @@ export const completionContext = (
   const statementTokens = statement
     ? before.filter((token) => token.start >= statement.start)
     : []
-  const { clause, clauseAt, flat, lastKeyword, opens, verb } =
+  const { clause, clauseAt, flat, lastKeyword, nested, opens, verb } =
     readClause(statementTokens)
-  const clauses = nextClauses(flat, clause, verb, dialect)
+  const clauses = nextClauses(flat, clause, verb, nested, dialect)
   const expects = expectsAt({
     beforePrevious,
     clause,

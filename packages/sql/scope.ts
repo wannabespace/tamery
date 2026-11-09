@@ -95,7 +95,8 @@ const introducesTable = (tokens: Token[], index: number) => {
 
 const sourcesAfter = (tokens: Token[], index: number) => {
   const introducer = tokens[index]
-  const clause = isKeyword(introducer, 'FROM', 'JOIN')
+  const listed = isKeyword(introducer, 'FROM') || isPunctuation(introducer, ',')
+  const clause = listed || isKeyword(introducer, 'JOIN')
   const refs: TableRef[] = []
   let cursor = index + 1
   while (isKeyword(tokens[cursor], ...TABLE_MODIFIERS)) {
@@ -111,9 +112,7 @@ const sourcesAfter = (tokens: Token[], index: number) => {
       return { hasUnknownColumns, refs }
     }
     refs.push(found.ref)
-    if (
-      !(isKeyword(introducer, 'FROM') && isPunctuation(tokens[found.next], ','))
-    ) {
+    if (!(listed && isPunctuation(tokens[found.next], ','))) {
       return { hasUnknownColumns: false, refs }
     }
     cursor = found.next + 1
@@ -146,18 +145,26 @@ const derivedTable = (
   close: number,
   offset: number
 ) => {
-  const name = derivedAlias(tokens, close)
+  const alias = derivedAlias(tokens, close)
   const body = tokens.slice(open + 1, close)
   const [first] = body
   const closer = tokens[close]
-  if (!name || !closer || !first || !isKeyword(first, 'SELECT', 'WITH')) {
+  if (!alias || !closer || !first || !isKeyword(first, 'SELECT', 'WITH')) {
     return null
   }
+  const { columnNames, name, next } = alias
   const ref: TableRef = { alias: null, name, schema: null, token: closer }
   const holdsOffset = first.start <= offset && offset <= closer.start
+  const introducer = isKeyword(tokens[open - 1], 'LATERAL')
+    ? tokens[open - 2]
+    : tokens[open - 1]
   return {
+    listContinuesAt:
+      isKeyword(introducer, 'FROM', 'JOIN') && isPunctuation(tokens[next], ',')
+        ? next
+        : null,
     ref: holdsOffset ? null : ref,
-    relation: { body, columnNames: [], name },
+    relation: { body, columnNames, name },
   }
 }
 
@@ -177,12 +184,23 @@ export const statementScope = (
   const frames = [root]
   let cursorBlock: QueryBlock | null = null
 
+  const readSources = (index: number, block: QueryBlock) => {
+    const sources = sourcesAfter(tokens, index)
+    tables.push(...sources.refs)
+    block.refs.push(...sources.refs)
+    block.started = true
+    hasUnknownColumns ||= sources.hasUnknownColumns
+    if (frames.length === 1 && isKeyword(tokens[index], 'INTO', 'UPDATE')) {
+      target ??= sources.refs[0] ?? null
+    }
+  }
+
   const closeFrame = (index: number) => {
     const frame = frames.at(-1) ?? root
     frames.length = Math.max(frames.length - 1, 1)
     const alias = derivedAlias(tokens, index)
     if (alias) {
-      derived.push(alias)
+      derived.push(alias.name)
     }
     const table = derivedTable(tokens, frame.open, index, offset)
     const outer = frames.at(-1) ?? root
@@ -192,16 +210,8 @@ export const statementScope = (
     if (table?.ref) {
       outer.block.refs.push(table.ref)
     }
-  }
-
-  const readSources = (index: number, block: QueryBlock) => {
-    const sources = sourcesAfter(tokens, index)
-    tables.push(...sources.refs)
-    block.refs.push(...sources.refs)
-    block.started = true
-    hasUnknownColumns ||= sources.hasUnknownColumns
-    if (frames.length === 1 && isKeyword(tokens[index], 'INTO', 'UPDATE')) {
-      target ??= sources.refs[0] ?? null
+    if (table && table.listContinuesAt !== null) {
+      readSources(table.listContinuesAt, outer.block)
     }
   }
 

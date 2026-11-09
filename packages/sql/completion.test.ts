@@ -252,6 +252,21 @@ describe('completion', () => {
     ).toBe("'active'")
   })
 
+  it.each([
+    ['WITH x(n) AS (SELECT 1) SELECT x. FROM x', ['n']],
+    [
+      'WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM x) SELECT x. FROM x',
+      ['n'],
+    ],
+    ['SELECT d. FROM (SELECT id, email FROM users) d(a, b)', ['a', 'b']],
+    [
+      'SELECT p. FROM (SELECT id FROM users) d, posts p',
+      ['id', 'user_id', 'title'],
+    ],
+  ])('names relation columns in %p', (sql, labels) => {
+    expect(complete(sql, sql.indexOf('. ') + 1).labels).toEqual(labels)
+  })
+
   it('lets a lateral subquery shadow the table it is named after', () => {
     const sql =
       'SELECT "posts". FROM "users" "d0" LEFT JOIN LATERAL (SELECT json_agg("t".*) AS "r" FROM (SELECT * FROM "posts" "d1" WHERE "d1"."user_id" = "d0"."id") "t") AS "posts" ON true'
@@ -307,6 +322,13 @@ describe('completion', () => {
     ['DELETE FROM users WHERE id = 1 ', 'AND'],
   ])('offers the next clause after %p', (sql, first) => {
     expect(complete(sql).labels[0]).toBe(first)
+  })
+
+  it('continues an open group only with AND or OR', () => {
+    expect(complete('SELECT * FROM users WHERE (id = 1 ').labels).toEqual([
+      'AND',
+      'OR',
+    ])
   })
 
   it('offers RETURNING, not SELECT clauses, after a write', () => {

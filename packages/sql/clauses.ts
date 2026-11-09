@@ -122,10 +122,12 @@ const spoken = (clause: string, dialect: DialectSpec) =>
     .split(' ')
     .every((word) => !WORD.test(word) || dialect.keywords.has(word))
 
+/** `nested`: the caret sits in a parenthesized group opened after the clause, where only `AND`/`OR` can continue it. */
 export const nextClauses = (
   flat: Token[],
   clause: string,
   verb: string,
+  nested: boolean,
   dialect: DialectSpec
 ) => {
   const [beforePrevious, previous] = flat.slice(-2)
@@ -152,7 +154,9 @@ export const nextClauses = (
   if (CONDITION_CLAUSES.has(clause) && !completesCondition(flat)) {
     return []
   }
-  const next = NEXT_CLAUSES[clause] ?? []
+  const next = (NEXT_CLAUSES[clause] ?? []).filter(
+    (item) => !nested || item === 'AND' || item === 'OR'
+  )
   const clauses =
     verb === 'SELECT'
       ? next
