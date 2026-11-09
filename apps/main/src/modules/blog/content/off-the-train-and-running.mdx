@@ -1,0 +1,135 @@
+On November 5 we switched Tamery off Railway and onto Google Cloud Run. Two weeks earlier, Railway told every customer to rotate their secrets after someone got into customer environment variables. Tamery holds connection strings to people's production databases, so I wasn't willing to keep those secrets on a platform where that could happen again.
+
+I'm Valerii, and I built most of Tamery. This post covers what happened at Railway, how the new setup works, what it cost us, and what's still not perfect.
+
+## What happened at Railway, and why it mattered for a database tool
+
+On October 22, Railway disclosed that an unauthorized party may have accessed customer environment variables. That's where apps keep API keys and database passwords. Railway paused all deployments and asked all users, not only the affected ones, to revoke and rotate their keys.
+
+In early November there was a second story. A company called Primcloud said a Railway engineer's AI agents had probed its systems. Railway's CEO apologized publicly.
+
+I don't want to pile on. Running a cloud platform is hard, and I'm sure the people there are having a rough month.
+
+Tamery is different from most apps on a platform like that, though. You point it at your databases. Our servers keep encrypted connection strings and the keys that decrypt them, for people who trust us with production data. For a to-do app, "your platform might have leaked your environment variables" is a bad week. For us, it could mean someone else's database gets dumped.
+
+## The alternative we didn't pick
+
+The fast fix was another platform that runs your containers for you. We could have moved in a day.
+
+It would also have left us where we started, with our secrets in someone else's dashboard behind access controls we can't see or audit. So we went one level lower, to Google Cloud. There we decide who gets access, we hold the encryption key, and every read of a secret ends up in a log we watch.
+
+This has a real cost. Railway let us deploy without thinking about networks, IAM or certificates. Now the whole setup is about 1,000 lines of OpenTofu that we own and have to keep correct.
+
+## How Tamery runs on Google Cloud now
+
+Here is the whole thing, from your browser to our database:
+
+```text
+you ──► Cloudflare ──► Google load balancer (accepts Cloudflare's certificate only)
+                                │
+              ┌─────────────────┼──────────────────┐
+              ▼                 ▼                  ▼
+          tamery-api       tamery-proxy    website, app, docs, share
+          (Cloud Run)      (Cloud Run)        (Cloud Run)
+              │                 │
+              │                 └──► your database (from two fixed IPs)
+              ▼
+   private network: Cloud SQL (Postgres) + Redis
+              ▲
+   Secret Manager ◄── Cloud KMS key (only we hold it)
+```
+
+Everything runs in one region, Frankfurt (`europe-west3`).
+
+### One human account can change anything
+
+The whole infrastructure has exactly one human way in: a single Google account. There are no shared team logins, and nobody keeps admin rights "just in case".
+
+Everything else is a machine with a narrow job:
+
+- **Each service has its own identity.** The API, the cloud proxy, background jobs and deploys each run as a separate service account with only the permissions that job needs. We also removed Google's default service account's broad Editor role.
+- **Each service can read only its own secrets.** The proxy can't read the API's secrets, and the API can't read the proxy's.
+- **Deploys hold no keys.** GitHub Actions proves to Google which repository is deploying through Workload Identity Federation, and only `wannabespace/tamery` is allowed to. There's no deploy token to steal.
+
+### We hold the encryption key for every secret
+
+Before, our secrets lived in Railway and in a separate secrets service. Now they're in Secret Manager, encrypted with our own key in Cloud KMS.
+
+That's one fewer company in the chain that has to get everything right. It also means every use of that key gets recorded.
+
+### Seven alerts, and the owner account isn't exempt
+
+Logs only help if someone reads them, so I get an email right away when:
+
+1. a secret is read by anything other than our API, proxy or jobs,
+2. the encryption key is used directly instead of through Secret Manager,
+3. a secret or key is added, changed, disabled or destroyed,
+4. any access right changes or a new service account appears,
+5. anything is deployed outside our GitHub pipeline,
+6. the network, firewall or load balancer changes,
+7. the database or Redis is changed or exported.
+
+These fire for my own account too, and that's deliberate. A stolen owner login is the case that matters most, so my own actions don't get a pass. On top of that we alert on bursts of failed sign-ins, rate limits being hit hard, failed jobs and the site going down.
+
+### The network is closed by default
+
+- **Only Cloudflare can reach the load balancer.** It requires a client certificate that only Cloudflare presents. Nobody can skip Cloudflare and talk to our servers directly, or fake the visitor IP we use for rate limits.
+- **The database and Redis sit on a private network.** The database accepts only encrypted connections, keeps 14 daily backups plus 7 days of point-in-time recovery, and has deletion protection turned on.
+- **The cloud proxy can't reach our own network.** It connects to whatever database host you give it, so a firewall rule blocks it from private addresses. That matters because a couple of drivers open sockets below the app-level host check.
+- **Infrastructure changes go through pull requests.** Nothing gets clicked together in a console, and anything that does gets caught by alert 5 or 6.
+
+## An AI review of the whole codebase before the move
+
+Attacks on developer tools are getting more common and more automated, and that worries me too. AI makes it cheap for an attacker to look for holes in thousands of projects at once.
+
+It also works the other way. Before and during the move, we used AI to review all of Tamery, code and infrastructure, file by file. We looked at how secrets are stored and passed around, who can reach what, and where an old shortcut could turn into a hole. We fixed what it found before switching anything over.
+
+Here's some of what came out of that work over the last month:
+
+- **Connection strings stay out of logs and session replays**, and never get sent to hosts they weren't meant for.
+- **We closed a sign-in phishing path** and stopped sessions from being readable across our subdomains.
+- **Sign-in got stronger.** You can sign in with a passkey, use a passkey as your second factor, and download backup codes.
+- **You get an email about anything sensitive on your account**: a sign-in from a device you haven't used before, a newly linked provider, two-factor changes, regenerated backup codes, account deletion.
+- **New npm releases wait three days before we install them**, so a hijacked package version is usually pulled before it reaches us. CI also scans every change for leaked secrets with TruffleHog.
+- **Deleted rows are kept for 90 days**, so a mistake, ours or an attacker's, can be undone.
+
+The AI was also the reason the move went smoothly. It helped us write every piece of the new setup as code, check each service against how it ran on Railway, and write a step-by-step cutover plan. We did the cutover on November 5, and most of you didn't notice it.
+
+I don't want to oversell this part. An AI review finds a lot of real issues quickly, but it doesn't prove the code is secure. We treat it as one more reviewer, and a tireless one.
+
+## What still isn't perfect
+
+- **Synced connection strings aren't end-to-end encrypted.** They're encrypted at rest with a workspace key and decrypted on our server when another device fetches them. If you don't want a password on our servers at all, pick **No password** or **Metadata only** when you add a connection. The [security page](https://docs.tamery.app/connections/security) explains exactly what each option stores.
+- **It's one region.** If Google's Frankfurt region goes down, Tamery goes down with it. For a team our size that's the right trade for now, but it's a trade.
+
+## What to do now
+
+Most of you don't need to do anything. Your connections, saved queries and chats came with us, and the apps work the same.
+
+If your database only allows certain IP addresses, the cloud proxy now connects from two new ones. Add both from the [security page](https://docs.tamery.app/connections/security#cloud-proxy-ip-addresses). Desktop and `tamery bridge` connect from your own network, so they aren't affected.
+
+While you're in your account settings, add a passkey or turn on two-factor authentication. It protects your synced connections more than anything else on this list.
+
+## FAQ
+
+### Was Tamery affected by the Railway breach?
+
+Railway said the breach appeared limited to a subset of users and asked everyone to rotate their keys anyway. We moved every secret to keys we hold on Google Cloud.
+
+### Where is Tamery hosted now?
+
+On Google Cloud Run in Frankfurt (`europe-west3`), with Cloud SQL for Postgres and Memorystore for Redis on a private network, behind Cloudflare.
+
+### Do I need to update my database firewall?
+
+Only if it allows specific IPs. The cloud proxy now connects from `35.246.231.22` and `34.40.119.38`, and you should add both.
+
+### Does Tamery see my database password?
+
+Only if you choose **Full** sync. With **No password** or **Metadata only**, the password stays on your device.
+
+---
+
+If you have a question about any of this, or you find something that looks wrong, write to me. I read every message, and security reports go to the top of the pile.
+
+Valerii
