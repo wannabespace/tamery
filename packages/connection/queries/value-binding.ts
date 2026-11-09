@@ -53,9 +53,7 @@ export const filterSpellings: Record<
     jsonText: (column, path) =>
     sql`json_extract_string(cast(${sql.id(column)} as json), ${jsonPathLiteral(path)})`,
   }),
-  mssql: () => ({
-    jsonText: jsonValue,
-  }),
+  mssql: () => ({ jsonText: jsonValue }),
   mysql: () => ({
     // json_unquote turns a JSON null into the text 'null'.
     jsonText: (column, path) => {
@@ -63,9 +61,7 @@ export const filterSpellings: Record<
       return sql`case when json_type(${value}) = 'NULL' then null else json_unquote(${value}) end`
     },
   }),
-  oracle: () => ({
-    jsonText: jsonValue,
-  }),
+  oracle: () => ({ jsonText: jsonValue }),
   postgres: () => ({
     jsonText: (column, path) =>
     sql`${sql.id(column)} #>> array[${sql.join(path.map((key) => sql.val(key)))}]::text[]`,

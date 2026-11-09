@@ -61,9 +61,6 @@ const condition = (
       : values.map((value) => (path ? jsonLiteral(value) : bind(column, value)))
   )
 
-const fieldPath = ({ column, path = [] }: Pick<ActiveFilter, 'column' | 'path'>) =>
-  [column, ...path].join('.')
-
 const viaField = (index: number) => `__via_${index}`
 
 // `$lookup` combining `localField` with `pipeline` needs MongoDB 5.0+, and its `from` cannot leave the current database, so `via.schema` goes unused.
@@ -103,7 +100,12 @@ export const toMongoPipeline = (
         (filter, index) =>
           filter.via
             ? { [viaField(index)]: { $ne: [] } }
-            : { [fieldPath(filter)]: condition(filter, bind) }
+            : {
+                [[filter.column, ...(filter.path ?? [])].join('.')]: condition(
+                  filter,
+                  bind
+                ),
+              }
       ),
     },
   }

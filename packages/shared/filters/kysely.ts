@@ -21,7 +21,6 @@ export const SQL_OPERATORS: Record<Exclude<FilterOperator, 'sql'>, string> = {
 
 export type FilterValueBinding = (column: string, value: unknown) => unknown
 
-/** How one engine spells what its SQL does not share. */
 export interface FilterSpelling {
   bind?: FilterValueBinding
   /** The text found at `path` inside a JSON column, null when nothing is there. */
