@@ -23,6 +23,7 @@ const writeTemporary = (file: string, data: string) => {
  */
 export const configFiles = {
   browsers: path.join(CONFIG_DIR, 'bridge-browsers'),
+  dir: CONFIG_DIR,
   /** `false` when the file already exists: the first writer wins, across processes too. */
   create: (file: string, data: string) => {
     const temporary = writeTemporary(file, data)

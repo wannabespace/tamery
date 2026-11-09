@@ -62,6 +62,9 @@ await Promise.all(
       define: {
         'import.meta.env.API_URL': JSON.stringify(env.API_URL),
         'import.meta.env.MAIN_URL': JSON.stringify(env.MAIN_URL),
+        'import.meta.env.POSTHOG_TOKEN': JSON.stringify(
+          env.POSTHOG_TOKEN ?? ''
+        ),
         'import.meta.env.WEB_URL': JSON.stringify(env.WEB_URL),
       },
       entrypoints: [path.join(import.meta.dirname, '..', 'src', 'index.ts')],

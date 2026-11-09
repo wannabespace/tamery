@@ -1134,12 +1134,18 @@ importers:
       '@tamery/connection':
         specifier: workspace:*
         version: link:../../packages/connection
+      '@tamery/mongo':
+        specifier: workspace:*
+        version: link:../../packages/mongo
       '@tamery/query-proxy':
         specifier: workspace:*
         version: link:../../packages/query-proxy
       '@tamery/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@tamery/sql':
+        specifier: workspace:*
+        version: link:../../packages/sql
       '@types/bun':
         specifier: 'catalog:'
         version: 1.4.4
@@ -1170,6 +1176,9 @@ importers:
       portless:
         specifier: 'catalog:'
         version: 0.15.12
+      posthog-node:
+        specifier: 'catalog:'
+        version: 5.61.1(@opentelemetry/api@1.9.1)
       ssh-config:
         specifier: 'catalog:'
         version: 5.3.0

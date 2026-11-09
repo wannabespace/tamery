@@ -4,6 +4,7 @@ import { note, spinner } from '@clack/prompts'
 import { challenge } from '@tamery/shared/challenge'
 import { Result } from 'better-result'
 
+import { analytics } from './analytics'
 import { account, api } from './api'
 import { pairings } from './bridge/pairings'
 import { openBrowser } from './browser'
@@ -54,6 +55,9 @@ const signIn = async () => {
     if (!user) {
       throw new Error('Tamery did not accept the new session. Try again.')
     }
+    waiting.message(
+      'Saving the session. If your system keychain asks, allow it'
+    )
     const signedIn = { email: user.email, id: user.id, token }
     const previous = await vault.account()
     if (previous && previous.id !== user.id) {
@@ -61,6 +65,7 @@ const signIn = async () => {
       pairings.reset()
     }
     await vault.setAccount(signedIn)
+    await analytics.capture('signed_in', {})
     waiting.stop(`Signed in as ${paint.bold(user.email)}`)
     return signedIn
   } catch (error) {
@@ -71,10 +76,22 @@ const signIn = async () => {
   }
 }
 
-/** The saved account, unless Tamery answered that its session is over; with Tamery unreachable it still stands. */
-export const getAccount = async () => {
+/**
+ * The saved account, unless Tamery answered that its session is over; with Tamery unreachable it still stands. Without
+ * `canSignIn`, a missing one fails at once instead of waiting minutes for a browser nobody is watching.
+ */
+export const getAccount = async (canSignIn = true) => {
   const saved = await vault.account()
   const user =
     saved && (await Result.tryPromise(() => account.getUser(saved.token)))
-  return saved && !(user?.isOk() && user.value === null) ? saved : signIn()
+  if (saved && !(user?.isOk() && user.value === null)) {
+    return saved
+  }
+  if (!canSignIn) {
+    throw new Error(`Not signed in. Run ${paint.accent('tamery login')}.`)
+  }
+  return signIn()
 }
+
+/** For commands scripts run: they sign in only from a terminal. */
+export const getAccountForCommand = () => getAccount(!!process.stdin.isTTY)

@@ -1,5 +1,4 @@
 import type { ConnectionType } from './enums/connection-type'
-import type { SyncType } from './enums/sync-type'
 
 export const MCP_MAX_ROWS = 200
 
@@ -26,15 +25,6 @@ type OnAbort = (listener: () => void) => void
 /** Main checks each connection's access before asking, so the window runs whatever it is asked. Every method takes `(args, onAbort)` so the bridge dispatches by name. */
 export interface McpSource {
   connections: (args: undefined, onAbort: OnAbort) => McpConnection[]
-  createConnection: (
-    args: {
-      connectionString: string
-      name: string
-      syncType: SyncType
-      type: ConnectionType
-    },
-    onAbort: OnAbort
-  ) => Promise<McpConnection>
   describeTable: (
     args: McpTarget & { schema: string; table: string },
     onAbort: OnAbort
@@ -61,6 +51,7 @@ export type McpReply = { result: unknown } | { error: string } | { idle: true }
 
 export type McpTool =
   | 'list_connections'
+  /** No longer a tool, but up to 100 logged calls stay in the activity log and still render. */
   | 'create_connection'
   | 'list_tables'
   | 'describe_table'
@@ -71,7 +62,7 @@ export interface McpCall {
   at: number
   client: string
   connectionId: string | null
-  /** The schema, the table or the new connection's name; never a connection string. */
+  /** The schema or the table; never a connection string. */
   detail: string | null
   error: string | null
   id: string

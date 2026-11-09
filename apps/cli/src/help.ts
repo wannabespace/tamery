@@ -58,27 +58,47 @@ export const printHelp = async <T extends ArgsDef>(command: CommandDef<T>) => {
     )
   )
   const commands = commandRows.flat()
+  const positionals = args.flatMap(
+    ([arg, { description = '', required, type }]) =>
+      type === 'positional'
+        ? [{ description, label: required === false ? `[${arg}]` : `<${arg}>` }]
+        : []
+  )
+  const flags = args.filter(([, { type }]) => type !== 'positional')
   const options: Row[] = [
-    ...args.map(([option, arg]) => ({
-      description: [
-        arg.description,
-        arg.default !== undefined && dim(`(default ${arg.default})`),
-      ]
-        .filter(Boolean)
-        .join(' '),
-      label: `--${option}${arg.valueHint ? ` <${arg.valueHint}>` : ''}`,
-    })),
+    ...flags.map(([option, arg]) => {
+      const valueHint =
+        arg.valueHint ?? (arg.type === 'enum' ? arg.options?.join('|') : null)
+      return {
+        description: [
+          arg.description,
+          arg.default !== undefined && dim(`(default ${arg.default})`),
+        ]
+          .filter(Boolean)
+          .join(' '),
+        label: `--${option}${valueHint ? ` <${valueHint}>` : ''}`,
+      }
+    }),
     ...(meta.version
       ? [{ description: 'Print the version', label: '-v, --version' }]
       : []),
     { description: 'Print this help', label: '-h, --help' },
   ]
   const width =
-    Math.max(...[...commands, ...options].map(({ label }) => label.length)) +
-    COLUMN_GAP
+    Math.max(
+      ...[...positionals, ...commands, ...options].map(
+        ({ label }) => label.length
+      )
+    ) + COLUMN_GAP
   const usages = [
     ...(args.length > 0 || commands.length === 0
-      ? [`${name}${args.length > 0 ? ` ${flag('[options]')}` : ''}`]
+      ? [
+          [
+            name,
+            ...positionals.map(({ label }) => accent(label)),
+            ...(flags.length > 0 ? [flag('[options]')] : []),
+          ].join(' '),
+        ]
       : []),
     ...(commands.length > 0 ? [`${name} ${accent('<command>')}`] : []),
   ]
@@ -92,6 +112,7 @@ export const printHelp = async <T extends ArgsDef>(command: CommandDef<T>) => {
         (usage, index) =>
           `${index === 0 ? bold(USAGE_LABEL) : ' '.repeat(USAGE_LABEL.length)}${usage}`
       ),
+      ...renderSection('Arguments', positionals, accent, width),
       ...renderSection('Commands', commands, accent, width),
       ...renderSection('Options', options, flag, width),
       '',

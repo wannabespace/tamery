@@ -2,7 +2,8 @@
 title: 'CLI commands'
 sidebarTitle: 'Commands'
 description: 'Every tamery command and its flags.'
-keywords: ['reference', 'options', 'arguments', 'usage', 'login']
+keywords:
+  ['reference', 'options', 'arguments', 'usage', 'login', 'add', 'remove']
 ---
 
 `tamery --help` (`-h`) lists the commands, and `--help` after a command, such as `tamery bridge --help`, shows its options and subcommands. `tamery --version` (`-v`) prints the version.
@@ -14,6 +15,8 @@ tamery login
 ```
 
 Opens the browser to sign this computer in to your Tamery account, and prints the link too. The link expires after 5 minutes. Confirm only if you started signing in yourself.
+
+After you confirm in the browser, the CLI saves the session encrypted with a key in the system keychain. If the keychain is locked, it may open its own unlock dialog, and the CLI waits until you answer it.
 
 If the computer is already signed in, it prints the account. To switch accounts, run `tamery logout` first. Signing in to a different account removes the secrets and paired browsers saved for the old one.
 
@@ -64,6 +67,79 @@ tamery bridge unpair-all
 ```
 
 Disconnects every paired browser, also from a bridge that is already running. Each one needs to be allowed again. Saved secrets stay.
+
+## tamery connection list
+
+```bash
+tamery connection list
+```
+
+Prints every connection in your workspaces with its id, name, engine and label, newest first. The other `tamery connection` commands take either the id or the name. When two connections share a name, pass the id.
+
+## tamery connection create
+
+```bash
+tamery connection create --name "Orders" --label prod
+```
+
+Asks for the connection string, tests it and saves the connection in your default workspace. The string is never a flag, so the password stays out of your shell history. To pass it from a script, pipe it in:
+
+```bash
+echo "$DATABASE_URL" | tamery connection create --name "Orders"
+```
+
+| Flag | Use |
+| --- | --- |
+| `--name <name>` | The connection's name. Without it, the name is the host and the database the string names, such as `db.example.com:5432/orders`, or the file name for SQLite. |
+| `--label <label>` | The label it is grouped under, such as `prod` or `staging`. |
+| `--sync <full\|no-password\|metadata>` | What syncs to your other devices: **Full**, **No password** or **Metadata only**. The default is `full`. See [Security](/connections/security). |
+
+The engine comes from the string's scheme, such as `postgres://`, `mysql://` or `mongodb://`. The CLI keeps the whole string on this computer too, so `tamery bridge` runs the connection without asking for its secrets or file access.
+
+## tamery connection update
+
+```bash
+tamery connection update Orders --name "Orders replica" --label staging
+```
+
+Changes a connection for everyone in its workspace. Pass at least one flag:
+
+| Flag | Use |
+| --- | --- |
+| `--name <name>` | Rename it. |
+| `--label <label>` | Change its label. `--label ""` removes it. |
+| `--connection-string` | Ask for a new connection string, or read it from stdin, and test it before saving. |
+
+## tamery connection delete
+
+```bash
+tamery connection delete Orders
+```
+
+Asks for confirmation, then deletes the connection for everyone in its workspace and forgets its secrets on this computer. Pass `--yes` to skip the question, which a script without a terminal has to do. Only editors of the workspace can delete its connections.
+
+## tamery query
+
+```bash
+tamery query Orders "SELECT status, count(*) FROM orders GROUP BY status"
+```
+
+Runs one statement on a connection, from this computer, and prints the rows. The connection is its id or name, as in `tamery connection list`. Write the statement in the connection's own SQL dialect, or as a mongosh call on MongoDB, such as `db.orders.find({ status: "paid" })`. Without the statement, it reads it from stdin:
+
+```bash
+tamery query Orders < report.sql
+```
+
+By default only one read-only statement runs, such as `SELECT`, `SHOW`, `EXPLAIN`, or a MongoDB `find` or `aggregate`. PostgreSQL, MySQL, Oracle, ClickHouse, SQLite and MongoDB also run it in a read-only transaction, which is then rolled back. A function with side effects can still act, so only a read-only database login guarantees no writes.
+
+| Flag | Use |
+| --- | --- |
+| `--write` | Run statements that change data or schema. They commit right away. |
+| `--format <table\|json\|csv>` | Print a table, JSON with one object per row, or CSV. The default is `table`. |
+| `--max-rows <count>` | Stop after this many rows. The default is `1000`. |
+| `--database <name>` | Run in another database on the same server. |
+
+It finds the connection string the way `tamery bridge` does. For a **No password** or **Metadata only** connection that this computer doesn't have the secrets of yet, it asks for the connection string once and keeps it with the bridge's secrets. When a connection opens a file or signs in with this computer's keys or credentials, and nobody allowed that here yet, it asks you first. Without a terminal, such as in a script, it fails instead, so run the query once in a terminal.
 
 ## tamery update
 

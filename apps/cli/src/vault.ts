@@ -25,6 +25,11 @@ const readKey = async () => {
   if (fs.existsSync(configFiles.key)) {
     return { key: fs.readFileSync(configFiles.key, 'utf-8'), keyInFile: true }
   }
+  // Over SSH a keychain prompt opens on the remote computer's own screen, where nobody in this session can answer it.
+  // A vault that already exists keeps its key where it was made.
+  if (process.env.SSH_CONNECTION && !fs.existsSync(configFiles.vault)) {
+    return { key: null, keyInFile: true }
+  }
   const stored = await Result.tryPromise(() => Bun.secrets.get(KEYCHAIN_ITEM))
   if (stored.isOk()) {
     return { key: stored.value, keyInFile: false }

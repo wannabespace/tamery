@@ -46,8 +46,10 @@
     "@tamery/api": "workspace:*",
     "@tamery/configs": "workspace:*",
     "@tamery/connection": "workspace:*",
+    "@tamery/mongo": "workspace:*",
     "@tamery/query-proxy": "workspace:*",
     "@tamery/shared": "workspace:*",
+    "@tamery/sql": "workspace:*",
     "@types/bun": "catalog:",
     "arktype": "catalog:",
     "better-result": "catalog:",
@@ -58,6 +60,7 @@
     "oracledb": "catalog:",
     "pg": "catalog:",
     "portless": "catalog:",
+    "posthog-node": "catalog:",
     "ssh-config": "catalog:",
     "ssh2": "catalog:",
     "typescript": "catalog:"

@@ -6,14 +6,17 @@ import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/c
 import { resetTransactions } from '@tamery/connection/queries/transactions'
 import { BRIDGE_PAIR_PATH, BRIDGE_URL } from '@tamery/shared/bridge'
 import { hasErrnoCode } from '@tamery/shared/errno'
+import { PORTS } from '@tamery/shared/ports'
 import { Result } from 'better-result'
 
+import { analytics } from '../analytics'
 import { approvals } from '../bridge/approvals'
 import { pairings } from '../bridge/pairings'
 import { createRouter } from '../bridge/router'
 import { serveBridge } from '../bridge/server'
 import { enableSshTunnels } from '../bridge/ssh'
 import { openBrowser } from '../browser'
+import { configFiles } from '../config-files'
 import { env } from '../env'
 import { paint } from '../paint'
 import { getAccount } from '../sign-in'
@@ -68,12 +71,17 @@ export const bridge = async (options: {
   )
   if (await vault.keyInFile()) {
     log.warn(
-      'No keychain here: saved secrets are protected only by the permissions of ~/.config/tamery.'
+      `No keychain here: saved secrets are protected only by the permissions of ${configFiles.dir}.`
     )
   }
 
   const connectUrl = `${env.WEB_URL}${BRIDGE_PAIR_PATH}${reachedAt === BRIDGE_URL ? '' : `#${new URLSearchParams({ url: reachedAt })}`}`
   const paired = [...new Set(pairings.labels())]
+  await analytics.capture('bridge_started', {
+    custom_port: options.port !== PORTS.BRIDGE,
+    paired_browsers: paired.length,
+    remote: !!publicUrl,
+  })
   if (paired.length === 0) {
     void openBrowser(connectUrl)
   }
@@ -91,6 +99,7 @@ export const bridge = async (options: {
     await server.stop(true)
     await resetTransactions()
     outro(`Bridge on ${name} stopped.`)
+    await analytics.shutdown()
     process.exit(0)
   }
   process.once('SIGINT', stop)

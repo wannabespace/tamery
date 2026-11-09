@@ -48,6 +48,34 @@ describe('commands', () => {
     expect(output).toContain('--port must be a number from 1 to 65535.')
   })
 
+  test('a command group without a subcommand prints its help', () => {
+    const { exitCode, output } = tamery('connection')
+    expect(exitCode).toBe(0)
+    expect(output).toContain('create')
+  })
+
+  test("a command's help describes its arguments", () => {
+    expect(tamery('query', '--help').output).toContain('Its id or name')
+  })
+
+  test('a script that is not signed in fails instead of waiting for a browser', () => {
+    const { exitCode, output } = tamery('query', 'prod', 'select 1')
+    expect(exitCode).toBe(1)
+    expect(output).toContain('Not signed in.')
+  })
+
+  test('a connection update with nothing to change fails before signing in', () => {
+    const { exitCode, output } = tamery('connection', 'update', 'prod')
+    expect(exitCode).toBe(1)
+    expect(output).toContain('Nothing to change.')
+  })
+
+  test('a query without a statement fails before signing in', () => {
+    const { exitCode, output } = tamery('query', 'prod')
+    expect(exitCode).toBe(1)
+    expect(output).toContain('Pass the statement after the connection')
+  })
+
   test('a subcommand of bridge runs instead of the bridge', () => {
     const { exitCode, output } = tamery('bridge', 'unpair-all')
     expect(exitCode).toBe(0)
