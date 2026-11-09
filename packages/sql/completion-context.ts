@@ -1,3 +1,9 @@
+import {
+  CONDITION_CLAUSES,
+  completesCondition,
+  isTerm,
+  nextClauses,
+} from './clauses'
 import type { ColumnRef } from './cursor'
 import {
   literalAt,
@@ -27,6 +33,7 @@ export interface CompletionContext {
     | 'clause'
     | 'operator'
     | 'number'
+    | 'target-column'
     | 'any'
   clauses: string[]
   template: 'select' | 'group-by' | 'join-on' | 'into' | null
@@ -53,82 +60,87 @@ const COLUMN_INTRODUCERS = [
   'RETURNING',
 ]
 
-const NEXT_CLAUSES: Record<string, string[]> = {
-  AND: ['AND', 'OR', 'GROUP BY', 'ORDER BY', 'LIMIT'],
-  BY: ['ASC', 'DESC', 'HAVING', 'ORDER BY', 'LIMIT'],
-  FROM: [
-    'WHERE',
-    'JOIN',
-    'LEFT JOIN',
-    'INNER JOIN',
-    'GROUP BY',
-    'ORDER BY',
-    'LIMIT',
-  ],
-  HAVING: ['AND', 'OR', 'ORDER BY', 'LIMIT'],
-  INTO: ['VALUES', 'SELECT'],
-  JOIN: ['ON', 'AS'],
-  ON: [
-    'AND',
-    'OR',
-    'WHERE',
-    'JOIN',
-    'LEFT JOIN',
-    'GROUP BY',
-    'ORDER BY',
-    'LIMIT',
-  ],
-  OR: ['AND', 'OR', 'GROUP BY', 'ORDER BY', 'LIMIT'],
-  SELECT: ['FROM', 'AS'],
-  SET: ['WHERE'],
-  UPDATE: ['SET'],
-  WHERE: ['AND', 'OR', 'GROUP BY', 'ORDER BY', 'LIMIT'],
+const VERBS = ['SELECT', 'INSERT', 'UPDATE', 'DELETE']
+const OPERAND_KEYWORDS = [
+  'AS',
+  'BETWEEN',
+  'EXISTS',
+  'FALSE',
+  'ILIKE',
+  'IN',
+  'IS',
+  'LIKE',
+  'NOT',
+  'NULL',
+  'TRUE',
+]
+
+const outsideClosedGroups = (tokens: Token[]) => {
+  const flat: Token[] = []
+  const opens: number[] = []
+  for (const token of tokens) {
+    const open = opens.at(-1)
+    if (isPunctuation(token, ')') && open !== undefined) {
+      opens.pop()
+      flat.length = open + 1
+    } else if (isPunctuation(token, '(')) {
+      opens.push(flat.length)
+    }
+    flat.push(token)
+  }
+  return { flat, opens }
 }
-const CONDITION_CLAUSES = new Set(['AND', 'HAVING', 'ON', 'OR', 'WHERE'])
-const COMPARISON_KEYWORDS = ['IS', 'NOT', 'LIKE', 'ILIKE', 'IN', 'BETWEEN']
-const TERM_KEYWORDS = ['FALSE', 'NULL', 'TRUE']
 
-const isTerm = (token: Token | undefined) =>
-  token !== undefined &&
-  (['identifier', 'number', 'string', 'variable'].includes(token.kind) ||
-    isPunctuation(token, ')') ||
-    isKeyword(token, ...TERM_KEYWORDS))
+/** The clause the caret writes in, read at its own nesting level: a closed subquery before it does not count. */
+const readClause = (statementTokens: Token[]) => {
+  const { flat, opens } = outsideClosedGroups(statementTokens)
+  const clauseAt = flat.findLastIndex(
+    (token) =>
+      token.kind === 'keyword' && !isKeyword(token, ...OPERAND_KEYWORDS)
+  )
+  const lastKeyword = flat[clauseAt]
+  const clause = isKeyword(lastKeyword, 'BY')
+    ? `${flat[clauseAt - 1]?.text.toUpperCase()} BY`
+    : (lastKeyword?.text.toUpperCase() ?? '')
+  const verb =
+    flat.findLast((token) => isKeyword(token, ...VERBS))?.text.toUpperCase() ??
+    ''
+  return { clause, clauseAt, flat, lastKeyword, opens, verb }
+}
 
-const clausesAfter = (
-  previous: Token | undefined,
-  beforePrevious: Token | undefined,
-  clause: string,
-  dialect: DialectSpec
+const awaitsOperator = (flat: Token[], clause: string) =>
+  CONDITION_CLAUSES.has(clause) &&
+  (flat.at(-1)?.kind === 'identifier' || isPunctuation(flat.at(-1), ')')) &&
+  !completesCondition(flat)
+
+/** The caret names a column of the written table: `INSERT INTO t (…)`, `ON CONFLICT (…)` or an `UPDATE … SET` list. */
+const namesTargetColumn = (
+  flat: Token[],
+  opens: number[],
+  clauseAt: number
 ) => {
-  const selectsAll =
-    previous?.text === '*' && isKeyword(beforePrevious, 'SELECT')
-  if (!isTerm(previous) && !selectsAll) {
-    return []
+  const previous = flat.at(-1)
+  const open = opens.at(-1) ?? -1
+  const clause = flat[clauseAt]
+  if (isPunctuation(previous, '(') || isPunctuation(previous, ',')) {
+    const owner = flat[open - 1]
+    if (
+      open > clauseAt &&
+      (isKeyword(owner, 'CONFLICT') ||
+        (isKeyword(clause, 'INTO') && owner?.kind === 'identifier'))
+    ) {
+      return true
+    }
   }
-  if (
-    CONDITION_CLAUSES.has(clause) &&
-    beforePrevious?.kind !== 'operator' &&
-    !isKeyword(beforePrevious, ...COMPARISON_KEYWORDS)
-  ) {
-    return []
-  }
-  return (NEXT_CLAUSES[clause] ?? []).filter((next) =>
-    dialect.keywords.has(next.split(' ')[0] ?? '')
+  return (
+    isKeyword(clause, 'SET') &&
+    (previous === clause || (isPunctuation(previous, ',') && open < clauseAt))
   )
 }
 
-const awaitsOperator = (
-  previous: Token | undefined,
-  beforePrevious: Token | undefined,
-  clause: string
-) =>
-  CONDITION_CLAUSES.has(clause) &&
-  (previous?.kind === 'identifier' || isPunctuation(previous, ')')) &&
-  beforePrevious?.kind !== 'operator' &&
-  !isKeyword(beforePrevious, ...COMPARISON_KEYWORDS)
-
 const expectsAfter = (
   previous: Token | undefined,
+  beforePrevious: Token | undefined,
   clause: string
 ): 'table' | 'column' | 'number' | 'any' => {
   if (
@@ -142,6 +154,7 @@ const expectsAfter = (
   }
   if (
     isKeyword(previous, ...COLUMN_INTRODUCERS) ||
+    (isKeyword(previous, 'NOT') && !isTerm(beforePrevious)) ||
     isPunctuation(previous, ',') ||
     isPunctuation(previous, '(') ||
     previous?.kind === 'operator'
@@ -149,6 +162,38 @@ const expectsAfter = (
     return 'column'
   }
   return 'any'
+}
+
+const expectsAt = ({
+  beforePrevious,
+  clause,
+  clauseAt,
+  clauses,
+  flat,
+  opens,
+  previous,
+}: {
+  beforePrevious: Token | undefined
+  clause: string
+  clauseAt: number
+  clauses: string[]
+  flat: Token[]
+  opens: number[]
+  previous: Token | undefined
+}): CompletionContext['expects'] => {
+  if (flat.length === 0) {
+    return 'statement'
+  }
+  if (clauses.length > 0) {
+    return 'clause'
+  }
+  if (namesTargetColumn(flat, opens, clauseAt)) {
+    return 'target-column'
+  }
+  if (awaitsOperator(flat, clause)) {
+    return 'operator'
+  }
+  return expectsAfter(previous, beforePrevious, clause)
 }
 
 const templateAfter = (
@@ -192,17 +237,13 @@ export const completionContext = (
     offset,
     text
   )
-  const scope = statement
-    ? statementScope(statement.tokens)
-    : { ctes: [], derived: [], hasUnknownColumns: false, tables: [] }
-
   const word = wordAt(tokens, offset)
   const literal = literalAt(tokens, offset)
   const quoted = stringContentRange(literal)
+  const caret = literal?.start ?? word?.start ?? offset
+  const scope = statementScope(statement?.tokens ?? [], caret)
   const before = tokens.filter(
-    (token) =>
-      token.kind !== 'comment' &&
-      token.end <= (literal?.start ?? word?.start ?? offset)
+    (token) => token.kind !== 'comment' && token.end <= caret
   )
 
   const { cursor, qualifier } = qualifierBefore(before)
@@ -212,19 +253,18 @@ export const completionContext = (
   const statementTokens = statement
     ? before.filter((token) => token.start >= statement.start)
     : []
-  const lastKeyword = statementTokens.findLast(
-    (token) => token.kind === 'keyword'
-  )
-  const clause = lastKeyword?.text.toUpperCase() ?? ''
-  const clauses = clausesAfter(previous, beforePrevious, clause, dialect)
-  let expects: CompletionContext['expects'] = expectsAfter(previous, clause)
-  if (statementTokens.length === 0) {
-    expects = 'statement'
-  } else if (clauses.length > 0) {
-    expects = 'clause'
-  } else if (awaitsOperator(previous, beforePrevious, clause)) {
-    expects = 'operator'
-  }
+  const { clause, clauseAt, flat, lastKeyword, opens, verb } =
+    readClause(statementTokens)
+  const clauses = nextClauses(flat, clause, verb, dialect)
+  const expects = expectsAt({
+    beforePrevious,
+    clause,
+    clauseAt,
+    clauses,
+    flat,
+    opens,
+    previous,
+  })
 
   const replace = quoted ?? {
     end: word?.end ?? offset,

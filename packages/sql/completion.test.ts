@@ -228,6 +228,99 @@ describe('completion', () => {
     expect(complete('SELECT * FROM users ').labels).toContain('LIMIT')
   })
 
+  it('offers the columns a derived table or CTE selects, under its own name', () => {
+    expect(
+      complete('SELECT * FROM (SELECT id, email FROM users) sq WHERE sq.')
+        .labels
+    ).toEqual(['id', 'email'])
+    expect(
+      complete(
+        'WITH sq AS (SELECT u.id, u.email AS mail, count(*) n FROM users u) SELECT sq. FROM sq',
+        77
+      ).labels
+    ).toEqual(['id', 'mail', 'n'])
+    expect(
+      complete(
+        'WITH sq(a, b) AS (SELECT id, email FROM users) SELECT sq. FROM sq',
+        57
+      ).labels
+    ).toEqual(['a', 'b'])
+    expect(
+      complete(
+        'WITH sq AS (SELECT * FROM users) SELECT * FROM sq WHERE status = '
+      ).inserts[0]
+    ).toBe("'active'")
+  })
+
+  it('lets a lateral subquery shadow the table it is named after', () => {
+    const sql =
+      'SELECT "posts". FROM "users" "d0" LEFT JOIN LATERAL (SELECT json_agg("t".*) AS "r" FROM (SELECT * FROM "posts" "d1" WHERE "d1"."user_id" = "d0"."id") "t") AS "posts" ON true'
+    expect(complete(sql, 15).labels).toEqual(['r'])
+  })
+
+  it('scopes columns to the query the caret is in', () => {
+    expect(
+      complete('SELECT id FROM users UNION ALL SELECT  FROM posts', 38).labels
+    ).not.toContain('email')
+    expect(
+      complete(
+        'SELECT *, (SELECT count(*) FROM posts p WHERE p.user_id = users.id) FROM users WHERE '
+      ).labels
+    ).not.toContain('title')
+    const correlated = complete(
+      'SELECT * FROM users WHERE id IN (SELECT  FROM posts)',
+      40
+    ).labels
+    expect(correlated).toContain('title')
+    expect(correlated).toContain('users.email')
+  })
+
+  it("offers the written table's columns where a statement names them", () => {
+    const columns = ['id', 'email', 'status', 'active']
+    expect(complete('INSERT INTO users (').labels).toEqual(columns)
+    expect(complete('UPDATE users SET ').labels).toEqual(columns)
+    expect(
+      complete('INSERT INTO users (id) VALUES (1) ON CONFLICT (').labels
+    ).toEqual(columns)
+    expect(
+      complete(
+        'INSERT INTO users (id) VALUES (1) ON CONFLICT (id) DO UPDATE SET email = excluded.'
+      ).labels
+    ).toEqual(columns)
+  })
+
+  it.each([
+    ['SELECT * FROM users u JOIN posts p ON p.user_id = u.id ', 'AND'],
+    ['SELECT * FROM users WHERE (id = 1 OR id = 2) ', 'AND'],
+    ['SELECT * FROM users WHERE id IN (SELECT user_id FROM posts) ', 'AND'],
+    ['SELECT * FROM users WHERE email IS NOT NULL ', 'AND'],
+    ['SELECT * FROM users WHERE id BETWEEN 1 ', 'AND'],
+    ['SELECT * FROM users WHERE id BETWEEN 1 AND 5 ', 'AND'],
+    ['SELECT * FROM users WHERE email IS ', 'NULL'],
+    ['SELECT * FROM users WHERE id NOT ', 'IN ('],
+    ['SELECT status FROM users GROUP BY status ', 'HAVING'],
+    ['SELECT * FROM users ORDER BY id ', 'ASC'],
+    ['SELECT * FROM users ORDER BY id DESC ', 'NULLS FIRST'],
+    ['SELECT * FROM users LIMIT 10 ', 'OFFSET'],
+    ['INSERT INTO users (id) VALUES (1) ', 'ON CONFLICT'],
+    ['INSERT INTO users (id) VALUES (1) ON CONFLICT (id) ', 'DO NOTHING'],
+    ['DELETE FROM users WHERE id = 1 ', 'AND'],
+  ])('offers the next clause after %p', (sql, first) => {
+    expect(complete(sql).labels[0]).toBe(first)
+  })
+
+  it('offers RETURNING, not SELECT clauses, after a write', () => {
+    expect(complete('DELETE FROM users WHERE id = 1 ').labels).toEqual([
+      'AND',
+      'OR',
+      'RETURNING',
+    ])
+    expect(complete('UPDATE users SET email = 1 ').labels).toEqual([
+      'WHERE',
+      'RETURNING',
+    ])
+  })
+
   it('completes after a line comment', () => {
     expect(complete('-- header\nSELECT * FROM ').labels).toContain('users')
   })
