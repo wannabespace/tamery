@@ -21,6 +21,7 @@
     "shell-quote": "catalog:"
   },
   "devDependencies": {
+    "@duckdb/node-api": "catalog:",
     "@libsql/client": "catalog:",
     "@mongodb-js/socksv5": "catalog:",
     "@tamery/configs": "workspace:*",
@@ -40,6 +41,7 @@
   },
   "peerDependencies": {
     "@clickhouse/client": "catalog:",
+    "@duckdb/node-api": "catalog:",
     "@libsql/client": "catalog:",
     "@mongodb-js/socksv5": "catalog:",
     "mongodb": "catalog:",

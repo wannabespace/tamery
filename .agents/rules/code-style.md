@@ -28,7 +28,6 @@ The `shadcn/*` rules enforce the `tamery-ui` hard rules: `no-restyle` is rule 11
 
 ## Repo-specific, not linted
 
-- The app is unreleased: no compatibility shims, aliases or migration fallbacks are owed.
 - React 19: `ref` as a prop, no `forwardRef`. No `useMemo`/`useCallback` (`architecture.md` → Memoization) — but `react-hooks(exhaustive-deps)` outranks that: where it demands a stable identity, the memo stays.
 - Separate seitu `useSubscription`s that feed effect deps stay separate: it deep-compares selector results, so folding them into one `pick` changes which references the effect sees.
 - Kit variants live in `<component>.utils.ts` as `cva`, not as a record inside the `.tsx`.

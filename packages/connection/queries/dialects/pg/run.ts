@@ -1,11 +1,19 @@
 import { once } from 'node:events'
 
-import type { ClientBase, Pool, QueryArrayConfig, QueryResult } from 'pg'
+import type { MaybePromise } from '@tamery/shared/utils'
+import type { ClientBase, Pool, Query, QueryArrayConfig, QueryResult } from 'pg'
 
-import type { RunOptions } from '../..'
+import type { RunOptions, TransactionStatus } from '../..'
 import { resultSet } from '../..'
 import { cancellable } from '../../cancellation'
 import { pg } from './client'
+
+/** The ready-for-query status pg keeps for each connection. */
+export const TRANSACTION_STATUS = {
+  E: 'failed',
+  I: 'ended',
+  T: 'open',
+} as const satisfies Record<string, TransactionStatus>
 
 const backendPids = new WeakMap<ClientBase, number>()
 
@@ -24,24 +32,16 @@ const backendPid = async (client: ClientBase) => {
   return pid
 }
 
-export const runOn = async (
+/** Readies a cancel of the query about to run on `client`, before it runs: the busy connection answers nothing else. */
+export type PrepareCancel = (
   client: ClientBase,
-  {
-    connectionString,
-    pool,
-    sql,
-    values,
-  }: {
-    connectionString: string
-    pool: Pool
-    sql: string
-    values: unknown[]
-  },
-  { maxRows = Infinity, queryId }: RunOptions
-) => {
-  const pid = queryId ? await backendPid(client) : undefined
-  // The pool holds one connection and it is busy, so `pg_cancel_backend` needs its own.
-  const cancel = async () => {
+  pool: Pool
+) => MaybePromise<(query: Query) => MaybePromise<void>>
+
+// The pool holds one connection and it is busy, so `pg_cancel_backend` needs its own.
+const cancelBackend: PrepareCancel = async (client, pool) => {
+  const pid = await backendPid(client)
+  return async () => {
     if (pid === undefined) {
       return
     }
@@ -53,15 +53,41 @@ export const runOn = async (
       await canceller.end()
     }
   }
+}
 
+export const runOn = async (
+  client: ClientBase,
+  {
+    connectionString,
+    pool,
+    prepareCancel = cancelBackend,
+    sql,
+    values,
+  }: {
+    connectionString: string
+    pool: Pool
+    prepareCancel?: PrepareCancel
+    sql: string
+    values: unknown[]
+  },
+  { maxRows = Infinity, queryId }: RunOptions
+) => {
+  const cancelQuery = queryId ? await prepareCancel(client, pool) : null
   const start = performance.now()
   const config: QueryArrayConfig = { rowMode: 'array', text: sql, values }
+  const query = new pg.Query(config)
   const [results = []]: (QueryResult | QueryResult[])[] = await cancellable(
-    { cancel, connectionString, queryId },
+    {
+      cancel: async () => {
+        await cancelQuery?.(query)
+      },
+      connectionString,
+      queryId,
+    },
     () =>
       once(
         client
-          .query(new pg.Query(config))
+          .query(query)
           // A `row` listener stops pg filling `rows` itself.
           .on('row', (row: unknown[], result) => {
             if (result && result.rows.length <= maxRows) {

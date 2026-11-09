@@ -40,6 +40,7 @@ export const setQuery = (params: SetParams) =>
     query: {
       clickhouse: (db) =>
         clickhouseWrite((bind) => updateRow(db, bind, params)),
+      duckdb: (db) => updateRow(db, bindValue.duckdb, params),
       mongodb: (db) =>
         db
           .collection(params.table)

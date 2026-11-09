@@ -7,6 +7,7 @@ import { memoize } from 'memoza'
 
 import type { Database as ClickhouseDatabase } from './clickhouse/schema'
 import { createKyselyDriver } from './driver'
+import type { Database as DuckdbDatabase } from './duckdb/schema'
 import { mongodbDialect } from './mongodb'
 import type { Database as MssqlDatabase } from './mssql/schema'
 import type { Database as MysqlDatabase } from './mysql/schema'
@@ -29,6 +30,7 @@ const createDialect = <Database>(dialect: SqlDialect) =>
 
 export const dialects = {
   clickhouse: createDialect<ClickhouseDatabase>(Dialect.ClickHouse),
+  duckdb: createDialect<DuckdbDatabase>(Dialect.DuckDB),
   mongodb: mongodbDialect,
   mssql: createDialect<MssqlDatabase>(Dialect.MSSQL),
   mysql: createDialect<MysqlDatabase>(Dialect.MySQL),

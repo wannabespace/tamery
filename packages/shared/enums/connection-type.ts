@@ -9,6 +9,7 @@ export enum ConnectionType {
   SQLite = 'sqlite',
   Oracle = 'oracle',
   MongoDB = 'mongodb',
+  DuckDB = 'duckdb',
 }
 
 /** Never build a query from a `ConnectionType`: every query runs on the dialect it speaks through. */
@@ -20,6 +21,7 @@ export enum Dialect {
   SQLite = 'sqlite',
   Oracle = 'oracle',
   MongoDB = 'mongodb',
+  DuckDB = 'duckdb',
 }
 
 export enum QueryLanguage {
@@ -37,6 +39,7 @@ export const dialectLanguage = {
   [Dialect.SQLite]: QueryLanguage.SQL,
   [Dialect.Oracle]: QueryLanguage.SQL,
   [Dialect.MongoDB]: QueryLanguage.Mongosh,
+  [Dialect.DuckDB]: QueryLanguage.SQL,
 } satisfies Record<Dialect, QueryLanguage>
 
 export type SqlDialect = {
@@ -50,6 +53,7 @@ export const isSqlDialect = (dialect: Dialect): dialect is SqlDialect =>
 
 const DIALECT_OF_TYPE: Record<ConnectionType, Dialect> = {
   [ConnectionType.ClickHouse]: Dialect.ClickHouse,
+  [ConnectionType.DuckDB]: Dialect.DuckDB,
   [ConnectionType.MariaDB]: Dialect.MySQL,
   [ConnectionType.MongoDB]: Dialect.MongoDB,
   [ConnectionType.MSSQL]: Dialect.MSSQL,
@@ -63,6 +67,7 @@ export const getDialect = (type: ConnectionType) => DIALECT_OF_TYPE[type]
 
 export const connectionTypeLabels: Record<ConnectionType, string> = {
   [ConnectionType.ClickHouse]: 'ClickHouse',
+  [ConnectionType.DuckDB]: 'DuckDB',
   [ConnectionType.MariaDB]: 'MariaDB',
   [ConnectionType.MongoDB]: 'MongoDB',
   [ConnectionType.MSSQL]: 'Microsoft SQL Server',
@@ -75,6 +80,7 @@ export const connectionTypeLabels: Record<ConnectionType, string> = {
 export enum Provider {
   CloudflareD1 = 'cloudflare_d1',
   MongoDBAtlas = 'mongodb_atlas',
+  MotherDuck = 'motherduck',
   Turso = 'turso',
 }
 
@@ -89,6 +95,10 @@ export const providers: Record<
   [Provider.MongoDBAtlas]: {
     label: 'MongoDB Atlas',
     type: ConnectionType.MongoDB,
+  },
+  [Provider.MotherDuck]: {
+    label: 'MotherDuck',
+    type: ConnectionType.DuckDB,
   },
   [Provider.Turso]: { label: 'Turso', type: ConnectionType.SQLite },
 }

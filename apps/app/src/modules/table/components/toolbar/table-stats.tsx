@@ -120,7 +120,7 @@ export const TableStats = ({
             {!failed && total && (
               <NumberFlow
                 value={total.count}
-                format={COMPACT_COUNT_FORMAT}
+                format={total.isEstimated ? COMPACT_COUNT_FORMAT : undefined}
                 className={cn(
                   'tabular-nums',
                   isFetching && 'text-muted-foreground/50 animate-pulse'

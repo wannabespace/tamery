@@ -11,6 +11,7 @@ import { v7 } from 'uuid'
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { getCollections, mutateOffline } from '~/core/collections'
 import type { Connection } from '~/core/connection/sync'
+import { duckdbCatalog } from '~/core/queries/shared/duckdb-catalog'
 import { connectionToQueryParams, createQuery } from '~/core/runtime/query'
 
 const MONGODB_SYSTEM_DATABASES = new Set(['admin', 'config', 'local'])
@@ -30,6 +31,17 @@ const connectionResourcesQuery = (defaultResourceName: string | null) =>
           .orderBy('name')
           .execute()
         return rows.map((r) => r.name)
+      },
+
+      // A file lists only itself; MotherDuck every database of the workspace.
+      duckdb: async (db) => {
+        const rows = await db
+          .selectFrom(duckdbCatalog('duckdb_databases').as('d'))
+          .select('d.database_name')
+          .where('d.internal', '=', false)
+          .orderBy('d.database_name')
+          .execute()
+        return rows.map((r) => r.database_name)
       },
 
       mongodb: async (db) => {

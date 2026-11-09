@@ -50,6 +50,28 @@ LIMIT 20;`,
       'ClickHouse has no transactions, so each statement applies as it runs.',
     ],
   },
+  [Dialect.DuckDB]: {
+    examples: [
+      {
+        query: `SELECT id, email, created_at
+FROM users
+WHERE created_at > now() - INTERVAL 7 DAY
+ORDER BY created_at DESC;`,
+        title: "Last week's signups",
+      },
+      {
+        query: `SELECT *
+FROM read_csv('~/Downloads/orders.csv')
+LIMIT 100;`,
+        title: 'Query a CSV file in place',
+      },
+      {
+        query: `SUMMARIZE orders;`,
+        title: 'Profile every column of a table',
+      },
+    ],
+    notes: [STEP_BY_STEP],
+  },
   [Dialect.MongoDB]: {
     examples: [
       {

@@ -54,6 +54,7 @@ export const estimateQuery = (text: string, dialect: Dialect) => {
   return createQuery<Type<number | null>>({
     query: {
       clickhouse: unsupported('Row estimates'),
+      duckdb: unsupported('Row estimates'),
       mongodb: unsupported('Row estimates'),
       mssql: unsupported('Row estimates'),
       mysql: async (db) => {

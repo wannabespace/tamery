@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
 
 import { guessConnection } from './index'
 
@@ -133,6 +133,43 @@ describe('guessConnection — snippets from configs and tools', () => {
     [
       '~/data/app.db',
       { database: '~/data/app.db', type: ConnectionType.SQLite },
+    ],
+    [
+      '/Users/me/sales.duckdb',
+      { database: '/Users/me/sales.duckdb', type: ConnectionType.DuckDB },
+    ],
+    [
+      'duckdb ~/data/events.ddb',
+      { database: '~/data/events.ddb', type: ConnectionType.DuckDB },
+    ],
+    [
+      'jdbc:duckdb:/srv/warehouse.db',
+      { database: '/srv/warehouse.db', type: ConnectionType.DuckDB },
+    ],
+    [
+      'md:analytics?motherduck_token=eyJhbGciOi.eyJpYXQi',
+      {
+        database: 'analytics',
+        password: 'eyJhbGciOi.eyJpYXQi',
+        provider: Provider.MotherDuck,
+        type: ConnectionType.DuckDB,
+      },
+    ],
+    [
+      'postgresql://postgres:tok@pg.eu-central-1-aws.motherduck.com:5432/md:?sslmode=verify-full',
+      {
+        host: 'pg.eu-central-1-aws.motherduck.com',
+        password: 'tok',
+        provider: Provider.MotherDuck,
+        type: ConnectionType.DuckDB,
+      },
+    ],
+    [
+      'MOTHERDUCK_TOKEN=eyJhbGciOi.eyJpYXQi',
+      {
+        password: 'eyJhbGciOi.eyJpYXQi',
+        provider: Provider.MotherDuck,
+      },
     ],
     [
       'libsql://shop-acme.aws-eu-west-1.turso.io?authToken=eyJhbGciOi.eyJpYXQi.sig_part-1',

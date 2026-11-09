@@ -115,7 +115,8 @@ export const Hero = () => (
         >
           <span className="sm:block">
             Postgres, MySQL, MariaDB, SQL Server, Oracle, ClickHouse, MongoDB,
-            SQLite, Turso and Cloudflare D1 in one fast client.
+            SQLite, Turso, Cloudflare D1, DuckDB and MotherDuck in one fast
+            client.
           </span>{' '}
           AI writes the SQL, and your agents query through MCP.
         </p>

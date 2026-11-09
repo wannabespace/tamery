@@ -14,7 +14,7 @@ import {
 } from 'motion/react'
 import { useEffect } from 'react'
 
-import { isSqliteFile } from '../lib/engine-fields'
+import { getFileType } from '../lib/engine-fields'
 import type { FormMode } from '../lib/form-mode'
 import type { PasteFlash } from '../lib/use-paste-connection'
 import { PASTE_FORMATS } from '../lib/use-paste-connection'
@@ -64,7 +64,7 @@ export const PasteHero = ({
     mode.kind === 'edit'
       ? {
           subtitle:
-            mode.scope === 'details' && isSqliteFile(mode.values)
+            mode.scope === 'details' && getFileType(mode.values)
               ? 'Choose its file here.'
               : EDIT_SUBTITLES[mode.scope],
           title: (

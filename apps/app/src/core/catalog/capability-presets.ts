@@ -72,6 +72,8 @@ export interface ColumnTypeCapabilities {
   incomparable: RegExp | null
   // Edited as JSON text; ClickHouse reads its composite types back as JSON too.
   json: RegExp
+  // ClickHouse refuses Nullable() around these, so Allow NULL is off and locked for them.
+  neverNullable: RegExp | null
   options: readonly string[]
   uuid: RegExp | null
   xml: RegExp | null

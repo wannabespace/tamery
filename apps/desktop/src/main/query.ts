@@ -38,6 +38,7 @@ export type QueryProcessReply =
 
 const dialects: Record<Dialect, () => Promise<{ query: QueryExecutor }>> = {
   clickhouse: () => import('@tamery/connection/queries/dialects/clickhouse'),
+  duckdb: () => import('@tamery/connection/queries/dialects/duckdb'),
   mongodb: () => import('@tamery/connection/queries/dialects/mongodb'),
   mssql: () => import('@tamery/connection/queries/dialects/mssql'),
   mysql: () => import('@tamery/connection/queries/dialects/mysql'),

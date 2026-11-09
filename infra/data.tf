@@ -81,6 +81,15 @@ resource "google_redis_instance" "tamery" {
   auth_enabled            = true
   transit_encryption_mode = "SERVER_AUTHENTICATION"
 
+  maintenance_policy {
+    weekly_maintenance_window {
+      day = "SUNDAY"
+      start_time {
+        hours = 3
+      }
+    }
+  }
+
   lifecycle {
     prevent_destroy = true
     # The API does not return it, and a diff here replaces the instance.

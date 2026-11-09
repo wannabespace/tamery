@@ -5,6 +5,7 @@ import { createQuery } from '~/core/runtime/query'
 export const testConnectionQuery = createQuery({
   query: {
     clickhouse: (db) => db.executeQuery(sql`SELECT 1`.compile(db)),
+    duckdb: (db) => db.executeQuery(sql`SELECT 1`.compile(db)),
     mongodb: (db) => db.command('ping'),
     mssql: (db) => db.executeQuery(sql`SELECT 1`.compile(db)),
     mysql: (db) => db.executeQuery(sql`SELECT 1`.compile(db)),

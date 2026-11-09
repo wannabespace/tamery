@@ -59,6 +59,7 @@ export const valueCountsQuery = (params: ValueCountsParams) =>
           params,
           filterValueBindings.clickhouse?.(params.columns)
         ),
+      duckdb: (db) => countValues(db, textContains.duckdb, params),
       mongodb: async (db) => {
         const field = `$${params.column}`
         const counts = await db.collection(params.table).aggregate<{

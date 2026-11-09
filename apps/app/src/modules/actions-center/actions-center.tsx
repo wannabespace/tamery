@@ -64,6 +64,8 @@ import { actionCenterOpen } from './action-center-open'
 import { settingsCommands } from './settings-commands'
 import type { CommandEntry } from './types'
 
+const MAX_SECTION_ENTRIES = 50
+
 const run = (action: () => void) => () => {
   actionCenterOpen.set(false)
   action()
@@ -77,7 +79,7 @@ const actionEntry = (
   shortcut?: ShortcutId
 ) => ({
   keywords,
-  node: (
+  render: () => (
     <CommandItem
       key={value}
       value={value}
@@ -161,7 +163,7 @@ const tableEntries = (
 
       return {
         keywords: [schema.name, table.name],
-        node: (
+        render: () => (
           <CommandItem
             key={value}
             value={value}
@@ -274,7 +276,7 @@ export const ActionsCenter = () => {
 
   const connections = data.map(({ connection, connectionResource }) => ({
     keywords: connection.label ? [connection.label] : undefined,
-    node: (
+    render: () => (
       <ConnectionItem
         key={connectionResource.id}
         connection={connection}
@@ -427,20 +429,23 @@ export const ActionsCenter = () => {
         }))
         .filter((result) => result.score > 0)
         .toSorted((a, b) => b.score - a.score)
+        .slice(0, MAX_SECTION_ENTRIES)
     : null
 
   let listContent: ReactNode = sections
     .filter((section) => section.entries.length > 0)
     .map((section) => (
       <CommandGroup key={section.heading} heading={section.heading}>
-        {section.entries.map((entry) => entry.node)}
+        {section.entries
+          .slice(0, MAX_SECTION_ENTRIES)
+          .map((entry) => entry.render())}
       </CommandGroup>
     ))
   if (results) {
     listContent =
       results.length > 0 ? (
         <CommandGroup>
-          {results.map((result) => result.entry.node)}
+          {results.map((result) => result.entry.render())}
         </CommandGroup>
       ) : (
         <div className="py-6 text-center text-sm">No commands found.</div>

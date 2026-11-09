@@ -46,6 +46,7 @@ export const searchRowsQuery = (params: SearchRowsParams) =>
   createQuery({
     query: {
       clickhouse: (db) => searchRows(db, textContains.clickhouse, params),
+      duckdb: (db) => searchRows(db, textContains.duckdb, params),
       mongodb: async (db) => {
         const filter =
           params.term === ''
