@@ -1,5 +1,6 @@
 import { Search01Icon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { CommandPrimitive } from '@tamery/ui/components/command'
 import { Chip, ChipDivider } from '@tamery/ui/components/custom/filter-chip'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
@@ -9,6 +10,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 
@@ -21,10 +23,12 @@ import { useFilterComposer } from './filter-composer'
 
 const getFilterPlaceholder = ({
   isOnline,
+  isSql,
   stage,
   summary,
 }: {
   isOnline: boolean
+  isSql: boolean
   stage: Stage
   summary: string | null
 }) => {
@@ -40,7 +44,7 @@ const getFilterPlaceholder = ({
   if (!isOnline) {
     return 'Offline, AI unavailable'
   }
-  return 'Filter or ask AI…'
+  return isSql ? 'Filter, ask AI, or write SQL…' : 'Filter or ask AI…'
 }
 
 export const FilterSearchBar = ({
@@ -51,6 +55,7 @@ export const FilterSearchBar = ({
   schema: string
 }) => {
   const names = useObjectNames()
+  const { dialect } = useConnectionContext()
   const inputRef = useRef<HTMLInputElement>(null)
   const chipsRef = useRef<HTMLDivElement>(null)
   const [isFocused, setIsFocused] = useState(false)
@@ -151,6 +156,7 @@ export const FilterSearchBar = ({
             onValueChange={setQuery}
             placeholder={getFilterPlaceholder({
               isOnline: ai.isOnline,
+              isSql: isSqlDialect(dialect),
               stage,
               summary: ai.summary,
             })}
