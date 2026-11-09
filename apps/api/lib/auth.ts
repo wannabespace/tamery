@@ -10,7 +10,10 @@ import {
   CLIENT_IP_HEADER,
   SOCIAL_PROVIDER_LABELS,
 } from '@tamery/shared/constants'
-import { formatDeviceLabel } from '@tamery/shared/device-label'
+import {
+  formatBrowserName,
+  formatDeviceLabel,
+} from '@tamery/shared/device-label'
 import { ORIGINS } from '@tamery/shared/origins'
 import {
   invitableRole,
@@ -48,7 +51,7 @@ import { locateIp } from '~/lib/geo-ip'
 import { posthog } from '~/lib/posthog'
 import { resend, sendEmail } from '~/lib/resend'
 
-import { redisMemoize } from './redis'
+import { redis, redisMemoize } from './redis'
 import {
   deleteSoleMemberWorkspaces,
   ensureDefaultWorkspace,
@@ -114,6 +117,8 @@ const workspaceAccess = createAccessControl(defaultStatements)
 
 const providerLabels: Partial<Record<string, string>> = SOCIAL_PROVIDER_LABELS
 
+const KNOWN_DEVICES_TTL = 60 * 60 * 24 * 180
+
 const authRequest = new AsyncLocalStorage<{ signUp: boolean }>()
 
 const findUser = (userId: string) =>
@@ -127,9 +132,26 @@ export const sendNewSignInEmail = async ({
   userAgent,
   userId,
   signedInWithPasskey = false,
+  newUser = false,
 }: Pick<Session, 'ipAddress' | 'userAgent' | 'userId'> & {
   signedInWithPasskey?: boolean
+  newUser?: boolean
 }) => {
+  const location = locateIp(ipAddress ?? '')
+  const knownDevicesKey = `auth:known-devices:${userId}`
+  // Versionless browser + city: a browser update or a new Wi-Fi is not a new device. A Redis failure counts as new so the warning still goes out.
+  const isNewDevice = await redis
+    .sAdd(knownDevicesKey, `${formatBrowserName(userAgent ?? '')}|${location}`)
+    .then(
+      (added) => added > 0,
+      () => true
+    )
+  await redis.expire(knownDevicesKey, KNOWN_DEVICES_TTL).catch(console.error)
+
+  if (newUser || !isNewDevice) {
+    return
+  }
+
   const user = await findUser(userId)
 
   if (!user) {
@@ -140,7 +162,7 @@ export const sendNewSignInEmail = async ({
     props: {
       device: formatDeviceLabel(userAgent ?? ''),
       ipAddress: ipAddress ?? '',
-      location: locateIp(ipAddress ?? ''),
+      location,
       signedInWithPasskey,
       twoFactorEnabled: user.twoFactorEnabled === true,
     },
@@ -426,12 +448,13 @@ export const auth = betterAuth({
             handler: createAuthMiddleware(async (ctx) => {
               const { newSession, session } = ctx.context
 
-              if (!newSession || session || authRequest.getStore()?.signUp) {
+              if (!newSession || session) {
                 return
               }
 
               await sendNewSignInEmail({
                 ...newSession.session,
+                newUser: authRequest.getStore()?.signUp,
                 signedInWithPasskey:
                   ctx.path === '/passkey/verify-authentication',
               })
