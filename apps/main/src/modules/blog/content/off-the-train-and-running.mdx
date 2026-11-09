@@ -57,26 +57,12 @@ Before, our secrets lived in Railway and in a separate secrets service. Now they
 
 That's one fewer company in the chain that has to get everything right. It also means every use of that key gets recorded.
 
-### Seven alerts, and the owner account isn't exempt
-
-Logs only help if someone reads them, so I get an email right away when:
-
-1. a secret is read by anything other than our API, proxy or jobs,
-2. the encryption key is used directly instead of through Secret Manager,
-3. a secret or key is added, changed, disabled or destroyed,
-4. any access right changes or a new service account appears,
-5. anything is deployed outside our GitHub pipeline,
-6. the network, firewall or load balancer changes,
-7. the database or Redis is changed or exported.
-
-These fire for my own account too, and that's deliberate. A stolen owner login is the case that matters most, so my own actions don't get a pass. On top of that we alert on bursts of failed sign-ins, rate limits being hit hard, failed jobs and the site going down.
-
 ### The network is closed by default
 
 - **Only Cloudflare can reach the load balancer.** It requires a client certificate that only Cloudflare presents. Nobody can skip Cloudflare and talk to our servers directly, or fake the visitor IP we use for rate limits.
 - **The database and Redis sit on a private network.** The database accepts only encrypted connections, keeps 14 daily backups plus 7 days of point-in-time recovery, and has deletion protection turned on.
 - **The cloud proxy can't reach our own network.** It connects to whatever database host you give it, so a firewall rule blocks it from private addresses. That matters because a couple of drivers open sockets below the app-level host check.
-- **Infrastructure changes go through pull requests.** Nothing gets clicked together in a console, and anything that does gets caught by alert 5 or 6.
+- **Infrastructure changes go through pull requests.** Nothing gets clicked together in a console, and a change made outside that flow triggers an alert.
 
 ## An AI review of the whole codebase before the move
 
