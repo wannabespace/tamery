@@ -115,7 +115,7 @@ export const exchange = orpc
     await Promise.all([
       codeChallengeRedis.delete(input.codeChallenge),
       challengeDeviceRedis.delete(input.codeChallenge),
-      !data.newUser && sendNewSignInEmail(session),
+      sendNewSignInEmail({ ...session, newUser: data.newUser }),
     ])
     return { newUser: data.newUser, token: session.token }
   })
