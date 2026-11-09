@@ -12,6 +12,8 @@ I don't want to pile on. Running a cloud platform is hard, and I'm sure the peop
 
 Tamery is different from most apps on a platform like that, though. You point it at your databases. Our servers keep encrypted connection strings and the keys that decrypt them, for people who trust us with production data. For a to-do app, "your platform might have leaked your environment variables" is a bad week. For us, it could mean someone else's database gets dumped.
 
+I want you to trust Tamery with your database credentials the way you trust 1Password with your passwords. We're not there yet, and you'll see below where we still fall short. But that's the bar, and a platform that can leak our secrets makes it impossible to reach.
+
 ## The alternative we didn't pick
 
 The fast fix was another platform that runs your containers for you. We could have moved in a day.
