@@ -57,7 +57,6 @@ const topLevel = (tokens: Token[]) => {
   })
 }
 
-/** The items of the query's own select list, split at its top-level commas. */
 export const selectList = (body: Token[]) => {
   const outside = topLevel(body)
   const select = body.findIndex(

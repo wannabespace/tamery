@@ -91,7 +91,6 @@ const outsideClosedGroups = (tokens: Token[]) => {
   return { flat, opens }
 }
 
-/** The clause the caret writes in, read at its own nesting level: a closed subquery before it does not count. */
 const readClause = (statementTokens: Token[]) => {
   const { flat, opens } = outsideClosedGroups(statementTokens)
   const clauseAt = flat.findLastIndex(
@@ -114,7 +113,6 @@ const awaitsOperator = (flat: Token[], clause: string) =>
   (flat.at(-1)?.kind === 'identifier' || isPunctuation(flat.at(-1), ')')) &&
   !completesCondition(flat)
 
-/** The caret names a column of the written table: `INSERT INTO t (…)`, `ON CONFLICT (…)` or an `UPDATE … SET` list. */
 const namesTargetColumn = (
   flat: Token[],
   opens: number[],

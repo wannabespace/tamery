@@ -28,7 +28,7 @@ const NEXT_CLAUSES: Record<string, string[]> = {
   LAST: ['LIMIT', 'OFFSET'],
   LIMIT: ['OFFSET'],
   NOTHING: ['RETURNING'],
-  ON: ['AND', 'OR', 'WHERE', ...JOINS.slice(0, 2), ...SELECT_TAIL],
+  ON: ['AND', 'OR', 'WHERE', 'JOIN', 'LEFT JOIN', ...SELECT_TAIL],
   OR: ['AND', 'OR', ...SELECT_TAIL],
   'ORDER BY': ['ASC', 'DESC', ...ORDERING_TAIL],
   SELECT: ['FROM', 'AS'],
@@ -38,7 +38,6 @@ const NEXT_CLAUSES: Record<string, string[]> = {
   WHERE: ['AND', 'OR', ...SELECT_TAIL],
 }
 
-/** What the word right before the caret takes next, whatever clause it sits in. */
 const FOLLOWERS: Record<string, string[]> = {
   CONFLICT: CONFLICT_ACTIONS,
   DO: ['NOTHING', 'UPDATE SET'],
@@ -101,7 +100,6 @@ const termBefore = (flat: Token[], end = flat.length) => {
   return { at: index - 1, group: closesGroup && !call }
 }
 
-/** Whether the condition the caret follows already has both sides, as `a = 1`, `a IN (…)`, `EXISTS (…)` or a parenthesized `(a OR b)` do. */
 export const completesCondition = (flat: Token[]) => {
   const term = termBefore(flat)
   const before = flat[term.at]

@@ -1,7 +1,6 @@
 import type { Token } from './tokenizer'
 import { identifierName, isKeyword, isPunctuation } from './tokenizer'
 
-/** A CTE or a derived table: its columns come from `body`, the query inside its parentheses. */
 export interface Relation {
   name: string
   body: Token[]
@@ -28,7 +27,6 @@ const columnList = (tokens: Token[], from: number) => {
   return { names, next: cursor + 1 }
 }
 
-/** The alias after a parenthesized group closing at `index`: `) AS name (a, b)`. */
 export const derivedAlias = (tokens: Token[], index: number) => {
   const at = isKeyword(tokens[index + 1], 'AS') ? index + 2 : index + 1
   const alias = tokens[at]

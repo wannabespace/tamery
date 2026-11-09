@@ -143,16 +143,15 @@ const derivedTable = (
   tokens: Token[],
   open: number,
   close: number,
-  offset: number
+  offset: number,
+  { columnNames, name, next }: Exclude<ReturnType<typeof derivedAlias>, null>
 ) => {
-  const alias = derivedAlias(tokens, close)
   const body = tokens.slice(open + 1, close)
   const [first] = body
   const closer = tokens[close]
-  if (!alias || !closer || !first || !isKeyword(first, 'SELECT', 'WITH')) {
+  if (!closer || !first || !isKeyword(first, 'SELECT', 'WITH')) {
     return null
   }
-  const { columnNames, name, next } = alias
   const ref: TableRef = { alias: null, name, schema: null, token: closer }
   const holdsOffset = first.start <= offset && offset <= closer.start
   const introducer = isKeyword(tokens[open - 1], 'LATERAL')
@@ -198,19 +197,21 @@ export const statementScope = (
   const closeFrame = (index: number) => {
     const frame = frames.at(-1) ?? root
     frames.length = Math.max(frames.length - 1, 1)
-    const alias = derivedAlias(tokens, index)
-    if (alias) {
-      derived.push(alias.name)
-    }
-    const table = derivedTable(tokens, frame.open, index, offset)
     const outer = frames.at(-1) ?? root
-    if (table) {
-      relations.push(table.relation)
+    const alias = derivedAlias(tokens, index)
+    if (!alias) {
+      return
     }
-    if (table?.ref) {
+    derived.push(alias.name)
+    const table = derivedTable(tokens, frame.open, index, offset, alias)
+    if (!table) {
+      return
+    }
+    relations.push(table.relation)
+    if (table.ref) {
       outer.block.refs.push(table.ref)
     }
-    if (table && table.listContinuesAt !== null) {
+    if (table.listContinuesAt !== null) {
       readSources(table.listContinuesAt, outer.block)
     }
   }
