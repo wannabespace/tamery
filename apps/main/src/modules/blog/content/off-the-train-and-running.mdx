@@ -41,6 +41,8 @@ you ──► Cloudflare ──► Google load balancer (accepts Cloudflare's ce
    Secret Manager ◄── Cloud KMS key (only we hold it)
 ```
 
+Only Cloudflare can reach our servers, the database sits on a private network and accepts only encrypted connections, and the cloud proxy is firewalled off from that network.
+
 ### Only one person can get in
 
 The whole infrastructure has exactly one human way in: a single Google account. There are no shared team logins, and nobody keeps admin rights "just in case".
@@ -56,13 +58,6 @@ Everything else is a machine with a narrow job:
 Before, our secrets lived in Railway and in a separate secrets service. Now they're in Secret Manager, encrypted with our own key in Cloud KMS.
 
 That's one fewer company in the chain that has to get everything right. It also means every use of that key gets recorded.
-
-### The network is closed by default
-
-- **Only Cloudflare can reach the load balancer.** It requires a client certificate that only Cloudflare presents. Nobody can skip Cloudflare and talk to our servers directly, or fake the visitor IP we use for rate limits.
-- **The database and Redis sit on a private network.** The database accepts only encrypted connections, keeps 14 daily backups plus 7 days of point-in-time recovery, and has deletion protection turned on.
-- **The cloud proxy can't reach our own network.** It connects to whatever database host you give it, so a firewall rule blocks it from private addresses. That matters because a couple of drivers open sockets below the app-level host check.
-- **Infrastructure changes go through pull requests.** Nothing gets clicked together in a console, and a change made outside that flow triggers an alert.
 
 ## An AI review of the whole codebase before the move
 
