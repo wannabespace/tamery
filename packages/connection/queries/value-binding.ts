@@ -51,7 +51,7 @@ export const filterSpellings: Record<
   }),
   duckdb: () => ({
     jsonText: (column, path) =>
-    sql`json_extract_string(cast(${sql.id(column)} as json), ${jsonPathLiteral(path)})`,
+      sql`json_extract_string(cast(${sql.id(column)} as json), ${jsonPathLiteral(path)})`,
   }),
   mssql: () => ({ jsonText: jsonValue }),
   mysql: () => ({
@@ -64,7 +64,7 @@ export const filterSpellings: Record<
   oracle: () => ({ jsonText: jsonValue }),
   postgres: () => ({
     jsonText: (column, path) =>
-    sql`${sql.id(column)} #>> array[${sql.join(path.map((key) => sql.val(key)))}]::text[]`,
+      sql`${sql.id(column)} #>> array[${sql.join(path.map((key) => sql.val(key)))}]::text[]`,
   }),
   sqlite: (columns) => ({
     // SQLite stores a boolean as 1 or 0, so the filter's `true` text never equals it.

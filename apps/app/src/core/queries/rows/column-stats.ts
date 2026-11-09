@@ -58,11 +58,7 @@ export const columnStatsQuery = (params: ColumnStatsParams) =>
   createQuery({
     query: {
       clickhouse: (db) =>
-        selectStats(
-          db,
-          params,
-          filterSpellings.clickhouse(params.columns)
-        ),
+        selectStats(db, params, filterSpellings.clickhouse(params.columns)),
       duckdb: (db) =>
         selectStats(db, params, filterSpellings.duckdb(params.columns)),
       mongodb: async (db) => {

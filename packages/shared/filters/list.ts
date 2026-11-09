@@ -87,8 +87,7 @@ export const activeFilter = type({
     ({ operator }, ctx): Filter | ArkError =>
       [...FILTERS_LIST, SQL_FILTER].find(
         (filter) => filter.operator === operator
-      ) ??
-      ctx.error('a known filter operator')
+      ) ?? ctx.error('a known filter operator')
   ),
   'path?': 'string[]',
   values: 'unknown[]',

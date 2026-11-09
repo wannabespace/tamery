@@ -68,9 +68,11 @@ export const generateQuerySQL = ({
     .selectFrom(table)
     .selectAll()
   const query =
-    filters.length > 0 ? base.where((eb) =>
+    filters.length > 0
+      ? base.where((eb) =>
           toKyselyFilter(eb, filters, 'AND', filterSpellings[dialect]([]))
-        ) : base
+        )
+      : base
   const compiled = query.compile()
   return formatSql(
     inlineParameters(compiled.sql, compiled.parameters, dialect),

@@ -138,7 +138,12 @@ export const resourceTableTotalQuery = memoize(
             }
           }
 
-          return countRows(db, db.fn.countAll(), target, filterSpellings.mysql(columns))
+          return countRows(
+            db,
+            db.fn.countAll(),
+            target,
+            filterSpellings.mysql(columns)
+          )
         },
         oracle: async (db) => {
           if (!exact && !filters?.length) {
@@ -154,7 +159,12 @@ export const resourceTableTotalQuery = memoize(
             }
           }
 
-          return countRows(db, db.fn.countAll(), target, filterSpellings.oracle(columns))
+          return countRows(
+            db,
+            db.fn.countAll(),
+            target,
+            filterSpellings.oracle(columns)
+          )
         },
         postgres: async (db) => {
           if (!exact && !filters?.length) {
@@ -178,7 +188,12 @@ export const resourceTableTotalQuery = memoize(
             }
           }
 
-          return countRows(db, db.fn.countAll(), target, filterSpellings.postgres(columns))
+          return countRows(
+            db,
+            db.fn.countAll(),
+            target,
+            filterSpellings.postgres(columns)
+          )
         },
         sqlite: (db) =>
           countRows(

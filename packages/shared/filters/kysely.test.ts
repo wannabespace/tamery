@@ -26,19 +26,24 @@ test('a filter through a foreign key matches keys of the referenced rows', () =>
     .selectFrom('connections')
     .selectAll()
     .where((eb) =>
-      toKyselyFilter(eb, [
-        {
-          column: 'user_id',
-          ref: EQUAL_FILTER,
-          values: ['ada@example.com'],
-          via: {
-            key: 'id',
-            schema: 'public',
-            table: 'users',
-            target: 'email',
+      toKyselyFilter(
+        eb,
+        [
+          {
+            column: 'user_id',
+            ref: EQUAL_FILTER,
+            values: ['ada@example.com'],
+            via: {
+              key: 'id',
+              schema: 'public',
+              table: 'users',
+              target: 'email',
+            },
           },
-        },
-      ], 'AND', { jsonText: unsupported('JSON paths') })
+        ],
+        'AND',
+        { jsonText: unsupported('JSON paths') }
+      )
     )
     .compile()
 

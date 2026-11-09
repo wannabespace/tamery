@@ -3,7 +3,11 @@ import { expect, test } from 'bun:test'
 import type { SqlDialect } from '@tamery/shared/enums/connection-type'
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import type { ActiveFilter } from '@tamery/shared/filters'
-import { EQUAL_FILTER, SQL_FILTER, toKyselyFilter } from '@tamery/shared/filters'
+import {
+  EQUAL_FILTER,
+  SQL_FILTER,
+  toKyselyFilter,
+} from '@tamery/shared/filters'
 
 import { prepareQuery } from './dialects/clickhouse/prepare-query'
 import { coldDialect } from './kysely'
@@ -19,12 +23,7 @@ const filtered = (
     .selectFrom('events')
     .selectAll()
     .where((eb) =>
-      toKyselyFilter(
-        eb,
-        filters,
-        'AND',
-        filterSpellings[dialect](columns)
-      )
+      toKyselyFilter(eb, filters, 'AND', filterSpellings[dialect](columns))
     )
     .compile()
 
@@ -78,7 +77,7 @@ test('a nested-value filter compares the text at its JSON path', () => {
     'select * from "events" where "payload" #>> array[$1, $2, $3]::text[] = $4'
   )
   expect(filtered(Dialect.MySQL, nested, []).sql).toBe(
-    `select * from \`events\` where json_unquote(json_extract(\`payload\`, '$.user[0]."first name"')) = ?`
+    `select * from \`events\` where case when json_type(json_extract(\`payload\`, '$.user[0]."first name"')) = 'NULL' then null else json_unquote(json_extract(\`payload\`, '$.user[0]."first name"')) end = ?`
   )
   expect(filtered(Dialect.Oracle, nested, []).sql).toContain(
     `json_value("payload", '$.user[0]."first name"') = :1`
@@ -88,7 +87,14 @@ test('a nested-value filter compares the text at its JSON path', () => {
 test('a JSON path cannot close its literal', () => {
   const { sql } = filtered(
     Dialect.SQLite,
-    [{ column: 'payload', path: ["a' or 1=1 --"], ref: EQUAL_FILTER, values: ['x'] }],
+    [
+      {
+        column: 'payload',
+        path: ["a' or 1=1 --"],
+        ref: EQUAL_FILTER,
+        values: ['x'],
+      },
+    ],
     []
   )
 
