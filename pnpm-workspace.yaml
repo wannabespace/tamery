@@ -5,6 +5,7 @@ shellEmulator: true
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - kysely@0.29.8
+  - motion-panels@0.7.0
 packages:
   - packages/*
   - apps/*
@@ -119,7 +120,7 @@ catalog:
   monaco-editor: ^0.57.0
   mongodb: ^7.8.0
   motion: ^14.10.0
-  motion-panels: ^0.6.1
+  motion-panels: ^0.7.0
   mssql: ^12.7.14
   mysql2: ^3.24.6
   nanoid: ^6.0.2

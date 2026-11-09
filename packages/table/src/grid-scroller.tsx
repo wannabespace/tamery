@@ -1,4 +1,5 @@
 /* oxlint-disable jsx-a11y/prefer-tag-over-role -- a virtualized grid cannot be built from table elements */
+import { ResizablePin } from '@tamery/ui/components/custom/resizable'
 import { ScrollArea } from '@tamery/ui/components/custom/scroll-area'
 import type { VirtualItem } from '@tanstack/react-virtual'
 import type { CSSProperties, ReactNode, RefObject } from 'react'
@@ -50,41 +51,43 @@ export const GridScroller = ({
   }, [isFetching, isNearEnd])
 
   return (
-    <ScrollArea
-      ref={scrollRef}
-      role="grid"
-      tabIndex={0}
-      aria-rowcount={header ? rowCount + 1 : rowCount}
-      aria-colcount={colCount}
-      className="group/grid table-scroller relative isolate size-full scroll-pl-(--grid-pinned) outline-none"
-      style={
-        {
-          '--grid-pinned': pinnedWidth,
-          '--grid-row-height': `${DEFAULT_ROW_HEIGHT}px`,
-        } as CSSProperties
-      }
-    >
-      <div
-        style={{ '--grid-width': `${width}px` } as CSSProperties}
-        className="w-(--grid-width) min-w-full"
+    <ResizablePin className="size-full">
+      <ScrollArea
+        ref={scrollRef}
+        role="grid"
+        tabIndex={0}
+        aria-rowcount={header ? rowCount + 1 : rowCount}
+        aria-colcount={colCount}
+        className="group/grid table-scroller relative isolate size-full scroll-pl-(--grid-pinned) outline-none"
+        style={
+          {
+            '--grid-pinned': pinnedWidth,
+            '--grid-row-height': `${DEFAULT_ROW_HEIGHT}px`,
+          } as CSSProperties
+        }
       >
-        {header}
-        {renderBody(
-          <div
-            role="rowgroup"
-            className="relative h-(--grid-height) pt-(--grid-top) contain-layout"
-            style={
-              {
-                '--grid-height': `${rows.totalSize}px`,
-                '--grid-top': `${rows.virtualItems[0]?.start ?? 0}px`,
-              } as CSSProperties
-            }
-          >
-            {children}
-          </div>
-        )}
-        {footer}
-      </div>
-    </ScrollArea>
+        <div
+          style={{ '--grid-width': `${width}px` } as CSSProperties}
+          className="w-(--grid-width) min-w-full"
+        >
+          {header}
+          {renderBody(
+            <div
+              role="rowgroup"
+              className="relative h-(--grid-height) pt-(--grid-top) contain-layout"
+              style={
+                {
+                  '--grid-height': `${rows.totalSize}px`,
+                  '--grid-top': `${rows.virtualItems[0]?.start ?? 0}px`,
+                } as CSSProperties
+              }
+            >
+              {children}
+            </div>
+          )}
+          {footer}
+        </div>
+      </ScrollArea>
+    </ResizablePin>
   )
 }
