@@ -182,7 +182,6 @@ export const CellField = ({
   useHotkeys(
     popup
       ? [
-          { callback: cursor.cancel, hotkey: 'Escape' },
           {
             callback: () => cursor.leave(0, 1),
             hotkey: 'Tab',
@@ -231,7 +230,15 @@ export const CellField = ({
   }
 
   return (
-    <Popover open>
+    <Popover
+      open
+      // The popover consumes Escape before a hotkey listening on the document could see it.
+      onOpenChange={(_, details) => {
+        if (details.reason === 'escape-key') {
+          cursor.cancel()
+        }
+      }}
+    >
       <PopoverContent
         ref={setPopup}
         anchor={anchor}
