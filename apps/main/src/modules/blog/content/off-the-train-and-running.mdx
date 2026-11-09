@@ -124,9 +124,9 @@ On Google Cloud Run in Frankfurt (`europe-west3`), with Cloud SQL for Postgres a
 
 Only if it allows specific IPs. The cloud proxy now connects from `35.246.231.22` and `34.40.119.38`, and you should add both.
 
-### Does Tamery see my database password?
+### Does Tamery store my database password?
 
-Only if you choose **Full** sync. With **No password** or **Metadata only**, the password stays on your device.
+Only if you choose **Full** sync, and only so your other devices can get it. We store it encrypted, nobody at Tamery looks at it, and it's kept out of our logs. With **No password** or **Metadata only**, the password never leaves your device.
 
 ---
 
