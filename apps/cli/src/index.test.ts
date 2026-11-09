@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -12,6 +12,9 @@ const env = {
   TAMERY_CONFIG_DIR: fs.mkdtempSync(path.join(os.tmpdir(), 'tamery-cli-')),
   WEB_URL: 'https://app.tamery.test',
 }
+
+// Each test starts the whole CLI, which takes over 5 s while the pre-commit hook runs every package's tests at once.
+setDefaultTimeout(30_000)
 
 const tamery = (...args: string[]) => {
   const { exitCode, stderr, stdout } = Bun.spawnSync(

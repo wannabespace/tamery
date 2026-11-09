@@ -42,6 +42,7 @@ jobs:
         env:
           API_URL: ${{ secrets.API_URL }}
           MAIN_URL: ${{ secrets.MAIN_URL }}
+          POSTHOG_TOKEN: ${{ secrets.POSTHOG_TOKEN }}
           WEB_URL: ${{ secrets.WEB_URL }}
 
       # A cross-compiled darwin binary carries an invalid signature, and macOS kills an arm64 one on start.
