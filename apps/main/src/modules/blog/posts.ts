@@ -12,6 +12,14 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
+    slug: 'off-the-train-and-running',
+    title: 'We got off the train and started running',
+    description:
+      "Two weeks after Railway's security incident, we moved Tamery to Google Cloud Run: one human account, keys we hold, and an AI review of the whole codebase.",
+    publishedAt: '2026-11-09',
+    engine: 'Security',
+  },
+  {
     slug: 'connect-to-mongodb',
     title: 'How to connect to MongoDB',
     description:
