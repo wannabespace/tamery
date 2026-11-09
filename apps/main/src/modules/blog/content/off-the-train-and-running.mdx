@@ -41,8 +41,6 @@ you ──► Cloudflare ──► Google load balancer (accepts Cloudflare's ce
    Secret Manager ◄── Cloud KMS key (only we hold it)
 ```
 
-Everything runs in one region, Frankfurt (`europe-west3`).
-
 ### One human account can change anything
 
 The whole infrastructure has exactly one human way in: a single Google account. There are no shared team logins, and nobody keeps admin rights "just in case".
@@ -102,7 +100,6 @@ I don't want to oversell this part. An AI review finds a lot of real issues quic
 ## What still isn't perfect
 
 - **Synced connection strings aren't end-to-end encrypted.** They're encrypted at rest with a workspace key and decrypted on our server when another device fetches them. If you don't want a password on our servers at all, pick **No password** or **Metadata only** when you add a connection. The [security page](https://docs.tamery.app/connections/security) explains exactly what each option stores.
-- **It's one region.** If Google's Frankfurt region goes down, Tamery goes down with it. For a team our size that's the right trade for now, but it's a trade.
 
 ## What to do now
 
@@ -120,7 +117,7 @@ Railway said the breach appeared limited to a subset of users and asked everyone
 
 ### Where is Tamery hosted now?
 
-On Google Cloud Run in Frankfurt (`europe-west3`), with Cloud SQL for Postgres and Memorystore for Redis on a private network, behind Cloudflare.
+On Google Cloud Run, with Cloud SQL for Postgres and Memorystore for Redis on a private network, behind Cloudflare.
 
 ### Do I need to update my database firewall?
 
