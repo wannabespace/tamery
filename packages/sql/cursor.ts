@@ -43,28 +43,55 @@ export const columnBeforeValue = (before: Token[], cursor: number) => {
   return null
 }
 
-export const selectedColumns = (statementTokens: Token[]) => {
-  const start = statementTokens.findIndex((token) => isKeyword(token, 'SELECT'))
-  if (start === -1) {
-    return []
-  }
-  const segments: Token[][] = [[]]
+const topLevel = (tokens: Token[]) => {
   let depth = 0
-  for (const token of statementTokens.slice(start + 1)) {
-    if (depth === 0 && isKeyword(token, 'FROM')) {
-      break
+  return tokens.map((token) => {
+    if (isPunctuation(token, ')')) {
+      depth -= 1
     }
+    const level = depth
     if (isPunctuation(token, '(')) {
       depth += 1
-    } else if (isPunctuation(token, ')')) {
-      depth -= 1
-    } else if (depth === 0 && isPunctuation(token, ',')) {
-      segments.push([])
-      continue
     }
-    segments.at(-1)?.push(token)
+    return level === 0
+  })
+}
+
+export const selectList = (body: Token[]) => {
+  const outside = topLevel(body)
+  const select = body.findIndex(
+    (token, index) => outside[index] && isKeyword(token, 'SELECT')
+  )
+  if (select === -1) {
+    return { at: undefined, segments: [] }
   }
-  return segments.flatMap((segment) =>
+  const segments: Token[][] = [[]]
+  let index = select + 1
+  while (isKeyword(body[index], 'DISTINCT', 'ALL')) {
+    index += 1
+  }
+  if (isKeyword(body[index], 'ON') && isPunctuation(body[index + 1], '(')) {
+    index += 2
+    while (body[index] && !outside[index]) {
+      index += 1
+    }
+  }
+  for (; body[index]; index += 1) {
+    const token = body[index]
+    if (outside[index] && isKeyword(token, 'FROM', 'UNION', 'INTO')) {
+      break
+    }
+    if (outside[index] && isPunctuation(token, ',')) {
+      segments.push([])
+    } else if (token) {
+      segments.at(-1)?.push(token)
+    }
+  }
+  return { at: body[select], segments }
+}
+
+export const selectedColumns = (statementTokens: Token[]) =>
+  selectList(statementTokens).segments.flatMap((segment) =>
     segment.length > 0 &&
     segment.every(
       (token) => token.kind === 'identifier' || isPunctuation(token, '.')
@@ -72,7 +99,6 @@ export const selectedColumns = (statementTokens: Token[]) => {
       ? [segment.map((token) => token.text).join('')]
       : []
   )
-}
 
 export const wordAt = (tokens: Token[], offset: number) =>
   tokens.find(
