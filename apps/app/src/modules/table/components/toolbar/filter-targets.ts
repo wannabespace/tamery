@@ -8,27 +8,17 @@ import { useTableColumnsContext } from '../../lib/columns'
 import { filterLabel } from './filter-chip'
 import type { FilterComposer } from './filter-composer'
 
-const SAMPLED_PATHS = 5
-const MATCHED_PATHS = 20
+const JSON_KEYS = 50
 
-const leafPaths = (value: unknown, prefix: string[] = []): string[][] => {
-  if (isNested(value)) {
-    return Object.entries(value).flatMap(([key, child]) =>
-      leafPaths(child, [...prefix, key])
-    )
+const valueAt = (value: unknown, path: string[]) => {
+  let current = value
+  for (const key of path) {
+    current = isNested(current)
+      ? (current as Record<string, unknown>)[key]
+      : undefined
   }
-  return prefix.length > 0 ? [prefix] : []
+  return current
 }
-
-const commonPaths = (values: unknown[]) =>
-  [
-    ...Map.groupBy(
-      values.flatMap((value) => leafPaths(value)),
-      (path) => path.join('.')
-    ).values(),
-  ]
-    .toSorted((a, b) => b.length - a.length)
-    .map(([path]) => path)
 
 export const useFilterTargets = (
   { query, stage, valueFilterText }: FilterComposer,
@@ -61,27 +51,38 @@ export const useFilterTargets = (
     return name.startsWith(columnQuery) ? 1 : 2
   }
 
-  const jsonColumns = columns.filter(
-    (column) => getColumnKind(dialect, column) === 'json'
-  )
-  const sampledPaths = jsonColumns.flatMap(({ id }) =>
-    commonPaths(rows.map((row) => row[id]))
-      .map((path) => ({ column: id, path }))
-      .filter((target) =>
-        filterLabel(target).toLowerCase().includes(columnQuery)
-      )
-      .slice(0, columnQuery ? MATCHED_PATHS : SAMPLED_PATHS)
-  )
   const [head = '', ...path] = query.trim().split('.')
-  const typedPath =
+  const parent = path.slice(0, -1)
+  const partial = (path.at(-1) ?? '').toLowerCase()
+  const jsonColumn =
     path.length > 0 &&
-    path.every(Boolean) &&
-    jsonColumns.some(({ id }) => id === head) &&
-    !sampledPaths.some(
-      (target) => filterLabel(target) === filterLabel({ column: head, path })
+    parent.every(Boolean) &&
+    columns.some(
+      (column) =>
+        column.id === head && getColumnKind(dialect, column) === 'json'
     )
-      ? [{ column: head, path }]
-      : []
+  const siblings = jsonColumn
+    ? rows.flatMap((row) => {
+        const value = valueAt(row[head], parent)
+        return isNested(value) ? Object.entries(value) : []
+      })
+    : []
+  const jsonKeys = [...Map.groupBy(siblings, ([key]) => key)]
+    .filter(([key]) => key.toLowerCase().includes(partial))
+    .toSorted(([, a], [, b]) => b.length - a.length)
+    .slice(0, JSON_KEYS)
+    .map(([key, entries]) => ({
+      nested: entries.some(([, value]) => isNested(value)),
+      target: { column: head, path: [...parent, key] },
+    }))
+  const typedPath =
+    jsonColumn &&
+    partial !== '' &&
+    !jsonKeys.some(
+      ({ target }) => target.path.at(-1)?.toLowerCase() === partial
+    )
+      ? { column: head, path }
+      : undefined
 
   const target = stage.step === 'value' ? stage.target : undefined
   const via = target?.via
@@ -97,7 +98,7 @@ export const useFilterTargets = (
     (valueColumn?.uiType === 'boolean' ? ['true', 'false'] : [])
 
   return {
-    jsonPaths: [...typedPath, ...sampledPaths],
+    jsonKeys,
     matchingColumns: columns
       .filter((column) => column.id.toLowerCase().includes(columnQuery))
       .toSorted((a, b) => columnRank(a) - columnRank(b)),
@@ -107,6 +108,7 @@ export const useFilterTargets = (
         : related.filter((entry) =>
             filterLabel(entry).toLowerCase().includes(columnQuery)
           ),
+    typedPath,
     matchingValues: suggestedValues.filter((value) =>
       value.toLowerCase().includes(valueFilterText.toLowerCase())
     ),

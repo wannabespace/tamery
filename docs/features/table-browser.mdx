@@ -10,7 +10,7 @@ Open a connection and pick a table in the Navigator. A single click previews it 
 
 Type in the filter field to pick a column, an operator, and a value. Values are suggested as you go. On a foreign key column you can also filter by the related table's columns, like orders whose customer lives in Berlin.
 
-A JSON column lists the paths found in the loaded rows, like **Filter by payload.customer.city**. Type part of one, like `city`, to find it. For a path the list does not show, type it with dots, like `items.2.sku`. The value there is compared as text. In MongoDB this works on any nested field.
+To filter inside a JSON column, pick **Filter inside payload** and step through its keys one level at a time, like `customer`, then `city`. The keys come from the rows on screen. For one the list does not show, type the path with dots, like `payload.items.2.sku`. The value there is compared as text. In MongoDB this works on any nested field.
 
 When the operators are not enough, pick **Write a SQL condition** and type it, like `price * quantity > 1000`. Tamery adds it as written to the query's `WHERE`. Click the chip's value to edit it. A table with a SQL filter cannot be shared with its filters. MongoDB has no SQL filter.
 

@@ -150,6 +150,11 @@ export const useFilterComposer = ({
       }
     },
     committedParts,
+    drill: (prefix: string) => {
+      setQuery(`${prefix}.`)
+      setHighlighted('')
+      focus()
+    },
     filters,
     highlighted,
     pickColumn: (target: FilterTarget) => {

@@ -1,4 +1,5 @@
 import {
+  ArrowRight01Icon,
   CancelCircleIcon,
   CodeIcon,
   FilterIcon,
@@ -15,8 +16,10 @@ import {
 } from '@tamery/ui/components/command'
 import { EnterIcon } from '@tamery/ui/components/custom/shortcuts'
 import { cn } from '@tamery/ui/lib/utils'
+import { Fragment } from 'react'
 
 import { useConnectionContext } from '~/core/connection/route'
+import { getColumnKind } from '~/core/table/cell/utils'
 
 import type { FilterAi } from './filter-ai'
 import { FilterAskAiItem } from './filter-ai'
@@ -24,6 +27,40 @@ import { filterLabel } from './filter-chip'
 import type { FilterComposer } from './filter-composer'
 import { offeredFilters, operatorMatches } from './filter-composer'
 import { useFilterTargets } from './filter-targets'
+
+const JsonPathItem = ({
+  label,
+  onSelect,
+}: {
+  label: string
+  onSelect: () => void
+}) => (
+  <CommandItem value={`path:${label}`} onSelect={onSelect}>
+    <HugeiconsIcon icon={FilterIcon} strokeWidth={2} />
+    <span data-mask className="min-w-0 flex-1 truncate">
+      Filter by {label}
+    </span>
+    <CommandShortcut>JSON</CommandShortcut>
+  </CommandItem>
+)
+
+const JsonDrillItem = ({
+  label,
+  onSelect,
+}: {
+  label: string
+  onSelect: () => void
+}) => (
+  <CommandItem value={`keys:${label}`} onSelect={onSelect}>
+    <HugeiconsIcon icon={FilterIcon} strokeWidth={2} />
+    <span data-mask className="min-w-0 flex-1 truncate">
+      Filter inside {label}
+    </span>
+    <CommandShortcut>
+      <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
+    </CommandShortcut>
+  </CommandItem>
+)
 
 export const FilterCommandList = ({
   ai,
@@ -34,11 +71,17 @@ export const FilterCommandList = ({
   composer: FilterComposer
   rows: Record<string, unknown>[]
 }) => {
-  const { jsonPaths, matchingColumns, matchingRelated, matchingValues } =
-    useFilterTargets(composer, rows)
+  const {
+    jsonKeys,
+    matchingColumns,
+    matchingRelated,
+    matchingValues,
+    typedPath,
+  } = useFilterTargets(composer, rows)
   const { dialect } = useConnectionContext()
   const { applyValue, committedParts, filters, query, stage } = composer
   const trimmedQuery = query.trim()
+  const isFreeText = trimmedQuery.length > 0 && jsonKeys.length === 0
   const matchingOperators = offeredFilters(dialect)
     .map((group) => ({
       ...group,
@@ -53,21 +96,28 @@ export const FilterCommandList = ({
       {stage.step === 'idle' && (
         <CommandGroup>
           {matchingColumns.map((column) => (
-            <CommandItem
-              key={column.id}
-              value={`column:${column.id}`}
-              onSelect={() => composer.pickColumn({ column: column.id })}
-            >
-              <HugeiconsIcon icon={FilterIcon} strokeWidth={2} />
-              <span data-mask className="min-w-0 flex-1 truncate">
-                Filter by {column.id}
-              </span>
-              {column.type && (
-                <CommandShortcut>
-                  {column.typeLabel || column.type}
-                </CommandShortcut>
+            <Fragment key={column.id}>
+              <CommandItem
+                value={`column:${column.id}`}
+                onSelect={() => composer.pickColumn({ column: column.id })}
+              >
+                <HugeiconsIcon icon={FilterIcon} strokeWidth={2} />
+                <span data-mask className="min-w-0 flex-1 truncate">
+                  Filter by {column.id}
+                </span>
+                {column.type && (
+                  <CommandShortcut>
+                    {column.typeLabel || column.type}
+                  </CommandShortcut>
+                )}
+              </CommandItem>
+              {getColumnKind(dialect, column) === 'json' && (
+                <JsonDrillItem
+                  label={column.id}
+                  onSelect={() => composer.drill(column.id)}
+                />
               )}
-            </CommandItem>
+            </Fragment>
           ))}
           {matchingRelated.map(({ column, via }) => (
             <CommandItem
@@ -82,20 +132,28 @@ export const FilterCommandList = ({
               <CommandShortcut data-mask>via {column}</CommandShortcut>
             </CommandItem>
           ))}
-          {jsonPaths.map((target) => (
-            <CommandItem
-              key={filterLabel(target)}
-              value={`path:${filterLabel(target)}`}
-              onSelect={() => composer.pickColumn(target)}
-            >
-              <HugeiconsIcon icon={FilterIcon} strokeWidth={2} />
-              <span data-mask className="min-w-0 flex-1 truncate">
-                Filter by {filterLabel(target)}
-              </span>
-              <CommandShortcut>JSON</CommandShortcut>
-            </CommandItem>
-          ))}
-          {trimmedQuery.length > 0 && isSqlDialect(dialect) && (
+          {jsonKeys.map(({ nested, target }) =>
+            nested ? (
+              <JsonDrillItem
+                key={filterLabel(target)}
+                label={filterLabel(target)}
+                onSelect={() => composer.drill(filterLabel(target))}
+              />
+            ) : (
+              <JsonPathItem
+                key={filterLabel(target)}
+                label={filterLabel(target)}
+                onSelect={() => composer.pickColumn(target)}
+              />
+            )
+          )}
+          {typedPath && (
+            <JsonPathItem
+              label={filterLabel(typedPath)}
+              onSelect={() => composer.pickColumn(typedPath)}
+            />
+          )}
+          {isFreeText && isSqlDialect(dialect) && (
             <CommandItem
               value={`sql:${trimmedQuery}`}
               onSelect={() => composer.addSql(trimmedQuery)}
@@ -107,9 +165,7 @@ export const FilterCommandList = ({
               <CommandShortcut>SQL</CommandShortcut>
             </CommandItem>
           )}
-          {trimmedQuery.length > 0 && (
-            <FilterAskAiItem ai={ai} prompt={trimmedQuery} />
-          )}
+          {isFreeText && <FilterAskAiItem ai={ai} prompt={trimmedQuery} />}
           {trimmedQuery.length === 0 && isSqlDialect(dialect) && (
             <CommandItem value="sql" onSelect={() => composer.pickSql()}>
               <HugeiconsIcon icon={CodeIcon} strokeWidth={2} />
