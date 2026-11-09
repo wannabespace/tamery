@@ -232,12 +232,10 @@ export const CellField = ({
   return (
     <Popover
       open
-      // The popover consumes Escape before a hotkey listening on the document could see it.
-      onOpenChange={(_, details) => {
-        if (details.reason === 'escape-key') {
-          cursor.cancel()
-        }
-      }}
+      // Not a hotkey: the popover swallows Escape before the document sees it.
+      onOpenChange={(_, { reason }) =>
+        reason === 'escape-key' && cursor.cancel()
+      }
     >
       <PopoverContent
         ref={setPopup}
