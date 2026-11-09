@@ -1,6 +1,6 @@
 On November 5 we switched Tamery off Railway and onto Google Cloud Run. Two weeks earlier, Railway told every customer to rotate their secrets after someone got into customer environment variables. Tamery holds connection strings to people's production databases, so I wasn't willing to keep those secrets on a platform where that could happen again.
 
-I'm Valerii, and I built most of Tamery. This post covers what happened at Railway, how the new setup works, what it cost us, and what's still not perfect.
+I'm Valerii, and I built most of Tamery. This post covers what happened at Railway, how the new setup works, and what it cost us.
 
 ## What happened at Railway, and why it mattered for us
 
@@ -12,7 +12,7 @@ I don't want to pile on. Running a cloud platform is hard, and I'm sure the peop
 
 Tamery is different from most apps on a platform like that, though. You point it at your databases. Our servers keep encrypted connection strings and the keys that decrypt them, for people who trust us with production data. For a to-do app, "your platform might have leaked your environment variables" is a bad week. For us, it could mean someone else's database gets dumped.
 
-I want you to trust Tamery with your database credentials the way you trust 1Password with your passwords. We're not there yet, and you'll see below where we still fall short. But that's the bar, and a platform that can leak our secrets makes it impossible to reach.
+I want you to trust Tamery with your database credentials the way you trust 1Password with your passwords. That's the bar, and a platform that can leak our secrets makes it impossible to reach.
 
 ## The alternative we didn't pick
 
@@ -68,18 +68,6 @@ AI makes it cheap for attackers to look for holes everywhere at once, and that w
 - **New npm releases wait three days** before we install them, so a hijacked version is usually pulled before it reaches us.
 
 AI also helped us write the new setup as code and plan the cutover, which is why most of you didn't notice the move on November 5. It doesn't prove the code is secure, but it's a tireless extra reviewer.
-
-## What still isn't perfect
-
-- **Synced connection strings aren't end-to-end encrypted.** They're encrypted at rest with a workspace key and decrypted on our server when another device fetches them. If you don't want a password on our servers at all, pick **No password** or **Metadata only** when you add a connection. The [security page](https://docs.tamery.app/connections/security) explains exactly what each option stores.
-
-## What to do now
-
-Most of you don't need to do anything. Your connections, saved queries and chats came with us, and the apps work the same.
-
-If your database only allows certain IP addresses, the cloud proxy now connects from two new ones. Add both from the [security page](https://docs.tamery.app/connections/security#cloud-proxy-ip-addresses). Desktop and `tamery bridge` connect from your own network, so they aren't affected.
-
-While you're in your account settings, add a passkey or turn on two-factor authentication. It protects your synced connections more than anything else on this list.
 
 ## FAQ
 
