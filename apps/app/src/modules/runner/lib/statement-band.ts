@@ -48,6 +48,7 @@ export const useStatementBand = (
 
     const measure = () => {
       cancelAnimationFrame(frame)
+      // oxlint-disable-next-line react/immutability -- effect-local, never read during render
       frame = requestAnimationFrame(() => {
         const suggestion = drawnGhostTextElement(codeEditor)
         const slot = codeEditor
@@ -100,6 +101,7 @@ export const useStatementBand = (
         tab,
         text: model.getValue(),
       })
+      // oxlint-disable-next-line react/immutability -- effect-local, never read during render
       active = { source: turn.text, start: turn.start }
       const lines = (item: typeof statement) => ({
         options: { className: 'sql-active-band', isWholeLine: true },
