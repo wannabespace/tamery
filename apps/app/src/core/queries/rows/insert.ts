@@ -84,6 +84,13 @@ export const insertQuery = (params: InsertParams) =>
   createQuery({
     query: {
       clickhouse: (db) => insertClickhouseRows(db, params),
+      duckdb: (db) =>
+        insertRows(
+          db,
+          bindValue.duckdb,
+          (into) => into.defaultValues(),
+          params
+        ),
       mongodb: (db) =>
         db
           .collection(params.table)

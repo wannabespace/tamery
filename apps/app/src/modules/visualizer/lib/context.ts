@@ -28,6 +28,7 @@ export const getGates = (dialect: Dialect) => {
     dropForeignKeys: !!constraints.drop,
     foreignKeys: foreignKeysCreatable(dialect),
     indexes: sectionAvailable('indexes', dialect),
+    neverNullable: capabilities.columnTypes.neverNullable,
     policies: sectionAvailable('policies', dialect),
     schemas: capabilities.flags.includes('schemas'),
     triggers: sectionAvailable('triggers', dialect),

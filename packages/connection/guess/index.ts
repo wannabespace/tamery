@@ -5,15 +5,16 @@ import { CLICKHOUSE_HTTP_PORT_OF_NATIVE } from '../connection-parts'
 import { getBareHostProvider, getHostHint, TYPE_OF_PORT } from '../hosts'
 import { guessAdo } from './ado'
 import { guessCli } from './cli'
+import { guessDatabaseFile } from './database-file'
 import { guessEnv } from './env'
 import { fixParts } from './fixes'
 import { guessHost, guessPgpass } from './host'
 import { guessJson } from './json'
 import { guessKeyValue } from './key-value'
+import { guessMotherduck, guessMotherduckToken } from './motherduck'
 import { guessOracle } from './oracle'
 import { mergeParts } from './parts'
 import { guessRemoteSqlite } from './remote-sqlite'
-import { guessSqlite } from './sqlite'
 import { guessSsh, throughForwards } from './ssh'
 import type { ConnectionGuess, DatabaseGuess, GuessFix } from './types'
 import { guessGoDsn, guessUrl, guessWebUrl } from './url'
@@ -21,15 +22,17 @@ import { guessGoDsn, guessUrl, guessWebUrl } from './url'
 export type { ConnectionGuess, GuessFix, GuessFormat } from './types'
 
 const getDetectors = (isConnection: boolean) => [
-  guessSqlite,
+  guessDatabaseFile,
   guessCli,
   guessJson,
+  guessMotherduck,
   guessUrl,
   guessGoDsn,
   guessOracle,
   guessAdo,
   guessKeyValue,
   guessRemoteSqlite,
+  guessMotherduckToken,
   guessEnv,
   (text: string) => guessWebUrl(text, text, isConnection),
   guessPgpass,

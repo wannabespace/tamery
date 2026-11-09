@@ -3,14 +3,19 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
+import { ConnectionType } from '@tamery/shared/enums/connection-type'
+
 import { query } from '.'
-import { sqliteFile } from '../../../sqlite-file'
+import { databaseFile } from '../../../database-file'
 
 const directory = mkdtempSync(path.join(tmpdir(), 'tamery-sqlite-'))
 afterAll(() => rmSync(directory, { force: true, recursive: true }))
 
 const connectionTo = (name: string) => ({
-  connectionString: sqliteFile.connectionString(path.join(directory, name)),
+  connectionString: databaseFile.connectionString(
+    ConnectionType.SQLite,
+    path.join(directory, name)
+  ),
 })
 
 const file = connectionTo('app data.db')

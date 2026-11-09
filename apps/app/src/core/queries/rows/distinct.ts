@@ -33,6 +33,7 @@ export const distinctQuery = (params: DistinctParams) =>
   createQuery({
     query: {
       clickhouse: (db) => selectDistinct(db, params),
+      duckdb: (db) => selectDistinct(db, params),
       mongodb: async (db) => {
         const values = await db
           .collection(params.table)

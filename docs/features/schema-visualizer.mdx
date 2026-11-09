@@ -32,4 +32,4 @@ The eye button next to it shows each change with its exact SQL, and lets you dis
 
 Drafts live in this window only. Reloading throws them away.
 
-PostgreSQL, SQL Server, SQLite, Turso, and D1 apply all changes in one transaction: either everything lands or nothing does. MySQL, MariaDB, Oracle, and ClickHouse apply schema changes one by one, so an error can leave some of them already applied. Check what is left in the review before you try again.
+PostgreSQL, SQL Server, SQLite, Turso, D1, DuckDB, and MotherDuck apply all changes in one transaction: either everything lands or nothing does. MySQL, MariaDB, Oracle, and ClickHouse apply schema changes one by one, so an error can leave some of them already applied. Check what is left in the review before you try again.

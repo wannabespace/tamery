@@ -25,6 +25,10 @@ export const addColumnQuery = ({
     query: {
       clickhouse: (db) =>
         db.executeQuery(addColumnStatement(Dialect.ClickHouse, db, target)),
+      duckdb: reference
+        ? unsupported('Foreign keys on a stored table')
+        : (db) =>
+            db.executeQuery(addColumnStatement(Dialect.DuckDB, db, target)),
       mongodb: unsupported('Column changes'),
       mssql: async (db) => {
         await db.executeQuery(addColumnStatement(Dialect.MSSQL, db, target))

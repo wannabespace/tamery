@@ -50,6 +50,7 @@ export const transactionQuery = ({
   return createQuery<Type<ResultSet[]>>({
     query: {
       clickhouse: run,
+      duckdb: run,
       mongodb: (db) =>
         db.transaction(options).execute(async (tx) => {
           const sets: ResultSet[] = []

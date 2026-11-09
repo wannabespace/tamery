@@ -62,6 +62,7 @@ const query = createQuery({
         using: row.select_filter,
       }))
     },
+    duckdb: unsupported('Row policies'),
     mongodb: unsupported('Row policies'),
     mssql: async (db) => {
       const rows = await db

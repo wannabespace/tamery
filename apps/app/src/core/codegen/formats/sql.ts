@@ -39,6 +39,7 @@ export const inlineParameters = (
 
 const IDENTITY_SPELLING: Record<Dialect, string | null> = {
   clickhouse: null,
+  duckdb: null,
   mongodb: null,
   mssql: 'IDENTITY(1,1)',
   mysql: 'AUTO_INCREMENT',

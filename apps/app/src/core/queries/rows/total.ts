@@ -96,6 +96,7 @@ export const resourceTableTotalQuery = memoize(
             filterValueBindings.clickhouse?.(columns)
           )
         },
+        duckdb: (db) => countRows(db, db.fn.countAll(), target),
         mongodb: async (db) => {
           const collection = db.collection(table)
           if (!exact && !filters?.length) {
@@ -279,6 +280,8 @@ export const keyedRowsCountQuery = (target: KeyedRowsTarget) =>
         clickhouseWrite((bind) =>
           countKeyedRows(db, bind, Dialect.ClickHouse, target)
         ),
+      duckdb: (db) =>
+        countKeyedRows(db, bindValue.duckdb, Dialect.DuckDB, target),
       mongodb: (db) =>
         db.collection(target.table).countDocuments({
           $or: target.primaryKeys.map((pk) =>

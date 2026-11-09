@@ -14,6 +14,7 @@ export const createEnumQuery = ({
   createQuery({
     query: {
       clickhouse: unsupported('Editing enums'),
+      duckdb: unsupported('Editing enums'),
       mongodb: unsupported('Enums'),
       mssql: unsupported('Editing enums'),
       mysql: unsupported('Editing enums'),

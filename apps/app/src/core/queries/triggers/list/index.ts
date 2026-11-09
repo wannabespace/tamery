@@ -56,6 +56,7 @@ export const triggersType = type({
 const resourceTriggersQuery = createQuery({
   query: {
     clickhouse: unsupported('Triggers'),
+    duckdb: unsupported('Triggers'),
     mongodb: unsupported('Triggers'),
     mssql: async (db) => {
       const rows = await db

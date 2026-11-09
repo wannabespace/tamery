@@ -12,6 +12,7 @@ export const revokePrivilegeQuery = (target: PrivilegeTarget) =>
   createQuery({
     query: {
       clickhouse: unsupported('Privileges'),
+      duckdb: unsupported('Privileges'),
       mongodb: unsupported('Privileges'),
       mssql: unsupported('Privileges'),
       // MySQL keeps GRANT OPTION per database or table, not per privilege:

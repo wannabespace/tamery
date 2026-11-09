@@ -71,6 +71,22 @@ export const mysqlEnum: InlineEnum = {
     `enum(${values.map(({ value }) => `'${escape(value, mysqlEscapedRegex).replaceAll("'", "''")}'`).join(',')})`,
 }
 
+const duckdbEnumRegex = /^ENUM\(.*\)$/su
+const duckdbQuotedRegex = /'(?<value>(?:[^']|'')*)'/gsu
+
+/** DuckDB doubles a quote and escapes nothing else, in the catalog's spelling and in its own. */
+export const duckdbEnum: InlineEnum = {
+  keyword: 'ENUM',
+  parse: (columnType) =>
+    duckdbEnumRegex.test(columnType)
+      ? Array.from(columnType.matchAll(duckdbQuotedRegex), (match) =>
+          (match.groups?.value ?? '').replaceAll("''", "'")
+        )
+      : null,
+  spell: (values) =>
+    `ENUM(${values.map(({ value }) => `'${value.replaceAll("'", "''")}'`).join(', ')})`,
+}
+
 const clickhouseEnumRegex = /^Enum(?:8|16)?\(.*\)$/su
 
 const ENUM8 = { max: 127, min: -128 }

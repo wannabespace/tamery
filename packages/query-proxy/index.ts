@@ -151,6 +151,7 @@ export const createQueryRouter = <
 ) =>
   ({
     clickhouse: createQueryDialect(Dialect.ClickHouse, orpc, resolve),
+    duckdb: createQueryDialect(Dialect.DuckDB, orpc, resolve),
     mongodb: createQueryDialect(Dialect.MongoDB, orpc, resolve),
     mssql: createQueryDialect(Dialect.MSSQL, orpc, resolve),
     mysql: createQueryDialect(Dialect.MySQL, orpc, resolve),

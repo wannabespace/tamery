@@ -23,6 +23,7 @@ const dependentsQuery = ({ name, schema }: { name: string; schema: string }) =>
   createQuery({
     query: {
       clickhouse: () => Promise.resolve([]),
+      duckdb: () => Promise.resolve([]),
       mongodb: unsupported('Enums'),
       mssql: () => Promise.resolve([]),
       mysql: () => Promise.resolve([]),

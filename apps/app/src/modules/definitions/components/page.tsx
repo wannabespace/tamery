@@ -125,9 +125,6 @@ export const DefinitionsPage = <T extends { name: string }>({
   const empty = !loading && rows.length === 0
   const context: CellContext = { schema: selectedSchema, search }
   const plural = title.toLowerCase()
-  const addNote = can.create
-    ? createBlocked
-    : `Tamery can’t add ${plural} to this database.`
 
   const dropMutation = useMutation({
     meta: { event: 'definition_dropped' },
@@ -291,7 +288,7 @@ export const DefinitionsPage = <T extends { name: string }>({
         </div>
       </div>
       <p className="text-muted-foreground -mt-1 text-right text-xs text-pretty empty:hidden">
-        {addNote}
+        {can.create && createBlocked}
       </p>
       <SearchInput
         ref={searchRef}

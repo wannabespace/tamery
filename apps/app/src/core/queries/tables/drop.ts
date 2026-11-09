@@ -11,6 +11,8 @@ export const dropTableQuery = memoize(
       query: {
         clickhouse: (db) =>
           db.executeQuery(dropTableStatement(Dialect.ClickHouse, db, target)),
+        duckdb: (db) =>
+          db.executeQuery(dropTableStatement(Dialect.DuckDB, db, target)),
         mongodb: (db) => db.collection(target.table).drop(),
         mssql: (db) =>
           db.executeQuery(dropTableStatement(Dialect.MSSQL, db, target)),

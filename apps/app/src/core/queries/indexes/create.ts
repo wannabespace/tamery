@@ -18,6 +18,7 @@ export const createIndexQuery = (shape: IndexShape) => {
         await addSkipIndexStatement(shape).execute(db)
         await materializeIndexStatement(shape).execute(db)
       },
+      duckdb: (db) => create.execute(db),
       mongodb: (db) =>
         db
           .collection(shape.table)

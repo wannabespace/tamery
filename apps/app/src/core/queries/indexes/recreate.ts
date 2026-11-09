@@ -31,6 +31,11 @@ export const recreateIndexQuery = ({
         await addSkipIndexStatement(replacement).execute(db)
         await materializeIndexStatement(replacement).execute(db)
       },
+      duckdb: (db) =>
+        db.transaction().execute(async (tx) => {
+          await sql`DROP INDEX ${sql.id(schema, name)}`.execute(tx)
+          await create.execute(tx)
+        }),
       mongodb: unsupported('Indexes'),
       mssql: (db) =>
         db.transaction().execute(async (tx) => {
