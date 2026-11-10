@@ -5,7 +5,7 @@
   "homepage": "https://tamery.app",
   "author": {
     "name": "Wannabe Space, LLC",
-    "email": "wannabespace.llc@gmail.com"
+    "email": "hello@wannabespace.com"
   },
   "type": "module",
   "main": "./dist-electron/main.js",
