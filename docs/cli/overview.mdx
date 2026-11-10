@@ -90,13 +90,25 @@ The bridge reaches databases and files with the rights of the system user that r
 
 A query that runs longer than about 4 minutes fails.
 
+## Manage connections
+
+`tamery connection` creates, updates and deletes the connections in your account from the terminal. Changes show up in the app like changes made there. A connection you create with the CLI runs on the bridge on that computer without any more questions. A **Metadata only** one is the exception in the web app: each browser asks for its server details once, as for any **Metadata only** connection. [CLI commands](/cli/commands#tamery-connection-create) lists the flags.
+
+In a script, without a terminal, `tamery connection` and `tamery query` never start signing in: they fail with **Not signed in** instead, so run `tamery login` on that computer first.
+
+`tamery query` runs a statement on a connection from the terminal and prints the rows as a table, JSON or CSV. It only reads unless you pass `--write`, so it suits scripts and coding agents that run shell commands. See [tamery query](/cli/commands#tamery-query).
+
 ## Where secrets are stored
 
 If this browser already has the secrets the bridge needs, it sends them on its own. Otherwise the web app opens the connection form on the missing fields. What you enter is saved in this browser and sent to the bridge once.
 
-The bridge encrypts secrets with a key in the system keychain: the macOS Keychain, Windows Credential Manager, or the Secret Service on Linux. A Linux server often has no keychain. There the key goes into `~/.config/tamery/bridge.key`, readable only by your user, and the bridge warns on every start that file permissions are all that protect it. Set `TAMERY_CONFIG_DIR` to keep these files somewhere other than `~/.config/tamery`.
+The bridge encrypts secrets with a key in the system keychain: the macOS Keychain, Windows Credential Manager, or the Secret Service on Linux. A Linux server often has no keychain. There the key goes into `~/.config/tamery/bridge.key`, readable only by your user, and the bridge warns on every start that file permissions are all that protect it. A computer you sign in to over SSH keeps the key in that file too, since a keychain prompt there would open on its own screen, where you can't answer it. Set `TAMERY_CONFIG_DIR` to keep these files somewhere other than `~/.config/tamery`.
 
 If Tamery's servers can't be reached, connections the bridge ran since it started keep working, and so do connections whose details you entered or allowed on it. After a restart, other connections wait for the servers.
+
+## Usage data
+
+The CLI sends usage events to Tamery once you sign in, linked to your account, like the app does: signing in and out, starting the bridge and answering its questions, updates, and the `tamery connection` and `tamery query` commands. They carry the engine, the sync type, counts and whether a command worked, never names, connection strings, SQL or data. To turn them off, set `DO_NOT_TRACK=1`.
 
 ## Browser support
 

@@ -50,7 +50,6 @@ With **Read and write**, you get a notification after each change instead.
 | Tool | Purpose |
 | --- | --- |
 | `list_connections` | Find shared connections and their databases. |
-| `create_connection` | Test and save a new connection in your open workspace. SQLite and DuckDB files, SSH tunnels and MongoDB logins that use AWS, OIDC or Kerberos credentials have to be added in Tamery. |
 | `list_tables` | List tables and views. |
 | `describe_table` | Show columns, keys, and indexes. |
 | `query` | Run one read-only statement, like `SELECT` or `EXPLAIN`, and return up to 200 rows. Nothing it does is kept. |
@@ -58,7 +57,7 @@ With **Read and write**, you get a notification after each change instead.
 
 On a MongoDB connection, agents send mongosh calls such as `db.orders.find({ status: 'paid' })` instead of SQL, one call at a time.
 
-Connections an agent creates start at **Ask before writing**. No tool can edit or remove a connection.
+No tool can add, edit or remove a connection. Add them in Tamery or with [`tamery connection`](/cli/commands#tamery-connection-create).
 
 Try “Describe the orders table” or “Find duplicate customer emails.” Whatever the agent reads becomes part of its AI context, so share only what you would paste into that chat yourself.
 

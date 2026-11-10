@@ -1,9 +1,4 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { getProviderOfScheme } from '@tamery/connection/connection-parts'
-import { readConnectionString } from '@tamery/connection/parse-connection-string'
-import { describeConnectionString } from '@tamery/connection/utils'
-import { ConnectionType } from '@tamery/shared/enums/connection-type'
-import { SyncType } from '@tamery/shared/enums/sync-type'
 import type {
   McpAccess,
   McpCall,
@@ -42,7 +37,7 @@ const targetInput = {
 
 const sqlInput = { ...targetInput, sql: z.string() }
 
-const INSTRUCTIONS = `Tamery is the user's database client. Start with list_connections, then read the schema with list_tables and describe_table before writing SQL in the connection's own dialect. A MongoDB connection takes mongosh calls instead of SQL, one per statement: db.orders.find({ status: "paid" }).limit(20), db.orders.aggregate([...]), db.runCommand({ ... }); a collection is its table and a field its column, and Extended JSON values ({ "$oid": … }) are written back as ObjectId("…") and the like. When the user names a record, value or thing to change, it almost always lives in the data, not in Tamery: connection names are only labels. Find it before answering — pick the likely tables from their names and columns, search them with query using case-insensitive partial matches (e.g. LOWER(column) LIKE '%value%'), and if several rows or connections could match, show the candidates and ask which one. query only reads; execute changes data or schema where the connection's access allows it, and on "ask" the user approves or declines each statement in Tamery, so explain in your reply what it changes. Results stop at ${MCP_MAX_ROWS} rows, so filter or aggregate in SQL instead of reading whole tables. create_connection saves a new connection from a connection string the user gives you; no tool edits or removes one.`
+const INSTRUCTIONS = `Tamery is the user's database client. Start with list_connections, then read the schema with list_tables and describe_table before writing SQL in the connection's own dialect. A MongoDB connection takes mongosh calls instead of SQL, one per statement: db.orders.find({ status: "paid" }).limit(20), db.orders.aggregate([...]), db.runCommand({ ... }); a collection is its table and a field its column, and Extended JSON values ({ "$oid": … }) are written back as ObjectId("…") and the like. When the user names a record, value or thing to change, it almost always lives in the data, not in Tamery: connection names are only labels. Find it before answering — pick the likely tables from their names and columns, search them with query using case-insensitive partial matches (e.g. LOWER(column) LIKE '%value%'), and if several rows or connections could match, show the candidates and ask which one. query only reads; execute changes data or schema where the connection's access allows it, and on "ask" the user approves or declines each statement in Tamery, so explain in your reply what it changes. Results stop at ${MCP_MAX_ROWS} rows, so filter or aggregate in SQL instead of reading whole tables. No tool adds, edits or removes a connection: the user does that in Tamery or with the tamery CLI.`
 
 export const createMcpServer = (
   access: () => Record<string, McpAccess>,
@@ -121,75 +116,6 @@ export const createMcpServer = (
             ? []
             : [{ ...connection, access: connectionAccess }]
         })
-      })
-  )
-
-  server.registerTool(
-    'create_connection',
-    {
-      annotations: { destructiveHint: false, readOnlyHint: false },
-      description: `Save a new database connection in Tamery from a connection string. Tamery tests it first and saves it only if it connects. Put a database in the string's path to open it as the connection's first resource. The new connection's access is "${DEFAULT_MCP_ACCESS}". Existing connections cannot be edited or removed through MCP, and SQLite files (but not Turso or Cloudflare D1 databases), strings with an SSH tunnel (ssh_* params) and MongoDB logins that use the machine's AWS, OIDC or Kerberos credentials are refused.`,
-      inputSchema: {
-        connectionString: z
-          .string()
-          .describe(
-            'URL with credentials, e.g. postgres://user:pass@host:5432/db or mongodb+srv://user:pass@cluster0.abc.mongodb.net/db. Turso: libsql://host?authToken=TOKEN with type "sqlite". Cloudflare D1: d1://ACCOUNT_ID:API_TOKEN@api.cloudflare.com/DATABASE_ID with type "sqlite".'
-          ),
-        name: z.string().min(2),
-        syncType: z
-          .enum(SyncType)
-          .default(SyncType.Cloud)
-          .describe(
-            'How the string syncs to the user\'s other devices, always encrypted: "cloud" whole, "cloud_without_secrets" without the password and other secrets, "cloud_without_connection_string" not at all'
-          ),
-        type: z.enum(ConnectionType),
-      },
-    },
-    (args, { signal }) =>
-      runLogged('create_connection', { detail: args.name }, async () => {
-        const { usesMachineCredentials, usesSsh } = describeConnectionString(
-          args.connectionString
-        )
-        // A tunnel would let the agent make Tamery read any key file on disk and raise host-key dialogs.
-        if (usesSsh) {
-          throw new Error(
-            'Connections through an SSH tunnel cannot be created through MCP. Ask the user to add this one in Tamery.'
-          )
-        }
-        // The driver would send the user's own AWS, cloud or Kerberos credentials to the host the agent names.
-        if (usesMachineCredentials) {
-          throw new Error(
-            'Connections that sign in with AWS, OIDC or Kerberos credentials cannot be created through MCP. Ask the user to add this one in Tamery.'
-          )
-        }
-        // A SQLite file would let the agent make Tamery open any database on disk with Tamery's own file access. The renderer formats the string as `type`, so `type` alone decides it is SQLite, and the executor opens a file for an empty host alone.
-        if (args.type === ConnectionType.SQLite) {
-          const { host, scheme } = readConnectionString(args.connectionString)
-          if (!host) {
-            throw new Error(
-              'SQLite files cannot be added through MCP. Ask the user to add this one in Tamery.'
-            )
-          }
-          if (!getProviderOfScheme(scheme)) {
-            throw new Error(
-              'Send a Turso database as libsql://… and a Cloudflare D1 one as d1://…; Tamery reads no other SQLite server.'
-            )
-          }
-        }
-        // A DuckDB file opens with Tamery's own file access too, and its SQL reads any other file the agent names.
-        if (
-          args.type === ConnectionType.DuckDB &&
-          !readConnectionString(args.connectionString).host
-        ) {
-          throw new Error(
-            'DuckDB files cannot be added through MCP. Ask the user to add this one in Tamery.'
-          )
-        }
-        const connection = await askRenderer(
-          { args, method: 'createConnection' },
-          signal
-        )
-        return { ...connection, access: getAccess(connection.id) }
       })
   )
 

@@ -81,7 +81,7 @@ const getServerCopy = async (
   return copy
 }
 
-const getLocalAccess = (connectionString: string) => {
+export const getLocalAccess = (connectionString: string) => {
   const parts = connectionParts.parse(connectionString)
   const { database, host, type } = parts
   const { searchParams } = readConnectionString(connectionString)

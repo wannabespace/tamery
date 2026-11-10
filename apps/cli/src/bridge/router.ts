@@ -7,6 +7,7 @@ import { challenge } from '@tamery/shared/challenge'
 import { type } from 'arktype'
 import { Result } from 'better-result'
 
+import { analytics } from '../analytics'
 import { api } from '../api'
 import { env } from '../env'
 import { installer } from '../installer'
@@ -115,11 +116,11 @@ export const createRouter = ({
             throw errors.OTHER_ACCOUNT()
           }
           const label = input.label || UNNAMED_BROWSER
-          if (
-            !(await approvals.ask(
-              `Allow ${paint.bold(label)} to run queries on this computer? Only if Tamery shows ${paint.bold(challenge.getUserCode(input.browserNonce))}.`
-            ))
-          ) {
+          const allowed = await approvals.ask(
+            `Allow ${paint.bold(label)} to run queries on this computer? Only if Tamery shows ${paint.bold(challenge.getUserCode(input.browserNonce))}.`
+          )
+          await analytics.capture('bridge_pair_answered', { allowed })
+          if (!allowed) {
             log.info(`Did not allow ${paint.bold(label)}.`)
             throw errors.DECLINED()
           }
@@ -145,10 +146,16 @@ export const createRouter = ({
             pairings.find(context.browserId)?.label ?? UNNAMED_BROWSER
           const saved = await connections.save(
             input,
-            (access) =>
-              approvals.ask(
+            async (access) => {
+              const allowed = await approvals.ask(
                 `Allow ${paint.bold(label)} to have this computer use ${access.map((item) => paint.bold(printable(item))).join(', ')}?`
-              ),
+              )
+              await analytics.capture('bridge_access_answered', {
+                access: access.length,
+                allowed,
+              })
+              return allowed
+            },
             errors
           )
           if (!saved) {
