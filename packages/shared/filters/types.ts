@@ -29,13 +29,15 @@ export interface FilterVia {
   target: string
 }
 
+export type JsonPath = (string | number)[]
+
 export interface ActiveFilter<F extends Filter = Filter, V = unknown> {
   column: string
   ref: F
   values: V[]
   disabled?: boolean
-  /** Keys and array indexes into a JSON value, compared as text. */
-  path?: string[]
+  /** Steps into a JSON value, compared as text: a string is an object key, a number an array index. */
+  path?: JsonPath
   via?: FilterVia
 }
 

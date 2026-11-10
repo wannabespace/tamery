@@ -8,8 +8,11 @@ import { useSubscription } from 'seitu/react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { useConnectionContext } from '~/core/connection/route'
+import type { Column } from '~/core/table/cell/utils'
+import { getColumnKind } from '~/core/table/cell/utils'
 import { posthog } from '~/lib/posthog'
 
+import { useTableColumnsContext } from '../../lib/columns'
 import { tableGridRef } from '../../lib/grid-ref'
 import { useTablePageStore } from '../../lib/store'
 
@@ -34,7 +37,17 @@ export const operatorMatches = (filter: Filter, text: string) =>
   filter.label.toLowerCase().includes(text) ||
   filter.symbol.toLowerCase().includes(text)
 
-const highlightForStage = (dialect: Dialect, stage: Stage, value: string) => {
+export const isJsonColumn = (dialect: Dialect, columns: Column[], id: string) =>
+  columns.some(
+    (column) => column.id === id && getColumnKind(dialect, column) === 'json'
+  )
+
+const highlightForStage = (
+  dialect: Dialect,
+  columns: Column[],
+  stage: Stage,
+  value: string
+) => {
   const trimmed = value.trim().toLowerCase()
   if (stage.step === 'operator') {
     const first = offeredFilters(dialect)
@@ -45,7 +58,13 @@ const highlightForStage = (dialect: Dialect, stage: Stage, value: string) => {
   if (stage.step === 'value') {
     return 'apply-value'
   }
-  return trimmed ? `ai:${trimmed}` : ''
+  if (!trimmed) {
+    return ''
+  }
+  const [head = '', ...path] = value.trim().split('.')
+  return path.length > 0 && isJsonColumn(dialect, columns, head)
+    ? `path:${trimmed}`
+    : `ai:${trimmed}`
 }
 
 export type FilterComposer = ReturnType<typeof useFilterComposer>
@@ -60,6 +79,7 @@ export const useFilterComposer = ({
   onQueryChange: () => void
 }) => {
   const { dialect } = useConnectionContext()
+  const { columns } = useTableColumnsContext()
   const store = useTablePageStore()
   const filters = useSubscription(store, {
     selector: (state) => state.filters,
@@ -73,7 +93,7 @@ export const useFilterComposer = ({
 
   const setQuery = (value: string) => {
     setPrompt(value)
-    setHighlighted(highlightForStage(dialect, stage, value))
+    setHighlighted(highlightForStage(dialect, columns, stage, value))
     onQueryChange()
   }
 
@@ -152,7 +172,6 @@ export const useFilterComposer = ({
     committedParts,
     drill: (prefix: string) => {
       setQuery(`${prefix}.`)
-      setHighlighted('')
       focus()
     },
     filters,

@@ -4,7 +4,7 @@ import {
   ViewOffSlashIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import type { ActiveFilter, FilterVia } from '@tamery/shared/filters'
+import type { ActiveFilter, FilterVia, JsonPath } from '@tamery/shared/filters'
 import { Chip, ChipDivider } from '@tamery/ui/components/custom/filter-chip'
 import type { ChipSegmentPart } from '@tamery/ui/components/custom/filter-chip.utils'
 import { chipSegmentVariants } from '@tamery/ui/components/custom/filter-chip.utils'
@@ -32,7 +32,7 @@ export const filterLabel = ({
   via,
 }: {
   column: string
-  path?: string[]
+  path?: JsonPath
   via?: FilterVia
 }) => (via ? `${via.table}.${via.target}` : [column, ...path].join('.'))
 

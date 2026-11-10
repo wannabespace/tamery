@@ -19,4 +19,5 @@ export type {
   FilterGroup,
   FilterOperator,
   FilterVia,
+  JsonPath,
 } from './types'

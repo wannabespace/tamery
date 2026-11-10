@@ -56,6 +56,12 @@ export const readShareRows = async (read: ShareRead) => {
   if (!isSqlDialect(dialect)) {
     return readMongoRows(read)
   }
+  // A stored view is not re-validated on its way here, and a SQL filter would run text its author wrote on the owner's database.
+  if (view.filters.some((filter) => filter.ref.operator === 'sql')) {
+    throw new ORPCError('BAD_REQUEST', {
+      message: 'A shared view cannot hold a SQL filter',
+    })
+  }
   await assertReachable(read.connectionString)
   const compiled = selectPage(
     coldDialect(dialect),

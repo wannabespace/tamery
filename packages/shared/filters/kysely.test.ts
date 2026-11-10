@@ -42,7 +42,7 @@ test('a filter through a foreign key matches keys of the referenced rows', () =>
           },
         ],
         'AND',
-        { jsonText: unsupported('JSON paths') }
+        { jsonText: unsupported('JSON paths'), placeholder: /\$\d+/u }
       )
     )
     .compile()

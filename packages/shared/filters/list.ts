@@ -89,7 +89,7 @@ export const activeFilter = type({
         (filter) => filter.operator === operator
       ) ?? ctx.error('a known filter operator')
   ),
-  'path?': 'string[]',
+  'path?': '(string | number)[]',
   values: 'unknown[]',
   'via?': {
     key: 'string',

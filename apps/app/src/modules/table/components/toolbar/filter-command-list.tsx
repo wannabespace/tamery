@@ -35,7 +35,7 @@ const JsonPathItem = ({
   label: string
   onSelect: () => void
 }) => (
-  <CommandItem value={`path:${label}`} onSelect={onSelect}>
+  <CommandItem value={`path:${label.toLowerCase()}`} onSelect={onSelect}>
     <HugeiconsIcon icon={FilterIcon} strokeWidth={2} />
     <span data-mask className="min-w-0 flex-1 truncate">
       Filter by {label}

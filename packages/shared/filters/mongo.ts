@@ -1,3 +1,5 @@
+import { Result } from 'better-result'
+
 import { unsupported } from '../unsupported'
 import type { FilterValueBinding } from './kysely'
 import type { ActiveFilter, FilterOperator } from './types'
@@ -37,15 +39,6 @@ const PATTERN_OPERATORS = new Set<FilterOperator>(['ilike', 'like', 'notLike'])
 
 const unbound: FilterValueBinding = (_column, value) => value
 
-// A nested value has no sampled type to bind by, so `5` and `true` match as the JSON they read as.
-const jsonLiteral = (value: unknown) => {
-  try {
-    return JSON.parse(String(value))
-  } catch {
-    return value
-  }
-}
-
 const condition = (
   {
     column,
@@ -58,7 +51,12 @@ const condition = (
   MONGO_CONDITIONS[ref.operator](
     PATTERN_OPERATORS.has(ref.operator)
       ? values
-      : values.map((value) => (path ? jsonLiteral(value) : bind(column, value)))
+      : values.map((value) =>
+          // A nested value has no sampled type to bind by, so `5` and `true` match as the JSON they read as.
+          path
+            ? Result.try(() => JSON.parse(String(value))).unwrapOr(value)
+            : bind(column, value)
+        )
   )
 
 const viaField = (index: number) => `__via_${index}`
