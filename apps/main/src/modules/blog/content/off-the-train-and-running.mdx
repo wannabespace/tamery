@@ -26,7 +26,25 @@ This has a real cost. Railway let us deploy without thinking about networks, IAM
 
 Here is the whole thing, from your browser to our database:
 
-<CloudDiagram />
+```mermaid
+flowchart TB
+  you([You]) --> cf[Cloudflare]
+  cf --> lb["Google load balancer<br/>accepts Cloudflare's certificate only"]
+  subgraph run [Cloud Run]
+    api[tamery-api]
+    proxy[tamery-proxy]
+    web[website, app, docs, share]
+  end
+  lb --> api & proxy & web
+  subgraph private [Private network]
+    sql[(Cloud SQL Postgres)]
+    redis[(Redis)]
+  end
+  api --> private
+  proxy -->|from two fixed IPs| db[(Your database)]
+  kms[Cloud KMS key<br/>only we hold it] --> sm[Secret Manager]
+  sm --> private
+```
 
 Only Cloudflare can reach our servers, the database sits on a private network and accepts only encrypted connections, and the cloud proxy is firewalled off from that network.
 
