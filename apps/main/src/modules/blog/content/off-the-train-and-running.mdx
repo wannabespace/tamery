@@ -69,6 +69,12 @@ AI makes it cheap for attackers to look for holes everywhere at once, and that w
 
 AI also helped us write the new setup as code and plan the cutover, which is why most of you didn't notice the move on November 5. It doesn't prove the code is secure, but it's a tireless extra reviewer.
 
+## What it cost us
+
+By our early estimate, hosting now costs about three times what we paid Railway, roughly 200% more. Fixed outbound IPs, a load balancer, a private network and managed Postgres and Redis all cost money, and Railway bundled most of that away.
+
+We're fine paying it. Your database credentials are the one thing we can't afford to lose, and this is the price of keeping them on infrastructure we control.
+
 ## FAQ
 
 ### Was Tamery affected by the Railway breach?
