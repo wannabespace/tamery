@@ -80,6 +80,8 @@ resource "google_billing_account_iam_member" "tofu_budgets" {
   billing_account_id = var.billing_account
   role               = each.value
   member             = google_service_account.this[each.key].member
+
+  depends_on = [google_project_service.this["cloudbilling.googleapis.com"]]
 }
 
 resource "google_iam_workload_identity_pool" "github" {
