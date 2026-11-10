@@ -3,7 +3,6 @@ locals {
     "artifactregistry.googleapis.com",
     "billingbudgets.googleapis.com",
     "certificatemanager.googleapis.com",
-    "cloudbilling.googleapis.com",
     "cloudkms.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "cloudscheduler.googleapis.com",
@@ -51,28 +50,11 @@ resource "google_artifact_registry_repository" "tamery" {
   }
 }
 
-resource "google_billing_budget" "monthly" {
-  billing_account = var.billing_account
-  display_name    = "Tamery monthly"
+# The budget lives on the billing account, which no account here may touch: set it in the billing console.
+removed {
+  from = google_billing_budget.monthly
 
-  budget_filter {
-    projects               = ["projects/${data.google_project.current.number}"]
-    calendar_period        = "MONTH"
-    credit_types_treatment = "INCLUDE_ALL_CREDITS"
-  }
-
-  amount {
-    specified_amount {
-      currency_code = "USD"
-      units         = "250"
-    }
-  }
-
-  dynamic "threshold_rules" {
-    for_each = [[0.5, "CURRENT_SPEND"], [0.9, "CURRENT_SPEND"], [1.0, "CURRENT_SPEND"], [1.0, "FORECASTED_SPEND"]]
-    content {
-      threshold_percent = threshold_rules.value[0]
-      spend_basis       = threshold_rules.value[1]
-    }
+  lifecycle {
+    destroy = false
   }
 }

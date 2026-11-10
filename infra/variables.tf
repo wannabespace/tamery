@@ -1,7 +1,3 @@
-variable "billing_account" {
-  type = string
-}
-
 variable "alerts_email" {
   type = string
 }

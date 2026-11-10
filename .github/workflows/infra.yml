@@ -18,7 +18,6 @@ concurrency:
 
 env:
   TF_IN_AUTOMATION: 'true'
-  TF_VAR_billing_account: ${{ secrets.TF_VAR_BILLING_ACCOUNT }}
   TF_VAR_alerts_email: ${{ secrets.TF_VAR_ALERTS_EMAIL }}
   TF_VAR_sql_authorized_networks: ${{ secrets.TF_VAR_SQL_AUTHORIZED_NETWORKS }}
 

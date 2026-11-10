@@ -17,8 +17,4 @@ terraform {
 provider "google" {
   project = local.project
   region  = local.region
-
-  # Budgets refuse user credentials without an explicit quota project.
-  billing_project       = local.project
-  user_project_override = true
 }

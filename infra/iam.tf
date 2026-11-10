@@ -14,7 +14,7 @@ locals {
   # Not roles/reader: that one also reads bucket objects and BigQuery rows.
   project_roles = {
     tamery-tofu      = ["roles/owner"]
-    tamery-tofu-plan = ["roles/viewer", "roles/serviceusage.serviceUsageConsumer"]
+    tamery-tofu-plan = ["roles/viewer"]
     viewer           = ["roles/viewer"]
   }
 
@@ -69,19 +69,6 @@ resource "google_storage_bucket_iam_member" "tofu_plan_reads_state" {
   bucket = "${local.project}-tofu-state"
   role   = "roles/storage.objectViewer"
   member = google_service_account.this["tamery-tofu-plan"].member
-}
-
-resource "google_billing_account_iam_member" "tofu_budgets" {
-  for_each = {
-    tamery-tofu      = "roles/billing.costsManager"
-    tamery-tofu-plan = "roles/billing.viewer"
-  }
-
-  billing_account_id = var.billing_account
-  role               = each.value
-  member             = google_service_account.this[each.key].member
-
-  depends_on = [google_project_service.this["cloudbilling.googleapis.com"]]
 }
 
 resource "google_iam_workload_identity_pool" "github" {
