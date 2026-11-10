@@ -8,10 +8,12 @@ import { describeConnectionString } from '@tamery/connection/utils'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
 import { getDialect } from '@tamery/shared/enums/connection-type'
 import { SyncType } from '@tamery/shared/enums/sync-type'
+import { silently } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
 import { analytics } from '../analytics'
 import { api } from '../api'
+import { getLocalAccess } from '../bridge/connections'
 import { printable } from '../bridge/printable'
 import { enableSshTunnels } from '../bridge/ssh'
 import { paint } from '../paint'
@@ -56,6 +58,30 @@ export const readConnectionString = async (message = 'Connection string') => {
   return answer.trim()
 }
 
+/**
+ * The bridge runs a string from its vault without asking, so a file, SSH route or machine login gets into the vault only
+ * once the person at this terminal allowed it, never from a script; and before the test, which already uses them.
+ */
+const confirmLocalAccess = async (connectionString: string) => {
+  const access = getLocalAccess(connectionString).map(printable)
+  if (access.length === 0) {
+    return
+  }
+  const listed = access.map((item) => paint.bold(item)).join(', ')
+  if (!process.stdin.isTTY) {
+    throw new Error(
+      `This connection uses ${listed} on this computer. Run the command in a terminal to allow it.`
+    )
+  }
+  const allowed = await confirm({
+    initialValue: false,
+    message: `Allow this connection to use ${listed} on this computer?`,
+  })
+  if (allowed !== true) {
+    throw new Error('Did not allow it.')
+  }
+}
+
 const testConnectionString = async () => {
   const connectionString = await readConnectionString()
   const parsed = Result.try(() => connectionParts.parse(connectionString))
@@ -67,6 +93,7 @@ const testConnectionString = async () => {
       'Tamery cannot read this connection string. Start it with its scheme, such as postgres://, mysql:// or mongodb://.'
     )
   }
+  await confirmLocalAccess(connectionString)
   const dialect = getDialect(type)
   enableSshTunnels()
   const testing = spinner()
@@ -93,6 +120,21 @@ const testConnectionString = async () => {
     usesSsh,
   }
 }
+
+/** The bridge's copy of the string, and the resource the app opens it at, as the app's own save adds. */
+const saveLocally = (
+  connectionId: string,
+  connectionString: string,
+  resourceName: string | null
+) =>
+  Promise.all([
+    vault.setConnection(connectionId, connectionString),
+    api.connectionsResources.create({
+      connectionId,
+      id: Bun.randomUUIDv7(),
+      name: resourceName,
+    }),
+  ])
 
 /** Any workspace editor names a shared connection, and a control character in it would drive this terminal. */
 const fetchConnections = async () => {
@@ -171,12 +213,14 @@ export const createConnection = async (options: {
     syncType,
     type: tested.type,
   })
-  await vault.setConnection(id, tested.connectionString)
-  await api.connectionsResources.create({
-    connectionId: id,
-    id: Bun.randomUUIDv7(),
-    name: tested.defaultResourceName,
-  })
+  const finished = await Result.tryPromise(() =>
+    saveLocally(id, tested.connectionString, tested.defaultResourceName)
+  )
+  if (finished.isErr()) {
+    await silently(() => api.connections.remove({ id }))
+    await silently(() => vault.removeConnection(id))
+    throw finished.error.cause
+  }
   await analytics.capture('connection_created', {
     origin: 'cli',
     ssh: tested.usesSsh,
@@ -222,7 +266,11 @@ export const updateConnection = async (options: {
     }),
   })
   if (tested) {
-    await vault.setConnection(found.id, tested.connectionString)
+    await saveLocally(
+      found.id,
+      tested.connectionString,
+      tested.defaultResourceName
+    )
   }
   await analytics.capture('connection_updated', {
     connection_string: !!tested,

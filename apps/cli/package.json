@@ -42,6 +42,7 @@
     "@mongodb-js/shell-bson-parser": "catalog:",
     "@mongodb-js/socksv5": "catalog:",
     "@orpc/client": "catalog:",
+    "@orpc/contract": "catalog:",
     "@orpc/server": "catalog:",
     "@tamery/api": "workspace:*",
     "@tamery/configs": "workspace:*",

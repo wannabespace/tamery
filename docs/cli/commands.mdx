@@ -96,6 +96,8 @@ echo "$DATABASE_URL" | tamery connection create --name "Orders"
 
 The engine comes from the string's scheme, such as `postgres://`, `mysql://` or `mongodb://`. The CLI keeps the whole string on this computer too, so `tamery bridge` runs the connection without asking for its secrets or file access.
 
+When the string opens a file or uses this computer's SSH keys or credentials, such as a SQLite file, a certificate file, an SSH tunnel or a MongoDB login with AWS, OIDC or Kerberos, the CLI asks you to allow that before it connects. A piped string can't be allowed, so add such a connection in a terminal. `tamery connection update --connection-string` asks the same way.
+
 ## tamery connection update
 
 ```bash
@@ -135,8 +137,8 @@ By default only one read-only statement runs, such as `SELECT`, `SHOW`, `EXPLAIN
 | Flag | Use |
 | --- | --- |
 | `--write` | Run statements that change data or schema. They commit right away. |
-| `--format <table\|json\|csv>` | Print a table, JSON with one object per row, or CSV. The default is `table`. |
-| `--max-rows <count>` | Stop after this many rows. The default is `1000`. |
+| `--format <table\|json\|csv>` | Print a table, JSON or CSV. JSON lists each result's `columns`, `rows` (one array per row, in column order), `affectedRows` and `truncated`. The default is `table`. |
+| `--max-rows <count>` | Stop after this many rows. The default is `1000`. When rows were left out, the table says so, JSON sets `truncated`, and CSV writes a note to stderr. |
 | `--database <name>` | Run in another database on the same server. |
 
 It finds the connection string the way `tamery bridge` does. For a **No password** or **Metadata only** connection that this computer doesn't have the secrets of yet, it asks for the connection string once and keeps it with the bridge's secrets. When a connection opens a file or signs in with this computer's keys or credentials, and nobody allowed that here yet, it asks you first. Without a terminal, such as in a script, it fails instead, so run the query once in a terminal.

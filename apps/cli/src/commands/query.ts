@@ -1,8 +1,10 @@
 import process from 'node:process'
 
 import { confirm } from '@clack/prompts'
+import { createORPCErrorConstructorMap } from '@orpc/contract'
 import { ORPCError } from '@orpc/server'
 import type { ResultSet } from '@tamery/connection/queries'
+import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/client'
 import { executors } from '@tamery/connection/queries/executors'
 import { readsOnly as mongoReadsOnly } from '@tamery/mongo/effects'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
@@ -26,24 +28,7 @@ export const FORMATS = ['table', 'json', 'csv'] as const
 
 const MAX_CELL_WIDTH = 60
 
-const errors: QueryErrors = {
-  BAD_REQUEST: (options) => new ORPCError('BAD_REQUEST', options),
-  NEEDS_SECRETS: (options) =>
-    new ORPCError('NEEDS_SECRETS', {
-      message: queryErrors.NEEDS_SECRETS.message,
-      ...options,
-    }),
-  NOT_FOUND: (options) =>
-    new ORPCError('NOT_FOUND', {
-      message: queryErrors.NOT_FOUND.message,
-      ...options,
-    }),
-  UNCONFIRMED: (options) =>
-    new ORPCError('UNCONFIRMED', {
-      message: queryErrors.UNCONFIRMED.message,
-      ...options,
-    }),
-}
+const errors: QueryErrors = createORPCErrorConstructorMap(queryErrors)
 
 const readsOnly = (dialect: Dialect, sql: string) =>
   isSqlDialect(dialect)
@@ -109,7 +94,8 @@ const resolveConnectionString = async (
   if (!allowed) {
     throw new Error(`Did not allow ${paint.bold(name)}.`)
   }
-  return resolve()
+  // A connection can need both: access allowed first, then the secrets its server copy lacks.
+  return resolveConnectionString({ id, name }, dialect, resourceName)
 }
 
 const run = async ({
@@ -163,7 +149,7 @@ const toText = (value: unknown) => {
 }
 
 const toCell = (value: unknown) => {
-  const text = toText(value).replaceAll(/\s+/gu, ' ')
+  const text = printable(toText(value).replaceAll(/\s+/gu, ' '))
   return text.length > MAX_CELL_WIDTH
     ? `${text.slice(0, MAX_CELL_WIDTH - 1)}…`
     : text
@@ -180,16 +166,17 @@ const printTable = ({ affectedRows, columns, rows, truncated }: ResultSet) => {
     )
     return
   }
+  const headers = columns.map(toCell)
   const cells = rows.map((row) => row.map(toCell))
-  const widths = columns.map((column, index) =>
-    Math.max(column.length, ...cells.map((row) => row[index]?.length ?? 0))
+  const widths = headers.map((header, index) =>
+    Math.max(header.length, ...cells.map((row) => row[index]?.length ?? 0))
   )
   const line = (values: string[]) =>
     values
       .map((value, index) => value.padEnd(widths[index] ?? 0))
       .join('  ')
       .trimEnd()
-  console.log(paint.bold(line(columns)))
+  console.log(paint.bold(line(headers)))
   for (const row of cells) {
     console.log(line(row))
   }
@@ -202,27 +189,27 @@ const printTable = ({ affectedRows, columns, rows, truncated }: ResultSet) => {
   )
 }
 
+// Redirected CSV keeps every byte; only what lands on a terminal loses the control characters that would drive it.
 const csvField = (value: unknown) => {
-  const text = toText(value)
+  const text = process.stdout.isTTY ? printable(toText(value)) : toText(value)
   return /[",\n\r]/u.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 
-const printCsv = ({ columns, rows }: ResultSet) => {
+const printCsv = ({ columns, rows, truncated }: ResultSet) => {
   for (const row of [columns, ...rows]) {
     console.log(row.map(csvField).join(','))
+  }
+  if (truncated) {
+    process.stderr.write(
+      `First ${rows.length} rows. Pass --max-rows for more.\n`
+    )
   }
 }
 
 const printJson = (sets: ResultSet[]) => {
   console.log(
     JSON.stringify(
-      sets.map(({ affectedRows, columns, rows, truncated }) => ({
-        affectedRows,
-        rows: rows.map((row) =>
-          Object.fromEntries(columns.map((column, i) => [column, row[i]]))
-        ),
-        truncated,
-      })),
+      sets,
       (_key, item) => (typeof item === 'bigint' ? item.toString() : item),
       2
     )
@@ -256,6 +243,7 @@ export const query = async (options: {
   const found = await findConnection(options.connection)
   const dialect = getDialect(found.type)
   enableSshTunnels()
+  confineSqliteFiles()
   const connectionString = await resolveConnectionString(
     found,
     dialect,

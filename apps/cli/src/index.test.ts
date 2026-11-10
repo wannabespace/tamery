@@ -45,6 +45,17 @@ describe('commands', () => {
     expect(output).toContain('Unknown command bogus')
   })
 
+  test('a usage error never prints a password', () => {
+    const { exitCode, output } = tamery('postgres://admin:hunter2@db/app')
+    expect(exitCode).toBe(1)
+    expect(output).toContain('Unknown command')
+    expect(output).not.toContain('hunter2')
+  })
+
+  test('-v prints the version', () => {
+    expect(tamery('-v').output.trim()).toMatch(/^\d+\.\d+\.\d+/u)
+  })
+
   test('the bridge refuses a port out of range before starting', () => {
     const { exitCode, output } = tamery('bridge', '--port', '0')
     expect(exitCode).toBe(1)

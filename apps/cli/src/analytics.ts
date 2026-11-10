@@ -10,8 +10,10 @@ const SHUTDOWN_TIMEOUT_MS = 2000
 
 let client: PostHog | null = null
 
+const DO_NOT_TRACK = /^(?:1|true)$/iu.test(process.env.DO_NOT_TRACK ?? '')
+
 const getClient = () =>
-  env.POSTHOG_TOKEN && !process.env.DO_NOT_TRACK
+  env.POSTHOG_TOKEN && !DO_NOT_TRACK
     ? (client ??= new PostHog(env.POSTHOG_TOKEN, {
         flushAt: 1,
         host: 'https://eu.i.posthog.com',

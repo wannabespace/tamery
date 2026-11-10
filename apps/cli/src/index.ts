@@ -7,7 +7,7 @@ import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { objectEntries, toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import type { ArgsDef, CommandContext } from 'citty'
-import { defineCommand, runMain } from 'citty'
+import { defineCommand, runCommand } from 'citty'
 
 import { analytics } from './analytics'
 import { pairings } from './bridge/pairings'
@@ -26,7 +26,7 @@ import { FORMATS, query } from './commands/query'
 import { update } from './commands/update'
 import { whoami } from './commands/whoami'
 import { env } from './env'
-import { printHelp } from './help'
+import { findCommand, printHelp } from './help'
 import { paint } from './paint'
 
 const MAX_PORT = 65_535
@@ -296,11 +296,21 @@ const main = defineCommand({
   },
 })
 
-// Each name is the full command line, which the help prints as it is.
-await runMain(main, {
-  showUsage: async (command) => {
-    await printHelp(command)
-    // citty prints a usage error with a bare `console.error` right after the help; help itself exits before any.
-    console.error = (message: unknown) => log.error(String(message))
-  },
-})
+const rawArgs = process.argv.slice(2)
+const wantsHelp = rawArgs.some((arg) => arg === '--help' || arg === '-h')
+const wantsVersion =
+  rawArgs.length === 1 && (rawArgs[0] === '--version' || rawArgs[0] === '-v')
+
+if (wantsHelp) {
+  await printHelp(await findCommand(main, rawArgs))
+} else if (wantsVersion) {
+  console.log(env.VERSION)
+} else {
+  // Every command reports its own errors, so only citty's usage errors (an unknown command, a missing argument) land here.
+  const ran = await Result.tryPromise(() => runCommand(main, { rawArgs }))
+  if (ran.isErr()) {
+    await printHelp(await findCommand(main, rawArgs))
+    log.error(redactSecrets(toError(ran.error.cause).message))
+    process.exit(1)
+  }
+}

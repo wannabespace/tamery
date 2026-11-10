@@ -42,6 +42,7 @@ catalog:
   '@octokit/rest': ^22.0.1
   '@openrouter/ai-sdk-provider': ^3.1.0
   '@orpc/client': 2.0.0-beta.47
+  '@orpc/contract': 2.0.0-beta.47
   '@orpc/publisher': 2.0.0-beta.47
   '@orpc/ratelimit': 2.0.0-beta.47
   '@orpc/server': 2.0.0-beta.47
