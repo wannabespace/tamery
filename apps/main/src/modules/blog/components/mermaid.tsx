@@ -1,13 +1,26 @@
 import { useEffect, useId, useState } from 'react'
 
+const ring = 'color-mix(in oklab, var(--foreground) 8%, transparent)'
+
 const themeCSS = `
-  .node rect, .node polygon, .node path { fill: var(--popover); stroke: var(--border); }
-  .nodeLabel, .edgeLabel { color: var(--foreground); }
-  .edgeLabel, .labelBkg { background: transparent; }
-  .flowchart-link { stroke: var(--muted-foreground); }
-  .marker { fill: var(--muted-foreground); stroke: var(--muted-foreground); }
-  .cluster rect { fill: var(--muted); stroke: var(--border); }
-  .cluster-label .nodeLabel { color: var(--muted-foreground); }
+  .node rect, .node polygon, .node path {
+    fill: var(--popover) !important;
+    stroke: ${ring} !important;
+    stroke-width: 1px !important;
+    rx: 10px;
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.05));
+  }
+  .nodeLabel { color: var(--foreground) !important; font-weight: 500; }
+  .nodeLabel small { display: block; color: var(--muted-foreground); font-size: 12px; font-weight: 400; }
+  .edgeLabel, .edgeLabel p, .labelBkg { background: var(--background) !important; color: var(--muted-foreground) !important; font-size: 12px; }
+  .flowchart-link { stroke: ${ring} !important; stroke-width: 1.5px !important; }
+  .marker { fill: color-mix(in oklab, var(--foreground) 25%, transparent) !important; stroke: none !important; }
+  .cluster rect {
+    fill: color-mix(in oklab, var(--muted) 50%, transparent) !important;
+    stroke: ${ring} !important;
+    rx: 16px;
+  }
+  .cluster-label .nodeLabel { color: var(--muted-foreground) !important; font-size: 12px; font-weight: 500; }
 `
 
 const renderChart = async (id: string, chart: string) => {
@@ -15,8 +28,14 @@ const renderChart = async (id: string, chart: string) => {
   mermaid.initialize({
     fontFamily: 'inherit',
     startOnLoad: false,
+    flowchart: {
+      nodeSpacing: 32,
+      rankSpacing: 40,
+      subGraphTitleMargin: { bottom: 8, top: 8 },
+    },
     theme: 'base',
     themeCSS,
+    themeVariables: { fontSize: '14px' },
   })
   const { svg } = await mermaid.render(id, chart)
   return svg

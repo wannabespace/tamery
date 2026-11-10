@@ -29,7 +29,7 @@ Here is the whole thing, from your browser to our database:
 ```mermaid
 flowchart TB
   you([You]) --> cf[Cloudflare]
-  cf --> lb["Google load balancer<br/>accepts Cloudflare's certificate only"]
+  cf --> lb["Google load balancer<small>Accepts Cloudflare's certificate only</small>"]
   subgraph run [Cloud Run]
     api[tamery-api]
     proxy[tamery-proxy]
@@ -37,12 +37,12 @@ flowchart TB
   end
   lb --> api & proxy & web
   subgraph private [Private network]
-    sql[(Cloud SQL Postgres)]
+    sql[(Cloud SQL<small>Postgres</small>)]
     redis[(Redis)]
   end
   api --> private
   proxy -->|from two fixed IPs| db[(Your database)]
-  kms[Cloud KMS key<br/>only we hold it] --> sm[Secret Manager]
+  kms[Cloud KMS key<small>Only we hold it</small>] --> sm[Secret Manager]
   sm --> private
 ```
 
