@@ -81,6 +81,7 @@ const DRIZZLE_FUNCTIONS: Record<FilterOperator, string> = {
   ne: 'ne',
   notIn: 'notInArray',
   notLike: 'notLike',
+  sql: 'sql',
 }
 
 export const generateQueryDrizzle = ({ table, filters }: QueryParams) => {

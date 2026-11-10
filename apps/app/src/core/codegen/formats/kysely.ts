@@ -24,6 +24,9 @@ export const generateQueryKysely = ({
 
   const conditions = filters.map((f) => {
     const column = toStringLiteral(f.column)
+    if (f.ref.operator === 'sql') {
+      return `sql.raw(${JSON.stringify(f.values[0])})`
+    }
     if (f.ref.hasValue === false) {
       return `${column}, '${f.ref.operator === 'isNull' ? 'is' : 'is not'}', null`
     }

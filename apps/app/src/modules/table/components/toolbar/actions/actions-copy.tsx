@@ -1,4 +1,5 @@
 import { enabledFilters } from '@tamery/shared/filters'
+import { toError } from '@tamery/shared/utils'
 import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 import { CopyIconButton } from '@tamery/ui/components/custom/copy-button'
 import {
@@ -9,6 +10,7 @@ import {
 } from '@tamery/ui/components/dialog'
 import { Tabs, TabsList, TabsTrigger } from '@tamery/ui/components/tabs'
 import { useQuery } from '@tanstack/react-query'
+import { Result } from 'better-result'
 import { useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
@@ -135,12 +137,16 @@ export const ActionsCopy = ({
   const [formatType, setFormatType] = useState<GeneratorFormat>('sql')
 
   const active = enabledFilters(filters)
-  const throughKeys = kind === 'query' && active.some((filter) => filter.via)
+  const sqlOnly =
+    kind === 'query' &&
+    active.some(
+      (filter) => filter.via || filter.path || filter.ref.operator === 'sql'
+    )
   const formats = FORMATS[kind].filter((f) => {
     const compatible = GENERATOR_COMPATIBILITY[f.type]
     return (
       (!compatible || compatible.includes(dialect)) &&
-      (!throughKeys || f.type === 'sql')
+      (!sqlOnly || f.type === 'sql')
     )
   })
   const format = formats.find((f) => f.type === formatType) ?? formats[0]
@@ -149,14 +155,21 @@ export const ActionsCopy = ({
     return null
   }
 
-  const code = format.generator({
-    columns,
-    defaultSchema,
-    dialect,
-    filters: active,
-    indexes: indexes ?? [],
-    schema,
-    table,
+  const code = Result.try({
+    catch: toError,
+    try: () =>
+      format.generator({
+        columns,
+        defaultSchema,
+        dialect,
+        filters: active,
+        indexes: indexes ?? [],
+        schema,
+        table,
+      }),
+  }).match({
+    err: (error) => `-- ${error.message}`,
+    ok: (generated) => generated,
   })
 
   return (

@@ -1,4 +1,9 @@
-import { coldDialect } from '@tamery/connection/queries/kysely'
+import {
+  coldDialect,
+  PARAMETER_PLACEHOLDERS,
+} from '@tamery/connection/queries/kysely'
+import { filterSpellings } from '@tamery/connection/queries/value-binding'
+import type { SqlDialect } from '@tamery/shared/enums/connection-type'
 import { Dialect, isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { toKyselyFilter } from '@tamery/shared/filters'
 import { unsupported } from '@tamery/shared/unsupported'
@@ -15,16 +20,19 @@ import { referentialActionClauses } from '~/core/queries/constraints/shape'
 import type { Column } from '~/core/table/cell/utils'
 import { formatSql } from '~/utils/formatter'
 
+const QUOTED_TEXT = /"(?:[^"]|"")*"|`(?:[^`]|``)*`|'(?:[^']|'')*'/u
+
 export const inlineParameters = (
   sql: string,
   parameters: readonly unknown[],
-  dialect: Dialect
+  dialect: SqlDialect
 ): string => {
+  const placeholder = PARAMETER_PLACEHOLDERS[dialect]
   let next = 0
   return sql.replaceAll(
-    /"(?:[^"]|"")*"|`(?:[^`]|``)*`|\[(?:[^\]]|\]\])*\]|'(?:[^']|'')*'|[$@:](?<index>\d+)|\?/gu,
+    new RegExp(`${QUOTED_TEXT.source}|${placeholder.source}`, 'gu'),
     (token, ...args) => {
-      if (!/^[$@:?]/u.test(token)) {
+      if (QUOTED_TEXT.test(token)) {
         return token
       }
       const index = args.at(-1)?.index
@@ -67,7 +75,11 @@ export const generateQuerySQL = ({
     .selectFrom(table)
     .selectAll()
   const query =
-    filters.length > 0 ? base.where((eb) => toKyselyFilter(eb, filters)) : base
+    filters.length > 0
+      ? base.where((eb) =>
+          toKyselyFilter(eb, filters, 'AND', filterSpellings[dialect]([]))
+        )
+      : base
   const compiled = query.compile()
   return formatSql(
     inlineParameters(compiled.sql, compiled.parameters, dialect),

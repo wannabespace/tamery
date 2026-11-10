@@ -1,5 +1,5 @@
 import { toWire } from '@tamery/mongo/values'
-import type { ActiveFilter, FilterValueBinding } from '@tamery/shared/filters'
+import type { ActiveFilter, FilterSpelling } from '@tamery/shared/filters'
 import { toKyselyFilter, toMongoPipeline } from '@tamery/shared/filters'
 import type { Kysely } from 'kysely'
 import { sql } from 'kysely'
@@ -29,7 +29,7 @@ export const selectPage = (
     select?: string[]
     table: string
   },
-  bind?: FilterValueBinding
+  spelling: FilterSpelling
 ) => {
   let query = db
     .withSchema(schema)
@@ -43,7 +43,7 @@ export const selectPage = (
 
   if (filters !== undefined) {
     query = query.where((eb) =>
-      toKyselyFilter(eb, filters, filtersConcatOperator, bind)
+      toKyselyFilter(eb, filters, filtersConcatOperator ?? 'AND', spelling)
     )
   }
 
