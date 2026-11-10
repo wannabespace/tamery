@@ -99,6 +99,13 @@ resource "google_storage_bucket_iam_member" "tofu_plan_reads_state" {
   member = google_service_account.this["tamery-tofu-plan"].member
 }
 
+# Encrypter too: every run wraps a fresh data key, even a plan that never writes the state.
+resource "google_kms_crypto_key_iam_member" "tofu_plan_uses_state_key" {
+  crypto_key_id = "${google_kms_key_ring.tamery.id}/cryptoKeys/state"
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member        = google_service_account.this["tamery-tofu-plan"].member
+}
+
 # Compute's default account starts as a project editor, and nothing here runs as it.
 resource "google_project_iam_member_remove" "default_compute_editor" {
   project = local.project
