@@ -11,11 +11,29 @@ locals {
     viewer           = "Read-only for agents"
   }
 
-  # Not roles/reader: that one also reads bucket objects and BigQuery rows.
   project_roles = {
     tamery-tofu      = ["roles/owner"]
     tamery-tofu-plan = ["roles/viewer"]
-    viewer           = ["roles/viewer"]
+    # Never a basic role: roles/viewer carries cloudsql.backupRuns.export and roles/reader reads bucket objects, and this account must never reach the database or a secret.
+    viewer = [
+      "roles/artifactregistry.reader",
+      "roles/browser",
+      "roles/certificatemanager.viewer",
+      "roles/cloudkms.viewer",
+      "roles/cloudscheduler.viewer",
+      "roles/compute.networkViewer",
+      "roles/errorreporting.viewer",
+      "roles/iam.securityReviewer",
+      "roles/logging.viewer",
+      "roles/monitoring.viewer",
+      "roles/networksecurity.viewer",
+      "roles/redis.viewer",
+      "roles/run.viewer",
+      "roles/secretmanager.viewer",
+      "roles/serviceusage.serviceUsageViewer",
+      "roles/storage.bucketViewer",
+      google_project_iam_custom_role.sql_metadata_viewer.name,
+    ]
   }
 
   runtime_accounts = toset([for workload in values(merge(local.services, local.jobs)) : workload.account])
@@ -52,6 +70,24 @@ resource "google_service_account_iam_member" "deploy_acts_as" {
   service_account_id = google_service_account.this[each.value].name
   role               = "roles/iam.serviceAccountUser"
   member             = google_service_account.this["tamery-deploy"].member
+}
+
+# roles/cloudsql.viewer without cloudsql.backupRuns.export.
+resource "google_project_iam_custom_role" "sql_metadata_viewer" {
+  role_id = "cloudSqlMetadataViewer"
+  title   = "Cloud SQL metadata viewer"
+  permissions = [
+    "cloudsql.backupRuns.get",
+    "cloudsql.backupRuns.list",
+    "cloudsql.databases.get",
+    "cloudsql.databases.list",
+    "cloudsql.instances.get",
+    "cloudsql.instances.list",
+    "cloudsql.sslCerts.get",
+    "cloudsql.sslCerts.list",
+    "cloudsql.users.get",
+    "cloudsql.users.list",
+  ]
 }
 
 resource "google_project_iam_member" "this" {
