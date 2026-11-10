@@ -6,7 +6,16 @@ locals {
     tamery-jobs      = "Migrate and purge jobs"
     tamery-scheduler = "Invokes the purge job"
     tamery-deploy    = "GitHub Actions deploys"
-    viewer           = "Read-only for the operator and agents, impersonated"
+    tamery-tofu      = "Applies infra/ from GitHub Actions after approval"
+    tamery-tofu-plan = "Plans infra/ from GitHub Actions"
+    viewer           = "Read-only for agents"
+  }
+
+  # Not roles/reader: that one also reads bucket objects and BigQuery rows.
+  project_roles = {
+    tamery-tofu      = ["roles/owner"]
+    tamery-tofu-plan = ["roles/viewer", "roles/serviceusage.serviceUsageConsumer"]
+    viewer           = ["roles/viewer"]
   }
 
   runtime_accounts = toset([for workload in values(merge(local.services, local.jobs)) : workload.account])
@@ -45,17 +54,32 @@ resource "google_service_account_iam_member" "deploy_acts_as" {
   member             = google_service_account.this["tamery-deploy"].member
 }
 
-# Not roles/reader: that one also reads bucket objects and BigQuery rows.
-resource "google_project_iam_member" "viewer_reads" {
+resource "google_project_iam_member" "this" {
+  for_each = merge([
+    for account, roles in local.project_roles : { for role in roles : "${account}/${role}" => { account = account, role = role } }
+  ]...)
+
   project = local.project
-  role    = "roles/viewer"
-  member  = google_service_account.this["viewer"].member
+  role    = each.value.role
+  member  = google_service_account.this[each.value.account].member
 }
 
-resource "google_service_account_iam_member" "operator_impersonates_viewer" {
-  service_account_id = google_service_account.this["viewer"].name
-  role               = "roles/iam.serviceAccountTokenCreator"
-  member             = var.operator
+# Created outside OpenTofu, and it holds the Redis auth string; the plan runs with -lock=false, so reading is enough.
+resource "google_storage_bucket_iam_member" "tofu_plan_reads_state" {
+  bucket = "${local.project}-tofu-state"
+  role   = "roles/storage.objectViewer"
+  member = google_service_account.this["tamery-tofu-plan"].member
+}
+
+resource "google_billing_account_iam_member" "tofu_budgets" {
+  for_each = {
+    tamery-tofu      = "roles/billing.costsManager"
+    tamery-tofu-plan = "roles/billing.viewer"
+  }
+
+  billing_account_id = var.billing_account
+  role               = each.value
+  member             = google_service_account.this[each.key].member
 }
 
 resource "google_iam_workload_identity_pool" "github" {
@@ -90,4 +114,36 @@ resource "google_project_iam_member_remove" "default_compute_editor" {
   project = local.project
   role    = "roles/editor"
   member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+}
+
+# Its own pool: a principalSet on the deploy pool would also admit deploy.yml's tokens.
+resource "google_iam_workload_identity_pool" "github_infra" {
+  workload_identity_pool_id = "github-infra"
+  display_name              = "GitHub Actions infra"
+}
+
+resource "google_iam_workload_identity_pool_provider" "github_infra" {
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github_infra.workload_identity_pool_id
+  workload_identity_pool_provider_id = "github"
+
+  attribute_condition = "assertion.workflow_ref == 'wannabespace/tamery/.github/workflows/infra.yml@refs/heads/main'"
+  attribute_mapping = {
+    "google.subject" = "assertion.sub"
+  }
+
+  oidc {
+    issuer_uri = "https://token.actions.githubusercontent.com"
+  }
+}
+
+# GitHub puts the environment in the subject only for a job that declares one, and the infra environment's required reviewer gates that job.
+resource "google_service_account_iam_member" "github_tofu" {
+  for_each = {
+    tamery-tofu      = "repo:wannabespace/tamery:environment:infra"
+    tamery-tofu-plan = "repo:wannabespace/tamery:ref:refs/heads/main"
+  }
+
+  service_account_id = google_service_account.this[each.key].name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principal://iam.googleapis.com/${google_iam_workload_identity_pool.github_infra.name}/subject/${each.value}"
 }
