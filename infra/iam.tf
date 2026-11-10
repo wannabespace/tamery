@@ -6,9 +6,15 @@ locals {
     tamery-jobs      = "Migrate and purge jobs"
     tamery-scheduler = "Invokes the purge job"
     tamery-deploy    = "GitHub Actions deploys"
+    viewer           = "Read-only for the operator and agents, impersonated"
   }
 
-  runtime_accounts = toset(["tamery-api", "tamery-proxy", "tamery-web", "tamery-jobs"])
+  runtime_accounts = toset([for workload in values(merge(local.services, local.jobs)) : workload.account])
+}
+
+import {
+  to = google_service_account.this["viewer"]
+  id = "projects/${local.project}/serviceAccounts/viewer@${local.project}.iam.gserviceaccount.com"
 }
 
 resource "google_service_account" "this" {
@@ -37,6 +43,19 @@ resource "google_service_account_iam_member" "deploy_acts_as" {
   service_account_id = google_service_account.this[each.value].name
   role               = "roles/iam.serviceAccountUser"
   member             = google_service_account.this["tamery-deploy"].member
+}
+
+# Not roles/reader: that one also reads bucket objects and BigQuery rows.
+resource "google_project_iam_member" "viewer_reads" {
+  project = local.project
+  role    = "roles/viewer"
+  member  = google_service_account.this["viewer"].member
+}
+
+resource "google_service_account_iam_member" "operator_impersonates_viewer" {
+  service_account_id = google_service_account.this["viewer"].name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = var.operator
 }
 
 resource "google_iam_workload_identity_pool" "github" {

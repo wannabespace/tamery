@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       rollback:
-        description: 'One of api, proxy, app, main, docs, share: put it back on the image it ran before its last deploy, without building or migrating. Empty deploys every service.'
+        description: 'A service from .github/deploy-services.yml: put it back on the image it ran before its last deploy, without building or migrating. Empty deploys every service.'
         type: string
 
 permissions:
@@ -24,43 +24,22 @@ jobs:
     if: ${{ !inputs.rollback }}
     runs-on: ubuntu-latest
     outputs:
-      services: ${{ github.event_name == 'workflow_dispatch' && '["api","proxy","app","main","docs","share"]' || steps.filter.outputs.changes }}
+      services: ${{ steps.all.outputs.services || steps.filter.outputs.changes }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Find the services this push changed
+        if: github.event_name == 'push'
         id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
-          # No top-level `shared` filter: every filter's name lands in the deploy matrix.
-          filters: |
-            api:
-              - &shared ['*', '.dockerignore', 'packages/**']
-              - 'apps/api/**'
-            app:
-              - *shared
-              - 'apps/api/**'
-              - 'apps/app/**'
-              - 'apps/cli/**'
-              - 'apps/proxy/**'
-            docs:
-              - *shared
-              - 'apps/docs/**'
-              - 'docs/**'
-            main:
-              - *shared
-              - 'apps/api/**'
-              - 'apps/main/**'
-            proxy:
-              - *shared
-              - 'apps/api/**'
-              - 'apps/proxy/**'
-            share:
-              - *shared
-              - 'apps/api/**'
-              - 'apps/proxy/**'
-              - 'apps/share/**'
+          filters: .github/deploy-services.yml
+
+      - name: List every service
+        if: github.event_name == 'workflow_dispatch'
+        id: all
+        run: echo "services=$(yq -o=json -I=0 'keys' .github/deploy-services.yml)" >> "$GITHUB_OUTPUT"
 
   deploy:
     needs: changes
@@ -122,7 +101,7 @@ jobs:
       - name: Migrate the database
         if: matrix.service == 'api'
         run: |
-          for job in api-migrate api-purge-deleted-records api-rotate; do
+          for job in $(gcloud run jobs list --region="$REGION" --format='value(metadata.name)'); do
             gcloud run jobs update "$job" --image="$IMAGE" --region="$REGION"
           done
           gcloud run jobs execute api-migrate --region="$REGION" --wait
