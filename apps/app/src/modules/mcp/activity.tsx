@@ -1,5 +1,6 @@
 import { SourceCodeIcon } from '@hugeicons/core-free-icons'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
+import { ScrollArea } from '@tamery/ui/components/custom/scroll-area'
 import {
   SettingsGroup,
   SettingsRow,
@@ -33,57 +34,60 @@ export const Activity = () => {
   return (
     <>
       <SettingsGroup title="Activity">
-        {calls.map((call) => {
-          const connection =
-            connections.find(({ id }) => id === call.connectionId) ?? null
+        <ScrollArea className="max-h-72">
+          {calls.map((call) => {
+            const connection =
+              connections.find(({ id }) => id === call.connectionId) ?? null
 
-          return (
-            <SettingsRow
-              key={call.id}
-              title={<CallTitle call={call} connection={connection} />}
-              description={
-                (call.detail || call.error) && (
-                  <>
-                    {call.detail && (
-                      <span data-mask className="font-mono text-xs">
-                        {call.detail}
-                      </span>
-                    )}
-                    {call.error && (
-                      <span
-                        data-mask
-                        className="text-destructive block truncate"
-                      >
-                        {call.error}
-                      </span>
-                    )}
-                  </>
-                )
-              }
-            >
-              {call.query && (
-                <IconButton
-                  icon={SourceCodeIcon}
-                  label="Show query"
-                  size="icon-xs"
-                  variant="ghost-muted"
-                  onClick={() => {
-                    posthog.capture('mcp_activity_query_opened', {
-                      tool: call.tool,
-                    })
-                    setEntry({ call, connection })
-                    setOpen(true)
-                  }}
-                />
-              )}
-              <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
-                {formatDistanceStrict(call.at, dataUpdatedAt, {
-                  addSuffix: true,
-                })}
-              </span>
-            </SettingsRow>
-          )
-        })}
+            return (
+              <SettingsRow
+                key={call.id}
+                dense
+                title={<CallTitle call={call} connection={connection} />}
+                description={
+                  (call.detail || call.error) && (
+                    <>
+                      {call.detail && (
+                        <span data-mask className="font-mono text-xs">
+                          {call.detail}
+                        </span>
+                      )}
+                      {call.error && (
+                        <span
+                          data-mask
+                          className="text-destructive block truncate"
+                        >
+                          {call.error}
+                        </span>
+                      )}
+                    </>
+                  )
+                }
+              >
+                {call.query && (
+                  <IconButton
+                    icon={SourceCodeIcon}
+                    label="Show query"
+                    size="icon-xs"
+                    variant="ghost-muted"
+                    onClick={() => {
+                      posthog.capture('mcp_activity_query_opened', {
+                        tool: call.tool,
+                      })
+                      setEntry({ call, connection })
+                      setOpen(true)
+                    }}
+                  />
+                )}
+                <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
+                  {formatDistanceStrict(call.at, dataUpdatedAt, {
+                    addSuffix: true,
+                  })}
+                </span>
+              </SettingsRow>
+            )
+          })}
+        </ScrollArea>
       </SettingsGroup>
       <CallDialog entry={entry} open={open} onOpenChange={setOpen} />
     </>
