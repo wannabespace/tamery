@@ -32,7 +32,7 @@ locals {
       "roles/secretmanager.viewer",
       "roles/serviceusage.serviceUsageViewer",
       "roles/storage.bucketViewer",
-      google_project_iam_custom_role.sql_metadata_viewer.name,
+      "projects/${local.project}/roles/cloudSqlMetadataViewer",
     ]
   }
 
@@ -98,6 +98,8 @@ resource "google_project_iam_member" "this" {
   project = local.project
   role    = each.value.role
   member  = google_service_account.this[each.value.account].member
+
+  depends_on = [google_project_iam_custom_role.sql_metadata_viewer]
 }
 
 # Created outside OpenTofu, and it holds the Redis auth string; the plan runs with -lock=false, so reading is enough.
