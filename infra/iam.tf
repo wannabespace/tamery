@@ -25,6 +25,7 @@ locals {
       "roles/compute.networkViewer",
       "roles/errorreporting.viewer",
       "roles/iam.securityReviewer",
+      "roles/iam.workloadIdentityPoolViewer",
       "roles/logging.viewer",
       "roles/monitoring.viewer",
       "roles/networksecurity.viewer",
@@ -136,39 +137,4 @@ resource "google_service_account_iam_member" "github" {
   service_account_id = google_service_account.this[each.key].name
   role               = "roles/iam.workloadIdentityUser"
   member             = "principal://iam.googleapis.com/${google_iam_workload_identity_pool.this[each.value.pool].name}/subject/repo:wannabespace@125988462/tamery@895089213:${each.value.subject}"
-}
-
-moved {
-  from = google_project_iam_member.deploy_runs
-  to   = google_project_iam_member.this["tamery-deploy/roles/run.developer"]
-}
-
-moved {
-  from = google_iam_workload_identity_pool.github
-  to   = google_iam_workload_identity_pool.this["deploy"]
-}
-
-moved {
-  from = google_iam_workload_identity_pool.github_infra
-  to   = google_iam_workload_identity_pool.this["infra"]
-}
-
-moved {
-  from = google_iam_workload_identity_pool_provider.github
-  to   = google_iam_workload_identity_pool_provider.this["deploy"]
-}
-
-moved {
-  from = google_iam_workload_identity_pool_provider.github_infra
-  to   = google_iam_workload_identity_pool_provider.this["infra"]
-}
-
-moved {
-  from = google_service_account_iam_member.github_tofu["tamery-tofu"]
-  to   = google_service_account_iam_member.github["tamery-tofu"]
-}
-
-moved {
-  from = google_service_account_iam_member.github_tofu["tamery-tofu-plan"]
-  to   = google_service_account_iam_member.github["tamery-tofu-plan"]
 }
