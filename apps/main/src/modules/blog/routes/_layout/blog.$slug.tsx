@@ -43,7 +43,7 @@ const BlogPostPage = () => {
         <div
           className={cn(
             responseVariants({ variant: 'document' }),
-            'text-foreground/90 [&_li]:text-foreground/90 [&_p]:text-foreground/90 [&_td]:text-foreground/80'
+            'text-foreground/90 [&_li]:text-foreground/90 [&_p:not([data-slot])]:text-foreground/90 [&_td]:text-foreground/80'
           )}
         >
           {Body && <Body components={mdxComponents} />}
