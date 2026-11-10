@@ -525,8 +525,8 @@ catalogs:
       specifier: ^14.10.0
       version: 14.10.0
     motion-panels:
-      specifier: ^0.6.1
-      version: 0.6.1
+      specifier: ^0.7.0
+      version: 0.7.0
     mssql:
       specifier: ^12.7.14
       version: 12.7.14
@@ -2107,7 +2107,7 @@ importers:
         version: 14.10.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       motion-panels:
         specifier: 'catalog:'
-        version: 0.6.1(motion@14.10.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
+        version: 0.7.0(motion@14.10.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
       react:
         specifier: 'catalog:'
         version: 19.3.1
@@ -9208,8 +9208,8 @@ packages:
   motion-dom@14.10.0:
     resolution: {integrity: sha512-k0LwJZ1R5xCvqrScszO4ywuZP52lRcT3QO0IUovgczom9ZHb0BaRLOX6M2O40q7TrSLvzX/fIHHmDm8TUMt3fg==}
 
-  motion-panels@0.6.1:
-    resolution: {integrity: sha512-J54v7wRlShT8ltS4WLBJhxgYSxxaOflearP3fJu0SbBP4mw5kncbEWgwlSfvVX5nEY1BBroKvdN7NFLT+ctCFw==}
+  motion-panels@0.7.0:
+    resolution: {integrity: sha512-GNYmVQm/c7wbgjHvKbPmNqMDS/N4/7e4i6BZ0oNWprtofCjKMoX0eJaAYTkClHEtfGnYrxQ1hCi7/EgPG6MM6A==}
     engines: {node: '>=20'}
     peerDependencies:
       motion: '>=12'
@@ -18453,7 +18453,7 @@ snapshots:
     dependencies:
       motion-utils: 14.7.0
 
-  motion-panels@0.6.1(motion@14.10.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1):
+  motion-panels@0.7.0(motion@14.10.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1):
     dependencies:
       motion: 14.10.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     optionalDependencies:
