@@ -1,6 +1,6 @@
 import process from 'node:process'
 
-import { confirm, isCancel, log, password, spinner } from '@clack/prompts'
+import { isCancel, log, password, spinner } from '@clack/prompts'
 import { connectionParts } from '@tamery/connection/connection-parts'
 import { executors } from '@tamery/connection/queries/executors'
 import { connectionSecrets } from '@tamery/connection/secrets'
@@ -16,8 +16,9 @@ import { api } from '../api'
 import { getLocalAccess } from '../bridge/connections'
 import { printable } from '../bridge/printable'
 import { enableSshTunnels } from '../bridge/ssh'
+import { askInTerminal } from '../bridge/terminal-question'
 import { paint } from '../paint'
-import { getAccountForCommand } from '../sign-in'
+import { getAccount } from '../sign-in'
 import { vault } from '../vault'
 
 export const SYNC_OPTIONS = {
@@ -73,28 +74,26 @@ const confirmLocalAccess = async (connectionString: string) => {
       `This connection uses ${listed} on this computer. Run the command in a terminal to allow it.`
     )
   }
-  const allowed = await confirm({
-    initialValue: false,
-    message: `Allow this connection to use ${listed} on this computer?`,
-  })
-  if (allowed !== true) {
+  const allowed = await askInTerminal(
+    `Allow this connection to use ${listed} on this computer?`
+  )
+  if (!allowed) {
     throw new Error('Did not allow it.')
   }
 }
 
 const testConnectionString = async () => {
   const connectionString = await readConnectionString()
-  const parsed = Result.try(() => connectionParts.parse(connectionString))
-  const { database, provider, type } = parsed.isOk()
-    ? parsed.value
-    : { database: '', provider: null, type: null }
-  if (!type) {
+  const parts = Result.try(() =>
+    connectionParts.parse(connectionString)
+  ).unwrapOr(null)
+  if (!parts?.type) {
     throw new Error(
       'Tamery cannot read this connection string. Start it with its scheme, such as postgres://, mysql:// or mongodb://.'
     )
   }
   await confirmLocalAccess(connectionString)
-  const dialect = getDialect(type)
+  const dialect = getDialect(parts.type)
   enableSshTunnels()
   const testing = spinner()
   testing.start('Connecting')
@@ -110,13 +109,13 @@ const testConnectionString = async () => {
   return {
     connectionString,
     defaultName:
-      database && database === defaultResourceName
-        ? `${displayUrl}/${database}`
+      parts.database && parts.database === defaultResourceName
+        ? `${displayUrl}/${parts.database}`
         : displayUrl,
     defaultResourceName,
     isPasswordExists: isPasswordPopulated,
-    provider,
-    type,
+    provider: parts.provider,
+    type: parts.type,
     usesSsh,
   }
 }
@@ -170,7 +169,7 @@ export const findConnection = async (ref: string) => {
 }
 
 export const listConnections = async () => {
-  await getAccountForCommand()
+  await getAccount(!!process.stdin.isTTY)
   const fetched = await fetchConnections()
   const connections = fetched.toSorted(
     (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
@@ -194,7 +193,7 @@ export const createConnection = async (options: {
   name: string | undefined
   sync: keyof typeof SYNC_OPTIONS
 }) => {
-  await getAccountForCommand()
+  await getAccount(!!process.stdin.isTTY)
   const syncType = SYNC_OPTIONS[options.sync]
   const tested = await testConnectionString()
   const id = Bun.randomUUIDv7()
@@ -245,7 +244,7 @@ export const updateConnection = async (options: {
       'Nothing to change. Pass --name, --label or --connection-string.'
     )
   }
-  await getAccountForCommand()
+  await getAccount(!!process.stdin.isTTY)
   const found = await findConnection(options.connection)
   const tested = options['connection-string']
     ? await testConnectionString()
@@ -285,17 +284,16 @@ export const deleteConnection = async (options: {
   connection: string
   yes: boolean | undefined
 }) => {
-  await getAccountForCommand()
+  await getAccount(!!process.stdin.isTTY)
   const found = await findConnection(options.connection)
   if (!options.yes) {
     if (!process.stdin.isTTY) {
       throw new Error('Pass --yes to delete without a terminal to confirm in.')
     }
-    const confirmed = await confirm({
-      initialValue: false,
-      message: `Delete ${paint.bold(found.name)} for everyone in its workspace?`,
-    })
-    if (isCancel(confirmed) || !confirmed) {
+    const confirmed = await askInTerminal(
+      `Delete ${paint.bold(found.name)} for everyone in its workspace?`
+    )
+    if (!confirmed) {
       log.info(`Kept ${paint.bold(found.name)}.`)
       return
     }

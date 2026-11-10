@@ -12,14 +12,6 @@ let client: PostHog | null = null
 
 const DO_NOT_TRACK = /^(?:1|true)$/iu.test(process.env.DO_NOT_TRACK ?? '')
 
-const getClient = () =>
-  env.POSTHOG_TOKEN && !DO_NOT_TRACK
-    ? (client ??= new PostHog(env.POSTHOG_TOKEN, {
-        flushAt: 1,
-        host: 'https://eu.i.posthog.com',
-      }))
-    : null
-
 /** Properties carry enums and counts only, never names, SQL, values or error messages (the privacy policy promises it). */
 export const analytics = {
   /** Never throws: a locked keychain or a dead network must not fail what the user did. */
@@ -28,7 +20,13 @@ export const analytics = {
     properties: Record<string, boolean | number | string | null>
   ) =>
     silently(async () => {
-      const posthog = getClient()
+      const posthog =
+        env.POSTHOG_TOKEN && !DO_NOT_TRACK
+          ? (client ??= new PostHog(env.POSTHOG_TOKEN, {
+              flushAt: 1,
+              host: 'https://eu.i.posthog.com',
+            }))
+          : null
       const account = posthog && (await vault.account())
       if (account) {
         posthog.capture({

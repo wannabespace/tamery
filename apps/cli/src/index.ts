@@ -128,31 +128,6 @@ const nameArgs = {
   name: { description: 'Its name', type: 'string', valueHint: 'name' },
 } satisfies ArgsDef
 
-const createArgs = {
-  ...nameArgs,
-  sync: {
-    default: 'full' as const,
-    description:
-      'What syncs to your other devices: the whole string, all but the password, or only the name',
-    options: objectEntries(SYNC_OPTIONS).map(([option]) => option),
-    type: 'enum',
-  },
-} satisfies ArgsDef
-
-const updateArgs = {
-  ...connectionArg,
-  ...nameArgs,
-  'connection-string': {
-    description: 'Ask for a new connection string',
-    type: 'boolean',
-  },
-} satisfies ArgsDef
-
-const deleteArgs = {
-  ...connectionArg,
-  yes: { description: 'Delete without asking', type: 'boolean' },
-} satisfies ArgsDef
-
 const connectionCommand = defineCommand({
   default: 'help',
   meta: {
@@ -165,25 +140,33 @@ const connectionCommand = defineCommand({
       run: () => printHelp(connectionCommand),
     }),
     create: defineCommand({
-      args: createArgs,
+      args: {
+        ...nameArgs,
+        sync: {
+          default: 'full' as const,
+          description:
+            'What syncs to your other devices: the whole string, all but the password, or only the name',
+          options: objectEntries(SYNC_OPTIONS).map(([option]) => option),
+          type: 'enum',
+        },
+      },
       meta: {
         description:
           'Test a connection string, from a prompt or stdin, and save it',
         name: 'tamery connection create',
       },
-      run: exitingWhenDone<typeof createArgs>(({ args }) =>
-        createConnection(args)
-      ),
+      run: exitingWhenDone(({ args }) => createConnection(args)),
     }),
     delete: defineCommand({
-      args: deleteArgs,
+      args: {
+        ...connectionArg,
+        yes: { description: 'Delete without asking', type: 'boolean' },
+      },
       meta: {
         description: 'Delete a connection for everyone in its workspace',
         name: 'tamery connection delete',
       },
-      run: exitingWhenDone<typeof deleteArgs>(({ args }) =>
-        deleteConnection(args)
-      ),
+      run: exitingWhenDone(({ args }) => deleteConnection(args)),
     }),
     list: defineCommand({
       meta: {
@@ -193,14 +176,19 @@ const connectionCommand = defineCommand({
       run: reportingErrors(listConnections),
     }),
     update: defineCommand({
-      args: updateArgs,
+      args: {
+        ...connectionArg,
+        ...nameArgs,
+        'connection-string': {
+          description: 'Ask for a new connection string',
+          type: 'boolean',
+        },
+      },
       meta: {
         description: 'Rename a connection, or change its label or string',
         name: 'tamery connection update',
       },
-      run: exitingWhenDone<typeof updateArgs>(({ args }) =>
-        updateConnection(args)
-      ),
+      run: exitingWhenDone(({ args }) => updateConnection(args)),
     }),
   },
 })
@@ -277,7 +265,7 @@ const main = defineCommand({
         description: 'Run a statement on a connection, read-only by default',
         name: 'tamery query',
       },
-      run: exitingWhenDone<typeof queryArgs>(({ args }) => query(args)),
+      run: exitingWhenDone(({ args }) => query(args)),
     }),
     update: defineCommand({
       meta: {

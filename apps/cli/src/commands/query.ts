@@ -1,6 +1,5 @@
 import process from 'node:process'
 
-import { confirm } from '@clack/prompts'
 import { createORPCErrorConstructorMap } from '@orpc/contract'
 import { ORPCError } from '@orpc/server'
 import type { ResultSet } from '@tamery/connection/queries'
@@ -20,8 +19,9 @@ import type { QueryErrors } from '../bridge/errors'
 import { queryErrors } from '../bridge/errors'
 import { printable } from '../bridge/printable'
 import { enableSshTunnels } from '../bridge/ssh'
+import { askInTerminal } from '../bridge/terminal-question'
 import { paint } from '../paint'
-import { getAccountForCommand } from '../sign-in'
+import { getAccount } from '../sign-in'
 import { findConnection, readConnectionString } from './connection'
 
 export const FORMATS = ['table', 'json', 'csv'] as const
@@ -30,10 +30,8 @@ const MAX_CELL_WIDTH = 60
 
 const errors: QueryErrors = createORPCErrorConstructorMap(queryErrors)
 
-const readsOnly = (dialect: Dialect, sql: string) =>
-  isSqlDialect(dialect)
-    ? sqlReadsOnly(sql, dialects[dialect])
-    : mongoReadsOnly(sql)
+const bigintAsText = (_key: string, item: unknown) =>
+  typeof item === 'bigint' ? item.toString() : item
 
 const getServerConnectionString = async (id: string) => {
   const server = await api.connections.resolve({ id })
@@ -52,13 +50,13 @@ const resolveConnectionString = async (
   dialect: Dialect,
   resourceName: string | undefined
 ) => {
-  const resolve = () =>
+  const resolved = await Result.tryPromise(() =>
     connections.resolve(
       { connectionId: id, resourceName: resourceName ?? null },
       dialect,
       errors
     )
-  const resolved = await Result.tryPromise(resolve)
+  )
   if (resolved.isOk()) {
     return resolved.value
   }
@@ -85,10 +83,9 @@ const resolveConnectionString = async (
   const allowed = await connections.save(
     { connectionId: id, connectionString },
     async (access) =>
-      (await confirm({
-        initialValue: false,
-        message: `Allow ${paint.bold(name)} to use ${access.map((item) => paint.bold(printable(item))).join(', ')} on this computer?`,
-      })) === true,
+      (await askInTerminal(
+        `Allow ${paint.bold(name)} to use ${access.map((item) => paint.bold(printable(item))).join(', ')} on this computer?`
+      )) === true,
     errors
   )
   if (!allowed) {
@@ -115,7 +112,10 @@ const run = async ({
   if (write) {
     return executor.execute({ connectionString, maxRows, query: sql })
   }
-  if (!readsOnly(dialect, sql)) {
+  const readOnly = isSqlDialect(dialect)
+    ? sqlReadsOnly(sql, dialects[dialect])
+    : mongoReadsOnly(sql)
+  if (!readOnly) {
     throw new Error(
       `Without ${paint.flag('--write')}, one read-only statement runs at a time, such as SELECT, SHOW, EXPLAIN, or a MongoDB find or aggregate.`
     )
@@ -141,9 +141,7 @@ const toText = (value: unknown) => {
     return ''
   }
   if (typeof value === 'object') {
-    return JSON.stringify(value, (_key, item) =>
-      typeof item === 'bigint' ? item.toString() : item
-    )
+    return JSON.stringify(value, bigintAsText)
   }
   return String(value)
 }
@@ -206,16 +204,6 @@ const printCsv = ({ columns, rows, truncated }: ResultSet) => {
   }
 }
 
-const printJson = (sets: ResultSet[]) => {
-  console.log(
-    JSON.stringify(
-      sets,
-      (_key, item) => (typeof item === 'bigint' ? item.toString() : item),
-      2
-    )
-  )
-}
-
 const readSql = async (sql: string | undefined) => {
   const given = sql ?? (process.stdin.isTTY ? '' : await Bun.stdin.text())
   if (!given.trim()) {
@@ -239,7 +227,7 @@ export const query = async (options: {
     throw new Error('--max-rows must be a whole number above 0.')
   }
   const sql = await readSql(options.sql)
-  await getAccountForCommand()
+  await getAccount(!!process.stdin.isTTY)
   const found = await findConnection(options.connection)
   const dialect = getDialect(found.type)
   enableSshTunnels()
@@ -268,7 +256,7 @@ export const query = async (options: {
   }
   const { result } = ran.value
   if (options.format === 'json') {
-    printJson(result)
+    console.log(JSON.stringify(result, bigintAsText, 2))
     return
   }
   for (const [index, set] of result.entries()) {

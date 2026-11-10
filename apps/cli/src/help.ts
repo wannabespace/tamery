@@ -49,7 +49,7 @@ export const findCommand = async (
 ): Promise<CommandDef> => {
   const index = rawArgs.findIndex((arg) => !arg.startsWith('-'))
   const subCommands = await resolve(command.subCommands ?? {})
-  const sub = index === -1 ? undefined : subCommands[rawArgs[index] ?? '']
+  const sub = subCommands[rawArgs[index] ?? '']
   return sub
     ? findCommand(await resolve(sub), rawArgs.slice(index + 1))
     : command

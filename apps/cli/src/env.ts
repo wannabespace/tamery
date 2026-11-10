@@ -15,13 +15,13 @@ if (!import.meta.env.API_URL) {
 export const env = type({
   API_URL: 'string.url',
   MAIN_URL: 'string.url',
-  POSTHOG_TOKEN: 'string | undefined',
+  POSTHOG_TOKEN: 'string | null',
   VERSION: 'string',
   WEB_URL: 'string.url',
 }).assert({
   API_URL: import.meta.env.API_URL,
   MAIN_URL: import.meta.env.MAIN_URL,
-  POSTHOG_TOKEN: import.meta.env.POSTHOG_TOKEN || undefined,
+  POSTHOG_TOKEN: import.meta.env.POSTHOG_TOKEN || null,
   VERSION: pkg.version,
   WEB_URL: import.meta.env.WEB_URL,
 })

@@ -92,6 +92,3 @@ export const getAccount = async (canSignIn = true) => {
   }
   return signIn()
 }
-
-/** For commands scripts run: they sign in only from a terminal. */
-export const getAccountForCommand = () => getAccount(!!process.stdin.isTTY)
