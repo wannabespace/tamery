@@ -39,7 +39,13 @@ const shareView = type({
   columns: type({ id: 'string', kind: columnKind, type: 'string | null' })
     .array()
     .atLeastLength(1),
-  filters: activeFilter.array(),
+  // The proxy compiles a share's filters itself, so it never runs SQL a client wrote.
+  filters: activeFilter
+    .narrow(
+      (filter, ctx) =>
+        filter.ref.operator !== 'sql' || ctx.mustBe('a filter other than SQL')
+    )
+    .array(),
   orderBy: { '[string]': orderDirection },
   schema: 'string',
   table: 'string',

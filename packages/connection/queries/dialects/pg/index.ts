@@ -1,18 +1,12 @@
 import { logDriverError } from '@tamery/shared/sanitize-log'
 import type { ClientBase, Pool } from 'pg'
 
-import type { QueryExecutor, TransactionStatus } from '../..'
+import type { QueryExecutor } from '../..'
 import { handleQueryError } from '../..'
 import { cancel } from '../../cancellation'
 import { registerTransaction, transactionQueries } from '../../transactions'
 import { getPool, pg } from './client'
-import { runOn } from './run'
-
-const TRANSACTION_STATUS = {
-  E: 'failed',
-  I: 'ended',
-  T: 'open',
-} as const satisfies Record<string, TransactionStatus>
+import { runOn, TRANSACTION_STATUS } from './run'
 
 const register = (
   client: ClientBase,

@@ -3,7 +3,7 @@ import path from 'node:path'
 import { constants, DatabaseSync } from 'node:sqlite'
 import { pathToFileURL } from 'node:url'
 
-import { sqliteFile } from '../../../sqlite-file'
+import { databaseFile } from '../../../database-file'
 
 // The driver waits for a lock synchronously, holding every other query in the desktop database process, so the wait stays short.
 const BUSY_TIMEOUT_MS = 2000
@@ -20,7 +20,7 @@ export const confineSqliteFiles = () => {
 
 /** `mode=rw` fails on a missing file instead of creating an empty database at a mistyped path. */
 export const openDatabase = (connectionString: string) => {
-  const file = sqliteFile.path(connectionString)
+  const file = databaseFile.path(connectionString)
   const url = pathToFileURL(
     file.startsWith('~/') ? path.join(homedir(), file.slice(2)) : file
   )

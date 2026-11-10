@@ -12,7 +12,7 @@ import type {
   ConnectionForm,
   ConnectionFormValues,
 } from '../lib/connection-form'
-import { getEngineFields, isSqliteFile } from '../lib/engine-fields'
+import { getEngineFields, getFileType } from '../lib/engine-fields'
 import { EngineField } from './engine-field'
 import { Footnote } from './footnote'
 import { TextRow } from './text-row'
@@ -26,7 +26,7 @@ export const ConnectionFields = ({
   locked: (field: string) => boolean
   values: Pick<ConnectionFormValues, 'host' | 'provider' | 'type'>
 }) => {
-  const sqliteFile = isSqliteFile(values)
+  const fileType = getFileType(values)
   const bridge = useBridgeRoute(null)
 
   return (
@@ -52,7 +52,7 @@ export const ConnectionFields = ({
                 }
               }
             >
-              {sqliteFile && window.electron && (
+              {fileType && window.electron && (
                 <IconButton
                   variant="ghost-faint"
                   size="icon-sm"
@@ -60,7 +60,8 @@ export const ConnectionFields = ({
                   label="Choose file"
                   disabled={locked(name)}
                   onClick={async () => {
-                    const path = await window.electron?.sqlite.pickFile()
+                    const path =
+                      await window.electron?.databaseFile.pick(fileType)
                     if (path) {
                       posthog.capture('connection_file_picked')
                       form.setFieldValue(name, path)
@@ -72,13 +73,13 @@ export const ConnectionFields = ({
           )
         )}
       </FieldGroup>
-      {bridge && !sqliteFile && isLocalHost(values.host.trim()) && (
+      {bridge && !fileType && isLocalHost(values.host.trim()) && (
         <Footnote>
           Local databases are reached from the bridge on{' '}
           <span data-mask>{bridge.name}</span>.
         </Footnote>
       )}
-      {sqliteFile && !window.electron && (
+      {fileType && !window.electron && (
         <Footnote>
           {bridge ? (
             <>

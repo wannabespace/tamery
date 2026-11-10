@@ -1,12 +1,12 @@
 ---
 title: 'Tamery CLI'
 sidebarTitle: 'Overview'
-description: "Run the web app's queries on your own computer with tamery bridge: localhost, private networks, SQLite files, and connections whose password stays with you."
+description: "Run the web app's queries on your own computer with tamery bridge: localhost, private networks, SQLite and DuckDB files, and connections whose password stays with you."
 keywords:
   ['command line', 'terminal', 'tamery proxy', 'local proxy', 'headless']
 ---
 
-`tamery bridge` lets the web app run your queries on the computer where the bridge runs. Use it for a database on localhost or a private network, a SQLite file, or a connection whose password Tamery's server doesn't have. The desktop app doesn't need it: it already runs queries on your computer.
+`tamery bridge` lets the web app run your queries on the computer where the bridge runs. Use it for a database on localhost or a private network, a SQLite or DuckDB file, or a connection whose password Tamery's server doesn't have. The desktop app doesn't need it: it already runs queries on your computer.
 
 ## Install
 
@@ -74,7 +74,7 @@ The bridge runs only the connections saved in your account.
 | **No password** | Asks once for the password and the other secrets that don't sync. |
 | **Metadata only** | Asks once for the server details. |
 
-Some connections use this computer's files or credentials: a SQLite file, a certificate file (such as `sslkey` or `tlsCAFile`), an SSH tunnel, or a MongoDB login with the computer's AWS, OIDC or Kerberos credentials. The bridge runs them only once you allow them:
+Some connections use this computer's files or credentials: a SQLite or DuckDB file, a certificate file (such as `sslkey` or `tlsCAFile`), an SSH tunnel, or a MongoDB login with the computer's AWS, OIDC or Kerberos credentials. The bridge runs them only once you allow them:
 
 - **Saved in this browser:** already allowed.
 - **Saved by someone else:** click **Allow** on **Allow this connection on the bridge**.
@@ -84,7 +84,7 @@ The first time a connection uses a file, tunnel or login, the terminal running `
 
 To try a new connection while paired, save it first. Only saved connections run on the bridge.
 
-SQLite paths, `~/` included, point to files on the bridge's computer. SSH tunnels open there too, with its SSH keys, agent and `~/.ssh/config`. When an SSH host isn't in that computer's `known_hosts`, the bridge asks in its terminal whether to trust it. Without a terminal it refuses, so connect once with `ssh` there first.
+SQLite and DuckDB paths, `~/` included, point to files on the bridge's computer. The first DuckDB file downloads DuckDB for the bridge, once. A DuckDB query through the bridge reads only its own file, never other files or URLs. SSH tunnels open there too, with its SSH keys, agent and `~/.ssh/config`. When an SSH host isn't in that computer's `known_hosts`, the bridge asks in its terminal whether to trust it. Without a terminal it refuses, so connect once with `ssh` there first.
 
 The bridge reaches databases and files with the rights of the system user that runs it. On a shared server, run it as a user with no more access than it needs.
 

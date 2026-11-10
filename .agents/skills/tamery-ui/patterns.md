@@ -110,7 +110,7 @@
 
 ## Filter field
 
-Suggestion order is JSX order (`shouldFilter={false}`) — the literal answer first, `Ask AI` last. Chips scroll in a capped row so the field never grows forever, and read as prose (`Is not null`), never raw SQL. AI results report inline as a pinned header above the list, never a toast and never inside the scrolling list. Quota exhaustion disables the `Ask AI` item alone, never the input. Blur keeps the in-progress stage; only Escape steps back.
+Suggestion order is JSX order (`shouldFilter={false}`) — the literal answer first, `Ask AI` last. Chips scroll in a capped row so the field never grows forever, and read as prose (`Is not null`), never raw SQL. AI results report as the input's placeholder behind a check icon, never a toast and never inside the scrolling list. A JSON column adds `Filter inside <column>`, which browses the sampled keys one level at a time by writing the dotted path into the input, so a typed path and a browsed one are the same text; a typed path into a JSON column takes the highlight from `Ask AI`. Quota exhaustion disables the `Ask AI` item alone, never the input. Blur keeps the in-progress stage; only Escape steps back.
 
 ## Panes
 
@@ -174,7 +174,7 @@ One generic page (`DefinitionsPage<T>`) serves Indexes, Constraints, Enums, Func
 
 **Layout**
 
-- Header = title + `NumberFlow` count (skeleton until loaded) + a labeled `+ Add <noun>` button, shown only where the dialect can create — absent operations are hidden, never disabled ([dialects.md](../../rules/dialects.md)). It does go `disabled` until the page knows which schema it would create into: every create form carries the schema, and an empty one is a statement nobody can write.
+- Header = title + `NumberFlow` count (skeleton until loaded) + a labeled `+ Add <noun>` button, shown only where the dialect can create — absent operations are hidden, never disabled, and get no "Tamery can't…" note — the missing button already says so ([dialects.md](../../rules/dialects.md)). It does go `disabled` until the page knows which schema it would create into: every create form carries the schema, and an empty one is a statement nobody can write.
 - Controls row, then a level-3 card holding the kit `Table` at its one density; the page writes no surface classes of its own. Muted header row, hairline separators, no zebra. The card carries no side padding so hover and selection run edge to edge.
 - **`table-fixed`: every column but one declares a fractional width and the last takes the slack.** Fixed layout scales columns together, so a fraction survives a narrow pane where a rem width beside a `w-full` column starves; auto layout sized columns from whatever values happened to load and moved between sections, schemas and the skeleton. The unsized column is the one that genuinely carries length, so the slack lands beside real content. Fixed widths also make the skeleton free — its bars are percentages of a known width.
 - **Identifiers render `font-mono`, prose labels do not** — names, tables, columns, roles and expressions are values; Type/Timing/Event are chrome. Type is a muted text column, never a badge; state (`Disabled`) is the only badge. Cells `truncate` (the inspector holds the full value), and trailing meta columns take `align: 'end'` for a right-hand rail.

@@ -12,6 +12,10 @@ const connectionCurrentDatabaseQuery = createQuery({
       db
         .selectNoFrom(sql<string>`currentDatabase()`.as('name'))
         .executeTakeFirstOrThrow(),
+    duckdb: (db) =>
+      db
+        .selectNoFrom(sql<string>`current_database()`.as('name'))
+        .executeTakeFirstOrThrow(),
     mongodb: async (db) => {
       const [stats] = await db.command<{ db: string }>('dbStats')
       return { name: stats?.db ?? null }

@@ -2,23 +2,24 @@ import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
 import { SafeURL } from '@tamery/shared/safe-url'
 import { objectEntries } from '@tamery/shared/utils'
 
+import { databaseFile } from './database-file'
+import { getMotherduckHost } from './motherduck-host'
 import { readConnectionString } from './parse-connection-string'
-import { sqliteFile } from './sqlite-file'
 import type { SshTunnel } from './ssh/params'
 import { deleteSshParams, setSshParams, getSshTunnel } from './ssh/params'
 
 export interface ConnectionParts {
-  /** A SQLite file's path, D1's database ID. */
+  /** A SQLite or DuckDB file's path, D1's database ID. */
   database: string
   host: string
   /** ClickHouse's transport as the string named it (`https://` or `http://`); `null` infers it from the port. */
   https: boolean | null
   /** Driver options as a query string, without the leading `?` and without the `ssh_*` params. */
   options: string
-  /** Also a libSQL or D1 token, so every secret path treats it as the password. */
+  /** Also a libSQL, D1 or MotherDuck token, so every secret path treats it as the password. */
   password: string
   port: string
-  /** Read from a SQLite server's scheme; `null` for a file and every other engine. */
+  /** Read from a server's scheme; `null` for a file and every engine without providers. */
   provider: Provider | null
   ssh: SshTunnel | null
   type: ConnectionType | null
@@ -27,6 +28,7 @@ export interface ConnectionParts {
 
 export const DEFAULT_PORTS: Record<ConnectionType, number | null> = {
   [ConnectionType.ClickHouse]: 8123,
+  [ConnectionType.DuckDB]: null,
   [ConnectionType.MariaDB]: 3306,
   [ConnectionType.MongoDB]: 27_017,
   [ConnectionType.MSSQL]: 1433,
@@ -52,6 +54,12 @@ export const CLICKHOUSE_HTTP_PORT_OF_NATIVE: Record<string, string> = {
   9440: CLICKHOUSE_HTTPS_PORT,
 }
 
+export const MOTHERDUCK_DEFAULT_DATABASE = 'my_db'
+/** The endpoint answers on Postgres's port in every region, whatever a string says. */
+const MOTHERDUCK_PORT = '5432'
+/** MotherDuck's own clients take the token from here; Tamery keeps it as the password. */
+const MOTHERDUCK_TOKEN_PARAM = 'motherduck_token'
+
 const getPort = ({
   https,
   port,
@@ -61,6 +69,9 @@ const getPort = ({
   // SRV resolves the servers and their ports from DNS, and the driver refuses a port beside it.
   if (provider === Provider.MongoDBAtlas) {
     return ''
+  }
+  if (provider === Provider.MotherDuck) {
+    return MOTHERDUCK_PORT
   }
   if (port) {
     return port
@@ -76,13 +87,16 @@ const TYPE_OF_NAME: Record<string, ConnectionType> = {
   clickhouse: ConnectionType.ClickHouse,
   cockroachdb: ConnectionType.Postgres,
   d1: ConnectionType.SQLite,
+  duckdb: ConnectionType.DuckDB,
   http: ConnectionType.ClickHouse,
   https: ConnectionType.ClickHouse,
   libsql: ConnectionType.SQLite,
   mariadb: ConnectionType.MariaDB,
+  md: ConnectionType.DuckDB,
   'microsoft sql server': ConnectionType.MSSQL,
   mongo: ConnectionType.MongoDB,
   mongodb: ConnectionType.MongoDB,
+  motherduck: ConnectionType.DuckDB,
   mssql: ConnectionType.MSSQL,
   mysql: ConnectionType.MySQL,
   mysql2: ConnectionType.MySQL,
@@ -113,7 +127,9 @@ export const D1_HOST = 'api.cloudflare.com'
 const PROVIDER_OF_SCHEME: Partial<Record<string, Provider>> = {
   d1: Provider.CloudflareD1,
   libsql: Provider.Turso,
+  md: Provider.MotherDuck,
   'mongodb+srv': Provider.MongoDBAtlas,
+  motherduck: Provider.MotherDuck,
 }
 
 /** `null` for a scheme Tamery does not know: a SQLite server is never guessed to be one it does. */
@@ -142,6 +158,11 @@ const PROVIDER_FORMATS: Record<Provider, (parts: ConnectionParts) => string> = {
       `mongodb+srv://${parts.host}/${encodeURIComponent(parts.database)}`,
       parts
     ).toString(),
+  [Provider.MotherDuck]: (parts) =>
+    withCredentials(
+      `motherduck://${parts.host || getMotherduckHost(parts.password)}/${encodeURIComponent(parts.database)}`,
+      parts
+    ).toString(),
   [Provider.Turso]: (parts) =>
     withCredentials(
       `libsql://${parts.host}${parts.port ? `:${parts.port}` : ''}`,
@@ -150,10 +171,13 @@ const PROVIDER_FORMATS: Record<Provider, (parts: ConnectionParts) => string> = {
 }
 
 /** A host without a provider formats to nothing, never to a file string. */
-const formatSqlite = (parts: ConnectionParts) =>
+const formatFile = (
+  type: ConnectionType.DuckDB | ConnectionType.SQLite,
+  parts: ConnectionParts
+) =>
   parts.host || !parts.database
     ? ''
-    : sqliteFile.connectionString(parts.database)
+    : databaseFile.connectionString(type, parts.database)
 
 const format = (
   parts: ConnectionParts,
@@ -162,8 +186,11 @@ const format = (
   if (parts.provider) {
     return PROVIDER_FORMATS[parts.provider](parts)
   }
-  if (parts.type === ConnectionType.SQLite) {
-    return formatSqlite(parts)
+  if (
+    parts.type === ConnectionType.DuckDB ||
+    parts.type === ConnectionType.SQLite
+  ) {
+    return formatFile(parts.type, parts)
   }
   if (!parts.type || !parts.host) {
     return ''
@@ -193,7 +220,11 @@ const format = (
 
 const HTTPS_OF_SCHEME: Record<string, boolean> = { http: false, https: true }
 
-const AUTH_TOKEN_PARAM = 'authtoken'
+/** The engines whose string is a file without a host, and the param their servers' own strings carry the token in. */
+const TOKEN_PARAMS: Partial<Record<string, string>> = {
+  [ConnectionType.DuckDB]: MOTHERDUCK_TOKEN_PARAM,
+  [ConnectionType.SQLite]: 'authtoken',
+}
 
 const parse = (connectionString: string): ConnectionParts => {
   const { scheme, searchParams, ...parts } =
@@ -201,11 +232,12 @@ const parse = (connectionString: string): ConnectionParts => {
   const ssh = getSshTunnel(searchParams)
   deleteSshParams(searchParams)
   const type = getConnectionType(scheme)
-  if (type === ConnectionType.SQLite && parts.host) {
-    parts.password = searchParams.get(AUTH_TOKEN_PARAM) ?? parts.password
-    searchParams.delete(AUTH_TOKEN_PARAM)
-  } else if (type === ConnectionType.SQLite) {
-    parts.database = sqliteFile.path(connectionString)
+  const tokenParam = TOKEN_PARAMS[type ?? '']
+  if (tokenParam && parts.host) {
+    parts.password = searchParams.get(tokenParam) ?? parts.password
+    searchParams.delete(tokenParam)
+  } else if (tokenParam) {
+    parts.database = databaseFile.path(connectionString)
   }
 
   return {

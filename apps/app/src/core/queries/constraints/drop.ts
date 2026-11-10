@@ -15,6 +15,7 @@ export const dropConstraintQuery = (
         db.executeQuery(
           dropConstraintStatement(Dialect.ClickHouse, db, target)
         ),
+      duckdb: unsupported('Dropping constraints'),
       mongodb: unsupported('Constraints'),
       mssql: (db) =>
         db.executeQuery(dropConstraintStatement(Dialect.MSSQL, db, target)),

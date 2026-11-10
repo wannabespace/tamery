@@ -353,6 +353,18 @@ describe('generators (postgres)', () => {
     ).toBe("select `a?` from `t` where `b` = 'x'")
   })
 
+  it("inlines only the dialect's own placeholder", () => {
+    expect(
+      inlineParameters(
+        `select * from "t" where (payload ? 'city') and "j" #>> array[$1]::text[] = $2`,
+        ['city', 'Berlin'],
+        Dialect.Postgres
+      )
+    ).toBe(
+      `select * from "t" where (payload ? 'city') and "j" #>> array['city']::text[] = 'Berlin'`
+    )
+  })
+
   it('prisma keeps every filter on a repeated column', () => {
     const query = generateQueryPrisma({
       defaultSchema: 'public',

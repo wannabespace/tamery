@@ -118,6 +118,7 @@ export const createConnectionsResourcesCollection = () =>
         getKey: (item) => item.id,
         id: 'connections-resources',
         mutations: {
+          delete: (id) => orpc.connectionsResources.remove.call({ id }),
           insert: (value) => orpc.connectionsResources.create.call(value),
         },
         sync: ({ rows, signal }) =>

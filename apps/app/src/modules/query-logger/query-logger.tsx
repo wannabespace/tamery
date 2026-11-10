@@ -12,6 +12,7 @@ import { Button } from '@tamery/ui/components/button'
 import { CodeBlock, CodeInline } from '@tamery/ui/components/custom/code-block'
 import { ContentSwitch } from '@tamery/ui/components/custom/content-switch'
 import { CopyIconButton } from '@tamery/ui/components/custom/copy-button'
+import { ResizablePin } from '@tamery/ui/components/custom/resizable'
 import {
   Empty,
   EmptyDescription,
@@ -337,7 +338,7 @@ export const QueryLogger = ({
         </Empty>
       ) : (
         <div className="flex min-h-0 flex-1">
-          <div className="min-w-0 flex-1">
+          <ResizablePin className="min-w-0 flex-1">
             <LogList
               language={getQueryLanguage(dialect).highlight}
               queries={queries}
@@ -346,7 +347,7 @@ export const QueryLogger = ({
                 setSelectedId((current) => (current === id ? undefined : id))
               }
             />
-          </div>
+          </ResizablePin>
           <div
             className={cn(
               'flex w-0 shrink-0 flex-col overflow-hidden',

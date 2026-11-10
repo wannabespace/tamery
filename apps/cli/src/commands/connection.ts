@@ -6,7 +6,10 @@ import { executors } from '@tamery/connection/queries/executors'
 import { connectionSecrets } from '@tamery/connection/secrets'
 import { describeConnectionString } from '@tamery/connection/utils'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
-import { getDialect } from '@tamery/shared/enums/connection-type'
+import {
+  ConnectionType,
+  getDialect,
+} from '@tamery/shared/enums/connection-type'
 import { SyncType } from '@tamery/shared/enums/sync-type'
 import { silently } from '@tamery/shared/utils'
 import { Result } from 'better-result'
@@ -14,6 +17,7 @@ import { Result } from 'better-result'
 import { analytics } from '../analytics'
 import { api } from '../api'
 import { getLocalAccess } from '../bridge/connections'
+import { installDuckdb } from '../bridge/duckdb'
 import { printable } from '../bridge/printable'
 import { enableSshTunnels } from '../bridge/ssh'
 import { askInTerminal } from '../bridge/terminal-question'
@@ -29,6 +33,7 @@ export const SYNC_OPTIONS = {
 
 const PING: Record<Dialect, string> = {
   clickhouse: 'SELECT 1',
+  duckdb: 'SELECT 1',
   mongodb: 'db.runCommand({ ping: 1 })',
   mssql: 'SELECT 1',
   mysql: 'SELECT 1',
@@ -93,6 +98,9 @@ const testConnectionString = async () => {
     )
   }
   await confirmLocalAccess(connectionString)
+  if (parts.type === ConnectionType.DuckDB && !parts.host) {
+    await installDuckdb()
+  }
   const dialect = getDialect(parts.type)
   enableSshTunnels()
   const testing = spinner()

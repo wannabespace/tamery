@@ -1,6 +1,6 @@
 import type { ColumnTypes } from '@tamery/connection/queries/value-binding'
-import { filterValueBindings } from '@tamery/connection/queries/value-binding'
-import type { ActiveFilter, FilterValueBinding } from '@tamery/shared/filters'
+import { filterSpellings } from '@tamery/connection/queries/value-binding'
+import type { ActiveFilter, FilterSpelling } from '@tamery/shared/filters'
 import { toKyselyFilter } from '@tamery/shared/filters'
 import { type } from 'arktype'
 import type { Kysely } from 'kysely'
@@ -33,7 +33,7 @@ const selectStats = (
   // oxlint-disable-next-line ts/no-explicit-any
   db: Kysely<any>,
   { column, filters, ranged, schema, table }: ColumnStatsParams,
-  bind?: FilterValueBinding
+  spelling: FilterSpelling
 ) =>
   db
     .withSchema(schema)
@@ -50,7 +50,7 @@ const selectStats = (
         eb.fn.max(column).as('max'),
       ])
     )
-    .where((eb) => toKyselyFilter(eb, filters, 'AND', bind))
+    .where((eb) => toKyselyFilter(eb, filters, 'AND', spelling))
     .executeTakeFirstOrThrow()
 
 // Pass `ranged` only for ordered types: it adds min and max.
@@ -58,11 +58,9 @@ export const columnStatsQuery = (params: ColumnStatsParams) =>
   createQuery({
     query: {
       clickhouse: (db) =>
-        selectStats(
-          db,
-          params,
-          filterValueBindings.clickhouse?.(params.columns)
-        ),
+        selectStats(db, params, filterSpellings.clickhouse(params.columns)),
+      duckdb: (db) =>
+        selectStats(db, params, filterSpellings.duckdb(params.columns)),
       mongodb: async (db) => {
         const field = `$${params.column}`
         const [result] = await db.collection(params.table).aggregate<{
@@ -109,12 +107,16 @@ export const columnStatsQuery = (params: ColumnStatsParams) =>
           unique: result?.unique[0]?.count ?? 0,
         }
       },
-      mssql: (db) => selectStats(db, params),
-      mysql: (db) => selectStats(db, params),
-      oracle: (db) => selectStats(db, params),
-      postgres: (db) => selectStats(db, params),
+      mssql: (db) =>
+        selectStats(db, params, filterSpellings.mssql(params.columns)),
+      mysql: (db) =>
+        selectStats(db, params, filterSpellings.mysql(params.columns)),
+      oracle: (db) =>
+        selectStats(db, params, filterSpellings.oracle(params.columns)),
+      postgres: (db) =>
+        selectStats(db, params, filterSpellings.postgres(params.columns)),
       sqlite: (db) =>
-        selectStats(db, params, filterValueBindings.sqlite?.(params.columns)),
+        selectStats(db, params, filterSpellings.sqlite(params.columns)),
     },
     type: statsType,
   })

@@ -58,10 +58,14 @@ const ROW_LIMIT_PRESETS: readonly number[] = SHARE_ROW_LIMITS
 
 const rowsLabel = (value: number) => `${value.toLocaleString()} rows`
 
-const formDefaults = (share: Share | null, table: string) => ({
+const formDefaults = (
+  share: Share | null,
+  table: string,
+  canShareFilters: boolean
+) => ({
   description: share?.description ?? '',
   expires: (share?.expiresAt ? 'current' : 'never') as Expiry,
-  includeFilters: !share || share.view.filters.length > 0,
+  includeFilters: canShareFilters && (!share || share.view.filters.length > 0),
   maxRows: String(share?.maxRows ?? SHARE_MAX_ROWS),
   name: share?.name ?? table,
   password: '',
@@ -80,6 +84,9 @@ export const ShareLinkForm = ({
 }) => {
   const { connectionResource, dialect } = useConnectionContext()
   const { filters } = view
+  const canShareFilters = !filters.some(
+    (filter) => filter.ref.operator === 'sql'
+  )
   const [rowsQuery, setRowsQuery] = useState('')
   const typedRows = Number(rowsQuery.trim())
   const canAddRows =
@@ -128,7 +135,7 @@ export const ShareLinkForm = ({
   })
 
   const form = useAppForm({
-    defaultValues: formDefaults(share, view.table),
+    defaultValues: formDefaults(share, view.table, canShareFilters),
     onSubmit: ({ value }) => {
       const count = (
         queryClient.getQueryData(sharesQueryOptions.queryKey) ?? []
@@ -267,11 +274,16 @@ export const ShareLinkForm = ({
               <OptionField
                 htmlFor={field.name}
                 title="Apply the table’s filters"
-                description={`Viewers see only the rows the ${plural(filters.length, 'filter')} let through.`}
+                description={
+                  canShareFilters
+                    ? `Viewers see only the rows the ${plural(filters.length, 'filter')} let through.`
+                    : 'A SQL filter can’t be shared. Remove it to share the filters.'
+                }
               >
                 <Switch
                   id={field.name}
                   size="sm"
+                  disabled={!canShareFilters}
                   checked={field.state.value}
                   onCheckedChange={field.handleChange}
                 />

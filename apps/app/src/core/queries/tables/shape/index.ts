@@ -2,6 +2,7 @@ import { Dialect } from '@tamery/shared/enums/connection-type'
 import type { CreateTableBuilder, Kysely } from 'kysely'
 import { sql } from 'kysely'
 
+import { COLUMN_TYPE_CAPABILITIES } from '~/core/catalog/column-types'
 import { suggestedName } from '~/core/catalog/engine-name'
 import {
   identifiers,
@@ -47,14 +48,15 @@ export type Db = Kysely<any>
 
 const LOW_CARDINALITY = 'LowCardinality('
 
-const clickhouseNeverNullableRegex = /^(?:Array|Map|Tuple)\(/u
-
 // ClickHouse needs Nullable() inside LowCardinality(), never around it.
 export const clickhouseColumnType = ({
   nullable,
   type: columnType,
 }: Pick<NewColumn, 'nullable' | 'type'>) => {
-  if (!nullable || clickhouseNeverNullableRegex.test(columnType)) {
+  if (
+    !nullable ||
+    COLUMN_TYPE_CAPABILITIES[Dialect.ClickHouse].neverNullable?.test(columnType)
+  ) {
     return columnType
   }
   return columnType.startsWith(LOW_CARDINALITY)

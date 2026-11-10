@@ -25,7 +25,7 @@ Synced connection strings are encrypted with a workspace key. They are decrypted
 - **Web with [`tamery bridge`](/cli/overview):** the computer running the bridge connects to the database. Queries carry connection IDs, and the bridge gets each connection string through your account. Only the details your sync type keeps off Tamery's servers go from the browser to the bridge, once. Tamery's servers confirm that the bridge and the browser are signed in to the same account, and the bridge refuses requests that reach it through another address than its **Bridge URL**.
 - **Web without a bridge:** Tamery's cloud proxy connects to public database servers and handles the query and its results.
 
-The cloud proxy cannot reach private addresses, open SQLite and certificate files on your computer, or sign in to MongoDB with AWS, OIDC or Kerberos credentials. Use desktop or the bridge for those. Connections whose secrets stay on your device also need desktop or the bridge.
+The cloud proxy cannot reach private addresses, open SQLite, DuckDB and certificate files on your computer, or sign in to MongoDB with AWS, OIDC or Kerberos credentials. Use desktop or the bridge for those. Connections whose secrets stay on your device also need desktop or the bridge.
 
 ### Cloud proxy IP addresses
 

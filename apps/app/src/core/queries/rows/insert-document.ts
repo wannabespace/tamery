@@ -18,6 +18,7 @@ export const insertDocumentQuery = ({
     query: {
       clickhouse: unsupported(DOCUMENT),
       // The statement runs as a script, so a crafted document could chain extra calls; parseInsertOne refuses anything but this one insertOne.
+      duckdb: unsupported(DOCUMENT),
       mongodb: (db) => {
         parseInsertOne(statement, table)
         return db.run(statement)

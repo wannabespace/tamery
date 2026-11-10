@@ -3,6 +3,7 @@ import process from 'node:process'
 import { createORPCErrorConstructorMap } from '@orpc/contract'
 import { ORPCError } from '@orpc/server'
 import type { ResultSet } from '@tamery/connection/queries'
+import { confineDuckdbFiles } from '@tamery/connection/queries/dialects/duckdb/instances'
 import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/client'
 import { executors } from '@tamery/connection/queries/executors'
 import { readsOnly as mongoReadsOnly } from '@tamery/mongo/effects'
@@ -231,6 +232,7 @@ export const query = async (options: {
   const found = await findConnection(options.connection)
   const dialect = getDialect(found.type)
   enableSshTunnels()
+  confineDuckdbFiles()
   confineSqliteFiles()
   const connectionString = await resolveConnectionString(
     found,

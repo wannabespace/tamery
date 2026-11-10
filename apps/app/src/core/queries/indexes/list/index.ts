@@ -8,6 +8,7 @@ import {
 } from '~/core/runtime/query'
 
 import { clickhouseIndexes } from './clickhouse'
+import { duckdbIndexes } from './duckdb'
 import { mongodbIndexes } from './mongodb'
 import { mssqlIndexes } from './mssql'
 import { mysqlIndexes } from './mysql'
@@ -59,6 +60,7 @@ export const structureQueryKey = (connectionResource: ConnectionResource) => [
 const resourceIndexesQuery = createQuery({
   query: {
     clickhouse: clickhouseIndexes,
+    duckdb: duckdbIndexes,
     mongodb: mongodbIndexes,
     mssql: mssqlIndexes,
     mysql: mysqlIndexes,

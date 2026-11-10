@@ -76,7 +76,10 @@ export const columnMenu = (
     ...(can.alterColumns || column.state === 'added'
       ? [
           {
-            disabled: !editable || column.primaryKey,
+            disabled:
+              !editable ||
+              column.primaryKey ||
+              !!can.neverNullable?.test(column.type),
             icon: EraserIcon,
             label: column.nullable ? 'Require a Value' : 'Allow NULL',
             onSelect: () => actions.toggleNullable(table, column),

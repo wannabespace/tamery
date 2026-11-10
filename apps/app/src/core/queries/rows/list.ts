@@ -1,6 +1,6 @@
 import { mongoPage, selectPage } from '@tamery/connection/queries/select-page'
 import type { ColumnTypes } from '@tamery/connection/queries/value-binding'
-import { filterValueBindings } from '@tamery/connection/queries/value-binding'
+import { filterSpellings } from '@tamery/connection/queries/value-binding'
 import type { ActiveFilter } from '@tamery/shared/filters'
 import { EQUAL_FILTER } from '@tamery/shared/filters'
 import { infiniteQueryOptions } from '@tanstack/react-query'
@@ -47,11 +47,9 @@ export const resourceRowsQuery = memoize(
     return createQuery({
       query: {
         clickhouse: (db) =>
-          selectPage(
-            db,
-            page,
-            filterValueBindings.clickhouse?.(columns)
-          ).execute(),
+          selectPage(db, page, filterSpellings.clickhouse(columns)).execute(),
+        duckdb: (db) =>
+          selectPage(db, page, filterSpellings.duckdb(columns)).execute(),
         mongodb: async (db) => {
           const documents = await db
             .collection(page.table)
@@ -60,12 +58,16 @@ export const resourceRowsQuery = memoize(
             fromMongodbDocument(document, columns)
           )
         },
-        mssql: (db) => selectPage(db, page).execute(),
-        mysql: (db) => selectPage(db, page).execute(),
-        oracle: (db) => selectPage(db, page).execute(),
-        postgres: (db) => selectPage(db, page).execute(),
+        mssql: (db) =>
+          selectPage(db, page, filterSpellings.mssql(columns)).execute(),
+        mysql: (db) =>
+          selectPage(db, page, filterSpellings.mysql(columns)).execute(),
+        oracle: (db) =>
+          selectPage(db, page, filterSpellings.oracle(columns)).execute(),
+        postgres: (db) =>
+          selectPage(db, page, filterSpellings.postgres(columns)).execute(),
         sqlite: (db) =>
-          selectPage(db, page, filterValueBindings.sqlite?.(columns)).execute(),
+          selectPage(db, page, filterSpellings.sqlite(columns)).execute(),
       },
       type: rowType.array(),
     })

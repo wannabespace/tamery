@@ -28,6 +28,7 @@ const functionDefinitionQuery = ({
   createQuery({
     query: {
       clickhouse: unsupported('Functions'),
+      duckdb: unsupported('Functions'),
       mongodb: unsupported('Functions'),
       mssql: readDefinition(mssqlObjectDefinition(schema, name)),
       mysql: async (db) => {

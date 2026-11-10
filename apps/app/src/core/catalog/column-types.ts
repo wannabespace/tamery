@@ -1,7 +1,11 @@
 import { SQLITE_BOOLEAN_TYPE } from '@tamery/connection/queries/value-binding'
 import { Dialect } from '@tamery/shared/enums/connection-type'
 
-import { clickhouseEnum, mysqlEnum } from '~/core/queries/shared/inline-enum'
+import {
+  clickhouseEnum,
+  duckdbEnum,
+  mysqlEnum,
+} from '~/core/queries/shared/inline-enum'
 
 import type { ColumnTypeCapabilities } from './capability-presets'
 import { JSON_COLUMN_TYPE } from './capability-presets'
@@ -29,13 +33,33 @@ const COLUMN_TYPES: Record<Dialect, readonly string[]> = {
     'Float64',
     'Decimal(10, 2)',
     'String',
+    'LowCardinality(String)',
     'FixedString(36)',
     'UUID',
     'Bool',
     'Date',
     'DateTime',
     'DateTime64(3)',
+    'JSON',
     'Enum',
+  ],
+  [Dialect.DuckDB]: [
+    'INTEGER',
+    'BIGINT',
+    'SMALLINT',
+    'DOUBLE',
+    'DECIMAL(18, 3)',
+    'BOOLEAN',
+    'VARCHAR',
+    'UUID',
+    'DATE',
+    'TIME',
+    'TIMESTAMP',
+    'TIMESTAMPTZ',
+    'INTERVAL',
+    'JSON',
+    'BLOB',
+    'ENUM',
   ],
   [Dialect.MSSQL]: [
     'int',
@@ -132,10 +156,28 @@ export const COLUMN_TYPE_CAPABILITIES: Record<Dialect, ColumnTypeCapabilities> =
       incomparable:
         /\b(?:JSON|Object|Dynamic|Variant|Geometry)\b|(?<!Simple)AggregateFunction/u,
       json: /json|\b(?:Map|Nested|Tuple|Variant)\(/iu,
+      neverNullable: /^(?:Array|Map|Variant)\(|^Dynamic\b/u,
       options: COLUMN_TYPES[Dialect.ClickHouse],
       uuid: /\bUUID\b/u,
       xml: null,
       zoned: /\bDateTime/u,
+    },
+    // DuckDB reads a blob as its `\x` text, and edits a list, struct or map as JSON, which casts back from text.
+    [Dialect.DuckDB]: {
+      array: { close: '[]', open: '' },
+      boolean: /^BOOLEAN$/iu,
+      bytes: null,
+      dateKeywords: /^(?:-?infinity|epoch)$/iu,
+      datesWithTime: null,
+      enum: duckdbEnum,
+      id: 'INTEGER',
+      incomparable: /^(?:MAP|UNION|VARIANT)\b/iu,
+      json: /^JSON$|\[\d*\]$|^(?:MAP|STRUCT|UNION)\(/iu,
+      neverNullable: null,
+      options: COLUMN_TYPES[Dialect.DuckDB],
+      uuid: /^UUID$/iu,
+      xml: null,
+      zoned: / WITH TIME ZONE$/iu,
     },
     // BSON type names as `$type` reports them; a binary value stays Extended JSON, so it edits as JSON.
     [Dialect.MongoDB]: {
@@ -148,6 +190,7 @@ export const COLUMN_TYPE_CAPABILITIES: Record<Dialect, ColumnTypeCapabilities> =
       id: 'objectId',
       incomparable: null,
       json: /^(?:array|bindata|mixed|object)$/iu,
+      neverNullable: null,
       options: COLUMN_TYPES[Dialect.MongoDB],
       uuid: null,
       xml: null,
@@ -163,6 +206,7 @@ export const COLUMN_TYPE_CAPABILITIES: Record<Dialect, ColumnTypeCapabilities> =
       id: 'int identity',
       incomparable: /^(?:n?text|image|xml|json|vector|geometry|geography)$/iu,
       json: JSON_COLUMN_TYPE,
+      neverNullable: null,
       options: COLUMN_TYPES[Dialect.MSSQL],
       uuid: /^uniqueidentifier$/iu,
       xml: /^xml$/iu,
@@ -178,6 +222,7 @@ export const COLUMN_TYPE_CAPABILITIES: Record<Dialect, ColumnTypeCapabilities> =
       id: 'int auto_increment',
       incomparable: null,
       json: JSON_COLUMN_TYPE,
+      neverNullable: null,
       options: COLUMN_TYPES[Dialect.MySQL],
       // MariaDB's native UUID; MySQL has none.
       uuid: /^uuid$/iu,
@@ -197,6 +242,7 @@ export const COLUMN_TYPE_CAPABILITIES: Record<Dialect, ColumnTypeCapabilities> =
       incomparable:
         /^(?:N?CLOB|BLOB|BFILE|LONG|LONG RAW|XMLTYPE|JSON|VECTOR|SDO_GEOMETRY)\b/iu,
       json: /^JSON$/iu,
+      neverNullable: null,
       options: COLUMN_TYPES[Dialect.Oracle],
       uuid: null,
       xml: /^XMLTYPE$/iu,
@@ -213,6 +259,7 @@ export const COLUMN_TYPE_CAPABILITIES: Record<Dialect, ColumnTypeCapabilities> =
       incomparable:
         /^(?:json|jsonpath|xml|bytea|point|line|lseg|box|path|polygon|circle|xid|cid|aclitem|refcursor|txid_snapshot|pg_snapshot)$/iu,
       json: /^jsonb?$/iu,
+      neverNullable: null,
       options: COLUMN_TYPES[Dialect.Postgres],
       uuid: /^uuid$/iu,
       xml: /^xml$/iu,
@@ -228,6 +275,7 @@ export const COLUMN_TYPE_CAPABILITIES: Record<Dialect, ColumnTypeCapabilities> =
       id: 'integer',
       incomparable: null,
       json: JSON_COLUMN_TYPE,
+      neverNullable: null,
       options: COLUMN_TYPES[Dialect.SQLite],
       uuid: null,
       xml: null,

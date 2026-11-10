@@ -96,7 +96,7 @@ echo "$DATABASE_URL" | tamery connection create --name "Orders"
 
 The engine comes from the string's scheme, such as `postgres://`, `mysql://` or `mongodb://`. The CLI keeps the whole string on this computer too, so `tamery bridge` runs the connection without asking for its secrets or file access.
 
-When the string opens a file or uses this computer's SSH keys or credentials, such as a SQLite file, a certificate file, an SSH tunnel or a MongoDB login with AWS, OIDC or Kerberos, the CLI asks you to allow that before it connects. A piped string can't be allowed, so add such a connection in a terminal. `tamery connection update --connection-string` asks the same way.
+When the string opens a file or uses this computer's SSH keys or credentials, such as a SQLite or DuckDB file, a certificate file, an SSH tunnel or a MongoDB login with AWS, OIDC or Kerberos, the CLI asks you to allow that before it connects. A piped string can't be allowed, so add such a connection in a terminal. `tamery connection update --connection-string` asks the same way.
 
 ## tamery connection update
 
@@ -132,7 +132,7 @@ Runs one statement on a connection, from this computer, and prints the rows. The
 tamery query Orders < report.sql
 ```
 
-By default only one read-only statement runs, such as `SELECT`, `SHOW`, `EXPLAIN`, or a MongoDB `find` or `aggregate`. PostgreSQL, MySQL, Oracle, ClickHouse, SQLite and MongoDB also run it in a read-only transaction, which is then rolled back. A function with side effects can still act, so only a read-only database login guarantees no writes.
+By default only one read-only statement runs, such as `SELECT`, `SHOW`, `EXPLAIN`, or a MongoDB `find` or `aggregate`. PostgreSQL, MySQL, Oracle, ClickHouse, SQLite and MongoDB also run it in a read-only transaction, which is then rolled back. A function with side effects can still act, so only a read-only database login guarantees no writes. A DuckDB query reads only its own file, never other files or URLs.
 
 | Flag | Use |
 | --- | --- |

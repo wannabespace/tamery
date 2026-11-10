@@ -23,6 +23,7 @@ export const createPolicyQuery = ({
     query: {
       clickhouse: (db) =>
         createRowPolicyStatement({ schema, shape, table }).execute(db),
+      duckdb: unsupported('Row policies'),
       mongodb: unsupported('Row policies'),
       mssql: (db) =>
         sql`

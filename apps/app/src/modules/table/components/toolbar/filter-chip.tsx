@@ -4,7 +4,7 @@ import {
   ViewOffSlashIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import type { ActiveFilter, FilterVia } from '@tamery/shared/filters'
+import type { ActiveFilter, FilterVia, JsonPath } from '@tamery/shared/filters'
 import { Chip, ChipDivider } from '@tamery/ui/components/custom/filter-chip'
 import type { ChipSegmentPart } from '@tamery/ui/components/custom/filter-chip.utils'
 import { chipSegmentVariants } from '@tamery/ui/components/custom/filter-chip.utils'
@@ -28,11 +28,13 @@ import { FiltersValueSelector } from './filters/filters-value-selector'
 
 export const filterLabel = ({
   column,
+  path = [],
   via,
 }: {
   column: string
+  path?: JsonPath
   via?: FilterVia
-}) => (via ? `${via.table}.${via.target}` : column)
+}) => (via ? `${via.table}.${via.target}` : [column, ...path].join('.'))
 
 const ChipSegment = ({
   className,
@@ -65,6 +67,7 @@ export const FilterChip = ({
   const [values, setValues] = useState(filter.values)
   const toggleLabel = filter.disabled ? 'Enable filter' : 'Disable filter'
   const isValueEmpty = filter.values.every((value) => value === '')
+  const isSql = filter.ref.operator === 'sql'
 
   return (
     <Chip>
@@ -91,44 +94,50 @@ export const FilterChip = ({
       <div
         className={cn('flex items-stretch', filter.disabled && 'opacity-45')}
       >
-        <Popover open={isColumnOpen} onOpenChange={setIsColumnOpen}>
-          <PopoverTrigger data-mask render={<ChipSegment part="column" />}>
-            {filterLabel(filter)}
-          </PopoverTrigger>
-          <PopoverContent
-            // oxlint-disable-next-line shadcn/no-restyle -- full-bleed content owns its padding
-            className="gap-0 p-0"
-          >
-            <FiltersColumnSelector
-              onSelect={(column) => {
-                onEdit({
-                  column,
-                  disabled: filter.disabled,
-                  ref: filter.ref,
-                  values: filter.values,
-                })
-                setIsColumnOpen(false)
-              }}
-            />
-          </PopoverContent>
-        </Popover>
-        <ChipDivider />
-        <Popover open={isOperatorOpen} onOpenChange={setIsOperatorOpen}>
-          <PopoverTrigger render={<ChipSegment part="operator" />}>
-            {filter.ref.label}
-          </PopoverTrigger>
-          <PopoverContent
-            // oxlint-disable-next-line shadcn/no-restyle -- full-bleed content owns its padding
-            className="gap-0 p-0"
-          >
-            <FiltersOperatorSelector
-              onSelect={(ref) => {
-                onEdit({ ...filter, ref })
-                setIsOperatorOpen(false)
-              }}
-            />
-          </PopoverContent>
-        </Popover>
+        {isSql ? (
+          <span className={chipSegmentVariants({ part: 'column' })}>SQL</span>
+        ) : (
+          <>
+            <Popover open={isColumnOpen} onOpenChange={setIsColumnOpen}>
+              <PopoverTrigger data-mask render={<ChipSegment part="column" />}>
+                {filterLabel(filter)}
+              </PopoverTrigger>
+              <PopoverContent
+                // oxlint-disable-next-line shadcn/no-restyle -- full-bleed content owns its padding
+                className="gap-0 p-0"
+              >
+                <FiltersColumnSelector
+                  onSelect={(column) => {
+                    onEdit({
+                      column,
+                      disabled: filter.disabled,
+                      ref: filter.ref,
+                      values: filter.values,
+                    })
+                    setIsColumnOpen(false)
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
+            <ChipDivider />
+            <Popover open={isOperatorOpen} onOpenChange={setIsOperatorOpen}>
+              <PopoverTrigger render={<ChipSegment part="operator" />}>
+                {filter.ref.label}
+              </PopoverTrigger>
+              <PopoverContent
+                // oxlint-disable-next-line shadcn/no-restyle -- full-bleed content owns its padding
+                className="gap-0 p-0"
+              >
+                <FiltersOperatorSelector
+                  onSelect={(ref) => {
+                    onEdit({ ...filter, ref })
+                    setIsOperatorOpen(false)
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
+          </>
+        )}
         {filter.ref.hasValue !== false && (
           <>
             <ChipDivider />
@@ -147,7 +156,7 @@ export const FilterChip = ({
                 className="max-h-[calc(100vh-10rem)] gap-0 p-0"
               >
                 <FiltersValueSelector
-                  column={filterLabel(filter)}
+                  column={isSql ? 'SQL' : filterLabel(filter)}
                   operator={filter.ref.symbol}
                   isArray={filter.ref.isArray ?? false}
                   values={values}

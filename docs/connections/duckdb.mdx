@@ -1,0 +1,47 @@
+---
+title: 'DuckDB and MotherDuck'
+sidebarTitle: 'DuckDB and MotherDuck'
+description: 'Open a DuckDB file or connect to MotherDuck.'
+keywords: ['parquet', 'csv', 'analytics', 'olap', 'md:']
+---
+
+## DuckDB files
+
+On desktop, drop the file onto Tamery, or choose **DuckDB** under **Engine** and pick the file with the folder button.
+
+Pasting a path works too, as long as the file ends in `.duckdb` or `.ddb`. For any other name, paste `duckdb /path/to/file` or a URL:
+
+```text
+duckdb:///Users/me/analytics.duckdb
+```
+
+The file must already exist. A `~/` path points to the home folder of whichever computer opens it. Syncing the connection does not copy the file.
+
+Tamery opens the file only while it runs a query. Another program that has the file open for writing, like the `duckdb` CLI, keeps Tamery out until it closes the file, and the other way around.
+
+In a query you can read files and URLs straight away, like `SELECT * FROM read_csv('~/Downloads/orders.csv')`. Read-only queries an agent runs through [MCP](/mcp/overview) can't: they see only the database file itself.
+
+In the web app, run [`tamery bridge`](/cli/overview) on the computer that holds the file. The bridge downloads DuckDB the first time it opens a DuckDB file, 20 to 30 MB, and keeps it for later. Through the bridge, queries see only the file itself, so `read_csv` and other files on that computer stay out of reach.
+
+## MotherDuck
+
+Choose **MotherDuck** and paste your access token. Create one in MotherDuck under **Settings → Access Tokens**. Leave **Database** empty to see every database in your workspace.
+
+Pasting an `md:` string fills in the form:
+
+```text
+md:my_db?motherduck_token=your-token
+```
+
+Tamery reaches MotherDuck through its Postgres endpoint, in the region your token names. Pasting the endpoint's `postgresql://` URL from MotherDuck works too.
+
+MotherDuck works in both the desktop and web apps. The token follows the same [sync rules](/connections/overview#choose-what-syncs) as a password.
+
+## What works
+
+Browse and edit rows, run SQL, explore relationships, and manage schemas, views, and indexes.
+
+- You can add, rename, and drop columns, and change a column's type or nullability. DuckDB refuses to change any column of a table that has an index, so drop the table's indexes first and add them back after. It also refuses to change a column a key covers.
+- Existing constraints are read-only. DuckDB adds no constraint to a table after it was created.
+- Lists, structs, maps, and JSON edit as JSON. Unions are read-only.
+- On MotherDuck, queries can't read files on your computer.

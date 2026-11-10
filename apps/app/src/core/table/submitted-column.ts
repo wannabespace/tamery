@@ -37,7 +37,7 @@ export const normalized = (
 ): SubmittedColumn => ({
   comment: comment === column?.comment ? comment : comment?.trim() || null,
   name: name.trim(),
-  nullable: primaryKey ? false : nullable,
+  nullable,
   primaryKey,
   type,
 })

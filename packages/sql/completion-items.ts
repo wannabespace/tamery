@@ -1,7 +1,6 @@
-import type { SqlCatalog, SqlColumn, SqlTable } from './catalog'
-import { findColumn, findTable } from './catalog'
-import type { ColumnRef } from './cursor'
+import type { SqlCatalog, SqlTable } from './catalog'
 import type { DialectSpec } from './dialect'
+import { scopeTable } from './resolve'
 import type { StatementScope } from './scope'
 
 export type CompletionKind =
@@ -50,39 +49,6 @@ const KEYWORD_PRIORITY = [
   'ALTER',
   'DROP',
 ]
-
-export const tableForQualifier = (
-  scope: StatementScope,
-  catalog: SqlCatalog,
-  qualifier: string
-) => {
-  const ref = scope.tables.find(
-    (table) =>
-      table.alias?.toLowerCase() === qualifier.toLowerCase() ||
-      table.name.toLowerCase() === qualifier.toLowerCase()
-  )
-  return ref ? findTable(catalog, ref.name, ref.schema) : undefined
-}
-
-export const resolveComparedColumn = (
-  comparedColumn: ColumnRef | null,
-  scope: StatementScope,
-  catalog: SqlCatalog
-): { column: SqlColumn; table: SqlTable } | null => {
-  if (!comparedColumn) {
-    return null
-  }
-  const tables = comparedColumn.qualifier
-    ? [tableForQualifier(scope, catalog, comparedColumn.qualifier)]
-    : scope.tables.map((ref) => findTable(catalog, ref.name, ref.schema))
-  for (const table of tables) {
-    const column = table && findColumn(catalog, table, comparedColumn.name)
-    if (table && column) {
-      return { column, table }
-    }
-  }
-  return null
-}
 
 const PLAIN_NAMES = {
   lower: /^[a-z_][a-z\d_$]*$/u,
@@ -175,13 +141,22 @@ export const scopeColumnItems = (
   scope: StatementScope,
   catalog: SqlCatalog
 ): CompletionItem[] => {
-  const known = scope.tables.flatMap((ref) => {
-    const table = findTable(catalog, ref.name, ref.schema)
-    return table ? [{ qualifier: ref.alias ?? table.name, table }] : []
+  const own = scope.visible.slice(scope.enclosing.length)
+  const local = own.length > 0 ? own : scope.enclosing
+  const known = [...own, ...scope.enclosing].flatMap((ref) => {
+    const table = scopeTable(scope, catalog, ref)
+    return table
+      ? [
+          {
+            qualifier: ref.alias ?? table.name,
+            qualify: local.length > 1 || !local.includes(ref),
+            table,
+          },
+        ]
+      : []
   })
-  const qualify = known.length > 1
   const seen = new Set<string>()
-  return known.flatMap(({ qualifier, table }) =>
+  return known.flatMap(({ qualifier, qualify, table }) =>
     columnItems(catalog, table, {
       detail: qualify ? '' : `${qualifier} · `,
       qualifier: qualify ? qualifier : '',

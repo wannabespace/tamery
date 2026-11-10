@@ -55,9 +55,11 @@ const FORM_ID = 'column-dialog'
 const lockedFields = (
   dialect: Dialect,
   column: EditableColumn | null,
-  primaryKey: boolean
+  primaryKey: boolean,
+  columnType: string
 ) => {
-  const { flags } = getCapabilities(dialect)
+  const { columnTypes, flags } = getCapabilities(dialect)
+  const neverNull = primaryKey || !!columnTypes.neverNullable?.test(columnType)
   const alterColumns = flags.includes('alterColumns')
   const renameColumns = flags.includes('renameColumns')
   const retypeKeyColumns = flags.includes('retypeKeyColumns')
@@ -68,8 +70,9 @@ const lockedFields = (
   return {
     focusType: name && !type,
     name,
+    neverNull,
     nameOnly: stored && renameColumns && !alterColumns,
-    nullable: primaryKey || (stored && !alterColumns),
+    nullable: neverNull || (stored && !alterColumns),
     type,
   }
 }
@@ -110,11 +113,11 @@ const ColumnForm = ({
   const [primaryKey, setPrimaryKey] = useState(column?.primaryKey ?? false)
   const [comment, setComment] = useState(() => editableComment(dialect, column))
   const [submitted, setSubmitted] = useState(false)
-  const locked = lockedFields(dialect, column, primaryKey)
+  const locked = lockedFields(dialect, column, primaryKey, columnType.type)
   const next = normalized(column, {
     comment,
     name: submittedName(dialect, name, column),
-    nullable,
+    nullable: nullable && !locked.neverNull,
     primaryKey,
     type: columnType.type,
   })

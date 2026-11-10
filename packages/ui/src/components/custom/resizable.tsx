@@ -1,5 +1,5 @@
 import { cn } from '@tamery/ui/lib/utils'
-import { Group, Panel, Separator } from 'motion-panels/react'
+import { Group, Panel, Pin, Separator } from 'motion-panels/react'
 import type { ComponentProps } from 'react'
 
 export const ResizableGroup = (props: ComponentProps<typeof Group>) => (
@@ -12,6 +12,10 @@ export const ResizablePanel = (props: ComponentProps<typeof Panel>) => (
     inert={'collapsed' in props && props.collapsed}
     {...props}
   />
+)
+
+export const ResizablePin = (props: ComponentProps<typeof Pin>) => (
+  <Pin data-slot="resizable-pin" {...props} />
 )
 
 export const ResizableSeparator = ({

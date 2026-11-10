@@ -2,6 +2,7 @@ import os from 'node:os'
 import process from 'node:process'
 
 import { intro, log, outro } from '@clack/prompts'
+import { confineDuckdbFiles } from '@tamery/connection/queries/dialects/duckdb/instances'
 import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/client'
 import { resetTransactions } from '@tamery/connection/queries/transactions'
 import { BRIDGE_PAIR_PATH, BRIDGE_URL } from '@tamery/shared/bridge'
@@ -42,6 +43,7 @@ export const bridge = async (options: {
   const account = await getAccount()
   const name = os.hostname().replace(/\.local$/u, '')
   enableSshTunnels()
+  confineDuckdbFiles()
   confineSqliteFiles()
   const router = createRouter({ name, userId: account.id })
   approvals.clear()
