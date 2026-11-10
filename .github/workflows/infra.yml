@@ -28,16 +28,19 @@ defaults:
 jobs:
   plan:
     runs-on: ubuntu-latest
+    env:
+      ACCOUNT: tamery-tofu-plan
     steps:
       - &checkout
         name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Authenticate to Google Cloud
+      - &authenticate
+        name: Authenticate to Google Cloud
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: projects/1095635632709/locations/global/workloadIdentityPools/github-infra/providers/github
-          service_account: tamery-tofu-plan@gen-lang-client-0721016191.iam.gserviceaccount.com
+          service_account: ${{ env.ACCOUNT }}@gen-lang-client-0721016191.iam.gserviceaccount.com
 
       - &setup-tofu
         name: Set up OpenTofu
@@ -59,15 +62,12 @@ jobs:
     needs: plan
     runs-on: ubuntu-latest
     environment: infra
+    env:
+      ACCOUNT: tamery-tofu
     steps:
       - *checkout
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
-        with:
-          workload_identity_provider: projects/1095635632709/locations/global/workloadIdentityPools/github-infra/providers/github
-          service_account: tamery-tofu@gen-lang-client-0721016191.iam.gserviceaccount.com
-
+      - *authenticate
       - *setup-tofu
       - *init
 

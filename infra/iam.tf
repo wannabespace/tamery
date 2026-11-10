@@ -12,6 +12,7 @@ locals {
   }
 
   project_roles = {
+    tamery-deploy    = ["roles/run.developer"]
     tamery-tofu      = ["roles/owner"]
     tamery-tofu-plan = ["roles/viewer"]
     # Never a basic role: roles/viewer carries cloudsql.backupRuns.export and roles/reader reads bucket objects, and this account must never reach the database or a secret.
@@ -39,11 +40,6 @@ locals {
   runtime_accounts = toset([for workload in values(merge(local.services, local.jobs)) : workload.account])
 }
 
-import {
-  to = google_service_account.this["viewer"]
-  id = "projects/${local.project}/serviceAccounts/viewer@${local.project}.iam.gserviceaccount.com"
-}
-
 resource "google_service_account" "this" {
   for_each = local.service_accounts
 
@@ -58,12 +54,6 @@ resource "google_artifact_registry_repository_iam_member" "deploy_pushes" {
   member     = google_service_account.this["tamery-deploy"].member
 }
 
-resource "google_project_iam_member" "deploy_runs" {
-  project = local.project
-  role    = "roles/run.developer"
-  member  = google_service_account.this["tamery-deploy"].member
-}
-
 resource "google_service_account_iam_member" "deploy_acts_as" {
   for_each = local.runtime_accounts
 
@@ -72,7 +62,6 @@ resource "google_service_account_iam_member" "deploy_acts_as" {
   member             = google_service_account.this["tamery-deploy"].member
 }
 
-# roles/cloudsql.viewer without cloudsql.backupRuns.export.
 resource "google_project_iam_custom_role" "sql_metadata_viewer" {
   role_id = "cloudSqlMetadataViewer"
   title   = "Cloud SQL metadata viewer"
@@ -109,33 +98,6 @@ resource "google_storage_bucket_iam_member" "tofu_plan_reads_state" {
   member = google_service_account.this["tamery-tofu-plan"].member
 }
 
-resource "google_iam_workload_identity_pool" "github" {
-  workload_identity_pool_id = "github"
-  display_name              = "GitHub Actions"
-}
-
-resource "google_iam_workload_identity_pool_provider" "github" {
-  workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
-  workload_identity_pool_provider_id = "github"
-
-  # Any workflow can ask GitHub for a token, and publish-cli.yml does: only deploy.yml on main may sign in as the deploy account.
-  attribute_condition = "assertion.workflow_ref == 'wannabespace/tamery/.github/workflows/deploy.yml@refs/heads/main'"
-  attribute_mapping = {
-    "google.subject"       = "assertion.sub"
-    "attribute.repository" = "assertion.repository"
-  }
-
-  oidc {
-    issuer_uri = "https://token.actions.githubusercontent.com"
-  }
-}
-
-resource "google_service_account_iam_member" "github_deploys" {
-  service_account_id = google_service_account.this["tamery-deploy"].name
-  role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/wannabespace/tamery"
-}
-
 # Compute's default account starts as a project editor, and nothing here runs as it.
 resource "google_project_iam_member_remove" "default_compute_editor" {
   project = local.project
@@ -143,34 +105,70 @@ resource "google_project_iam_member_remove" "default_compute_editor" {
   member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
 }
 
-# Its own pool: a principalSet on the deploy pool would also admit deploy.yml's tokens.
-resource "google_iam_workload_identity_pool" "github_infra" {
-  workload_identity_pool_id = "github-infra"
-  display_name              = "GitHub Actions infra"
+# Any workflow can ask GitHub for a token, and publish-cli.yml does: each pool admits one workflow on main, so deploy.yml can never become an infra account.
+resource "google_iam_workload_identity_pool" "this" {
+  for_each = { deploy = "github", infra = "github-infra" }
+
+  workload_identity_pool_id = each.value
 }
 
-resource "google_iam_workload_identity_pool_provider" "github_infra" {
-  workload_identity_pool_id          = google_iam_workload_identity_pool.github_infra.workload_identity_pool_id
-  workload_identity_pool_provider_id = "github"
+resource "google_iam_workload_identity_pool_provider" "this" {
+  for_each = google_iam_workload_identity_pool.this
 
-  attribute_condition = "assertion.workflow_ref == 'wannabespace/tamery/.github/workflows/infra.yml@refs/heads/main'"
-  attribute_mapping = {
-    "google.subject" = "assertion.sub"
-  }
+  workload_identity_pool_id          = each.value.workload_identity_pool_id
+  workload_identity_pool_provider_id = "github"
+  attribute_condition                = "assertion.workflow_ref == 'wannabespace/tamery/.github/workflows/${each.key}.yml@refs/heads/main'"
+  attribute_mapping                  = { "google.subject" = "assertion.sub" }
 
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"
   }
 }
 
-# GitHub puts the environment in the subject only for a job that declares one, and the infra environment's required reviewer gates that job.
-resource "google_service_account_iam_member" "github_tofu" {
+# The repo uses GitHub's immutable subject (owner and repo IDs, see actions/oidc/customization/sub). It names the environment only for a job that declares one, and the infra environment's required reviewer gates that job.
+resource "google_service_account_iam_member" "github" {
   for_each = {
-    tamery-tofu      = "repo:wannabespace/tamery:environment:infra"
-    tamery-tofu-plan = "repo:wannabespace/tamery:ref:refs/heads/main"
+    tamery-deploy    = { pool = "deploy", subject = "ref:refs/heads/main" }
+    tamery-tofu      = { pool = "infra", subject = "environment:infra" }
+    tamery-tofu-plan = { pool = "infra", subject = "ref:refs/heads/main" }
   }
 
   service_account_id = google_service_account.this[each.key].name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principal://iam.googleapis.com/${google_iam_workload_identity_pool.github_infra.name}/subject/${each.value}"
+  member             = "principal://iam.googleapis.com/${google_iam_workload_identity_pool.this[each.value.pool].name}/subject/repo:wannabespace@125988462/tamery@895089213:${each.value.subject}"
+}
+
+moved {
+  from = google_project_iam_member.deploy_runs
+  to   = google_project_iam_member.this["tamery-deploy/roles/run.developer"]
+}
+
+moved {
+  from = google_iam_workload_identity_pool.github
+  to   = google_iam_workload_identity_pool.this["deploy"]
+}
+
+moved {
+  from = google_iam_workload_identity_pool.github_infra
+  to   = google_iam_workload_identity_pool.this["infra"]
+}
+
+moved {
+  from = google_iam_workload_identity_pool_provider.github
+  to   = google_iam_workload_identity_pool_provider.this["deploy"]
+}
+
+moved {
+  from = google_iam_workload_identity_pool_provider.github_infra
+  to   = google_iam_workload_identity_pool_provider.this["infra"]
+}
+
+moved {
+  from = google_service_account_iam_member.github_tofu["tamery-tofu"]
+  to   = google_service_account_iam_member.github["tamery-tofu"]
+}
+
+moved {
+  from = google_service_account_iam_member.github_tofu["tamery-tofu-plan"]
+  to   = google_service_account_iam_member.github["tamery-tofu-plan"]
 }

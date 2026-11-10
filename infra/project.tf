@@ -1,7 +1,6 @@
 locals {
   apis = toset([
     "artifactregistry.googleapis.com",
-    "billingbudgets.googleapis.com",
     "certificatemanager.googleapis.com",
     "cloudkms.googleapis.com",
     "cloudresourcemanager.googleapis.com",
@@ -47,14 +46,5 @@ resource "google_artifact_registry_repository" "tamery" {
     condition {
       older_than = "2592000s"
     }
-  }
-}
-
-# The budget lives on the billing account, which no account here may touch: set it in the billing console.
-removed {
-  from = google_billing_budget.monthly
-
-  lifecycle {
-    destroy = false
   }
 }
