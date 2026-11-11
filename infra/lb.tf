@@ -11,9 +11,14 @@ locals {
   certificate_hostnames = { apex = local.domain, wildcard = "*.${local.domain}" }
 }
 
+# Cloudflare's DNS points here: replacing it takes every site down until the records change.
 resource "google_compute_global_address" "lb" {
   name       = "tamery-lb"
   ip_version = "IPV4"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "google_compute_region_network_endpoint_group" "this" {
