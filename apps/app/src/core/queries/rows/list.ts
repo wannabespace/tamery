@@ -18,6 +18,8 @@ import { fromMongodbDocument } from './shape'
 
 const rowType = type('Record<string, unknown>')
 
+export const TABLE_DATA_STALE_TIME = 5 * 60 * 1000
+
 interface PageResult {
   rows: (typeof rowType.inferIn)[]
 }
@@ -139,7 +141,9 @@ export const resourceRowsQueryInfiniteOptions = memoize(
           orderBy,
         },
       ],
+      refetchOnWindowFocus: false,
       select: (data) => data.pages.flatMap((page) => page.rows),
+      staleTime: TABLE_DATA_STALE_TIME,
       throwOnError: false,
     })
   }
