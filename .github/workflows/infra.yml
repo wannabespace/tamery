@@ -28,6 +28,8 @@ defaults:
 jobs:
   plan:
     runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
     env:
       ACCOUNT: tamery-tofu-plan
     steps:
@@ -55,11 +57,22 @@ jobs:
 
       # The plan account can only read the state, so it cannot take the lock.
       - name: Plan
-        run: tofu plan -input=false -lock=false -no-color
+        id: plan
+        run: |
+          code=0
+          tofu plan -input=false -lock=false -no-color -detailed-exitcode > plan.txt || code=$?
+          cat plan.txt
+          {
+            echo "### $(grep -E '^(Plan:|No changes)' plan.txt || echo 'Plan failed')"
+            grep -E '^  # [^(]' plan.txt | sed -E 's/^  # (.*)$/- `\1`/; /destroyed|replaced/s/^- /- ⚠️ /' || true
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "changes=$([ "$code" = 2 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          [ "$code" != 1 ]
 
   # Approving the infra environment is what lets this job sign in as the owner account: review the plan job's log first.
   apply:
     needs: plan
+    if: needs.plan.outputs.changes == 'true'
     runs-on: ubuntu-latest
     environment: infra
     env:
