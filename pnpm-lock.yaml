@@ -1542,6 +1542,18 @@ importers:
 
   apps/proxy:
     dependencies:
+      '@clickhouse/client':
+        specifier: 'catalog:'
+        version: 1.25.0
+      '@duckdb/node-api':
+        specifier: 'catalog:'
+        version: 2.0.0-r.1
+      '@libsql/client':
+        specifier: 'catalog:'
+        version: 0.18.0
+      '@mongodb-js/socksv5':
+        specifier: 'catalog:'
+        version: 0.0.11
       '@orpc/client':
         specifier: 'catalog:'
         version: 2.0.0-beta.48
@@ -1572,12 +1584,39 @@ importers:
       better-result:
         specifier: 'catalog:'
         version: 3.0.1
+      cross-env:
+        specifier: 'catalog:'
+        version: 10.1.0
       hono:
         specifier: 'catalog:'
         version: 4.13.16
       lru-cache:
         specifier: 'catalog:'
         version: 11.5.3
+      mongodb:
+        specifier: 'catalog:'
+        version: 7.8.0(@aws-sdk/credential-providers@3.993.0)(socks@2.8.10)
+      mssql:
+        specifier: 'catalog:'
+        version: 12.7.14(supports-color@7.2.0)
+      mysql2:
+        specifier: 'catalog:'
+        version: 3.24.6(@types/node@26.1.1)
+      oracledb:
+        specifier: 'catalog:'
+        version: 26.0.0
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.1
+      socks:
+        specifier: 'catalog:'
+        version: 2.8.10
+      ssh-config:
+        specifier: 'catalog:'
+        version: 5.3.0
+      ssh2:
+        specifier: 'catalog:'
+        version: 1.17.0
       ua-parser-js:
         specifier: 'catalog:'
         version: 2.0.10
@@ -1829,6 +1868,12 @@ importers:
 
   packages/db:
     dependencies:
+      '@tamery/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@tamery/configs':
+        specifier: workspace:*
+        version: link:../configs
       '@tamery/shared':
         specifier: workspace:*
         version: link:../shared
@@ -1838,6 +1883,12 @@ importers:
       better-result:
         specifier: 'catalog:'
         version: 3.0.1
+      cross-env:
+        specifier: 'catalog:'
+        version: 10.1.0
+      drizzle-kit:
+        specifier: 'catalog:'
+        version: 1.0.0-rc.5-ab785fc
       drizzle-orm:
         specifier: 'catalog:'
         version: 1.0.0-rc.5-ab785fc(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(arktype@2.2.9)(bun-types@1.4.4)(mysql2@3.24.6(@types/node@26.1.1))(pg@8.23.1)(valibot@1.5.0(typescript@7.0.2))(zod@4.6.7)
@@ -1848,18 +1899,9 @@ importers:
         specifier: 'catalog:'
         version: 14.0.3
     devDependencies:
-      '@tamery/ai':
-        specifier: workspace:*
-        version: link:../ai
-      '@tamery/configs':
-        specifier: workspace:*
-        version: link:../configs
       '@types/pg':
         specifier: 'catalog:'
         version: 8.23.1
-      drizzle-kit:
-        specifier: 'catalog:'
-        version: 1.0.0-rc.5-ab785fc
       stripe:
         specifier: 'catalog:'
         version: 23.1.0(@types/node@26.1.1)

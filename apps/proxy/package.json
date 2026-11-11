@@ -8,6 +8,10 @@
     "test:start": "cross-env NODE_ENV=test bun --env-file=.env.test run ./index.ts"
   },
   "dependencies": {
+    "@clickhouse/client": "catalog:",
+    "@duckdb/node-api": "catalog:",
+    "@libsql/client": "catalog:",
+    "@mongodb-js/socksv5": "catalog:",
     "@orpc/client": "catalog:",
     "@orpc/ratelimit": "catalog:",
     "@orpc/server": "catalog:",
@@ -18,8 +22,17 @@
     "@tamery/shared": "workspace:*",
     "arktype": "catalog:",
     "better-result": "catalog:",
+    "cross-env": "catalog:",
     "hono": "catalog:",
     "lru-cache": "catalog:",
+    "mongodb": "catalog:",
+    "mssql": "catalog:",
+    "mysql2": "catalog:",
+    "oracledb": "catalog:",
+    "pg": "catalog:",
+    "socks": "catalog:",
+    "ssh-config": "catalog:",
+    "ssh2": "catalog:",
     "ua-parser-js": "catalog:"
   },
   "devDependencies": {
