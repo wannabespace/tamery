@@ -15,7 +15,6 @@
     "@better-auth/core": "catalog:",
     "@better-auth/drizzle-adapter": "catalog:",
     "@better-auth/passkey": "catalog:",
-    "@exalabs/ai-sdk": "catalog:",
     "@ip-location-db/dbip-city-mmdb": "catalog:",
     "@octokit/rest": "catalog:",
     "@openrouter/ai-sdk-provider": "catalog:",
