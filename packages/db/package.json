@@ -10,18 +10,19 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@tamery/ai": "workspace:*",
+    "@tamery/configs": "workspace:*",
     "@tamery/shared": "workspace:*",
     "arktype": "catalog:",
     "better-result": "catalog:",
+    "cross-env": "catalog:",
+    "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:",
     "pg": "catalog:",
     "uuid": "catalog:"
   },
   "devDependencies": {
-    "@tamery/ai": "workspace:*",
-    "@tamery/configs": "workspace:*",
     "@types/pg": "catalog:",
-    "drizzle-kit": "catalog:",
     "stripe": "catalog:"
   }
 }
