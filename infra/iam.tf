@@ -87,12 +87,6 @@ resource "google_project_iam_custom_role" "tofu_plan_refresh" {
   permissions = ["redis.instances.getAuthString", "storage.buckets.getIamPolicy"]
 }
 
-# Created by hand first, since the plan that would create it cannot run without it.
-import {
-  to = google_project_iam_custom_role.tofu_plan_refresh
-  id = "projects/gen-lang-client-0721016191/roles/tofuPlanRefresh"
-}
-
 resource "google_project_iam_member" "this" {
   for_each = merge([
     for account, roles in local.project_roles : { for role in roles : "${account}/${role}" => { account = account, role = role } }
