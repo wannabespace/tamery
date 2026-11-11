@@ -11,31 +11,33 @@ locals {
     viewer           = "Read-only for agents"
   }
 
+  # Never a basic role: roles/viewer carries cloudsql.backupRuns.export and the project's spending, roles/reader reads bucket objects.
+  read_roles = [
+    "roles/artifactregistry.reader",
+    "roles/browser",
+    "roles/certificatemanager.viewer",
+    "roles/cloudkms.viewer",
+    "roles/cloudscheduler.viewer",
+    "roles/compute.networkViewer",
+    "roles/errorreporting.viewer",
+    "roles/iam.workloadIdentityPoolViewer",
+    "roles/logging.viewer",
+    "roles/monitoring.viewer",
+    "roles/networksecurity.viewer",
+    "roles/redis.viewer",
+    "roles/run.viewer",
+    "roles/secretmanager.viewer",
+    "roles/serviceusage.serviceUsageViewer",
+    "roles/storage.bucketViewer",
+    google_project_iam_custom_role.sql_metadata_viewer.id,
+  ]
+
   project_roles = {
-    tamery-deploy    = ["roles/run.developer"]
-    tamery-tofu      = ["roles/owner"]
-    tamery-tofu-plan = ["roles/viewer", "projects/${local.project}/roles/tofuPlanRefresh"]
-    # Never a basic role: roles/viewer carries cloudsql.backupRuns.export and roles/reader reads bucket objects, and this account must never reach the database or a secret.
-    viewer = [
-      "roles/artifactregistry.reader",
-      "roles/browser",
-      "roles/certificatemanager.viewer",
-      "roles/cloudkms.viewer",
-      "roles/cloudscheduler.viewer",
-      "roles/compute.networkViewer",
-      "roles/errorreporting.viewer",
-      "roles/iam.securityReviewer",
-      "roles/iam.workloadIdentityPoolViewer",
-      "roles/logging.viewer",
-      "roles/monitoring.viewer",
-      "roles/networksecurity.viewer",
-      "roles/redis.viewer",
-      "roles/run.viewer",
-      "roles/secretmanager.viewer",
-      "roles/serviceusage.serviceUsageViewer",
-      "roles/storage.bucketViewer",
-      "projects/${local.project}/roles/cloudSqlMetadataViewer",
-    ]
+    tamery-deploy = ["roles/run.developer"]
+    tamery-tofu   = ["roles/owner"]
+    # Not iam.securityReviewer: it shows the project's spending, which only viewer and the owner may see.
+    tamery-tofu-plan = concat(local.read_roles, ["roles/iam.roleViewer", "roles/iam.serviceAccountViewer", google_project_iam_custom_role.tofu_plan_refresh.id])
+    viewer           = concat(local.read_roles, ["roles/iam.securityReviewer"])
   }
 
   runtime_accounts = toset([for workload in values(merge(local.services, local.jobs)) : workload.account])
@@ -80,11 +82,16 @@ resource "google_project_iam_custom_role" "sql_metadata_viewer" {
   ]
 }
 
-# Refreshing the Redis instance reads its auth string and the state bucket's binding reads its policy; roles/viewer carries neither. The state already holds that auth string.
+# What a refresh reads beyond read_roles; drop one and the plan fails. The state already holds the Redis auth string.
 resource "google_project_iam_custom_role" "tofu_plan_refresh" {
-  role_id     = "tofuPlanRefresh"
-  title       = "OpenTofu plan refresh"
-  permissions = ["redis.instances.getAuthString", "storage.buckets.getIamPolicy"]
+  role_id = "tofuPlanRefresh"
+  title   = "OpenTofu plan refresh"
+  permissions = [
+    "artifactregistry.repositories.getIamPolicy",
+    "compute.regionNetworkEndpointGroups.get",
+    "redis.instances.getAuthString",
+    "storage.buckets.getIamPolicy",
+  ]
 }
 
 resource "google_project_iam_member" "this" {
@@ -95,8 +102,6 @@ resource "google_project_iam_member" "this" {
   project = local.project
   role    = each.value.role
   member  = google_service_account.this[each.value.account].member
-
-  depends_on = [google_project_iam_custom_role.sql_metadata_viewer, google_project_iam_custom_role.tofu_plan_refresh]
 }
 
 # Created outside OpenTofu, and it holds the Redis auth string; the plan runs with -lock=false, so reading is enough.
