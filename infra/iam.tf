@@ -14,7 +14,7 @@ locals {
   project_roles = {
     tamery-deploy    = ["roles/run.developer"]
     tamery-tofu      = ["roles/owner"]
-    tamery-tofu-plan = ["roles/viewer"]
+    tamery-tofu-plan = ["roles/viewer", "projects/${local.project}/roles/tofuPlanRefresh"]
     # Never a basic role: roles/viewer carries cloudsql.backupRuns.export and roles/reader reads bucket objects, and this account must never reach the database or a secret.
     viewer = [
       "roles/artifactregistry.reader",
@@ -80,6 +80,19 @@ resource "google_project_iam_custom_role" "sql_metadata_viewer" {
   ]
 }
 
+# Refreshing the Redis instance reads its auth string and the state bucket's binding reads its policy; roles/viewer carries neither. The state already holds that auth string.
+resource "google_project_iam_custom_role" "tofu_plan_refresh" {
+  role_id     = "tofuPlanRefresh"
+  title       = "OpenTofu plan refresh"
+  permissions = ["redis.instances.getAuthString", "storage.buckets.getIamPolicy"]
+}
+
+# Created by hand first, since the plan that would create it cannot run without it.
+import {
+  to = google_project_iam_custom_role.tofu_plan_refresh
+  id = "projects/gen-lang-client-0721016191/roles/tofuPlanRefresh"
+}
+
 resource "google_project_iam_member" "this" {
   for_each = merge([
     for account, roles in local.project_roles : { for role in roles : "${account}/${role}" => { account = account, role = role } }
@@ -89,7 +102,7 @@ resource "google_project_iam_member" "this" {
   role    = each.value.role
   member  = google_service_account.this[each.value.account].member
 
-  depends_on = [google_project_iam_custom_role.sql_metadata_viewer]
+  depends_on = [google_project_iam_custom_role.sql_metadata_viewer, google_project_iam_custom_role.tofu_plan_refresh]
 }
 
 # Created outside OpenTofu, and it holds the Redis auth string; the plan runs with -lock=false, so reading is enough.
