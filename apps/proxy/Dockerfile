@@ -20,7 +20,8 @@ FROM base
 ENV pnpm_config_verify_deps_before_run=false
 # @tamery/connection loads the drivers proxy declares as its peers, and a workspace package sees only its own node_modules unless they are hoisted.
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts --shamefully-hoist --filter @tamery/proxy...
-RUN pnpm rebuild --filter @tamery/proxy...
+# Dropped for its CVEs: nothing in the image may run npm or npx, pnpm comes from corepack.
+RUN pnpm rebuild --filter @tamery/proxy... && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 COPY . .
 # Without a reference to the checked stage BuildKit skips it, and the type check with it.
 COPY --from=checked /app/apps/proxy/package.json /tmp/checked
