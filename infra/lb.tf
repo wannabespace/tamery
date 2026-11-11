@@ -7,6 +7,8 @@ locals {
     share = "share.${local.domain}"
     main  = local.domain
   }
+
+  certificate_hostnames = { apex = local.domain, wildcard = "*.${local.domain}" }
 }
 
 resource "google_compute_global_address" "lb" {
@@ -70,7 +72,7 @@ resource "google_certificate_manager_certificate" "tamery" {
   name = "tamery-app"
 
   managed {
-    domains            = [local.domain, "*.${local.domain}"]
+    domains            = values(local.certificate_hostnames)
     dns_authorizations = [google_certificate_manager_dns_authorization.tamery.id]
   }
 }
@@ -80,10 +82,7 @@ resource "google_certificate_manager_certificate_map" "tamery" {
 }
 
 resource "google_certificate_manager_certificate_map_entry" "this" {
-  for_each = {
-    apex     = local.domain
-    wildcard = "*.${local.domain}"
-  }
+  for_each = local.certificate_hostnames
 
   name         = each.key
   map          = google_certificate_manager_certificate_map.tamery.name

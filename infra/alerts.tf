@@ -31,10 +31,12 @@ locals {
     "Logging, alerts or an API turned off"          = "${local.admin_activity} protoPayload.methodName=~\"(Delete|Update)(Sink|Exclusion|Bucket)|CreateExclusion|(AlertPolicyService|NotificationChannelService|UptimeCheckService)\\.(Delete|Update)|DisableService\""
   }
 
+  run_requests = "metric.type=\"run.googleapis.com/request_count\" resource.type=\"cloud_run_revision\""
+
   metric_alerts = {
-    "Server errors"       = { filter = "metric.type=\"run.googleapis.com/request_count\" resource.type=\"cloud_run_revision\" metric.labels.response_code_class=\"5xx\"", aligner = "ALIGN_RATE", threshold = 0.1 }
-    "Rate limit hammered" = { filter = "metric.type=\"run.googleapis.com/request_count\" resource.type=\"cloud_run_revision\" metric.labels.response_code=\"429\"", aligner = "ALIGN_RATE", threshold = 0.5 }
-    "Sign-in failures"    = { filter = "metric.type=\"run.googleapis.com/request_count\" resource.type=\"cloud_run_revision\" metric.labels.response_code=\"401\"", aligner = "ALIGN_RATE", threshold = 1 }
+    "Server errors"       = { filter = "${local.run_requests} metric.labels.response_code_class=\"5xx\"", aligner = "ALIGN_RATE", threshold = 0.1 }
+    "Rate limit hammered" = { filter = "${local.run_requests} metric.labels.response_code=\"429\"", aligner = "ALIGN_RATE", threshold = 0.5 }
+    "Sign-in failures"    = { filter = "${local.run_requests} metric.labels.response_code=\"401\"", aligner = "ALIGN_RATE", threshold = 1 }
     "Job failed"          = { filter = "metric.type=\"run.googleapis.com/job/completed_execution_count\" resource.type=\"cloud_run_job\" metric.labels.result=\"failed\"", aligner = "ALIGN_RATE", threshold = 0 }
     "Too many instances"  = { filter = "metric.type=\"run.googleapis.com/container/instance_count\" resource.type=\"cloud_run_revision\" metric.labels.state=\"active\"", aligner = "ALIGN_MEAN", threshold = 4 }
     "Database CPU"        = { filter = "metric.type=\"cloudsql.googleapis.com/database/cpu/utilization\" resource.type=\"cloudsql_database\"", aligner = "ALIGN_MEAN", threshold = 0.8 }

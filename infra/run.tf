@@ -201,6 +201,7 @@ resource "google_cloud_run_v2_job" "this" {
       }
 
       containers {
+        # deploy.yml puts every job on the api image.
         image   = "${local.registry}/api:bootstrap"
         command = each.value.command
         args    = each.value.args

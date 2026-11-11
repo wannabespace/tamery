@@ -60,6 +60,7 @@ resource "google_compute_router_nat" "tamery" {
 }
 
 # The proxy dials hosts users choose, and Oracle and libsql sockets skip its application-level host guard.
+# No firewall reaches the metadata server, so tamery-proxy's account must keep reading only PROXY_SHARED_SECRET.
 resource "google_compute_firewall" "proxy_deny_private" {
   name               = "tamery-proxy-deny-private"
   network            = google_compute_network.tamery.id

@@ -35,6 +35,8 @@ gcloud run jobs execute api-rotate --region=europe-west3 --wait --args=run,rotat
 
 The output is in the execution's logs.
 
+Each run, like any job you execute by hand, sends the "Deploy outside GitHub Actions" alert.
+
 **New key value:**
 
 1. Back up `<new>`.
