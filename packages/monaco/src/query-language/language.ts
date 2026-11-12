@@ -5,6 +5,7 @@ import { languages } from 'monaco-editor'
 
 export const languageIds = {
   [Dialect.ClickHouse]: 'sql-clickhouse',
+  [Dialect.DuckDB]: 'sql-duckdb',
   [Dialect.MongoDB]: 'mongodb',
   [Dialect.MSSQL]: 'sql-mssql',
   [Dialect.MySQL]: 'sql-mysql',

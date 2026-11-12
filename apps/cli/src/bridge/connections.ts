@@ -15,10 +15,12 @@ import {
 } from '@tamery/shared/enums/connection-type'
 import { hasErrorCode } from '@tamery/shared/orpc-error'
 import { SafeURL } from '@tamery/shared/safe-url'
+import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
 import { api } from '../api'
 import { vault } from '../vault'
+import { installDuckdb } from './duckdb'
 import type { QueryErrors } from './errors'
 
 const FRESH_MS = 60 * 1000
@@ -79,13 +81,15 @@ const getServerCopy = async (
   return copy
 }
 
-const getLocalAccess = (connectionString: string) => {
+export const getLocalAccess = (connectionString: string) => {
   const parts = connectionParts.parse(connectionString)
   const { database, host, type } = parts
   const { searchParams } = readConnectionString(connectionString)
   const tunnel = getSshTunnel(searchParams)
   return [
-    type === ConnectionType.SQLite && !host ? `the file ${database}` : null,
+    (type === ConnectionType.SQLite || type === ConnectionType.DuckDB) && !host
+      ? `the file ${database}`
+      : null,
     ...FILE_PARAMS.map((param) =>
       searchParams.has(param) ? `${param} ${searchParams.get(param)}` : null
     ),
@@ -132,7 +136,7 @@ export const connections = {
       throw errors.NEEDS_SECRETS({ data: { connectionId, fields: 'all' } })
     }
     // Approval reads a string as its own connection type: SQLite under another dialect's name would open a file unasked.
-    const { type } = connectionParts.parse(known)
+    const { host, type } = connectionParts.parse(known)
     if (!type || getDialect(type) !== dialect) {
       throw errors.BAD_REQUEST({
         message: `This connection does not run as ${dialect}.`,
@@ -159,6 +163,11 @@ export const connections = {
     ]
     if (missing.length > 0) {
       throw errors.NEEDS_SECRETS({ data: { connectionId, fields: missing } })
+    }
+    if (type === ConnectionType.DuckDB && !host) {
+      await installDuckdb().catch((error: unknown) => {
+        throw errors.BAD_REQUEST({ message: toError(error).message })
+      })
     }
     return input.resourceName
       ? resourceConnectionString(connectionString, input.resourceName)

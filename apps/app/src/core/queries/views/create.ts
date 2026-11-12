@@ -29,6 +29,14 @@ export const createViewQuery = ({
               .schema.createView(view)
               .as(definition)
               .execute(),
+      duckdb: materialized
+        ? unsupported('Materialized views')
+        : (db) =>
+            db
+              .withSchema(schema)
+              .schema.createView(view)
+              .as(definition)
+              .execute(),
       mongodb: unsupported('Views'),
       mssql: materialized
         ? unsupported('Materialized views')

@@ -14,6 +14,8 @@ export const createTableQuery = (target: {
     query: {
       clickhouse: (db) =>
         db.executeQuery(createTableStatement(Dialect.ClickHouse, db, target)),
+      duckdb: (db) =>
+        db.executeQuery(createTableStatement(Dialect.DuckDB, db, target)),
       mongodb: (db) => db.createCollection(target.table),
       mssql: (db) =>
         db.executeQuery(createTableStatement(Dialect.MSSQL, db, target)),

@@ -10,6 +10,7 @@ import {
 
 import type { LISTED_CONSTRAINT_TYPES } from '../shape'
 import { clickhouseConstraints } from './clickhouse'
+import { duckdbConstraints } from './duckdb'
 import { mongodbConstraints } from './mongodb'
 import { mssqlConstraints } from './mssql'
 import { mysqlConstraints } from './mysql'
@@ -68,6 +69,7 @@ export const constraintsType = type({
 const resourceConstraintsQuery = createQuery({
   query: {
     clickhouse: clickhouseConstraints,
+    duckdb: duckdbConstraints,
     mongodb: mongodbConstraints,
     mssql: mssqlConstraints,
     mysql: mysqlConstraints,

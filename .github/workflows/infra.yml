@@ -1,0 +1,88 @@
+name: Infra
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - infra/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: infra
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: 'true'
+  TF_VAR_alerts_email: ${{ secrets.TF_VAR_ALERTS_EMAIL }}
+  TF_VAR_sql_authorized_networks: ${{ secrets.TF_VAR_SQL_AUTHORIZED_NETWORKS }}
+
+defaults:
+  run:
+    working-directory: infra
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
+    env:
+      ACCOUNT: tamery-tofu-plan
+    steps:
+      - &checkout
+        name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - &authenticate
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: projects/1095635632709/locations/global/workloadIdentityPools/github-infra/providers/github
+          service_account: ${{ env.ACCOUNT }}@gen-lang-client-0721016191.iam.gserviceaccount.com
+
+      - &setup-tofu
+        name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: 1.13.9
+          tofu_wrapper: false
+
+      - &init
+        name: Init
+        run: tofu init -input=false
+
+      # The plan account can only read the state, so it cannot take the lock.
+      - name: Plan
+        id: plan
+        run: |
+          code=0
+          tofu plan -input=false -lock=false -no-color -detailed-exitcode > plan.txt || code=$?
+          cat plan.txt
+          {
+            echo "### $(grep -E '^(Plan:|No changes)' plan.txt || echo 'Plan failed')"
+            grep -E '^  # [^(]' plan.txt | sed -E 's/^  # (.*)$/- `\1`/; /destroyed|replaced/s/^- /- ⚠️ /' || true
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "changes=$([ "$code" = 2 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          [ "$code" != 1 ]
+
+  # Approving the infra environment is what lets this job sign in as the owner account: review the plan job's log first.
+  apply:
+    needs: plan
+    if: needs.plan.outputs.changes == 'true'
+    runs-on: ubuntu-latest
+    environment: infra
+    env:
+      ACCOUNT: tamery-tofu
+    steps:
+      - *checkout
+
+      - *authenticate
+      - *setup-tofu
+      - *init
+
+      - name: Apply
+        run: tofu apply -input=false -auto-approve -no-color

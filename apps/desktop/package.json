@@ -1,11 +1,11 @@
 {
   "name": "@tamery/desktop",
-  "version": "0.99.5",
-  "description": "AI-powered tool for working with Postgres, MySQL, MSSQL, Oracle, ClickHouse and SQLite.",
+  "version": "0.99.6",
+  "description": "AI-powered tool for working with Postgres, MySQL, MSSQL, Oracle, ClickHouse, SQLite and DuckDB.",
   "homepage": "https://tamery.app",
   "author": {
     "name": "Wannabe Space, LLC",
-    "email": "wannabespace.llc@gmail.com"
+    "email": "hello@wannabespace.com"
   },
   "type": "module",
   "main": "./dist-electron/main.js",
@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@clickhouse/client": "catalog:",
+    "@duckdb/node-api": "catalog:",
     "@libsql/client": "catalog:",
     "@modelcontextprotocol/sdk": "catalog:",
     "@mongodb-js/shell-bson-parser": "catalog:",

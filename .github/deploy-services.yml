@@ -1,0 +1,27 @@
+# Each top-level key is a Cloud Run service deploy.yml builds, so there is no top-level `shared` filter.
+api:
+  - &shared ['*', '.dockerignore', 'packages/**']
+  - 'apps/api/**'
+app:
+  - *shared
+  - 'apps/api/**'
+  - 'apps/app/**'
+  - 'apps/cli/**'
+  - 'apps/proxy/**'
+docs:
+  - *shared
+  - 'apps/docs/**'
+  - 'docs/**'
+main:
+  - *shared
+  - 'apps/api/**'
+  - 'apps/main/**'
+proxy:
+  - *shared
+  - 'apps/api/**'
+  - 'apps/proxy/**'
+share:
+  - *shared
+  - 'apps/api/**'
+  - 'apps/proxy/**'
+  - 'apps/share/**'

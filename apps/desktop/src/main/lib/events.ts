@@ -10,12 +10,12 @@ import { app, ipcMain, nativeTheme } from 'electron'
 import type { CopyDatabaseRequest } from '../copy-database'
 import { appIcon } from './app-icon'
 import { popupNativeContextMenu } from './context-menu'
+import { pickDatabaseFile } from './database-file'
 import { connectionLinks } from './deep-link'
 import { deviceEncryption } from './device-encryption'
 import { mcp } from './mcp'
 import { notifyUnfocused } from './notify'
 import { queryProcess } from './query-process'
-import { pickSqliteFile } from './sqlite-file'
 import { pickSshKeyFile } from './ssh-key-file'
 import { autoUpdater } from './todesktop'
 
@@ -59,6 +59,9 @@ export const electron = {
         event?.sender.send('copyDatabase.log', { copyId: request.id, line })
       )) as (request: CopyDatabaseRequest) => Promise<null>,
   },
+  databaseFile: {
+    pick: pickDatabaseFile,
+  },
   deviceEncryption,
   localDatabases: {
     find: async () => {
@@ -85,6 +88,7 @@ export const electron = {
   openAtLogin,
   query: {
     clickhouse: queryProcess.executor(Dialect.ClickHouse),
+    duckdb: queryProcess.executor(Dialect.DuckDB),
     mongodb: queryProcess.executor(Dialect.MongoDB),
     mssql: queryProcess.executor(Dialect.MSSQL),
     mysql: queryProcess.executor(Dialect.MySQL),
@@ -92,9 +96,6 @@ export const electron = {
     postgres: queryProcess.executor(Dialect.Postgres),
     sqlite: queryProcess.executor(Dialect.SQLite),
   } satisfies Record<Dialect, QueryExecutor>,
-  sqlite: {
-    pickFile: pickSqliteFile,
-  },
   ssh: {
     pickKeyFile: pickSshKeyFile,
   },

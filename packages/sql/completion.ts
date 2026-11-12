@@ -7,14 +7,13 @@ import {
   functionItems,
   keywordItems,
   orderedItems,
-  resolveComparedColumn,
   scopeColumnItems,
-  tableForQualifier,
   quoteIfNeeded,
   tableItems,
 } from './completion-items'
 import { templateItems } from './completion-templates'
 import type { DialectSpec } from './dialect'
+import { resolveColumn, scopeTable, tableForQualifier } from './resolve'
 
 const OPERATORS = [
   '=',
@@ -63,9 +62,13 @@ const qualifiedItems = (
     const table = findTable(catalog, second, first)
     return table ? columnItems(catalog, table) : []
   }
+  const { scope } = context
   const table =
-    tableForQualifier(context.scope, catalog, first) ??
-    findTable(catalog, first, null)
+    tableForQualifier(scope, catalog, first) ??
+    findTable(catalog, first, null) ??
+    (first.toLowerCase() === 'excluded' && scope.target
+      ? scopeTable(scope, catalog, scope.target)
+      : undefined)
   if (table) {
     return columnItems(catalog, table)
   }
@@ -82,7 +85,7 @@ const qualifiedItems = (
 }
 
 const operatorItems = (
-  resolved: ReturnType<typeof resolveComparedColumn>
+  resolved: ReturnType<typeof resolveColumn>
 ): CompletionItem[] => {
   const type = resolved?.column.type ?? ''
   const first = [
@@ -97,7 +100,7 @@ const operatorItems = (
 }
 
 const valueItems = (
-  resolved: ReturnType<typeof resolveComparedColumn>,
+  resolved: ReturnType<typeof resolveColumn>,
   catalog: SqlCatalog
 ): CompletionItem[] => {
   if (!resolved) {
@@ -135,11 +138,7 @@ export const completionItems = (
   catalog: SqlCatalog,
   dialect: DialectSpec
 ): CompletionItem[] => {
-  const resolved = resolveComparedColumn(
-    context.comparedColumn,
-    context.scope,
-    catalog
-  )
+  const resolved = resolveColumn(context.comparedColumn, context.scope, catalog)
   if (context.inLiteral) {
     return valueItems(resolved, catalog)
       .filter((item) => item.kind === 'enum')
@@ -208,6 +207,13 @@ export const completionItems = (
           sortText: `3${schema.name}`,
         }))
       )
+      break
+    }
+    case 'target-column': {
+      const table =
+        context.scope.target &&
+        scopeTable(context.scope, catalog, context.scope.target)
+      items.push(...(table ? columnItems(catalog, table) : []))
       break
     }
     case 'column': {

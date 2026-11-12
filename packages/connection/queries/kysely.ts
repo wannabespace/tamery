@@ -37,6 +37,12 @@ export const kyselyDialects = {
     createIntrospector,
     createQueryCompiler: () => new ClickhouseQueryCompiler(),
   },
+  // DuckDB's SQL takes Postgres's quoting, `$1` parameters and RETURNING.
+  duckdb: {
+    createAdapter: () => new PostgresAdapter(),
+    createIntrospector,
+    createQueryCompiler: () => new PostgresQueryCompiler(),
+  },
   mssql: {
     createAdapter: () => new MssqlAdapter(),
     createIntrospector,
@@ -63,6 +69,17 @@ export const kyselyDialects = {
     createQueryCompiler: () => new SqliteQueryCompiler(),
   },
 } satisfies Record<SqlDialect, Omit<KyselyDialect, 'createDriver'>>
+
+/** Each compiler's token for a bound value, `index` naming the value when the token numbers it. */
+export const PARAMETER_PLACEHOLDERS = {
+  clickhouse: /\?/u,
+  duckdb: /\$(?<index>\d+)/u,
+  mssql: /@(?<index>\d+)/u,
+  mysql: /\?/u,
+  oracle: /:(?<index>\d+)/u,
+  postgres: /\$(?<index>\d+)/u,
+  sqlite: /\?/u,
+} satisfies Record<SqlDialect, RegExp>
 
 /** Compile-only: executing on one fails. Run what it compiles through `toQueryPayload`. */
 export const coldDialect = memoize(

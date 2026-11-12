@@ -7,6 +7,7 @@ import { memoize } from 'memoza'
 import { getCapabilities, getDefaultSchema } from '~/core/catalog/capabilities'
 import { getConnectionResourceStore } from '~/core/connection/stores'
 import type { ConnectionResource } from '~/core/connection/sync'
+import { currentDatabase } from '~/core/queries/shared/duckdb-catalog'
 import { userTables } from '~/core/queries/shared/sqlite-catalog'
 import {
   connectionResourceToQueryParams,
@@ -77,6 +78,32 @@ export const resourceTablesAndSchemasQuery = memoize(
             .where('database', '=', database)
             .where('is_temporary', '=', 0)
             .where('name', 'not like', CLICKHOUSE_MATERIALIZED_VIEW_STORAGE)
+            .execute(),
+        duckdb: (db) =>
+          db
+            .selectFrom('information_schema.schemata as s')
+            .leftJoin('information_schema.tables as t', (join) =>
+              join
+                .onRef('t.table_catalog', '=', 's.catalog_name')
+                .onRef('t.table_schema', '=', 's.schema_name')
+                .on('t.table_type', 'in', ['BASE TABLE', 'VIEW'])
+            )
+            .select([
+              's.schema_name as schema',
+              't.table_name as table',
+              't.TABLE_COMMENT as comment',
+              // Inlined: MotherDuck's endpoint prepares the statement and cannot type a parameter in the select list.
+              (eb) =>
+                eb
+                  .case()
+                  .when('t.table_type', '=', 'VIEW')
+                  .then(sql.lit('VIEW'))
+                  .else(sql.lit('BASE TABLE'))
+                  .end()
+                  .as('type'),
+            ])
+            .$narrowType<{ type: 'BASE TABLE' | 'VIEW' }>()
+            .where('s.catalog_name', '=', currentDatabase)
             .execute(),
         mongodb: async (db) => {
           const collections = await db.collections()

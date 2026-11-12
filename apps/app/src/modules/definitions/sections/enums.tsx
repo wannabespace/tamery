@@ -181,15 +181,10 @@ const valuesNote = ({
   readOnly: boolean
   recreating: boolean
 }) => {
-  if (!item) {
+  if (!item || readOnly || recreating) {
     return null
   }
-  if (readOnly) {
-    return 'Tamery can’t edit enums on this database.'
-  }
-  return recreating
-    ? null
-    : 'Renaming and appending values alter the type in place.'
+  return 'Renaming and appending values alter the type in place.'
 }
 
 const EnumInspector = ({

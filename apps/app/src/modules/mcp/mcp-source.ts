@@ -1,22 +1,10 @@
-import { connectionParts } from '@tamery/connection/connection-parts'
-import { GUEST_CONNECTIONS_MESSAGE } from '@tamery/shared/constants'
 import type { ConnectionType } from '@tamery/shared/enums/connection-type'
-import { getDialect } from '@tamery/shared/enums/connection-type'
 import type { McpAccess, McpSource } from '@tamery/shared/mcp'
 import { Result } from 'better-result'
 
 import { agentDatabase } from '~/core/agent/database'
-import {
-  getResources,
-  resolveResource,
-  resolveTarget,
-} from '~/core/agent/target'
-import { getCollections } from '~/core/collections'
-import { createConnection } from '~/core/connection/save'
+import { resolveResource, resolveTarget } from '~/core/agent/target'
 import type { ResultSet } from '~/core/queries/connection/custom'
-import { testConnectionQuery } from '~/core/queries/connection/test'
-import { permix } from '~/core/user/permissions'
-import { workspaceSelection } from '~/core/workspace/utils'
 import { notifications } from '~/lib/notifications'
 import { posthog } from '~/lib/posthog'
 
@@ -50,48 +38,6 @@ export const mcpSource: McpSource = {
     return agentDatabase.columnValues(args)
   },
   connections: () => agentDatabase.connections('all'),
-  createConnection: async ({
-    connectionString: given,
-    name,
-    syncType,
-    type,
-  }) => {
-    const { connectionsCollection, workspacesCollection } = getCollections()
-    if (
-      !permix.check('connection.create', {
-        count: connectionsCollection.size,
-      })
-    ) {
-      throw new Error(GUEST_CONNECTIONS_MESSAGE)
-    }
-    const workspace = workspaceSelection.target(workspacesCollection.toArray)
-    if (!workspace) {
-      throw new Error('Tamery is still loading. Try again in a moment.')
-    }
-    const parts = { ...connectionParts.parse(given), type }
-    const connectionString = connectionParts.format(parts)
-    await testConnectionQuery.run({
-      connectionString,
-      dialect: getDialect(type),
-    })
-    const { id } = await createConnection({
-      connectionString,
-      name,
-      provider: connectionParts.parse(connectionString).provider,
-      syncType,
-      type,
-      workspaceId: workspace.id,
-    })
-    posthog.capture('mcp_connection_created', {
-      connection_type: type,
-      sync_type: syncType,
-    })
-    notifications.notify({
-      body: name,
-      title: 'An agent created a connection',
-    })
-    return { id, label: null, name, resources: getResources(id), type }
-  },
   describeTable: (args) => {
     posthog.capture('mcp_table_described', {
       connection_type: resolveResource(args).connection.type,

@@ -27,6 +27,16 @@ import {
 
 const DIALECT_CONFIGS: Record<Dialect, DialectSeedConfig> = {
   clickhouse: clickhouseSeedConfig,
+  duckdb: {
+    generators: {},
+    types: {
+      blob: SKIP_GENERATOR,
+      interval: 'postgres.interval',
+      map: SKIP_GENERATOR,
+      struct: SKIP_GENERATOR,
+      union: SKIP_GENERATOR,
+    },
+  },
   mongodb: { generators: {}, types: { objectId: SKIP_GENERATOR } },
   mssql: mssqlSeedConfig,
   mysql: mysqlSeedConfig,

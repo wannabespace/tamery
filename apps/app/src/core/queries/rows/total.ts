@@ -1,7 +1,7 @@
 import type { ColumnTypes } from '@tamery/connection/queries/value-binding'
-import { filterValueBindings } from '@tamery/connection/queries/value-binding'
+import { filterSpellings } from '@tamery/connection/queries/value-binding'
 import { Dialect } from '@tamery/shared/enums/connection-type'
-import type { ActiveFilter, FilterValueBinding } from '@tamery/shared/filters'
+import type { ActiveFilter, FilterSpelling } from '@tamery/shared/filters'
 import { toKyselyFilter } from '@tamery/shared/filters'
 import { queryOptions } from '@tanstack/react-query'
 import { type } from 'arktype'
@@ -16,6 +16,7 @@ import {
   createQuery,
 } from '~/core/runtime/query'
 
+import { TABLE_DATA_STALE_TIME } from './list'
 import type { BindValue } from './shape'
 import {
   bindValue,
@@ -37,14 +38,14 @@ const countRows = async (
   db: Kysely<any>,
   total: AliasableExpression<unknown>,
   { filters, schema, table }: CountTarget,
-  bind?: FilterValueBinding
+  spelling: FilterSpelling
 ) => {
   const query = await db
     .withSchema(schema)
     .$extendTables<Record<string, Record<string, unknown>>>()
     .selectFrom(table)
     .select(total.as('total'))
-    .where((eb) => toKyselyFilter(eb, filters, 'AND', bind))
+    .where((eb) => toKyselyFilter(eb, filters, 'AND', spelling))
     .executeTakeFirst()
 
   return { count: Number(query?.total ?? 0), isEstimated: false }
@@ -93,9 +94,16 @@ export const resourceTableTotalQuery = memoize(
             db,
             db.fn.countAll(),
             target,
-            filterValueBindings.clickhouse?.(columns)
+            filterSpellings.clickhouse(columns)
           )
         },
+        duckdb: (db) =>
+          countRows(
+            db,
+            db.fn.countAll(),
+            target,
+            filterSpellings.duckdb(columns)
+          ),
         mongodb: async (db) => {
           const collection = db.collection(table)
           if (!exact && !filters?.length) {
@@ -110,7 +118,13 @@ export const resourceTableTotalQuery = memoize(
           ])
           return { count: counted?.count ?? 0, isEstimated: false }
         },
-        mssql: (db) => countRows(db, sql`count_big(*)`, target),
+        mssql: (db) =>
+          countRows(
+            db,
+            sql`count_big(*)`,
+            target,
+            filterSpellings.mssql(columns)
+          ),
         mysql: async (db) => {
           if (!exact && !filters?.length) {
             const estimate = await db
@@ -125,7 +139,12 @@ export const resourceTableTotalQuery = memoize(
             }
           }
 
-          return countRows(db, db.fn.countAll(), target)
+          return countRows(
+            db,
+            db.fn.countAll(),
+            target,
+            filterSpellings.mysql(columns)
+          )
         },
         oracle: async (db) => {
           if (!exact && !filters?.length) {
@@ -141,7 +160,12 @@ export const resourceTableTotalQuery = memoize(
             }
           }
 
-          return countRows(db, db.fn.countAll(), target)
+          return countRows(
+            db,
+            db.fn.countAll(),
+            target,
+            filterSpellings.oracle(columns)
+          )
         },
         postgres: async (db) => {
           if (!exact && !filters?.length) {
@@ -165,14 +189,19 @@ export const resourceTableTotalQuery = memoize(
             }
           }
 
-          return countRows(db, db.fn.countAll(), target)
+          return countRows(
+            db,
+            db.fn.countAll(),
+            target,
+            filterSpellings.postgres(columns)
+          )
         },
         sqlite: (db) =>
           countRows(
             db,
             db.fn.countAll(),
             target,
-            filterValueBindings.sqlite?.(columns)
+            filterSpellings.sqlite(columns)
           ),
       },
       type: type({
@@ -229,6 +258,8 @@ export const resourceTableTotalQueryOptions = ({
         filters,
       },
     ],
+    refetchOnWindowFocus: false,
+    staleTime: TABLE_DATA_STALE_TIME,
     throwOnError: false,
   })
 
@@ -279,6 +310,8 @@ export const keyedRowsCountQuery = (target: KeyedRowsTarget) =>
         clickhouseWrite((bind) =>
           countKeyedRows(db, bind, Dialect.ClickHouse, target)
         ),
+      duckdb: (db) =>
+        countKeyedRows(db, bindValue.duckdb, Dialect.DuckDB, target),
       mongodb: (db) =>
         db.collection(target.table).countDocuments({
           $or: target.primaryKeys.map((pk) =>

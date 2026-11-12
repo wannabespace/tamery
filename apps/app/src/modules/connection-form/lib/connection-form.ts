@@ -19,7 +19,7 @@ import { posthog } from '~/lib/posthog'
 import { generateRandomName } from '~/utils/faker'
 
 import type { Engine } from './engine-fields'
-import { getEngineFields, isSqliteFile } from './engine-fields'
+import { getEngineFields, getFileType } from './engine-fields'
 import type { PasteVia } from './use-paste-connection'
 
 export interface ConnectionFormValues extends Omit<
@@ -65,6 +65,10 @@ const SERVER_FIELDS = [
 const port = type(/^\d{0,5}$/u).configure({ message: 'Use a port number' })
 
 const FULL_PATH = /^\s*(?:\/|~\/|[a-z]:[\\/])/iu
+const FULL_PATH_EXAMPLES = {
+  [ConnectionType.DuckDB]: '/Users/me/data.duckdb',
+  [ConnectionType.SQLite]: '/Users/me/app.db',
+}
 
 const connectionFormSchema = type({
   database: 'string',
@@ -91,16 +95,18 @@ const connectionFormSchema = type({
     }
     return empty.length === 0
   })
-  .narrow(
-    (values, ctx) =>
-      !isSqliteFile(values) ||
+  .narrow((values, ctx) => {
+    const fileType = getFileType(values)
+    return (
+      !fileType ||
       !/\S/u.test(values.database) ||
       FULL_PATH.test(values.database) ||
       ctx.reject({
-        message: "Use the file's full path, like /Users/me/app.db",
+        message: `Use the file's full path, like ${FULL_PATH_EXAMPLES[fileType]}`,
         path: ['database'],
       })
-  )
+    )
+  })
   .narrow(
     (values, ctx) =>
       !values.sshEnabled ||
@@ -172,7 +178,7 @@ const clearFields = (form: ConnectionForm) => {
 }
 
 const sharesFields = (from: Engine, to: Engine) =>
-  from.provider === to.provider && isSqliteFile(from) === isSqliteFile(to)
+  from.provider === to.provider && getFileType(from) === getFileType(to)
 
 export const switchEngine = (form: ConnectionForm, engine: Engine) => {
   if (!sharesFields(form.state.values, engine)) {

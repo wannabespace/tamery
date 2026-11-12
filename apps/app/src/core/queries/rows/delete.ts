@@ -59,6 +59,13 @@ export const deleteRowsQuery = memoize((params: DeleteParams) => {
             params
           )
         ),
+      duckdb: (db) =>
+        deleteInBatches(
+          db,
+          bindValue.duckdb,
+          rowsPerStatement(Dialect.DuckDB, keyWidth),
+          params
+        ),
       mongodb: (db) =>
         db.transaction().execute(async (tx) => {
           const batchSize = rowsPerStatement(Dialect.MongoDB, keyWidth)

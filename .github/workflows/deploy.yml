@@ -1,0 +1,128 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      rollback:
+        description: 'A service from .github/deploy-services.yml: put it back on the image it ran before its last deploy, without building or migrating. Empty deploys every service.'
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  # The repo is public: anyone signed in to GitHub could download a build record.
+  DOCKER_BUILD_RECORD_UPLOAD: false
+  DOCKER_BUILD_SUMMARY: false
+  REGION: europe-west3
+
+jobs:
+  changes:
+    if: ${{ !inputs.rollback }}
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.all.outputs.services || steps.filter.outputs.changes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Find the services this push changed
+        if: github.event_name == 'push'
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: .github/deploy-services.yml
+
+      - name: List every service
+        if: github.event_name == 'workflow_dispatch'
+        id: all
+        run: echo "services=$(yq -o=json -I=0 'keys' .github/deploy-services.yml)" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: changes
+    if: needs.changes.outputs.services != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
+    concurrency: deploy-${{ matrix.service }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      IMAGE: europe-west3-docker.pkg.dev/gen-lang-client-0721016191/tamery/${{ matrix.service }}:${{ github.sha }}
+      SERVICE: ${{ matrix.service }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - &authenticate
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: projects/1095635632709/locations/global/workloadIdentityPools/github/providers/github
+          service_account: tamery-deploy@gen-lang-client-0721016191.iam.gserviceaccount.com
+
+      - &setup-gcloud
+        name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      - name: Sign in to the registry
+        run: gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build and push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE }}
+          # Each Dockerfile reads only the ARGs and secret mounts it declares.
+          build-args: |
+            GIT_COMMIT_SHA=${{ github.sha }}
+            VITE_PUBLIC_API_URL=https://api.tamery.app
+            VITE_PUBLIC_MAIN_URL=https://tamery.app
+            VITE_PUBLIC_POSTHOG_TOKEN=${{ secrets.POSTHOG_TOKEN }}
+            VITE_PUBLIC_PROXY_URL=https://proxy.tamery.app
+            VITE_PUBLIC_SHARE_URL=https://share.tamery.app
+            VITE_PUBLIC_WEB_URL=https://web.tamery.app
+          secrets: |
+            POSTHOG_PERSONAL_API_KEY=${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Migrate the database
+        if: matrix.service == 'api'
+        run: |
+          for job in $(gcloud run jobs list --region="$REGION" --format='value(metadata.name)'); do
+            gcloud run jobs update "$job" --image="$IMAGE" --region="$REGION"
+          done
+          gcloud run jobs execute api-migrate --region="$REGION" --wait
+
+      - name: Deploy
+        run: gcloud run services update "$SERVICE" --image="$IMAGE" --region="$REGION"
+
+  rollback:
+    if: inputs.rollback
+    runs-on: ubuntu-latest
+    concurrency: deploy-${{ inputs.rollback }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SERVICE: ${{ inputs.rollback }}
+    steps:
+      - *authenticate
+      - *setup-gcloud
+
+      - name: Roll back
+        run: |
+          previous=$(gcloud run revisions list --service="$SERVICE" --region="$REGION" --sort-by=~metadata.creationTimestamp --format='value(spec.containers[0].image)' | uniq | sed -n 2p)
+          gcloud run services update "$SERVICE" --image="$previous" --region="$REGION"

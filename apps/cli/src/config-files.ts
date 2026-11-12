@@ -23,6 +23,7 @@ const writeTemporary = (file: string, data: string) => {
  */
 export const configFiles = {
   browsers: path.join(CONFIG_DIR, 'bridge-browsers'),
+  dir: CONFIG_DIR,
   /** `false` when the file already exists: the first writer wins, across processes too. */
   create: (file: string, data: string) => {
     const temporary = writeTemporary(file, data)
@@ -36,6 +37,8 @@ export const configFiles = {
     }
     throw linked.error.cause
   },
+  /** DuckDB's driver, one folder per version, installed on the bridge's first DuckDB file. */
+  duckdb: path.join(CONFIG_DIR, 'duckdb'),
   key: path.join(CONFIG_DIR, 'bridge.key'),
   /** Skips a file removed while it was listed. */
   readAll: <T>(dir: string, file: { assert: (text: string) => T }) =>

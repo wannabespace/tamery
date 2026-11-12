@@ -2,6 +2,7 @@ import { chatStream } from '@tamery/ai/features'
 import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
 import { AiFeature } from '@tamery/ai/usage'
+import { runInBackground } from '@tamery/shared/background'
 import { CHAT_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { validateUIMessages } from 'ai'
 import { type } from 'arktype'
@@ -74,11 +75,13 @@ export const stream = orpc
     }
 
     if (!title) {
-      void chatPersist.persistTitle({
-        chatId: input.chatId,
-        messages: history,
-        userId: context.user.id,
-      })
+      runInBackground(
+        chatPersist.persistTitle({
+          chatId: input.chatId,
+          messages: history,
+          userId: context.user.id,
+        })
+      )
     }
 
     const str = await chatStream.claim({

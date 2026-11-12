@@ -14,8 +14,9 @@ type ComparedView = Pick<ShareView, 'columns' | 'filters' | 'orderBy'>
 const viewKey = ({ columns, filters, orderBy }: ComparedView) =>
   JSON.stringify([
     columns.map(({ id }) => id),
-    filters.map(({ column, ref, values, via }) => [
+    filters.map(({ column, path, ref, values, via }) => [
       column,
+      path,
       ref.operator,
       values,
       via && [via.schema, via.table, via.key, via.target],

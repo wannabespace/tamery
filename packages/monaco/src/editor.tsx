@@ -1,6 +1,7 @@
 import './worker'
 import { noop } from '@tamery/shared/utils'
 import { formatXml } from '@tamery/shared/xml'
+import { ResizablePin } from '@tamery/ui/components/custom/resizable'
 import { useMountedEffect } from '@tamery/ui/hookas/use-mounted-effect'
 import { resolvedTheme } from '@tamery/ui/theme-store'
 import { Result } from 'better-result'
@@ -253,10 +254,14 @@ export const Monaco = ({
   }, [value, options?.readOnly, language])
 
   return (
-    <div
-      ref={elementRef}
-      tabIndex={leaveOnEscape ? -1 : undefined}
-      {...props}
-    />
+    <div {...props}>
+      <ResizablePin className="size-full">
+        <div
+          ref={elementRef}
+          tabIndex={leaveOnEscape ? -1 : undefined}
+          className="size-full"
+        />
+      </ResizablePin>
+    </div>
   )
 }

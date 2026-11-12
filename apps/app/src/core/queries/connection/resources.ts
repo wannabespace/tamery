@@ -11,7 +11,9 @@ import { v7 } from 'uuid'
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { getCollections, mutateOffline } from '~/core/collections'
 import type { Connection } from '~/core/connection/sync'
+import { duckdbCatalog } from '~/core/queries/shared/duckdb-catalog'
 import { connectionToQueryParams, createQuery } from '~/core/runtime/query'
+import { isViewOnly } from '~/core/workspace/utils'
 
 const MONGODB_SYSTEM_DATABASES = new Set(['admin', 'config', 'local'])
 
@@ -30,6 +32,17 @@ const connectionResourcesQuery = (defaultResourceName: string | null) =>
           .orderBy('name')
           .execute()
         return rows.map((r) => r.name)
+      },
+
+      // A file lists only itself; MotherDuck every database of the workspace.
+      duckdb: async (db) => {
+        const rows = await db
+          .selectFrom(duckdbCatalog('duckdb_databases').as('d'))
+          .select('d.database_name')
+          .where('d.internal', '=', false)
+          .orderBy('d.database_name')
+          .execute()
+        return rows.map((r) => r.database_name)
       },
 
       mongodb: async (db) => {
@@ -83,30 +96,47 @@ const connectionResourcesQuery = (defaultResourceName: string | null) =>
     type: type('string[]'),
   })
 
-const storeMissingResources = async (connectionId: string, names: string[]) => {
-  const { connectionsResourcesCollection } = getCollections()
+const storeResources = async (
+  connection: Connection,
+  names: string[],
+  prune?: { keep: string | null }
+) => {
+  const { connectionsResourcesCollection, workspacesCollection } =
+    getCollections()
 
   await connectionsResourcesCollection.utils.whenSynced()
 
   const stored = await queryOnce((q) =>
     q
       .from({ resource: connectionsResourcesCollection })
-      .where(({ resource }) => eq(resource.connectionId, connectionId))
-      .select(({ resource }) => ({ name: resource.name }))
+      .where(({ resource }) => eq(resource.connectionId, connection.id))
+      .select(({ resource }) => ({ id: resource.id, name: resource.name }))
   )
   const storedNames = new Set(stored.map((resource) => resource.name))
+  const listedNames = new Set<string | null>([...names, prune?.keep ?? null])
   const missing = names.filter((name) => !storedNames.has(name))
+  // Only an editor may remove a resource.
+  const gone =
+    prune &&
+    !isViewOnly(workspacesCollection.get(connection.workspaceId) ?? null)
+      ? stored.filter((resource) => !listedNames.has(resource.name))
+      : []
 
-  if (missing.length > 0) {
+  if (missing.length > 0 || gone.length > 0) {
     mutateOffline(() => {
       for (const name of missing) {
         connectionsResourcesCollection.insert({
-          connectionId,
+          connectionId: connection.id,
           createdAt: new Date(),
           id: v7(),
           name,
           updatedAt: new Date(),
         })
+      }
+      if (gone.length > 0) {
+        connectionsResourcesCollection.delete(
+          gone.map((resource) => resource.id)
+        )
       }
     })
   }
@@ -122,13 +152,16 @@ export const connectionResourcesQueryOptions = (connection: Connection) =>
 
       // Before the list, which can take seconds or fail: the connection row links only to a stored resource.
       if (defaultResourceName) {
-        await storeMissingResources(connection.id, [defaultResourceName])
+        await storeResources(connection, [defaultResourceName])
       }
 
       const resources =
         await connectionResourcesQuery(defaultResourceName).run(params)
 
-      await storeMissingResources(connection.id, resources)
+      // The connection's own database stays: the list may hide it (a system or empty database) and the connection row links to it.
+      await storeResources(connection, resources, {
+        keep: defaultResourceName || null,
+      })
 
       return resources
     },

@@ -24,6 +24,8 @@ export type ContainsText = (
 export const textContains: Record<SqlDialect, ContainsText> = {
   clickhouse: (eb, column, pattern) =>
     eb(eb.fn('toString', [eb.ref(column)]), 'ilike', pattern),
+  duckdb: (eb, column, pattern) =>
+    eb(eb.cast(eb.ref(column), 'varchar'), 'ilike', pattern),
   mssql: (eb, column, pattern) =>
     eb(eb.cast(eb.ref(column), sql`nvarchar(max)`), 'like', pattern),
   mysql: (eb, column, pattern) =>
@@ -58,6 +60,7 @@ const bindJsonAsText = (dialect: Dialect): BindValue => {
 
 const clickhouseJsonColumnType = getCapabilities(Dialect.ClickHouse).columnTypes
   .json
+const duckdbJsonColumnType = getCapabilities(Dialect.DuckDB).columnTypes.json
 const clickhouseBind =
   (parseJson: (columnType: string, json: string) => unknown): BindValue =>
   (columnType, value) => {
@@ -85,6 +88,15 @@ export const bindValue: Record<Dialect, BindValue> = {
     (columnType, json) =>
       sql`(select v from format(JSONEachRow, ${`v ${columnType}`}, ${json}))`
   ),
+  duckdb: (columnType, value) => {
+    if (value === undefined) {
+      return sql`default`
+    }
+    // Text casts to a list or struct but not to a map; through JSON it reaches all three.
+    return value !== null && duckdbJsonColumnType.test(columnType)
+      ? sql`CAST(CAST(${JSON.stringify(value)} AS JSON) AS ${sql.raw(columnType)})`
+      : value
+  },
   mongodb: toWire,
   mssql: bindJsonAsText(Dialect.MSSQL),
   mysql: bindJsonAsText(Dialect.MySQL),

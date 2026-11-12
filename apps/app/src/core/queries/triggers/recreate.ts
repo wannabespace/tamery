@@ -40,6 +40,7 @@ export const recreateTriggerQuery = ({
   return createQuery({
     query: {
       clickhouse: unsupported('Triggers'),
+      duckdb: unsupported('Triggers'),
       mongodb: unsupported('Triggers'),
       mssql: (db) =>
         db.transaction().execute(async (tx) => {

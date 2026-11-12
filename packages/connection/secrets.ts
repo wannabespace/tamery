@@ -1,3 +1,4 @@
+import { SyncType } from '@tamery/shared/enums/sync-type'
 import { SafeURL } from '@tamery/shared/safe-url'
 import { lowercaseKeys } from '@tamery/shared/utils'
 
@@ -34,6 +35,15 @@ const getUrl = (connectionString: string) => {
 
 /** `strip` empties a secret rather than dropping it, so another device knows which ones to ask for. */
 export const connectionSecrets = {
+  /** What the server may hold of a string under the connection's sync type. */
+  forSync: (connectionString: string, syncType: SyncType) => {
+    if (syncType === SyncType.CloudWithoutConnectionString) {
+      return null
+    }
+    return syncType === SyncType.Cloud
+      ? new SafeURL(connectionString.trim()).toString()
+      : connectionSecrets.strip(connectionString.trim())
+  },
   /** Equal but for the database and secrets: the same host, port, user, proxy, TLS and every other option. */
   isSameServer: (a: string, b: string) => {
     const [first, second] = [a, b].map((value) => {

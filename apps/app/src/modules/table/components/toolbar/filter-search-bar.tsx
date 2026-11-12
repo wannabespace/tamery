@@ -1,5 +1,6 @@
-import { Search01Icon } from '@hugeicons/core-free-icons'
+import { Search01Icon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { CommandPrimitive } from '@tamery/ui/components/command'
 import { Chip, ChipDivider } from '@tamery/ui/components/custom/filter-chip'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
@@ -9,11 +10,12 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 
 import { useTableColumnsContext } from '../../lib/columns'
-import { AiSummaryRow, useFilterAi } from './filter-ai'
+import { useFilterAi } from './filter-ai'
 import { FilterChip, filterLabel } from './filter-chip'
 import { FilterCommandList } from './filter-command-list'
 import type { Stage } from './filter-composer'
@@ -21,31 +23,44 @@ import { useFilterComposer } from './filter-composer'
 
 const getFilterPlaceholder = ({
   isOnline,
+  isSql,
   stage,
+  summary,
 }: {
   isOnline: boolean
+  isSql: boolean
   stage: Stage
+  summary: string | null
 }) => {
   if (stage.step === 'operator') {
     return 'Choose an operator…'
   }
+  if (stage.step === 'value' && stage.ref.operator === 'sql') {
+    return 'A condition, like total > 100…'
+  }
   if (stage.step === 'value') {
     return stage.ref.isArray ? 'Values, comma-separated…' : 'Value…'
+  }
+  if (summary) {
+    return summary
   }
   if (!isOnline) {
     return 'Offline, AI unavailable'
   }
-  return 'Filter or ask AI…'
+  return isSql ? 'Filter, ask AI, or write SQL…' : 'Filter or ask AI…'
 }
 
 export const FilterSearchBar = ({
+  rows,
   table,
   schema,
 }: {
+  rows: Record<string, unknown>[]
   table: string
   schema: string
 }) => {
   const names = useObjectNames()
+  const { dialect } = useConnectionContext()
   const inputRef = useRef<HTMLInputElement>(null)
   const chipsRef = useRef<HTMLDivElement>(null)
   const [isFocused, setIsFocused] = useState(false)
@@ -97,9 +112,12 @@ export const FilterSearchBar = ({
           spinner={<Spinner className="text-muted-foreground" />}
         >
           <HugeiconsIcon
-            icon={Search01Icon}
+            icon={ai.summary ? Tick02Icon : Search01Icon}
             strokeWidth={2}
-            className="text-muted-foreground size-4"
+            className={cn(
+              'size-4',
+              ai.summary ? 'text-success' : 'text-muted-foreground'
+            )}
           />
         </LoadingContent>
         <div
@@ -120,15 +138,17 @@ export const FilterSearchBar = ({
           ))}
           {stage.step !== 'idle' && (
             <Chip>
-              <span
-                data-mask
-                className="flex items-center px-1.5 text-xs font-medium"
-              >
-                {filterLabel(stage.target)}
-              </span>
+              {stage.target.column && (
+                <span
+                  data-mask
+                  className="flex items-center px-1.5 text-xs font-medium"
+                >
+                  {filterLabel(stage.target)}
+                </span>
+              )}
               {stage.step === 'value' && (
                 <>
-                  <ChipDivider />
+                  {stage.target.column && <ChipDivider />}
                   <span className="text-muted-foreground flex items-center px-1.5 text-xs">
                     {stage.ref.symbol}
                   </span>
@@ -141,10 +161,16 @@ export const FilterSearchBar = ({
             aria-label={`Filter ${names.row}s`}
             value={query}
             onValueChange={setQuery}
-            placeholder={getFilterPlaceholder({ isOnline: ai.isOnline, stage })}
+            placeholder={getFilterPlaceholder({
+              isOnline: ai.isOnline,
+              isSql: isSqlDialect(dialect),
+              stage,
+              summary: ai.summary,
+            })}
             // Read-only, not disabled: a disabled input drops focus, and Esc must still cancel the request.
             readOnly={ai.isPending}
-            className="placeholder:text-muted-foreground h-6 min-w-32 flex-1 bg-transparent text-sm outline-none"
+            data-mask={ai.summary ? true : undefined}
+            className="placeholder:text-muted-foreground h-6 min-w-32 flex-1 truncate bg-transparent text-sm outline-none"
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
           />
@@ -159,7 +185,7 @@ export const FilterSearchBar = ({
         </span>
       </div>
       <AnimatePresence>
-        {(isOpen || ai.summary) && (
+        {isOpen && (
           <motion.div
             key="suggestion-panel"
             role="presentation"
@@ -170,12 +196,7 @@ export const FilterSearchBar = ({
             className="bg-popover ring-foreground/4 absolute top-full left-0 z-30 mt-2 w-full overflow-hidden rounded-xl shadow-lg ring-1"
             onMouseDown={(e) => e.preventDefault()}
           >
-            <AnimatePresence>
-              {ai.summary && (
-                <AiSummaryRow hasList={isOpen} summary={ai.summary} />
-              )}
-            </AnimatePresence>
-            {isOpen && <FilterCommandList ai={ai} composer={composer} />}
+            <FilterCommandList ai={ai} composer={composer} rows={rows} />
           </motion.div>
         )}
       </AnimatePresence>

@@ -155,7 +155,7 @@ export const TableToolbar = ({
         schema={schema}
         table={table}
       />
-      <FilterSearchBar table={table} schema={schema} />
+      <FilterSearchBar rows={rows} table={table} schema={schema} />
       <div className="flex shrink-0 items-center gap-1">
         <ActionsColumns />
         <ActionsOrder />

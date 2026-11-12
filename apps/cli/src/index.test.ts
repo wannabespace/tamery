@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -12,6 +12,9 @@ const env = {
   TAMERY_CONFIG_DIR: fs.mkdtempSync(path.join(os.tmpdir(), 'tamery-cli-')),
   WEB_URL: 'https://app.tamery.test',
 }
+
+// Each test starts the whole CLI, which takes over 5 s while the pre-commit hook runs every package's tests at once.
+setDefaultTimeout(30_000)
 
 const tamery = (...args: string[]) => {
   const { exitCode, stderr, stdout } = Bun.spawnSync(
@@ -42,10 +45,49 @@ describe('commands', () => {
     expect(output).toContain('Unknown command bogus')
   })
 
+  test('a usage error never prints a password', () => {
+    const { exitCode, output } = tamery('postgres://admin:hunter2@db/app')
+    expect(exitCode).toBe(1)
+    expect(output).toContain('Unknown command')
+    expect(output).not.toContain('hunter2')
+  })
+
+  test('-v prints the version', () => {
+    expect(tamery('-v').output.trim()).toMatch(/^\d+\.\d+\.\d+/u)
+  })
+
   test('the bridge refuses a port out of range before starting', () => {
     const { exitCode, output } = tamery('bridge', '--port', '0')
     expect(exitCode).toBe(1)
     expect(output).toContain('--port must be a number from 1 to 65535.')
+  })
+
+  test('a command group without a subcommand prints its help', () => {
+    const { exitCode, output } = tamery('connection')
+    expect(exitCode).toBe(0)
+    expect(output).toContain('create')
+  })
+
+  test("a command's help describes its arguments", () => {
+    expect(tamery('query', '--help').output).toContain('Its id or name')
+  })
+
+  test('a script that is not signed in fails instead of waiting for a browser', () => {
+    const { exitCode, output } = tamery('query', 'prod', 'select 1')
+    expect(exitCode).toBe(1)
+    expect(output).toContain('Not signed in.')
+  })
+
+  test('a connection update with nothing to change fails before signing in', () => {
+    const { exitCode, output } = tamery('connection', 'update', 'prod')
+    expect(exitCode).toBe(1)
+    expect(output).toContain('Nothing to change.')
+  })
+
+  test('a query without a statement fails before signing in', () => {
+    const { exitCode, output } = tamery('query', 'prod')
+    expect(exitCode).toBe(1)
+    expect(output).toContain('Pass the statement after the connection')
   })
 
   test('a subcommand of bridge runs instead of the bridge', () => {

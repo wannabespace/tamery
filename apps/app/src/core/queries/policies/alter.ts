@@ -44,6 +44,7 @@ export const alterPolicyQuery = ({
           ${using === '' ? sql`USING NONE` : expression('USING', using)}
           ${roles ? sql`TO ${clickhouseRoleList(roles)}` : sql``}
         `.execute(db),
+      duckdb: unsupported('Row policies'),
       mongodb: unsupported('Row policies'),
       mssql: (db) =>
         db.transaction().execute(async (tx) => {

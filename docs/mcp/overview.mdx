@@ -50,20 +50,19 @@ With **Read and write**, you get a notification after each change instead.
 | Tool | Purpose |
 | --- | --- |
 | `list_connections` | Find shared connections and their databases. |
-| `create_connection` | Test and save a new connection in your open workspace. SQLite files, SSH tunnels and MongoDB logins that use AWS, OIDC or Kerberos credentials have to be added in Tamery. |
 | `list_tables` | List tables and views. |
 | `describe_table` | Show columns, keys, and indexes. |
 | `search_schema` | Find tables and columns by name or comment, so a large database needs no full listing. |
 | `search_saved_queries` | Find your saved queries by name or SQL, so the agent builds on SQL you already trust. |
 | `column_values` | Show a column's most common values with their counts, and its range for numbers and dates. |
 | `query` | Run one read-only statement, like `SELECT` or `EXPLAIN`, and return up to 200 rows and about 60 KB. A value longer than 2 KB comes back cut short, marked as cut. Nothing it does is kept. |
-| `explain` | Show a statement's query plan on PostgreSQL, MySQL, SQLite or ClickHouse. With `analyze`, a read also runs to report real timings, then rolls back. |
+| `explain` | Show a statement's query plan on PostgreSQL, MySQL, SQLite, ClickHouse or DuckDB. With `analyze`, a read also runs to report real timings, then rolls back. |
 | `propose_change` | Draft row edits, inserts, deletes, schema changes or a new index in Tamery for you to review and apply. Nothing runs until you do. |
 | `execute` | Change data or schema, within the connection's access. Several statements need a `BEGIN … COMMIT` block. |
 
 `query`, `explain` and `execute` take what to run as `statement`: SQL in the connection's own dialect, or on a MongoDB connection a mongosh call such as `db.orders.find({ status: 'paid' })`, one call at a time.
 
-Connections an agent creates start at **Ask before writing**. No tool can edit or remove a connection.
+No tool can add, edit or remove a connection. Add them in Tamery or with [`tamery connection`](/cli/commands#tamery-connection-create).
 
 Try “Describe the orders table” or “Find duplicate customer emails.” Whatever the agent reads becomes part of its AI context, so share only what you would paste into that chat yourself.
 

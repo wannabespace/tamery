@@ -1,7 +1,7 @@
 import type { ColumnTypes } from '@tamery/connection/queries/value-binding'
-import { filterValueBindings } from '@tamery/connection/queries/value-binding'
+import { filterSpellings } from '@tamery/connection/queries/value-binding'
 import { fromWire } from '@tamery/mongo/values'
-import type { ActiveFilter, FilterValueBinding } from '@tamery/shared/filters'
+import type { ActiveFilter, FilterSpelling } from '@tamery/shared/filters'
 import { toKyselyFilter } from '@tamery/shared/filters'
 import { type } from 'arktype'
 import type { Kysely } from 'kysely'
@@ -32,14 +32,14 @@ const countValues = (
   db: Kysely<any>,
   contains: ContainsText,
   { column, filters, limit, schema, table, term }: ValueCountsParams,
-  bind?: FilterValueBinding
+  spelling: FilterSpelling
 ) =>
   db
     .withSchema(schema)
     .$extendTables<Record<string, Record<string, unknown>>>()
     .selectFrom(table)
     .select((eb) => [eb.ref(column).as('value'), eb.fn.countAll().as('count')])
-    .where((eb) => toKyselyFilter(eb, filters, 'AND', bind))
+    .where((eb) => toKyselyFilter(eb, filters, 'AND', spelling))
     .$if(term !== '', (query) =>
       query.where((eb) => contains(eb, column, `%${term}%`))
     )
@@ -57,7 +57,14 @@ export const valueCountsQuery = (params: ValueCountsParams) =>
           db,
           textContains.clickhouse,
           params,
-          filterValueBindings.clickhouse?.(params.columns)
+          filterSpellings.clickhouse(params.columns)
+        ),
+      duckdb: (db) =>
+        countValues(
+          db,
+          textContains.duckdb,
+          params,
+          filterSpellings.duckdb(params.columns)
         ),
       mongodb: async (db) => {
         const field = `$${params.column}`
@@ -70,16 +77,40 @@ export const valueCountsQuery = (params: ValueCountsParams) =>
           value: fromWire(value),
         }))
       },
-      mssql: (db) => countValues(db, textContains.mssql, params),
-      mysql: (db) => countValues(db, textContains.mysql, params),
-      oracle: (db) => countValues(db, textContains.oracle, params),
-      postgres: (db) => countValues(db, textContains.postgres, params),
+      mssql: (db) =>
+        countValues(
+          db,
+          textContains.mssql,
+          params,
+          filterSpellings.mssql(params.columns)
+        ),
+      mysql: (db) =>
+        countValues(
+          db,
+          textContains.mysql,
+          params,
+          filterSpellings.mysql(params.columns)
+        ),
+      oracle: (db) =>
+        countValues(
+          db,
+          textContains.oracle,
+          params,
+          filterSpellings.oracle(params.columns)
+        ),
+      postgres: (db) =>
+        countValues(
+          db,
+          textContains.postgres,
+          params,
+          filterSpellings.postgres(params.columns)
+        ),
       sqlite: (db) =>
         countValues(
           db,
           textContains.sqlite,
           params,
-          filterValueBindings.sqlite?.(params.columns)
+          filterSpellings.sqlite(params.columns)
         ),
     },
     type: valueCountsType,

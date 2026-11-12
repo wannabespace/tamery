@@ -21,6 +21,10 @@ export const explainQuery = ({
         runInTransaction(db, { accessMode: 'read only', commit: false }, [
           CompiledQuery.raw(`EXPLAIN ${statement}`),
         ]),
+      duckdb: (db) =>
+        runInTransaction(db, { accessMode: 'read only', commit: false }, [
+          CompiledQuery.raw(`EXPLAIN ${analyze ? 'ANALYZE ' : ''}${statement}`),
+        ]),
       mongodb: unsupported('Query plans'),
       mssql: unsupported('Query plans'),
       // Not read only: MySQL refuses even EXPLAIN of a write there.

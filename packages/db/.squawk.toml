@@ -1,0 +1,17 @@
+pg_version = "18.0"
+assume_in_transaction = true
+excluded_rules = [
+  "adding-foreign-key-constraint",
+  "ban-drop-constraint",
+  "ban-drop-not-null",
+  "constraint-missing-not-valid",
+  "disallowed-unique-constraint",
+  "prefer-bigint-over-int",
+  "prefer-robust-stmts",
+  "prefer-timestamp-tz",
+  "require-concurrent-index-creation",
+  "require-concurrent-index-deletion",
+  "require-enum-value-ordering",
+  "require-lock-timeout",
+  "require-statement-timeout",
+]

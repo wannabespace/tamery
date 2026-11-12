@@ -3,10 +3,10 @@ import { createClient } from 'redis'
 
 import { env } from '~/env'
 
-export const redis = createClient({ url: env.REDIS_URL }).on(
-  'error',
-  console.error
-)
+export const redis = createClient({
+  socket: env.REDIS_CA ? { ca: env.REDIS_CA, tls: true } : undefined,
+  url: env.REDIS_URL,
+}).on('error', console.error)
 export const redisSubscriber: typeof redis = redis
   .duplicate()
   .on('error', console.error)

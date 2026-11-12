@@ -1,10 +1,8 @@
-import { SparklesIcon, Tick02Icon } from '@hugeicons/core-free-icons'
+import { SparklesIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { CommandItem, CommandShortcut } from '@tamery/ui/components/command'
-import { cn } from '@tamery/ui/lib/utils'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { motion } from 'motion/react'
 import type { RefObject } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -221,34 +219,3 @@ export const FilterAskAiItem = ({
     </CommandItem>
   )
 }
-
-export const AiSummaryRow = ({
-  hasList,
-  summary,
-}: {
-  hasList: boolean
-  summary: string
-}) => (
-  <motion.div
-    initial={{ height: 0, opacity: 0, y: -8 }}
-    animate={{ height: 'auto', opacity: 1, y: 0 }}
-    exit={{ height: 0, opacity: 0, y: -8 }}
-    transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-    className="overflow-hidden"
-  >
-    <div
-      data-mask
-      className={cn(
-        'text-muted-foreground flex items-center gap-2 px-3 py-1.5 text-xs',
-        hasList && 'border-b'
-      )}
-    >
-      <HugeiconsIcon
-        icon={Tick02Icon}
-        strokeWidth={2}
-        className="text-success size-3.5 shrink-0"
-      />
-      <span className="min-w-0 flex-1 truncate">{summary}</span>
-    </div>
-  </motion.div>
-)

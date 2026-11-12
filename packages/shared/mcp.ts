@@ -1,6 +1,5 @@
 import type { AgentChange } from './agent-change'
 import type { ConnectionType } from './enums/connection-type'
-import type { SyncType } from './enums/sync-type'
 
 export const MCP_MAX_ROWS = 200
 export const MCP_CELL_BYTES = 2000
@@ -17,7 +16,7 @@ export const SEARCH_SAVED_QUERIES_DESCRIPTION =
   "Find the user's saved queries on a connection by name and SQL text: every word of query must match. Reuse or adapt one the user already trusts before writing SQL from scratch."
 
 export const EXPLAIN_DESCRIPTION =
-  "Show how the database would run one SQL statement: its query plan in the connection's own dialect (PostgreSQL, MySQL, SQLite, ClickHouse). analyze also runs it and reports real timings, so it is only for reads, inside a transaction that is rolled back. Use it when a query is slow, then recommend an index with propose_change."
+  "Show how the database would run one SQL statement: its query plan in the connection's own dialect (PostgreSQL, MySQL, SQLite, ClickHouse, DuckDB). analyze also runs it and reports real timings, so it is only for reads, inside a transaction that is rolled back. Use it when a query is slow, then recommend an index with propose_change."
 
 export const COLUMN_VALUES_DESCRIPTION =
   'The most common values of one column with how often each occurs (up to 50), its distinct and null counts, and min and max for numbers and dates. Call it before filtering on a value the user named, to match its exact spelling and case.'
@@ -52,15 +51,6 @@ export interface McpSource {
     onAbort: OnAbort
   ) => Promise<unknown>
   connections: (args: undefined, onAbort: OnAbort) => McpConnection[]
-  createConnection: (
-    args: {
-      connectionString: string
-      name: string
-      syncType: SyncType
-      type: ConnectionType
-    },
-    onAbort: OnAbort
-  ) => Promise<McpConnection>
   describeTable: (
     args: McpTarget & { schema: string; table: string },
     onAbort: OnAbort
@@ -103,6 +93,7 @@ export type McpReply = { result: unknown } | { error: string } | { idle: true }
 
 export type McpTool =
   | 'list_connections'
+  /** No longer a tool, but up to 100 logged calls stay in the activity log and still render. */
   | 'create_connection'
   | 'list_tables'
   | 'describe_table'
@@ -118,7 +109,7 @@ export interface McpCall {
   at: number
   client: string
   connectionId: string | null
-  /** The schema, the table or the new connection's name; never a connection string. */
+  /** The schema or the table; never a connection string. */
   detail: string | null
   error: string | null
   id: string

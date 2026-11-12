@@ -2,6 +2,7 @@ import { log } from '@clack/prompts'
 import { silently } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
+import { analytics } from '../analytics'
 import { account } from '../api'
 import { pairings } from '../bridge/pairings'
 import { paint } from '../paint'
@@ -12,6 +13,7 @@ export const logout = async () => {
   const saved = await Result.tryPromise(() => vault.account())
   const current = saved.unwrapOr(null)
   if (current) {
+    await analytics.capture('signed_out', {})
     await silently(() => account.signOut(current.token))
   }
   await vault.reset()

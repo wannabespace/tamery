@@ -1,12 +1,12 @@
 ---
 title: 'Tamery CLI'
 sidebarTitle: 'Overview'
-description: "Run the web app's queries on your own computer with tamery bridge: localhost, private networks, SQLite files, and connections whose password stays with you."
+description: "Run the web app's queries on your own computer with tamery bridge: localhost, private networks, SQLite and DuckDB files, and connections whose password stays with you."
 keywords:
   ['command line', 'terminal', 'tamery proxy', 'local proxy', 'headless']
 ---
 
-`tamery bridge` lets the web app run your queries on the computer where the bridge runs. Use it for a database on localhost or a private network, a SQLite file, or a connection whose password Tamery's server doesn't have. The desktop app doesn't need it: it already runs queries on your computer.
+`tamery bridge` lets the web app run your queries on the computer where the bridge runs. Use it for a database on localhost or a private network, a SQLite or DuckDB file, or a connection whose password Tamery's server doesn't have. The desktop app doesn't need it: it already runs queries on your computer.
 
 ## Install
 
@@ -74,7 +74,7 @@ The bridge runs only the connections saved in your account.
 | **No password** | Asks once for the password and the other secrets that don't sync. |
 | **Metadata only** | Asks once for the server details. |
 
-Some connections use this computer's files or credentials: a SQLite file, a certificate file (such as `sslkey` or `tlsCAFile`), an SSH tunnel, or a MongoDB login with the computer's AWS, OIDC or Kerberos credentials. The bridge runs them only once you allow them:
+Some connections use this computer's files or credentials: a SQLite or DuckDB file, a certificate file (such as `sslkey` or `tlsCAFile`), an SSH tunnel, or a MongoDB login with the computer's AWS, OIDC or Kerberos credentials. The bridge runs them only once you allow them:
 
 - **Saved in this browser:** already allowed.
 - **Saved by someone else:** click **Allow** on **Allow this connection on the bridge**.
@@ -84,19 +84,31 @@ The first time a connection uses a file, tunnel or login, the terminal running `
 
 To try a new connection while paired, save it first. Only saved connections run on the bridge.
 
-SQLite paths, `~/` included, point to files on the bridge's computer. SSH tunnels open there too, with its SSH keys, agent and `~/.ssh/config`. When an SSH host isn't in that computer's `known_hosts`, the bridge asks in its terminal whether to trust it. Without a terminal it refuses, so connect once with `ssh` there first.
+SQLite and DuckDB paths, `~/` included, point to files on the bridge's computer. The first DuckDB file downloads DuckDB for the bridge, once. A DuckDB query through the bridge reads only its own file, never other files or URLs. SSH tunnels open there too, with its SSH keys, agent and `~/.ssh/config`. When an SSH host isn't in that computer's `known_hosts`, the bridge asks in its terminal whether to trust it. Without a terminal it refuses, so connect once with `ssh` there first.
 
 The bridge reaches databases and files with the rights of the system user that runs it. On a shared server, run it as a user with no more access than it needs.
 
 A query that runs longer than about 4 minutes fails.
 
+## Manage connections
+
+`tamery connection` creates, updates and deletes the connections in your account from the terminal. Changes show up in the app like changes made there. A connection you create with the CLI runs on the bridge on that computer without any more questions. A **Metadata only** one is the exception in the web app: each browser asks for its server details once, as for any **Metadata only** connection. [CLI commands](/cli/commands#tamery-connection-create) lists the flags.
+
+In a script, without a terminal, `tamery connection` and `tamery query` never start signing in: they fail with **Not signed in** instead, so run `tamery login` on that computer first.
+
+`tamery query` runs a statement on a connection from the terminal and prints the rows as a table, JSON or CSV. It only reads unless you pass `--write`, so it suits scripts and coding agents that run shell commands. See [tamery query](/cli/commands#tamery-query).
+
 ## Where secrets are stored
 
 If this browser already has the secrets the bridge needs, it sends them on its own. Otherwise the web app opens the connection form on the missing fields. What you enter is saved in this browser and sent to the bridge once.
 
-The bridge encrypts secrets with a key in the system keychain: the macOS Keychain, Windows Credential Manager, or the Secret Service on Linux. A Linux server often has no keychain. There the key goes into `~/.config/tamery/bridge.key`, readable only by your user, and the bridge warns on every start that file permissions are all that protect it. Set `TAMERY_CONFIG_DIR` to keep these files somewhere other than `~/.config/tamery`.
+The bridge encrypts secrets with a key in the system keychain: the macOS Keychain, Windows Credential Manager, or the Secret Service on Linux. A Linux server often has no keychain. There the key goes into `~/.config/tamery/bridge.key`, readable only by your user, and the bridge warns on every start that file permissions are all that protect it. A computer you sign in to over SSH keeps the key in that file too, since a keychain prompt there would open on its own screen, where you can't answer it. Set `TAMERY_CONFIG_DIR` to keep these files somewhere other than `~/.config/tamery`.
 
 If Tamery's servers can't be reached, connections the bridge ran since it started keep working, and so do connections whose details you entered or allowed on it. After a restart, other connections wait for the servers.
+
+## Usage data
+
+The CLI sends usage events to Tamery once you sign in, linked to your account, like the app does: signing in and out, starting the bridge and answering its questions, updates, and the `tamery connection` and `tamery query` commands. They carry the engine, the sync type, counts and whether a command worked, never names, connection strings, SQL or data. To turn them off, set `DO_NOT_TRACK=1`.
 
 ## Browser support
 

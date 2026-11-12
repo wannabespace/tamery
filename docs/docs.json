@@ -16,6 +16,7 @@
           "connections/mongodb",
           "connections/clickhouse",
           "connections/sqlite",
+          "connections/duckdb",
           "connections/security"
         ]
       },

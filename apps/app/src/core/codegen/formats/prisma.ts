@@ -43,6 +43,7 @@ const PRISMA_OPERATORS: Record<FilterOperator, string | null> = {
   ne: 'not',
   notIn: 'notIn',
   notLike: null,
+  sql: null,
 }
 
 const likePatternToPrisma = (pattern: string): Record<string, string> => {
@@ -174,6 +175,7 @@ const SIZED_STRING_TYPES: Record<string, string> = {
 
 const NATIVE_TYPES: Record<Dialect, Record<string, string>> = {
   clickhouse: {},
+  duckdb: {},
   mongodb: {},
   mssql: { date: '@db.Date' },
   mysql: { date: '@db.Date' },

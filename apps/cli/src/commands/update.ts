@@ -8,6 +8,7 @@ import { BRIDGE_INSTALL_COMMANDS } from '@tamery/shared/bridge'
 import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
+import { analytics } from '../analytics'
 import { env } from '../env'
 import { installer } from '../installer'
 import { paint } from '../paint'
@@ -91,15 +92,20 @@ const putBack = (aside: string) =>
     }
   }).isOk()
 
+const report = (result: 'failed' | 'up_to_date' | 'updated') =>
+  analytics.capture('cli_update_run', { installer, result })
+
 export const update = async () => {
   const fetched = await updates.fetchLatest(UPDATE_TIMEOUT_MS)
   if (fetched.isErr()) {
+    await report('failed')
     throw new Error(
       `Could not look up the latest version: ${toError(fetched.error.cause).message}`
     )
   }
   const latest = fetched.value
   if (!updates.isNewer(latest)) {
+    await report('up_to_date')
     log.success(
       `Tamery CLI ${env.VERSION} is up to date. The latest release is ${latest}.`
     )
@@ -119,11 +125,13 @@ export const update = async () => {
       : `${command} ${ran.value === 0 ? `left no tamery at ${process.execPath}` : `exited with code ${ran.value}`}.`
     const lost =
       aside && !putBack(aside) ? ` The previous tamery is at ${aside}.` : ''
+    await report('failed')
     throw new Error(
       `Update failed: ${reason}${lost} Fix that and run ${paint.accent('tamery update')} again${isWindows ? ', after stopping any running tamery bridge' : ''}.`
     )
   }
 
+  await report('updated')
   log.success(
     `Updated to ${latest}. Restart ${paint.accent('tamery bridge')} if it is running.`
   )

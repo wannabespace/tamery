@@ -22,7 +22,7 @@ test.each([
   },
   { fixes: [], improvements: [] },
 ])(
-  'renders populated groups and preserves the complete original changelog: %j',
+  'renders populated groups without the original changelog: %j',
   async (groups) => {
     generate.mockResolvedValueOnce({
       content: [
@@ -48,19 +48,16 @@ test.each([
     })
 
     const body = await generateReleaseNotes({ notes })
-    const [highlights, technical] = body.split('<details>')
 
-    expect(highlights).toStartWith('Easier connection setup.')
-    expect(highlights?.includes('### New & improved')).toBe(
+    expect(body).toStartWith('Easier connection setup.')
+    expect(body.includes('### New & improved')).toBe(
       groups.improvements.length > 0
     )
-    expect(highlights?.includes('### Fixes')).toBe(groups.fixes.length > 0)
+    expect(body.includes('### Fixes')).toBe(groups.fixes.length > 0)
     for (const item of [...groups.improvements, ...groups.fixes]) {
-      expect(highlights).toContain(`- ${item}`)
+      expect(body).toContain(`- ${item}`)
     }
-    expect(technical).toBe(
-      `\n<summary>Technical changelog</summary>\n\n${notes}\n\n</details>`
-    )
+    expect(body).not.toContain('github.com/wannabespace/tamery')
   }
 )
 

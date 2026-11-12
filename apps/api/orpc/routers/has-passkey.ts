@@ -2,6 +2,7 @@ import { ratelimit } from '@orpc/ratelimit'
 import { RedisRateLimiter } from '@orpc/ratelimit/redis'
 import { db } from '@tamery/db'
 import { passkeys, users } from '@tamery/db/schema'
+import { CLIENT_IP_HEADER } from '@tamery/shared/constants'
 import { type } from 'arktype'
 import { eq } from 'drizzle-orm'
 
@@ -18,8 +19,7 @@ const limiter = new RedisRateLimiter(redis, {
 export const hasPasskey = orpc
   .use(
     ratelimit({
-      // Only X-Real-IP is set by Railway's edge; any other client-IP header can be spoofed.
-      key: ({ context }) => context.headers.get('x-real-ip') ?? 'unknown',
+      key: ({ context }) => context.headers.get(CLIENT_IP_HEADER) ?? 'unknown',
       limiter,
     })
   )

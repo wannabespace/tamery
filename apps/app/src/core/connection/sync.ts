@@ -4,7 +4,6 @@ import type {
   Provider,
 } from '@tamery/shared/enums/connection-type'
 import { SyncType } from '@tamery/shared/enums/sync-type'
-import { SafeURL } from '@tamery/shared/safe-url'
 import { persistedCollectionOptions } from '@tanstack/browser-db-sqlite-persistence'
 import { createCollection } from '@tanstack/react-db'
 
@@ -34,14 +33,12 @@ const prepareConnectionToCloud = async (
     return { ...connection, connectionString: null }
   }
 
-  const connectionString = await connectionStrings.utils.decrypt(connection.id)
-
   return {
     ...connection,
-    connectionString:
-      connection.syncType === SyncType.Cloud
-        ? new SafeURL(connectionString.trim()).toString()
-        : connectionSecrets.strip(connectionString.trim()),
+    connectionString: connectionSecrets.forSync(
+      await connectionStrings.utils.decrypt(connection.id),
+      connection.syncType
+    ),
   }
 }
 
@@ -121,6 +118,7 @@ export const createConnectionsResourcesCollection = () =>
         getKey: (item) => item.id,
         id: 'connections-resources',
         mutations: {
+          delete: (id) => orpc.connectionsResources.remove.call({ id }),
           insert: (value) => orpc.connectionsResources.create.call(value),
         },
         sync: ({ rows, signal }) =>

@@ -38,7 +38,7 @@ export type ElectronPreload = Promisified<typeof electron> & {
   mcp: {
     serve: (source: McpSource) => () => void
   }
-  sqlite: {
+  databaseFile: {
     getPath: (file: File) => string
   }
   versions: {
@@ -161,6 +161,10 @@ contextBridge.exposeInMainWorld('electron', {
     ...namespaceBridge('copyDatabase', ['cancel', 'start']),
     onLog: (onMessage) => onEvent('copyDatabase.log', onMessage),
   },
+  databaseFile: {
+    ...namespaceBridge('databaseFile', ['pick']),
+    getPath: (file: File) => webUtils.getPathForFile(file),
+  },
   deviceEncryption: namespaceBridge('deviceEncryption', [
     'createKey',
     'decrypt',
@@ -191,16 +195,13 @@ contextBridge.exposeInMainWorld('electron', {
   openAtLogin: namespaceBridge('openAtLogin', ['get', 'set']),
   query: {
     clickhouse: dialectQueryBridge('clickhouse'),
+    duckdb: dialectQueryBridge('duckdb'),
     mongodb: dialectQueryBridge('mongodb'),
     mssql: dialectQueryBridge('mssql'),
     mysql: dialectQueryBridge('mysql'),
     oracle: dialectQueryBridge('oracle'),
     postgres: dialectQueryBridge('postgres'),
     sqlite: dialectQueryBridge('sqlite'),
-  },
-  sqlite: {
-    ...namespaceBridge('sqlite', ['pickFile']),
-    getPath: (file: File) => webUtils.getPathForFile(file),
   },
   ssh: namespaceBridge('ssh', ['pickKeyFile']),
   versions: {

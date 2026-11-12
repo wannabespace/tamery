@@ -692,6 +692,31 @@ describe('vault', () => {
     expect(await vault.account()).toEqual(account)
   })
 
+  test('a new vault over SSH keeps its key in a file, never asking the keychain', async () => {
+    configFiles.remove(configFiles.vault)
+    configFiles.remove(configFiles.key)
+    process.env.SSH_CONNECTION = '10.0.0.2 51000 10.0.0.1 22'
+    const keychain = [
+      spyOn(Bun.secrets, 'get').mockRejectedValue(new Error('asked')),
+      spyOn(Bun.secrets, 'set').mockRejectedValue(new Error('asked')),
+    ]
+    try {
+      await vault.setConnection(ids.full, sqliteString)
+      expect(fs.existsSync(configFiles.key)).toBe(true)
+      expect(await vault.connection(ids.full)).toBe(sqliteString)
+      for (const spy of keychain) {
+        expect(spy).not.toHaveBeenCalled()
+      }
+    } finally {
+      delete process.env.SSH_CONNECTION
+      for (const spy of keychain) {
+        spy.mockRestore()
+      }
+      configFiles.remove(configFiles.vault)
+      fs.writeFileSync(configFiles.key, 'test-key')
+    }
+  })
+
   test('logout resets a vault it cannot read', async () => {
     const { logout } = await import('../commands/logout')
     configFiles.write(configFiles.vault, 'not a vault')

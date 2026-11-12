@@ -12,6 +12,7 @@ export type FilterOperator =
   | 'notIn'
   | 'isNull'
   | 'isNotNull'
+  | 'sql'
 
 export interface Filter {
   label: string
@@ -28,11 +29,15 @@ export interface FilterVia {
   target: string
 }
 
+export type JsonPath = (string | number)[]
+
 export interface ActiveFilter<F extends Filter = Filter, V = unknown> {
   column: string
   ref: F
   values: V[]
   disabled?: boolean
+  /** Steps into a JSON value, compared as text: a string is an object key, a number an array index. */
+  path?: JsonPath
   via?: FilterVia
 }
 

@@ -1,8 +1,8 @@
 import type { SqlCatalog } from './catalog'
-import { findTable } from './catalog'
 import type { CompletionContext } from './completion-context'
 import type { CompletionItem } from './completion-items'
 import { orderedItems, quoteIfNeeded } from './completion-items'
+import { scopeTable } from './resolve'
 import type { StatementScope, TableRef } from './scope'
 
 const singular = (name: string) => {
@@ -16,13 +16,13 @@ const joinConditionItems = (
   scope: StatementScope,
   catalog: SqlCatalog
 ): CompletionItem[] => {
-  const joined = scope.tables.at(-1)
-  if (!joined || scope.tables.length < 2) {
+  const joined = scope.visible.at(-1)
+  if (!joined || scope.visible.length < 2) {
     return []
   }
   const pairs: string[] = []
   const sides = (ref: TableRef) => {
-    const table = findTable(catalog, ref.name, ref.schema)
+    const table = scopeTable(scope, catalog, ref)
     return {
       columns: table?.columns?.map((column) => column.name.toLowerCase()) ?? [],
       prefix: ref.alias ?? ref.name,
@@ -30,7 +30,7 @@ const joinConditionItems = (
     }
   }
   const right = sides(joined)
-  for (const ref of scope.tables.slice(0, -1)) {
+  for (const ref of scope.visible.slice(0, -1)) {
     const left = sides(ref)
     if (!left.table || !right.table) {
       continue
@@ -55,8 +55,7 @@ const insertTemplate = (
   scope: StatementScope,
   catalog: SqlCatalog
 ): CompletionItem[] => {
-  const target = scope.tables.at(-1)
-  const table = target && findTable(catalog, target.name, target.schema)
+  const table = scope.target && scopeTable(scope, catalog, scope.target)
   const columns = table?.columns?.filter((column) => column.name !== 'id')
   if (!columns || columns.length === 0) {
     return []
@@ -82,10 +81,10 @@ export const templateItems = (
 ): CompletionItem[] => {
   const { scope, selectedColumns, template } = context
   if (template === 'select') {
-    const [only] = scope.tables
+    const [only] = scope.visible
     const table =
-      only && scope.tables.length === 1
-        ? findTable(catalog, only.name, only.schema)
+      only && scope.visible.length === 1
+        ? scopeTable(scope, catalog, only)
         : undefined
     const all =
       table?.columns?.map((column) => quoteIfNeeded(catalog, column.name)) ?? []

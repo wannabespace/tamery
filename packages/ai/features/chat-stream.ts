@@ -1,3 +1,4 @@
+import { runInBackground } from '@tamery/shared/background'
 import type { TelemetryOptions } from 'ai'
 import { createRedisAdapter } from 'ai-resumable-stream/adapters/redis'
 import { createResumableUIMessageStream } from 'ai-resumable-stream/ai-sdk'
@@ -10,7 +11,10 @@ import type { AppUIMessage } from '../message'
 import type { ChatConnection } from './chat-step'
 import { streamChatStep } from './chat-step'
 
-const redis = createClient({ url: env.REDIS_URL }).on('error', console.error)
+const redis = createClient({
+  socket: env.REDIS_CA ? { ca: env.REDIS_CA, tls: true } : undefined,
+  url: env.REDIS_URL,
+}).on('error', console.error)
 const subscriber = redis.duplicate().on('error', console.error)
 await redis.connect()
 
@@ -31,6 +35,7 @@ const activeStream = {
 
 const resumable = createResumableUIMessageStream({
   adapter: createRedisAdapter({ publisher: redis, subscriber }),
+  waitUntil: runInBackground,
 })
 
 interface ChatStreamInput {
