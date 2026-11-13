@@ -8,13 +8,11 @@ import { createServer } from 'node:http'
 import * as os from 'node:os'
 import path from 'node:path'
 
-import { connectionParts } from '@tamery/connection/connection-parts'
+import { connectionParts } from '../connection-parts'
+import { connectionSecrets } from '../secrets'
 
 const home = await mkdtemp(path.join(os.tmpdir(), 'local-databases-'))
 mock.module('node:os', () => ({ ...os, homedir: () => home }))
-mock.module('electron', () => ({
-  app: { getPath: () => path.join(home, 'appData') },
-}))
 process.env.DOCKER_HOST = `unix://${path.join(home, 'docker.sock')}`
 delete process.env.PGPASSFILE
 delete process.env.PGSERVICEFILE
@@ -152,7 +150,7 @@ beforeAll(async () => {
   )
   await write(
     'DataGripProjects/p/.idea/dataSources.xml',
-    '<project version="4"><component name="DataSourceManagerImpl"><data-source name="Warehouse" uuid="u-1"><jdbc-url>jdbc:mysql://localhost:3307/shop</jdbc-url></data-source></component></project>'
+    '<project version="4"><component name="DataSourceManagerImpl"><data-source name="Warehouse" uuid="u-1"><jdbc-url>jdbc:mysql://localhost:3307/shop?sslpassword=saved-passphrase</jdbc-url></data-source></component></project>'
   )
   await write(
     'DataGripProjects/p/.idea/dataSources.local.xml',
@@ -204,12 +202,13 @@ const findIn = async (source: string, name: string) => {
 }
 
 describe('localDatabases', () => {
-  it('never puts a password in a found connection string', async () => {
+  it('never puts a secret in a found connection string', async () => {
     const found = await localDatabases.find()
     expect(found.length).toBeGreaterThan(0)
     for (const { connectionString } of found) {
-      expect(connectionParts.parse(connectionString).password).toBe('')
+      expect(connectionSecrets.stored(connectionString)).toBe(false)
     }
+    expect(JSON.stringify(found)).not.toContain('saved-passphrase')
   })
 
   it('hands out a found password only through unlock, from a later source when the first saved none', async () => {

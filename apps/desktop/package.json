@@ -14,7 +14,6 @@
     "build": "vite build && bun ./scripts/copy-renderer.ts",
     "build:todesktop": "todesktop build",
     "check-types": "bun check",
-    "test": "bun test ./src",
     "todesktop:afterPack": "./scripts/todesktop-after-pack.cjs",
     "todesktop:beforeInstall": "./scripts/todesktop-before-install.cjs"
   },
@@ -48,7 +47,6 @@
     "@tamery/shared": "workspace:*",
     "@tamery/sql": "workspace:*",
     "@todesktop/cli": "catalog:",
-    "@types/ini": "catalog:",
     "@types/mssql": "catalog:",
     "@types/oracledb": "catalog:",
     "@types/pg": "catalog:",

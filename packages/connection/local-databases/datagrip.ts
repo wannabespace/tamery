@@ -2,22 +2,19 @@ import { glob, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import path from 'node:path'
 
-import { guessConnection } from '@tamery/connection/guess'
 import { type } from 'arktype'
 import { Result } from 'better-result'
-import { app } from 'electron'
 import { XMLParser } from 'fast-xml-parser'
 
+import { guessConnection } from '../guess'
+import { appDataDir } from './app-data'
 import { keychainPassword } from './keychain'
 import type { Finder } from './local-database'
 import { validEntries } from './local-database'
 
 const DATA_SOURCE_FILES = [
-  path.join(app.getPath('appData'), 'JetBrains/*/options/dataSources.xml'),
-  path.join(
-    app.getPath('appData'),
-    'JetBrains/*/projects/*/.idea/dataSources.xml'
-  ),
+  path.join(appDataDir(), 'JetBrains/*/options/dataSources.xml'),
+  path.join(appDataDir(), 'JetBrains/*/projects/*/.idea/dataSources.xml'),
   path.join(homedir(), 'DataGripProjects/*/.idea/dataSources.xml'),
 ]
 

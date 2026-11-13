@@ -1,9 +1,10 @@
-import type { GuessedParts } from '@tamery/connection/guess/types'
 import type { ConnectionType } from '@tamery/shared/enums/connection-type'
 import type { MaybePromise } from '@tamery/shared/utils'
 import type { ArkErrors } from 'arktype'
 import { type } from 'arktype'
 import { Result } from 'better-result'
+
+import type { GuessedParts } from '../guess/types'
 
 export interface Unlocked {
   password: string

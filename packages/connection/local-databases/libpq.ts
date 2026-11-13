@@ -2,11 +2,11 @@ import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import path from 'node:path'
 
-import { guessPgpass } from '@tamery/connection/guess/host'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { type } from 'arktype'
 import ini from 'ini'
 
+import { guessPgpass } from '../guess/host'
 import type { Finder } from './local-database'
 import { validEntries } from './local-database'
 

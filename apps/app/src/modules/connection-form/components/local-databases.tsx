@@ -1,9 +1,9 @@
 import { Button } from '@tamery/ui/components/button'
 import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
-import { isMac } from '@tamery/ui/lib/os'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 
+import { localMachine, useLocalMachine } from '~/core/local-machine'
 import { plural } from '~/utils/plural'
 
 import type { LocalDatabase } from '../lib/use-pick-local-database'
@@ -13,12 +13,16 @@ export const LocalDatabases = ({
 }: {
   onPick: (database: LocalDatabase) => void
 }) => {
+  const machine = useLocalMachine()
   const { data: databases = [] } = useQuery({
-    queryFn: async () => (await window.electron?.localDatabases.find()) ?? [],
-    queryKey: ['localDatabases'],
+    enabled: !!machine,
+    queryFn: localMachine.findDatabases,
+    queryKey: machine?.queryKey ?? ['localDatabases'],
+    staleTime: 0,
+    throwOnError: false,
   })
 
-  if (databases.length === 0) {
+  if (!machine || databases.length === 0) {
     return null
   }
 
@@ -31,7 +35,7 @@ export const LocalDatabases = ({
     >
       <span className="text-muted-foreground px-3 pb-1 text-xs font-medium">
         Found {plural(databases.length, 'database')} on{' '}
-        {isMac ? 'this Mac' : 'this computer'}
+        <span data-mask>{machine.name}</span>
       </span>
       {databases.map((database) => (
         <Button
