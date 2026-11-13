@@ -33,10 +33,10 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=8192
           TODESKTOP_ACCESS_TOKEN: ${{ secrets.TODESKTOP_ACCESS_TOKEN }}
           TODESKTOP_EMAIL: ${{ secrets.TODESKTOP_EMAIL }}
-          VITE_PUBLIC_API_URL: ${{ secrets.API_URL }}
-          VITE_PUBLIC_WEB_URL: ${{ secrets.WEB_URL }}
-          VITE_PUBLIC_PROXY_URL: ${{ secrets.PROXY_URL }}
-          VITE_PUBLIC_SHARE_URL: ${{ secrets.SHARE_URL }}
+          VITE_PUBLIC_API_URL: https://api.tamery.app
+          VITE_PUBLIC_WEB_URL: https://web.tamery.app
+          VITE_PUBLIC_PROXY_URL: https://proxy.tamery.app
+          VITE_PUBLIC_SHARE_URL: https://share.tamery.app
           VITE_PUBLIC_POSTHOG_TOKEN: ${{ secrets.POSTHOG_TOKEN }}
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
-          VITE_PUBLIC_MAIN_URL: ${{ secrets.MAIN_URL }}
+          VITE_PUBLIC_MAIN_URL: https://tamery.app
