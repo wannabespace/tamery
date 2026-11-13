@@ -1,4 +1,3 @@
-import { AsyncEntry, findCredentialsAsync } from '@napi-rs/keyring'
 import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
@@ -20,6 +19,9 @@ export const keychainPassword = async ({
     return NOTHING_UNLOCKED
   }
   const result = await Result.tryPromise(async () => {
+    // Loaded on demand: the bridge's single-file binary ships without native modules, so there the import fails and the password stays for the user to type.
+    const { AsyncEntry, findCredentialsAsync } =
+      await import('@napi-rs/keyring')
     if (account !== undefined) {
       return new AsyncEntry(service, account).getPassword()
     }

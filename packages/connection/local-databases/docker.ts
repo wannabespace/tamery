@@ -5,18 +5,15 @@ import path from 'node:path'
 import { text } from 'node:stream/consumers'
 
 import {
-  getConnectionType,
-  TYPE_OF_DEFAULT_PORT,
-} from '@tamery/connection/connection-parts'
-import { partsOfVariables } from '@tamery/connection/guess/env'
-import { mergeParts } from '@tamery/connection/guess/parts'
-import {
   ConnectionType,
   getDialect,
   Dialect,
 } from '@tamery/shared/enums/connection-type'
 import { type } from 'arktype'
 
+import { getConnectionType, TYPE_OF_DEFAULT_PORT } from '../connection-parts'
+import { partsOfVariables } from '../guess/env'
+import { mergeParts } from '../guess/parts'
 import type { Finder } from './local-database'
 import { findEach } from './local-database'
 

@@ -1,7 +1,7 @@
-import { connectionParts } from '@tamery/connection/connection-parts'
-import { mergeParts } from '@tamery/connection/guess/parts'
 import { omit } from '@tamery/shared/utils'
 
+import { connectionParts } from '../connection-parts'
+import { mergeParts } from '../guess/parts'
 import { dataGrip } from './datagrip'
 import { dbeaver } from './dbeaver'
 import { docker } from './docker'

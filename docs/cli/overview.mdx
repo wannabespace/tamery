@@ -90,6 +90,8 @@ The bridge reaches databases and files with the rights of the system user that r
 
 A query that runs longer than about 4 minutes fails.
 
+In the web app, **New connection** lists the databases the bridge finds on that computer, as the desktop app does for its own: running Docker containers, and connections saved in DBeaver, TablePlus, DataGrip, pgAdmin, `pg_service.conf`, `.pgpass` or `my.cnf`. Picking one fills the form. A password saved with it reaches the browser only after you allow it in the terminal running `tamery bridge`; a password kept in the macOS Keychain stays there, so type it.
+
 ## Manage connections
 
 `tamery connection` creates, updates and deletes the connections in your account from the terminal. Changes show up in the app like changes made there. A connection you create with the CLI runs on the bridge on that computer without any more questions. A **Metadata only** one is the exception in the web app: each browser asks for its server details once, as for any **Metadata only** connection. [CLI commands](/cli/commands#tamery-connection-create) lists the flags.

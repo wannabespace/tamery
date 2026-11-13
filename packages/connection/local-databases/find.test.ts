@@ -8,13 +8,10 @@ import { createServer } from 'node:http'
 import * as os from 'node:os'
 import path from 'node:path'
 
-import { connectionParts } from '@tamery/connection/connection-parts'
+import { connectionParts } from '../connection-parts'
 
 const home = await mkdtemp(path.join(os.tmpdir(), 'local-databases-'))
 mock.module('node:os', () => ({ ...os, homedir: () => home }))
-mock.module('electron', () => ({
-  app: { getPath: () => path.join(home, 'appData') },
-}))
 process.env.DOCKER_HOST = `unix://${path.join(home, 'docker.sock')}`
 delete process.env.PGPASSFILE
 delete process.env.PGSERVICEFILE
