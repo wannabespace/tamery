@@ -46,7 +46,11 @@ const completeInstructions = (data: {
 interface CompleteQueryInput {
   connectionType: string
   context: string
-  onUsage: (modelId: string, usage: LanguageModelUsage) => Promise<void>
+  onUsage: (
+    modelId: string,
+    usage: LanguageModelUsage,
+    providerCost?: number
+  ) => Promise<void>
   prefix: string
   signal?: AbortSignal
   suffix: string

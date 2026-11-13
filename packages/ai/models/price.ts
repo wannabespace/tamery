@@ -30,11 +30,19 @@ export const getModelCost = async (
   usage: LanguageModelUsage
 ) => {
   const prices = await fetchPrices().catch(() => null)
+  const id = modelId.replace(/^~/u, '').replace(/:.*$/u, '')
+  const name = id.split('/').at(-1) ?? id
+  // LiteLLM keys OpenRouter's `anthropic/claude-opus-5.5` as `claude-opus-5-5`.
   const price =
-    prices?.[`openrouter/${modelId}`] ??
-    prices?.[modelId] ??
-    prices?.[modelId.replace(/-\d{8}$/u, '')] ??
-    null
+    [
+      `openrouter/${id}`,
+      id,
+      name,
+      name.replaceAll('.', '-'),
+      name.replace(/-\d{8}$/u, ''),
+    ]
+      .map((key) => prices?.[key])
+      .find(Boolean) ?? null
 
   if (!price) {
     return null
