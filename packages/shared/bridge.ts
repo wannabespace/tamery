@@ -6,8 +6,8 @@ import { type } from 'arktype'
 import { PORTS } from './ports'
 
 /** Bumped only by a change an older bridge cannot serve; the app refuses a bridge below `MIN_BRIDGE_PROTOCOL`. */
-export const BRIDGE_PROTOCOL = 1
-export const MIN_BRIDGE_PROTOCOL = 1
+export const BRIDGE_PROTOCOL = 2
+export const MIN_BRIDGE_PROTOCOL = 2
 
 /** `localhost` may resolve to `::1`, where any other process can listen. */
 export const BRIDGE_URL = `http://127.0.0.1:${PORTS.BRIDGE}`
