@@ -1,3 +1,4 @@
+import { PRO_TRIAL_DAYS } from '@tamery/shared/credits'
 import { type } from 'arktype'
 
 import { env } from '~/env'
@@ -27,8 +28,8 @@ export const upgrade = orpc
     const customerId = await getStripeCustomerId(stripe, context.user.id)
 
     const priceId = isYearly
-      ? env.STRIPE_ANNUAL_PRICE_ID
-      : env.STRIPE_MONTH_PRICE_ID
+      ? env.STRIPE_PRO_ANNUAL_PRICE_ID
+      : env.STRIPE_PRO_MONTH_PRICE_ID
 
     if (!priceId) {
       throw errors.INTERNAL_SERVER_ERROR({
@@ -53,7 +54,7 @@ export const upgrade = orpc
         metadata: {
           userId: context.user.id,
         },
-        trial_period_days: 7,
+        trial_period_days: PRO_TRIAL_DAYS,
       },
       success_url: successUrl,
     })
