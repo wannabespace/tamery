@@ -1,11 +1,19 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
-import type { Graph } from 'schema-dts'
+import type { Graph, WebSite, WithContext } from 'schema-dts'
 
 import { DocsScreen } from '~/components/docs-screen'
 import { SITE_URL, WEB_URL } from '~/constants'
 import { source } from '~/lib/source'
 
 const OG_IMAGE_URL = `${WEB_URL}/og-image.png`
+
+const websiteData = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Tamery Docs',
+  alternateName: 'Tamery',
+  url: `${SITE_URL}/`,
+} satisfies WithContext<WebSite>
 
 const getDocsPage = (splat: string | undefined) => {
   const page = source.getPage(splat?.split('/').filter(Boolean))
@@ -88,7 +96,7 @@ export const Route = createFileRoute('/$')({
           content: isIndex ? 'website' : 'article',
           property: 'og:type',
         },
-        { content: 'Tamery', property: 'og:site_name' },
+        { content: 'Tamery Docs', property: 'og:site_name' },
         { content: pageUrl, property: 'og:url' },
         { content: title, property: 'og:title' },
         { content: description, property: 'og:description' },
@@ -96,14 +104,12 @@ export const Route = createFileRoute('/$')({
         { content: '1200', property: 'og:image:width' },
         { content: '630', property: 'og:image:height' },
       ],
-      scripts: isIndex
-        ? []
-        : [
-            {
-              children: JSON.stringify(structuredData),
-              type: 'application/ld+json',
-            },
-          ],
+      scripts: [
+        {
+          children: JSON.stringify(isIndex ? websiteData : structuredData),
+          type: 'application/ld+json',
+        },
+      ],
     }
   },
 })
