@@ -1,8 +1,12 @@
+import type { FileUIPart } from 'ai'
 import { type } from 'arktype'
+import { memoize } from 'memoza'
 import { createStore } from 'seitu'
 import { createWebStorageValue } from 'seitu/web'
 
-/** The model the chat answers with; null follows the API's default. */
+import type { PromptMention } from './prompt-mentions'
+
+/** The model the chat answers with; null is Auto, which the API picks per message. */
 export const chatModelValue = createWebStorageValue({
   defaultValue: null,
   key: 'chat-model',
@@ -83,3 +87,15 @@ export const setChatDraft = (
 
 /** Lets `/model` open the composer's model picker. */
 export const modelPickerOpenStore = createStore(false)
+
+export interface QueuedMessage {
+  files: FileUIPart[]
+  id: string
+  mentions: PromptMention[]
+  text: string
+}
+
+/** Messages sent while the agent was still working, oldest first; each goes out once the turn ends. */
+export const chatQueueStore = memoize((_chatId: string) =>
+  createStore<QueuedMessage[]>([])
+)

@@ -1,6 +1,8 @@
 import { Skeleton } from '@tamery/ui/components/skeleton'
 import { cn } from '@tamery/ui/lib/utils'
 
+import { CHAT_COLUMN } from './chat-column'
+
 const skeletonTurns = [
   { bubble: 'w-40', lines: ['w-full', 'w-11/12', 'w-3/5'] },
   { bubble: 'w-28', lines: ['w-10/12', 'w-full', 'w-2/3'] },
@@ -8,7 +10,12 @@ const skeletonTurns = [
 
 export const ChatSkeleton = () => (
   <>
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-3 py-3">
+    <div
+      className={cn(
+        CHAT_COLUMN,
+        'flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-3'
+      )}
+    >
       {skeletonTurns.map(({ bubble, lines }) => (
         <div key={bubble} className="flex flex-col gap-4">
           <div className={cn('self-end', bubble)}>
@@ -24,7 +31,7 @@ export const ChatSkeleton = () => (
         </div>
       ))}
     </div>
-    <div className="mx-auto w-[min(32rem,100%)] shrink-0 p-2">
+    <div className={cn(CHAT_COLUMN, 'shrink-0 px-3 py-2')}>
       <Skeleton className="h-24 rounded-xl" />
     </div>
   </>

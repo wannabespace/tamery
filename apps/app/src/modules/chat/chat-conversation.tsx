@@ -1,16 +1,28 @@
+import { Cancel01Icon } from '@hugeicons/core-free-icons'
 import { textFromMessage } from '@tamery/ai/message'
+import { IconButton } from '@tamery/ui/components/custom/icon-button'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+} from '@tamery/ui/components/item'
 import { copy } from '@tamery/ui/lib/copy'
 import { cn } from '@tamery/ui/lib/utils'
 import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
+import { toast } from 'sonner'
 
+import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 
+import { CHAT_COLUMN } from './chat-column'
 import { ChatError } from './chat-error'
 import { ChatInput } from './chat-input'
 import { ChatIntro, ChatStarters } from './chat-intro'
 import { ChatMessages } from './chat-messages'
 import { ChatPaused } from './chat-paused'
+import { ContextMeter } from './context-meter'
 import type { ChatCommand } from './prompt-mentions'
 import { approvalModeValue, modelPickerOpenStore } from './stores'
 import type { ChatSession } from './use-chat-session'
@@ -34,9 +46,18 @@ export const ChatConversation = ({
   const lastAnswer = session.messages.findLast(
     (message) => message.role === 'assistant'
   )
+  const lastAsked = session.messages.findLast(
+    (message) => message.role === 'user'
+  )
   const commands: Record<ChatCommand, () => void> = {
     ask: () => approvalModeValue.set('ask'),
     auto: () => approvalModeValue.set('auto'),
+    compact: () => {
+      toast.promise(orpc.ai.compact.call({ chatId: session.chatId }), {
+        loading: 'Compacting the chat…',
+        success: 'Chat compacted',
+      })
+    },
     copy: () => {
       if (lastAnswer) {
         void copy(textFromMessage(lastAnswer), 'Copied')
@@ -60,46 +81,90 @@ export const ChatConversation = ({
         <ChatIntro />
       ) : (
         <ChatMessages
+          compactedThroughId={session.compaction?.throughMessageId}
           decide={session.isReady ? session.decide : undefined}
           isPending={session.isStreaming}
+          isWorking={session.isWorking}
           messages={session.messages}
+          onEdit={
+            canReply
+              ? (messageId, text, mentions) => {
+                  void session.edit(messageId, text, mentions)
+                }
+              : undefined
+          }
+          onRegenerate={
+            canReply && !session.isWorking ? () => session.retry() : undefined
+          }
         />
       )}
-      {session.error && (
-        <ChatError error={session.error} onRetry={() => session.retry()} />
-      )}
-      {session.isPaused && <ChatPaused onContinue={() => session.resume()} />}
-      {beforeInput}
-      {canReply ? (
-        // One element in both layouts, so the composer keeps its draft and focus while it glides from the middle to the bottom.
-        <motion.div layout="position" transition={COMPOSER_TRANSITION}>
-          <ChatInput
-            key={session.chatId}
-            chatId={session.chatId}
-            isActive={isActive}
-            isStreaming={session.isStreaming}
-            onCommand={(command) => {
-              posthog.capture('ai_chat_command', { command })
-              commands[command]()
+      <div className={cn(CHAT_COLUMN, 'flex shrink-0 flex-col')}>
+        {session.error && (
+          <ChatError error={session.error} onRetry={() => session.retry()} />
+        )}
+        {session.isPaused && <ChatPaused onContinue={() => session.resume()} />}
+        {beforeInput}
+        {session.queue.length > 0 && (
+          <div className="flex shrink-0 flex-col gap-1 px-3 pt-2">
+            {session.queue.map((queued) => (
+              <Item key={queued.id} variant="muted" size="xs">
+                <ItemContent>
+                  <ItemDescription data-mask>
+                    Queued: {queued.text || `${queued.files.length} files`}
+                  </ItemDescription>
+                </ItemContent>
+                <ItemActions>
+                  <IconButton
+                    variant="ghost-muted"
+                    size="icon-xs"
+                    icon={Cancel01Icon}
+                    label="Remove from queue"
+                    onClick={() => session.removeQueued(queued.id)}
+                  />
+                </ItemActions>
+              </Item>
+            ))}
+          </div>
+        )}
+        {canReply ? (
+          // One element in both layouts, so the composer keeps its draft and focus while it glides from the middle to the bottom.
+          <motion.div layout="position" transition={COMPOSER_TRANSITION}>
+            <ChatInput
+              key={session.chatId}
+              chatId={session.chatId}
+              isActive={isActive}
+              isWorking={session.isWorking}
+              lastPrompt={lastAsked ? textFromMessage(lastAsked) : undefined}
+              meter={
+                <ContextMeter
+                  chatId={session.chatId}
+                  isWorking={session.isWorking}
+                  messages={session.messages}
+                />
+              }
+              onCommand={(command) => {
+                posthog.capture('ai_chat_command', { command })
+                commands[command]()
+              }}
+              onSend={(text, mentions, files) => {
+                void session.send(text, mentions, files)
+              }}
+              onStop={() => session.stop()}
+            />
+          </motion.div>
+        ) : (
+          <p className="text-muted-foreground shrink-0 px-3 py-2 text-xs">
+            This subagent reports to the chat that started it.
+          </p>
+        )}
+        {isEmpty && canReply && (
+          <ChatStarters
+            onStart={(prompt) => {
+              void session.send(prompt, [])
             }}
-            onSend={(text, mentions, files) => {
-              void session.send(text, mentions, files)
-            }}
-            onStop={() => session.stop()}
           />
-        </motion.div>
-      ) : (
-        <p className="text-muted-foreground shrink-0 px-3 py-2 text-xs">
-          This subagent reports to the chat that started it.
-        </p>
-      )}
-      {isEmpty && canReply && (
-        <ChatStarters
-          onStart={(prompt) => {
-            void session.send(prompt, [])
-          }}
-        />
-      )}
+        )}
+      </div>
     </div>
   )
 }

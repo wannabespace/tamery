@@ -8,6 +8,7 @@ import { useSubscription } from 'seitu/react'
 import { useCollections } from '~/core/collections'
 import { lastOpenedResourcesStorageValue } from '~/core/connection/last-opened-resources'
 import { useConnectionContext } from '~/core/connection/route'
+import { localMachine, useLocalMachine } from '~/core/local-machine'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { posthog } from '~/lib/posthog'
 
@@ -34,11 +35,16 @@ export const COMMANDS = [
   ['model', 'Choose the model'],
   ['retry', 'Ask the last message again'],
   ['copy', 'Copy the last answer'],
+  ['compact', 'Summarize the chat so far to free up context'],
   ['auto', 'Additive changes run on their own'],
   ['ask', 'Every change waits for Run'],
 ] as const
 
 export type ChatCommand = (typeof COMMANDS)[number][0]
+
+/** The command a message runs instead of being sent: the whole text is one `/command`. */
+export const commandOf = (text: string) =>
+  COMMANDS.find(([command]) => text.trim() === `/${command}`)?.[0] ?? null
 
 export type PromptSuggestion =
   | { command: ChatCommand; id: string; kind: 'command'; label: string }
@@ -68,13 +74,15 @@ interface Trigger {
 
 const MAX_SUGGESTIONS = 30
 
+const skillCommand = (name: string) => `skill:${name}`
+
 const suggestionName = (suggestion: PromptSuggestion) => {
   if (suggestion.kind === 'command') {
     return suggestion.command
   }
   const { mention } = suggestion
   if (mention.kind === 'skill') {
-    return mention.skill.name
+    return skillCommand(mention.skill.name)
   }
   return mention.kind === 'table'
     ? mention.table.table
@@ -130,14 +138,15 @@ const triggerAt = (text: string, caret: number): Trigger | null => {
   return { char, query, start: caret - query.length - 1 }
 }
 
-/** `@` mentions a connection or a table of this one, `/` at the start runs a command. The textarea keeps focus; the arrows and Enter drive the menu through `onKeyDown` while it is open. */
+/** `@` mentions a connection or a table of this one, `/` at the start writes a command for Enter to run. The textarea keeps focus; the arrows and Enter drive the menu through `onKeyDown` while it is open. */
 export const usePromptMentions = ({
-  onCommand,
+  commands = true,
   setValue,
   textareaRef,
   value,
 }: {
-  onCommand: (command: ChatCommand) => void
+  /** False where a command means nothing, such as an edited message: `/` then lists only skills. */
+  commands?: boolean
   setValue: (value: string) => void
   textareaRef: React.RefObject<HTMLTextAreaElement | null>
   value: string
@@ -165,10 +174,11 @@ export const usePromptMentions = ({
           type: connections.type,
         })),
   })
+  const machine = useLocalMachine()
   const { data: skills = [] } = useQuery({
-    enabled: !!window.electron,
-    queryFn: async () => (await window.electron?.localSkills.list()) ?? [],
-    queryKey: ['local-skills'],
+    enabled: !!machine,
+    queryFn: localMachine.listSkills,
+    queryKey: ['local-skills', machine?.key],
     staleTime: 30_000,
   })
   const { data: catalog } = useQuery(
@@ -209,8 +219,8 @@ export const usePromptMentions = ({
     }
     if (trigger?.char === '/') {
       return byMatch(query, [
-        ...COMMANDS.filter(([command, label]) =>
-          matchesSearch(query, command, label)
+        ...COMMANDS.filter(
+          ([command, label]) => commands && matchesSearch(query, command, label)
         ).map(([command, label]): PromptSuggestion => ({
           command,
           id: `command:${command}`,
@@ -219,14 +229,18 @@ export const usePromptMentions = ({
         })),
         ...skills
           .filter((skill) =>
-            matchesSearch(query, skill.name, skill.description ?? '')
+            matchesSearch(
+              query,
+              skillCommand(skill.name),
+              skill.description ?? ''
+            )
           )
           .map((skill): PromptSuggestion => ({
             id: `skill:${skill.path}`,
             kind: 'skill',
             mention: {
               kind: 'skill',
-              label: `/${skill.name}`,
+              label: `/${skillCommand(skill.name)}`,
               skill: {
                 description: skill.description,
                 instructions: skill.instructions,
@@ -281,17 +295,17 @@ export const usePromptMentions = ({
     if (!trigger) {
       return
     }
-    if (suggestion.kind === 'command') {
-      setValue('')
-      onCommand(suggestion.command)
-      return
+    const label =
+      suggestion.kind === 'command'
+        ? `/${suggestion.command}`
+        : suggestion.mention.label
+    if (suggestion.kind !== 'command') {
+      setExpandedId(null)
+      posthog.capture('ai_chat_mention', { kind: suggestion.mention.kind })
+      setMentions((current) => [...current, suggestion.mention])
     }
-    setExpandedId(null)
-    posthog.capture('ai_chat_mention', { kind: suggestion.mention.kind })
-    const { label } = suggestion.mention
     const next = `${value.slice(0, trigger.start)}${label} ${value.slice(caret)}`
     const nextCaret = trigger.start + label.length + 1
-    setMentions((current) => [...current, suggestion.mention])
     setValue(next)
     setCaret(nextCaret)
     requestAnimationFrame(() =>

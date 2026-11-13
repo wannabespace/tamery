@@ -1,4 +1,4 @@
-import { ArrowDown01Icon } from '@hugeicons/core-free-icons'
+import { ArrowDown01Icon, PlusSignIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { uppercaseFirst } from '@tamery/shared/utils'
 import { Button } from '@tamery/ui/components/button'
@@ -21,7 +21,9 @@ import { useObjectNames } from '~/core/catalog/names'
 import { useConnectionContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { posthog } from '~/lib/posthog'
+import { startNewChat } from '~/modules/chat/open-chat'
 
+import { createTableDialogRef } from './create-table-dialog'
 import { focusSearchAfter } from './keyboard'
 import type { NavigatorMode } from './stores'
 import { getNavigatorStore, navigatorOpenValue } from './stores'
@@ -64,6 +66,7 @@ export const NavigatorHeader = () => {
   ] as const
   const active =
     sections.find(({ value }) => value === navigator) ?? sections[0]
+  const addLabel = navigator === 'chats' ? 'New chat' : `New ${names.table}`
 
   return (
     <div className="mb-1.5 flex h-8 shrink-0 items-center pl-2">
@@ -104,7 +107,38 @@ export const NavigatorHeader = () => {
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      {navigator === 'tables' && <TablesRefresh />}
+      <div className="ml-auto flex items-center">
+        {navigator === 'tables' && <TablesRefresh />}
+        {navigator !== 'definitions' && (
+          <Tooltip
+            shortcut={
+              navigator === 'chats' && <ShortcutKbd shortcut="aiChat" />
+            }
+          >
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost-muted"
+                  size="icon-sm"
+                  aria-label={addLabel}
+                  onClick={() =>
+                    navigator === 'chats'
+                      ? startNewChat(connectionResource.id)
+                      : createTableDialogRef.current?.create()
+                  }
+                />
+              }
+            >
+              <HugeiconsIcon
+                icon={PlusSignIcon}
+                strokeWidth={2}
+                className="size-3.5"
+              />
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{addLabel}</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
     </div>
   )
 }

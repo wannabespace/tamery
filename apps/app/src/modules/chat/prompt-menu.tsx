@@ -4,6 +4,7 @@ import {
   BookOpen01Icon,
   ChatAdd01Icon,
   Copy01Icon,
+  Layers01Icon,
   FlashIcon,
   ReloadIcon,
   SecurityCheckIcon,
@@ -39,6 +40,7 @@ const GROUPS = {
 const COMMAND_ICONS = {
   ask: SecurityCheckIcon,
   auto: FlashIcon,
+  compact: Layers01Icon,
   copy: Copy01Icon,
   model: AiBrain01Icon,
   new: ChatAdd01Icon,
@@ -71,7 +73,7 @@ const SuggestionContent = ({
     return (
       <>
         <HugeiconsIcon icon={BookOpen01Icon} strokeWidth={2} />
-        <span className="shrink-0">/{mention.skill.name}</span>
+        <span className="shrink-0">{mention.label}</span>
         <span className="text-muted-foreground min-w-0 flex-1 truncate">
           {mention.skill.description}
         </span>

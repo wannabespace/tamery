@@ -1,3 +1,4 @@
+import { valueToText } from '@tamery/shared/value-text'
 import { v7 } from 'uuid'
 
 import { getCollections } from '~/core/collections'
@@ -8,7 +9,7 @@ import { history } from '~/lib/last-location'
 import { posthog } from '~/lib/posthog'
 
 import { getChatInstance } from './chat-instance'
-import { chatDraftsValue } from './stores'
+import { chatDraftsValue, setChatDraft } from './stores'
 import { openSubagentStore } from './subagents-store'
 import { chatTab, chatTabId } from './tab'
 
@@ -37,4 +38,26 @@ export const startNewChat = (resourceId: string) => {
     posthog.capture('ai_chat_created')
   }
   openChat(resourceId, blank ?? v7())
+}
+
+const ROW_TEXT_LIMIT = 4000
+
+/** Opens a new chat with the row already in the composer, for the user to finish the question. */
+export const askAboutRow = (data: {
+  resourceId: string
+  row: Record<string, unknown>
+  schema: string
+  table: string
+}) => {
+  if (!checkOrUpgrade('ai.chat.use')) {
+    return
+  }
+  posthog.capture('ai_chat_row_asked')
+  const chatId = v7()
+  setChatDraft(
+    chatId,
+    data.resourceId,
+    `About this row of \`${data.schema}.${data.table}\`:\n\`\`\`json\n${valueToText(data.row, 2).slice(0, ROW_TEXT_LIMIT)}\n\`\`\`\n`
+  )
+  openChat(data.resourceId, chatId)
 }

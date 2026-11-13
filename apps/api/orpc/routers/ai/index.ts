@@ -1,5 +1,7 @@
 export { abortStream } from './abort-stream'
 export { attachStream } from './attach-stream'
+export { chatCost } from './chat-cost'
+export { compact } from './compact'
 export { completeQuery } from './complete-query'
 export { diagnoseConnection } from './diagnose-connection'
 export { filters } from './filters'

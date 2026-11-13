@@ -140,9 +140,12 @@ export type ChatModelId = (typeof chatModels)[number]['id']
 
 export const DEFAULT_CHAT_MODEL: ChatModelId = chatModels[0].id
 
-/** A stale or unknown pick falls back to the default instead of failing the turn. */
-export const resolveChatModel = (id: string | null | undefined): ChatModelId =>
-  chatModels.find((model) => model.id === id)?.id ?? DEFAULT_CHAT_MODEL
+/** Auto's models, lightest first; a chat on Auto answers with one of them. */
+export const AUTO_CHAT_MODELS: ChatModelId[] = [
+  'anthropic/claude-haiku-5.5',
+  'anthropic/claude-sonnet-5.5',
+  'anthropic/claude-opus-5.5',
+]
 
 const CHAT_FALLBACKS: ChatModelId[] = [
   'openai/gpt-6.1-sol',
@@ -173,6 +176,7 @@ export const MODEL_IDS = {
   fast: ['anthropic/claude-haiku-4.5', 'google/gemini-3.8-flash'],
   query: ['anthropic/claude-opus-5.5', 'x-ai/grok-4.7'],
   structured: ['anthropic/claude-sonnet-5.5', 'x-ai/grok-4.7'],
+  summary: ['google/gemini-3.8-flash', 'anthropic/claude-sonnet-5.5'],
   transcribe: ['google/gemini-3.8-flash', '~google/gemini-pro-latest'],
 } as const
 
@@ -186,5 +190,6 @@ export const models = {
   fast: retryable(MODEL_IDS.fast),
   query: retryable(MODEL_IDS.query),
   structured: retryable(MODEL_IDS.structured),
+  summary: retryable(MODEL_IDS.summary),
   transcribe: retryable(MODEL_IDS.transcribe),
 }

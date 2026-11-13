@@ -1,6 +1,11 @@
 import type { ConnectionType } from '@tamery/shared/enums/connection-type'
 import type { DataUIPart, TelemetryOptions } from 'ai'
-import { convertToModelMessages, streamText, toUIMessageStream } from 'ai'
+import {
+  convertToModelMessages,
+  smoothStream,
+  streamText,
+  toUIMessageStream,
+} from 'ai'
 import { v7 } from 'uuid'
 
 import type { AgentBudget } from '../limits'
@@ -67,7 +72,7 @@ const mentionText = (part: DataUIPart<ChatDataParts>) => {
 const FILE_TOKENS = 1500
 
 // A file's data URL is base64, never read as text: counting it would drop the whole history to fit one screenshot.
-const estimateTokens = (message: AppUIMessage) =>
+export const estimateTokens = (message: AppUIMessage) =>
   message.parts.reduce(
     (sum, part) =>
       sum +
@@ -95,6 +100,13 @@ const fitContext = (messages: AppUIMessage[], budget: number) => {
   return messages.slice(firstUser === -1 ? start : firstUser)
 }
 
+export const toModelMessages = (messages: AppUIMessage[]) =>
+  convertToModelMessages<AppUIMessage>(messages, {
+    convertDataPart: (part) => ({ text: mentionText(part), type: 'text' }),
+    ignoreIncompleteToolCalls: true,
+    tools: chatTools,
+  })
+
 /** Needed in both places: on the system message it caches the tools and instructions, on the request it adds OpenRouter's automatic breakpoint at the last message, which caches the transcript and its mention definitions for the next step. */
 const PROMPT_CACHE = {
   openrouter: { cacheControl: { type: 'ephemeral' } },
@@ -108,6 +120,8 @@ export interface ChatStepInput {
   fast?: boolean
   /** A subagent's chat: told to report back, and offered every tool but `spawn_agent`. */
   isSubagent?: boolean
+  /** The compacted start of the chat; `messages` then holds only what came after it. */
+  summary?: string
   connection: ChatConnection
   limits: AgentBudget
   messages: AppUIMessage[]
@@ -116,6 +130,16 @@ export interface ChatStepInput {
   onError: (error: unknown) => string
   telemetry?: TelemetryOptions
 }
+
+const stepInstructions = (data: ChatStepInput, capped: boolean) =>
+  [
+    chatInstructions(data.connection),
+    data.isSubagent && SUBAGENT_INSTRUCTION,
+    data.summary && section('EARLIER IN THIS CHAT, SUMMARIZED', data.summary),
+    capped && CAPPED_INSTRUCTION,
+  ]
+    .filter(Boolean)
+    .join('\n')
 
 /** One model step of the chat agent as a UI message stream: the instructions, tools and turn limits every caller (the API, the eval) runs. A step that calls tools ends the stream; the caller answers them and sends the turn back. */
 export const streamChatStep = async (data: ChatStepInput) => {
@@ -127,28 +151,24 @@ export const streamChatStep = async (data: ChatStepInput) => {
     (continued?.parts ?? []).filter((part) => part.type === 'step-start')
       .length >= data.limits.steps
 
-  const instructions = data.isSubagent
-    ? `${chatInstructions(data.connection)}\n${SUBAGENT_INSTRUCTION}`
-    : chatInstructions(data.connection)
+  const instructions = stepInstructions(data, capped)
+  const startedAt = continued?.metadata?.startedAt ?? Date.now()
 
+  const model = data.model ?? DEFAULT_CHAT_MODEL
   const result = streamText({
     abortSignal: data.abortSignal,
+    experimental_transform: smoothStream(),
     instructions: {
-      content: capped ? `${instructions}\n${CAPPED_INSTRUCTION}` : instructions,
+      content: instructions,
       providerOptions: PROMPT_CACHE,
       role: 'system',
     },
-    messages: await convertToModelMessages<AppUIMessage>(
+    messages: await toModelMessages(
       data.contextTokens
         ? fitContext(data.messages, data.contextTokens)
-        : data.messages,
-      {
-        convertDataPart: (part) => ({ text: mentionText(part), type: 'text' }),
-        ignoreIncompleteToolCalls: true,
-        tools: chatTools,
-      }
+        : data.messages
     ),
-    model: chatModel(data.model ?? DEFAULT_CHAT_MODEL, data.fast ?? false),
+    model: chatModel(model, data.fast ?? false),
     providerOptions: {
       openrouter: {
         ...PROMPT_CACHE.openrouter,
@@ -164,7 +184,14 @@ export const streamChatStep = async (data: ChatStepInput) => {
     generateMessageId: () => v7(),
     messageMetadata: ({ part }) =>
       part.type === 'finish'
-        ? { capped, tokens: tokens + (part.totalUsage.totalTokens ?? 0) }
+        ? {
+            capped,
+            context: part.totalUsage.inputTokens,
+            finishedAt: Date.now(),
+            model,
+            startedAt,
+            tokens: tokens + (part.totalUsage.totalTokens ?? 0),
+          }
         : undefined,
     onEnd: ({ responseMessage }) => data.onEnd(responseMessage),
     onError: data.onError,

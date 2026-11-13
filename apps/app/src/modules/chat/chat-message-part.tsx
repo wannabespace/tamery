@@ -6,6 +6,7 @@ import { isStaticToolUIPart } from 'ai'
 import { ChatDisclosure } from './chat-disclosure'
 import { ToolPart } from './chat-tool-part'
 import type { ToolPartActions } from './chat-tool-types'
+import { useResponseSlots } from './response-slots'
 
 export const MessagePart = ({
   actions,
@@ -14,13 +15,16 @@ export const MessagePart = ({
   actions: ToolPartActions
   part: AppMessagePart
 }) => {
+  const slots = useResponseSlots()
   if (isStaticToolUIPart(part)) {
     return <ToolPart actions={actions} part={part} />
   }
 
   switch (part.type) {
     case 'text': {
-      return part.text.trim() ? <Response>{part.text}</Response> : null
+      return part.text.trim() ? (
+        <Response {...slots}>{part.text}</Response>
+      ) : null
     }
     case 'reasoning': {
       return part.text.trim() ? (

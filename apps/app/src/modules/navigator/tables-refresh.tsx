@@ -26,7 +26,7 @@ export const TablesRefresh = () => {
             aria-label={`Refresh ${names.table}s`}
             variant="ghost-muted"
             size="icon-sm"
-            className="ml-auto"
+            iconClassName="size-3.5"
             onClick={() => refetch()}
             refreshing={isFetching}
           />

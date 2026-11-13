@@ -13,9 +13,11 @@ import {
 } from '@tamery/ui/components/sidebar'
 import { useParams } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
+import { useSubscription } from 'seitu/react'
 
 import { Link } from '~/components/link'
 import { useConnectionContext } from '~/core/connection/route'
+import { getConnectionResourceStore } from '~/core/connection/stores'
 import { openTab } from '~/core/tabs/actions'
 import { schemaGroups } from '~/core/tabs/kinds'
 
@@ -26,6 +28,10 @@ export const DefinitionsPanel = () => {
   const { connectionResource, dialect } = useConnectionContext()
   const { tabId: activeTabId } = useParams({ strict: false })
   const [search, setSearch] = useState('')
+  const tabs = useSubscription(
+    getConnectionResourceStore(connectionResource.id),
+    { selector: (state) => state.tabs }
+  )
 
   const filtered = schemaGroups(dialect)
     .map((group) => ({
@@ -98,6 +104,7 @@ export const DefinitionsPanel = () => {
                 <SidebarMenuItem
                   key={tabId}
                   data-highlighted={tabId === highlightedId || undefined}
+                  isOpen={tabs.some((tab) => tab.id === tabId)}
                 >
                   <SidebarMenuButton
                     isActive={isActive}

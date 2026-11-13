@@ -50,6 +50,7 @@ interface ChatStreamInput {
   messages: AppUIMessage[]
   model: ChatModelId
   onFinish: (message: AppUIMessage) => Promise<void>
+  summary?: string
   telemetry?: TelemetryOptions
 }
 
@@ -77,6 +78,7 @@ export const chatStream = {
           console.error(`chat stream ${streamId} failed`, error)
           return 'Something went wrong while generating the answer.'
         },
+        summary: data.summary,
         telemetry: data.telemetry,
       })
 

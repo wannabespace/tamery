@@ -86,7 +86,7 @@ export const SchemaRow = ({
           />
         }
         // oxlint-disable-next-line shadcn/no-restyle -- page-specific: the Navigator renders the schema label as an interactive toggle row
-        className="group hover:bg-foreground/5 text-foreground/70 h-full w-full gap-1 px-1.5"
+        className="group hover:bg-foreground/5 h-full w-full gap-1 px-1.5"
       >
         <HugeiconsIcon
           icon={ArrowRight01Icon}
@@ -98,7 +98,7 @@ export const SchemaRow = ({
         />
         <span
           className={cn(
-            'text-2xs truncate font-semibold tracking-wider uppercase',
+            'truncate',
             schemaParam === row.name && 'text-foreground'
           )}
         >

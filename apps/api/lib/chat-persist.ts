@@ -1,6 +1,10 @@
 import { ORPCError } from '@orpc/server'
-import { generateChatTitle } from '@tamery/ai/features'
-import type { AppUIMessage } from '@tamery/ai/message'
+import {
+  afterCompaction,
+  compactMessages,
+  generateChatTitle,
+} from '@tamery/ai/features'
+import type { AppUIMessage, ChatCompaction } from '@tamery/ai/message'
 import { messagesFromPartRows } from '@tamery/ai/message'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
@@ -12,8 +16,9 @@ import {
 } from '@tamery/db/schema'
 import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { silently } from '@tamery/shared/utils'
+import type { TelemetryOptions } from 'ai'
 import { isDeepEqualData, isToolUIPart } from 'ai'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, isNull } from 'drizzle-orm'
 
 import { aiUsage } from '~/lib/ai-usage'
 import { inMemberWorkspace } from '~/lib/workspace'
@@ -21,7 +26,66 @@ import { publisher as chatsMessagesPartsPublisher } from '~/orpc/routers/chats-m
 import { publisher as chatsMessagesPublisher } from '~/orpc/routers/chats-messages/events'
 import { publisher as chatsPublisher } from '~/orpc/routers/chats/events'
 
+const saveCompaction = async (data: {
+  chatId: string
+  compaction: ChatCompaction | null
+  userId: string
+}) => {
+  const [updated] = await db
+    .update(chats)
+    .set({ compaction: data.compaction })
+    .where(and(eq(chats.id, data.chatId), eq(chats.userId, data.userId)))
+    .returning()
+  if (updated) {
+    chatsPublisher.publish(data.userId, { type: 'update', value: updated })
+  }
+}
+
 export const chatPersist = {
+  /** Summarizes everything before the last user message into the chat's compaction, keeping the latest exchange whole so a turn in progress keeps its own messages. Returns the compaction the model should read, the previous one when there is nothing new to fold in or the summary fails. */
+  compact: async (data: {
+    chatId: string
+    history: AppUIMessage[]
+    previous: ChatCompaction | null
+    telemetry?: TelemetryOptions
+    userId: string
+  }) => {
+    const { previous } = data
+    const lastUser = data.history.findLastIndex(
+      (message) => message.role === 'user'
+    )
+    const older = afterCompaction(
+      data.history.slice(0, Math.max(lastUser, 0)),
+      previous
+    )
+    if (older.length === 0) {
+      return previous
+    }
+    const next = await compactMessages({
+      messages: older,
+      previous: previous?.summary,
+      telemetry: data.telemetry,
+    }).catch((error: unknown) => {
+      console.error('chat compaction failed', error)
+      return null
+    })
+    if (!next) {
+      return previous
+    }
+    await saveCompaction({
+      chatId: data.chatId,
+      compaction: next,
+      userId: data.userId,
+    })
+    return next
+  },
+  compaction: async (chatId: string) => {
+    const chat = await db.query.chats.findFirst({
+      columns: { compaction: true },
+      where: { id: { eq: chatId } },
+    })
+    return chat?.compaction ?? null
+  },
   connection: async (data: {
     connectionResourceId: string
     userId: string
@@ -55,25 +119,53 @@ export const chatPersist = {
       )
     return { ...resource.connection, notes, resource: resource.name }
   },
-  deleteMessage: async (data: {
+  /** Drops `messageId` and every message after it, so an edited or re-asked turn replaces what followed; a compaction that covered a dropped message goes too. */
+  truncateFrom: async (data: {
     chatId: string
     messageId: string
     userId: string
   }) => {
-    const [deleted] = await db
-      .delete(chatsMessages)
-      .where(
-        and(
-          eq(chatsMessages.id, data.messageId),
-          eq(chatsMessages.chatId, data.chatId)
+    const target = await db.query.chatsMessages.findFirst({
+      columns: { createdAt: true },
+      where: { chatId: { eq: data.chatId }, id: { eq: data.messageId } },
+    })
+    if (!target) {
+      return
+    }
+    // Parts go first and on their own: the cascade would drop them without an event, and a turn stored again under the same id would then show its old parts beside the new ones.
+    const { deleted, parts } = await db.transaction(async (tx) => {
+      const rows = await tx
+        .select({ id: chatsMessages.id })
+        .from(chatsMessages)
+        .where(
+          and(
+            eq(chatsMessages.chatId, data.chatId),
+            gte(chatsMessages.createdAt, target.createdAt)
+          )
         )
-      )
-      .returning({ id: chatsMessages.id })
-
-    if (deleted) {
-      chatsMessagesPublisher.publish(data.userId, {
-        key: deleted.id,
+      const ids = rows.map(({ id }) => id)
+      const deletedParts = await tx
+        .delete(chatsMessagesParts)
+        .where(inArray(chatsMessagesParts.messageId, ids))
+        .returning({ id: chatsMessagesParts.id })
+      await tx.delete(chatsMessages).where(inArray(chatsMessages.id, ids))
+      return { deleted: ids, parts: deletedParts }
+    })
+    for (const { id } of parts) {
+      chatsMessagesPartsPublisher.publish(data.userId, {
+        key: id,
         type: 'delete',
+      })
+    }
+    for (const id of deleted) {
+      chatsMessagesPublisher.publish(data.userId, { key: id, type: 'delete' })
+    }
+    const compaction = await chatPersist.compaction(data.chatId)
+    if (deleted.some((id) => id === compaction?.throughMessageId)) {
+      await saveCompaction({
+        chatId: data.chatId,
+        compaction: null,
+        userId: data.userId,
       })
     }
   },

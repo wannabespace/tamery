@@ -1,6 +1,6 @@
 import process from 'node:process'
 
-import { note, spinner } from '@clack/prompts'
+import { log, spinner } from '@clack/prompts'
 import { challenge } from '@tamery/shared/challenge'
 import { Result } from 'better-result'
 
@@ -34,9 +34,9 @@ const signIn = async () => {
   await events.next()
 
   void openBrowser(url)
-  note(
-    `${paint.link(url)}\n${paint.dim('The link expires in 5 minutes.')}`,
-    'Sign in to Tamery'
+  // `note` hard-wraps into its box, splitting the URL so terminals open a truncated link.
+  log.step(
+    `Sign in to Tamery\n${paint.link(url)}\n${paint.dim('The link expires in 5 minutes.')}`
   )
 
   const waiting = spinner({ signal })

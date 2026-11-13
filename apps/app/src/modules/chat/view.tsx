@@ -62,7 +62,7 @@ const ChatTabContent = ({ params }: { id: string; params: ChatParams }) => {
   const { connectionResource } = useTabContext()
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
+    <div className="flex min-h-0 w-full flex-1 flex-col">
       <Suspense fallback={<ChatSkeleton />}>
         <TabChat
           chatId={params.chatId}

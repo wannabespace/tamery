@@ -11,14 +11,19 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuSkeleton,
+  sidebarMenuItemClassName,
 } from '@tamery/ui/components/sidebar'
 import { useVirtualizer } from '@tamery/ui/hooks/use-virtualizer'
 import { cn } from '@tamery/ui/lib/utils'
 import { motion } from 'motion/react'
 import type { CSSProperties, ComponentRef } from 'react'
 import { useDeferredValue, useEffect, useEffectEvent, useRef } from 'react'
+import { useSubscription } from 'seitu/react'
 
 import { useObjectNames } from '~/core/catalog/names'
+import { useConnectionContext } from '~/core/connection/route'
+import { getConnectionResourceStore } from '~/core/connection/stores'
+import { tableTabId } from '~/core/tabs/ids'
 
 import { DropSchemaDialog } from './drop-schema-dialog'
 import { DropTableDialog } from './drop-table-dialog'
@@ -59,6 +64,11 @@ export const TablesList = ({
   search?: string
 }) => {
   const names = useObjectNames()
+  const { connectionResource } = useConnectionContext()
+  const tabs = useSubscription(
+    getConnectionResourceStore(connectionResource.id),
+    { selector: (state) => state.tabs }
+  )
   const dropSchema = useRef<ComponentRef<typeof DropSchemaDialog>>(null)
   const dropTable = useRef<ComponentRef<typeof DropTableDialog>>(null)
   const renameSchema = useRef<ComponentRef<typeof RenameSchemaDialog>>(null)
@@ -202,9 +212,19 @@ export const TablesList = ({
                     ? { duration: 0 }
                     : { duration: 0.25, ease: [0.32, 0.72, 0, 1] }
                 }
-                className="group/menu-item absolute inset-x-0 top-0 h-(--row-height)"
+                className={cn(
+                  sidebarMenuItemClassName,
+                  'absolute inset-x-0 top-0 h-(--row-height)'
+                )}
                 inert={row === stickyRow}
                 data-highlighted={highlighted || undefined}
+                data-open={
+                  (row.kind === 'table' &&
+                    tabs.some(
+                      (tab) => tab.id === tableTabId(row.schema, row.table.name)
+                    )) ||
+                  undefined
+                }
                 style={
                   { '--row-height': `${virtualRow.size}px` } as CSSProperties
                 }

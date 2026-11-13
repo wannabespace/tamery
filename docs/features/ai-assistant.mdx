@@ -16,11 +16,17 @@ Each database keeps its own chats, on all your devices. Every chat is a tab you 
 
 To show the agent something, attach up to four images or PDFs of 5 MB each: click **+** under the message box, paste them, or drop them on it. To speak instead of typing, click the microphone, talk for up to two minutes, and click it again; what you said lands in the message box for you to check before sending. **Esc** drops a recording. The desktop app asks for microphone access the first time.
 
+While the agent works you can keep typing: **Enter** queues your message, and it goes out as soon as the answer ends. Queued messages show above the message box, where **×** takes one back. In an empty message box, **Up arrow** brings back your last message.
+
+Hover over a message of yours to copy or edit it; an edited message is asked again, and everything after it is replaced by the new answer. Under an answer you can copy it, ask again, and mark it as good or bad; it also says which model wrote it and how long it took. Click an attached image to see it whole; clicking a PDF saves it.
+
 ## What the agent does
 
 A new chat opens with the message box in the middle and a few ways to start under it, such as an overview of the database or a data quality check; pick one to send it.
 
 The agent reads your schema and runs read-only queries on its own. On a large database it searches table and column names and comments instead of listing everything, and before filtering on a value you named, it checks how that value is spelled in the column. It also looks through your saved queries and builds on them instead of starting from scratch. Each query shows its SQL and the rows it returned as a table under the answer; **Open as Query** opens that SQL in a new Query tab, and the chart button shows a result with dates or categories and a number as a chart. The agent reads at most 200 rows and about 60 KB per query, and a value longer than 2 KB reaches it cut short, so it filters and aggregates in SQL instead of reading whole tables.
+
+The agent's reasoning and lookups between the parts of an answer fold into one line, such as **5 steps**; click it to see each one. Results, changes waiting for you and notes always stay in view.
 
 One message lets the agent take up to 25 steps. When it reaches that, the agent stops, says what it found and what is left, and **Continue** lets it carry on.
 
@@ -36,13 +42,19 @@ In **Auto** mode, picked under the message box, a statement that only adds, new 
 
 ### Models
 
-The menu under the message box picks the model that answers, grouped by company. It lists the main models of Anthropic, OpenAI, Google and xAI; type to search all of them, including the rest from Google and Anthropic, DeepSeek, Moonshot, Qwen, Z.ai and Mistral. The models you picked lately sit at the top under **Recent**; the cross next to one removes it from there. **Right arrow** on a model, or the arrow at the end of its row, opens its options; **Left arrow** or **Esc** goes back:
+The menu under the message box picks the model that answers. It starts on **Auto**: for each message, Tamery weighs how hard the question is and answers with Claude Haiku, Sonnet or Opus, so a quick lookup costs less of your budget and a hard analysis still gets the strongest model. Within one chat, Auto never drops to a lighter model, so a long conversation stays consistent. Auto has no options of its own; pick a model to set them.
+
+Below **Auto**, the models are grouped by company. The list shows the main models of Anthropic, OpenAI, Google and xAI; type to search all of them, including the rest from Google and Anthropic, DeepSeek, Moonshot, Qwen, Z.ai and Mistral. The models you picked lately sit under **Recent**; the cross next to one removes it from there. **Right arrow** on a model, or the arrow at the end of its row, opens its options; **Left arrow** or **Esc** goes back:
 
 - **Effort**, from **Low** to **Max**: how hard the model thinks before answering. More effort is slower and spends more of your budget.
-- **Context**: **200K** drops the oldest turns of a long chat so each answer stays cheaper and faster; the full window keeps the whole chat.
+- **Context**: how much of the chat the model reads. **200K** keeps each answer cheaper and faster; the full window lets a chat run longer before it is summarized.
 - **Fast**: sends the model to its fastest providers, which can cost more.
 
 Each model keeps its own options, and both the pick and the options apply to every chat on this device. When a model's provider fails, the agent answers with another model from the list.
+
+### Long chats
+
+The circle next to the model shows how full the chat's context is. Click it to see the tokens, what the chat has cost so far, and **Compact now**. When a chat fills 80% of the window, its earlier messages are summarized before your next one is answered, so the agent keeps the facts and SQL it found without rereading the whole chat. A line in the chat marks where the summary ends, and your newest exchange always stays whole. **/compact** summarizes on demand.
 
 ### Subagents
 
@@ -60,9 +72,13 @@ You read a subagent's chat but never write to it: it answers the agent, not you.
 
 Ask the agent to open things for you: a table with filters and a sort ("show me last week's refunded orders"), SQL in a new Query tab, a download of a result as CSV or JSON, or the share dialog for a table. The share dialog opens filled in, and nothing is shared until you save it.
 
+SQL in an answer has **Open in Query** in its header, so you can run or change it yourself. A table named in an answer opens when you click it. When a picture helps, such as how tables link, the agent draws a diagram.
+
+To ask about one row, right-click it in a table and choose **Ask AI About Row**: a new chat opens with the row in the message box, ready for your question.
+
 ## Your chats
 
-Pick **Chats** from the menu at the top of the [Navigator](/features/navigator), or press **Cmd+3** (**Ctrl+3**), to list every chat of the connection. Search them like tables, and click one to open it in a tab.
+Pick **Chats** from the menu at the top of the [Navigator](/features/navigator), or press **Cmd+3** (**Ctrl+3**), to list every chat of the connection, grouped by date with pinned chats on top. Search finds a chat by its title or by anything said in it; click one to open it in a tab. Right-click a chat, or use its **⋯** button, to rename, pin or delete it; renaming a chat's tab (double-click it, or **Rename** in its menu) renames the chat too. Deleting a chat can't be undone; a draft has only its delete button, and goes without asking.
 
 ## Schema notes
 
@@ -85,7 +101,7 @@ Each connection is one row, standing for the database you opened in it most rece
 
 The agent queries each connection on its own, then joins or compares the results with SQL in the chat itself, so matching rows across databases is exact rather than done by eye. The combined result shows as a table under the answer.
 
-Type **/** at the start of a message for commands:
+Type **/** at the start of a message for commands. Picking one writes it in the message box, and **Enter** runs it:
 
 | Command             | What it does                      |
 | ------------------- | --------------------------------- |
@@ -93,9 +109,10 @@ Type **/** at the start of a message for commands:
 | **/model**          | Opens the model and effort picker |
 | **/retry**          | Asks your last message again      |
 | **/copy**           | Copies the last answer            |
+| **/compact**        | Summarizes the chat so far        |
 | **/auto**, **/ask** | Switches how changes get approved |
 
-On desktop the same menu lists your own agent skills and commands, read from `~/.claude/skills`, `~/.claude/commands`, `~/.agents/skills` and `~/.codex/skills`. Picking one sends its instructions with your message; they never let a change skip **Run**. A file over 32 KB is left out.
+On desktop, and in the web app with a [bridge](/cli/overview), the same menu lists your own agent skills and commands, read from `~/.claude/skills`, `~/.claude/commands`, `~/.agents/skills` and `~/.codex/skills`, each as **/skill:** and its name, so a skill never looks like one of the commands above. Picking one sends its instructions with your message; they never let a change skip **Run**. A file over 32 KB is left out.
 
 Chats are stored on our servers and processed by external AI providers. See [Security and privacy](/connections/security#ai-and-your-data).
 

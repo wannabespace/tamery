@@ -18,6 +18,7 @@ import { isSaving, useTableSessionStore } from '~/core/table/session'
 import { TableError } from '~/core/table/table-error'
 import { tableTabId } from '~/core/tabs/ids'
 import { posthog } from '~/lib/posthog'
+import { askAboutRow } from '~/modules/chat/open-chat'
 
 import { useTableColumnsContext, withRowFieldColumns } from '../../lib/columns'
 import { tableGridRef } from '../../lib/grid-ref'
@@ -261,6 +262,13 @@ export const Table = ({
         menuItems={(cell, element) =>
           tableCellMenu({
             actions: getActions(cell.column),
+            askAi: () =>
+              askAboutRow({
+                resourceId: connectionResource.id,
+                row: cell.row,
+                schema,
+                table,
+              }),
             canWriteRows,
             cell,
             element,

@@ -164,14 +164,14 @@ export const TabBar = ({ className }: { className?: string }) => {
           className="h-full min-w-0 flex-1"
           viewportClassName="scroll-fade-x [--scroll-fade-mask:linear-gradient(to_top,#000_1px,transparent_1px),var(--scroll-fade-inline)] [-webkit-mask-composite:source-over]! [mask-composite:add]!"
         >
-          <div className="flex h-8 w-max min-w-full items-stretch">
+          <div className="flex h-8 items-stretch">
             <Reorder.Group
               axis="x"
               values={tabs}
               onReorder={(next) => updateTabs(connectionResource.id, next)}
               ref={stripRef}
               role="tablist"
-              className="flex items-stretch"
+              className="flex min-w-0 items-stretch"
             >
               {tabs.map((tab, index) => (
                 <Tab

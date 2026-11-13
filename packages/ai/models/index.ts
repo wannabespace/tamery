@@ -1,4 +1,5 @@
 export {
+  AUTO_CHAT_MODELS,
   CHAT_EFFORTS,
   chatContexts,
   chatModel,
@@ -7,7 +8,6 @@ export {
   DEFAULT_CHAT_MODEL,
   models,
   resolveChatContext,
-  resolveChatModel,
   STANDARD_CHAT_CONTEXT,
 } from './list'
 export type { ChatEffort, ChatModelId } from './list'

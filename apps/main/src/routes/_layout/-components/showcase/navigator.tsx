@@ -72,9 +72,7 @@ const TablesList = () => (
         strokeWidth={2}
         className="rotate-90"
       />
-      <span className="text-2xs text-foreground font-semibold tracking-wider uppercase">
-        public
-      </span>
+      <span className="text-foreground">public</span>
     </SidebarGroupLabel>
     {TABLES.map((table) => (
       <SidebarMenuButton key={table.name} isActive={table.active}>

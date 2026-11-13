@@ -2,6 +2,7 @@ import type {
   AppMessagePart,
   AppMessageMetadata,
   AppUIMessage,
+  ChatCompaction,
 } from '@tamery/ai/message'
 import { defineRelationsPart } from 'drizzle-orm'
 import {
@@ -28,6 +29,8 @@ export const chats = d.snakeCase.table(
     parentChatId: d
       .uuid()
       .references((): d.AnyPgColumn => chats.id, { onDelete: 'cascade' }),
+    compaction: encryptedJson().$type<ChatCompaction>(),
+    pinnedAt: d.timestamp({ withTimezone: true }),
     title: d.text(),
     userId: d
       .uuid()

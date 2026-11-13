@@ -1,4 +1,6 @@
+export { pickChatModel } from './auto-model'
 export { chatStream } from './chat-stream'
+export { afterCompaction, compactMessages, needsCompaction } from './compact'
 export { completeQuery } from './complete-query'
 export { diagnoseConnection } from './diagnose-connection'
 export { generateFilters } from './filters'

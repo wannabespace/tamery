@@ -1,3 +1,5 @@
+import { cn } from '@tamery/ui/lib/utils'
+import type { ReactNode } from 'react'
 import { useEffect, useId, useState } from 'react'
 
 const ring = 'color-mix(in oklab, var(--foreground) 8%, transparent)'
@@ -41,19 +43,32 @@ const renderChart = async (id: string, chart: string) => {
   return svg
 }
 
-export const Mermaid = ({ chart }: { chart: string }) => {
+export const Mermaid = ({
+  chart,
+  className,
+  fallback = null,
+}: {
+  chart: string
+  className?: string
+  /** Shown until the chart renders, and instead of it when the chart does not parse. */
+  fallback?: ReactNode
+}) => {
   // Mermaid uses the id as a CSS selector, which React's `«r0»` ids break.
   const id = `mermaid-${useId().replaceAll(/[^\w-]/gu, '')}`
   const [svg, setSvg] = useState('')
 
   useEffect(() => {
-    void renderChart(id, chart).then(setSvg)
+    void renderChart(id, chart).then(setSvg, () => setSvg(''))
   }, [chart, id])
+
+  if (!svg) {
+    return fallback
+  }
 
   return (
     <figure
-      className="my-8 flex justify-center [&_svg]:max-w-full"
-      // oxlint-disable-next-line react/no-danger -- Mermaid's own SVG from a chart in our repo.
+      className={cn('flex justify-center [&_svg]:max-w-full', className)}
+      // oxlint-disable-next-line react/no-danger -- Mermaid's own SVG, rendered at its default strict security level, which strips scripts and HTML labels from a chart the AI wrote.
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   )

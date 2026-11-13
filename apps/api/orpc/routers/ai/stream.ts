@@ -1,11 +1,12 @@
-import { chatStream } from '@tamery/ai/features'
+import {
+  afterCompaction,
+  chatStream,
+  needsCompaction,
+  pickChatModel,
+} from '@tamery/ai/features'
 import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
-import {
-  DEFAULT_CHAT_EFFORT,
-  resolveChatContext,
-  resolveChatModel,
-} from '@tamery/ai/models'
+import { DEFAULT_CHAT_EFFORT, resolveChatContext } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { runInBackground } from '@tamery/shared/background'
 import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
@@ -77,6 +78,14 @@ export const stream = orpc
       userId: context.user.id,
     })
 
+    if (turn.role === 'user') {
+      await chatPersist.truncateFrom({
+        chatId: input.chatId,
+        messageId: turn.id,
+        userId: context.user.id,
+      })
+    }
+
     await (
       turn.role === 'user'
         ? chatPersist.persistMessage
@@ -92,16 +101,6 @@ export const stream = orpc
       userId: context.user.id,
     })
 
-    const previousAnswer = history.at(-1)
-    if (turn.role === 'user' && previousAnswer?.role === 'assistant') {
-      await chatPersist.deleteMessage({
-        chatId: input.chatId,
-        messageId: previousAnswer.id,
-        userId: context.user.id,
-      })
-      history.pop()
-    }
-
     if (!title) {
       runInBackground(
         chatPersist.persistTitle({
@@ -112,30 +111,49 @@ export const stream = orpc
       )
     }
 
+    const scope = {
+      chatId: input.chatId,
+      feature: AiFeature.Chat,
+      userId: context.user.id,
+    }
+    const model = await pickChatModel({
+      messages: history,
+      model: input.model,
+      onJevUsage: (usage) => aiUsage.recordPriced(scope, usage),
+    })
+    const contextTokens = resolveChatContext(model, input.context)
+    const telemetry = aiUsage.telemetry(scope)
+    const stored = await chatPersist.compaction(input.chatId)
+    const compaction =
+      turn.role === 'user' &&
+      needsCompaction(afterCompaction(history, stored), contextTokens)
+        ? await chatPersist.compact({
+            chatId: input.chatId,
+            history,
+            previous: stored,
+            telemetry,
+            userId: context.user.id,
+          })
+        : stored
+
     const str = await chatStream.claim({
       chatId: input.chatId,
       connection,
       limits: CHAT_LIMITS.message,
-      messages: history,
-      contextTokens: resolveChatContext(
-        resolveChatModel(input.model),
-        input.context
-      ),
+      messages: afterCompaction(history, compaction),
+      contextTokens,
       effort: input.effort ?? DEFAULT_CHAT_EFFORT,
       fast: input.fast ?? false,
       isSubagent,
-      model: resolveChatModel(input.model),
+      model,
       onFinish: (message) =>
         chatPersist.persistMessage({
           chatId: input.chatId,
           message,
           userId: context.user.id,
         }),
-      telemetry: aiUsage.telemetry({
-        chatId: input.chatId,
-        feature: AiFeature.Chat,
-        userId: context.user.id,
-      }),
+      summary: compaction?.summary,
+      telemetry,
     })
 
     if (str) {

@@ -21,9 +21,11 @@ import {
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
 import type { FileUIPart } from 'ai'
+import type { ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useConnectionContext } from '~/core/connection/route'
+import { posthog } from '~/lib/posthog'
 import { useIsOnline } from '~/store'
 
 import { ApprovalModePicker } from './approval-mode-picker'
@@ -35,7 +37,7 @@ import {
 import { useDictation } from './dictation'
 import { ModelPicker } from './model-picker'
 import type { ChatCommand, PromptMention } from './prompt-mentions'
-import { usePromptMentions } from './prompt-mentions'
+import { commandOf, usePromptMentions } from './prompt-mentions'
 import { PromptMenu } from './prompt-menu'
 import { chatDraftsValue, setChatDraft } from './stores'
 
@@ -72,7 +74,9 @@ const DictationButton = ({
 export const ChatInput = ({
   chatId,
   isActive,
-  isStreaming,
+  isWorking,
+  lastPrompt,
+  meter,
   onCommand,
   onSend,
   onStop,
@@ -81,7 +85,11 @@ export const ChatInput = ({
   chatId: string
   /** Focuses the composer whenever it turns true. */
   isActive: boolean
-  isStreaming: boolean
+  /** Sending while it is true queues the message for when the turn ends. */
+  isWorking: boolean
+  /** What ArrowUp brings back into an empty composer. */
+  lastPrompt?: string
+  meter?: ReactNode
   onCommand: (command: ChatCommand) => void
   onSend: (text: string, mentions: PromptMention[], files: FileUIPart[]) => void
   onStop: () => void
@@ -94,7 +102,7 @@ export const ChatInput = ({
   const [files, setFiles] = useState<FileUIPart[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const menu = usePromptMentions({ onCommand, setValue, textareaRef, value })
+  const menu = usePromptMentions({ setValue, textareaRef, value })
   const dictation = useDictation((text) => {
     setValue((current) =>
       current.trim() ? `${current.trimEnd()} ${text}` : text
@@ -107,8 +115,10 @@ export const ChatInput = ({
   }, [chatId, connectionResource.id, value])
 
   useEffect(() => {
-    if (isActive) {
-      textareaRef.current?.focus()
+    const textarea = textareaRef.current
+    if (isActive && textarea) {
+      textarea.focus()
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length)
     }
   }, [isActive])
 
@@ -118,8 +128,22 @@ export const ChatInput = ({
   }
 
   const canSend = (!!value.trim() || files.length > 0) && isOnline
+  const showStop = isWorking && !canSend
+  let sendLabel = 'Send message'
+  if (showStop) {
+    sendLabel = 'Stop generating'
+  } else if (isWorking) {
+    sendLabel = 'Queue message'
+  }
   const submit = () => {
-    if (!canSend || isStreaming) {
+    const command = commandOf(value)
+    if (command) {
+      onCommand(command)
+      menu.reset()
+      setValue('')
+      return
+    }
+    if (!canSend) {
       return
     }
     onSend(value.trim(), menu.sentMentions(), files)
@@ -130,7 +154,7 @@ export const ChatInput = ({
 
   return (
     <form
-      className="relative mx-auto w-[min(32rem,100%)] shrink-0 p-2"
+      className="relative shrink-0 px-3 py-2"
       onSubmit={(event) => {
         event.preventDefault()
         submit()
@@ -191,6 +215,10 @@ export const ChatInput = ({
             if (event.key === 'Escape' && dictation.isRecording) {
               event.preventDefault()
               dictation.cancel()
+            } else if (event.key === 'ArrowUp' && !value && lastPrompt) {
+              event.preventDefault()
+              posthog.capture('ai_chat_prompt_recalled')
+              setValue(lastPrompt)
             } else if (
               event.key === 'Enter' &&
               !event.shiftKey &&
@@ -221,10 +249,10 @@ export const ChatInput = ({
             <ModelPicker />
             <ApprovalModePicker />
             <div className="ml-auto flex items-center gap-1">
+              {meter}
               <DictationButton dictation={dictation} />
               <Tooltip
                 shortcut={
-                  !isStreaming &&
                   canSend && (
                     <Kbd>
                       <EnterIcon />
@@ -237,23 +265,19 @@ export const ChatInput = ({
                     <InputGroupButton
                       size="icon-round"
                       variant="default"
-                      aria-label={
-                        isStreaming ? 'Stop generating' : 'Send message'
-                      }
-                      {...(isStreaming
+                      aria-label={sendLabel}
+                      {...(showStop
                         ? { onClick: onStop }
                         : { disabled: !canSend, type: 'submit' })}
                     />
                   }
                 >
                   <HugeiconsIcon
-                    icon={isStreaming ? StopIcon : ArrowUp02Icon}
+                    icon={showStop ? StopIcon : ArrowUp02Icon}
                     strokeWidth={2}
                   />
                 </TooltipTrigger>
-                <TooltipContent side="top">
-                  {isStreaming ? 'Stop generating' : 'Send message'}
-                </TooltipContent>
+                <TooltipContent side="top">{sendLabel}</TooltipContent>
               </Tooltip>
             </div>
           </div>

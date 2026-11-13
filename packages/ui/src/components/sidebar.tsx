@@ -23,8 +23,19 @@ const SidebarMenu = ({ className, ...props }: ComponentProps<'ul'>) => (
   />
 )
 
-const SidebarMenuItem = ({ className, ...props }: ComponentProps<'li'>) => (
-  <li className={cn('group/menu-item relative', className)} {...props} />
+const sidebarMenuItemClassName =
+  'group/menu-item relative data-open:before:bg-muted-foreground data-open:before:absolute data-open:before:top-3.5 data-open:before:-left-2 data-open:before:size-1 data-open:before:-translate-y-1/2 data-open:before:rounded-full'
+
+const SidebarMenuItem = ({
+  className,
+  isOpen,
+  ...props
+}: ComponentProps<'li'> & { isOpen?: boolean }) => (
+  <li
+    className={cn(sidebarMenuItemClassName, className)}
+    data-open={isOpen || undefined}
+    {...props}
+  />
 )
 
 const SidebarMenuButton = ({
@@ -121,7 +132,7 @@ const SidebarGroupLabel = ({
     props: mergeProps<'div'>(
       {
         className: cn(
-          `text-muted-foreground font-row group-data-highlighted/menu-item:bg-foreground/10 focus-visible:bg-foreground/10 flex h-6 shrink-0 items-center rounded-md px-2 text-xs outline-hidden [&>svg]:size-4 [&>svg]:shrink-0`,
+          `text-foreground/70 group-data-highlighted/menu-item:bg-foreground/10 focus-visible:bg-foreground/10 text-2xs flex h-6 shrink-0 items-center rounded-md px-2 font-semibold tracking-wider uppercase outline-hidden [&>svg]:size-4 [&>svg]:shrink-0`,
           className
         ),
       },
@@ -141,4 +152,5 @@ export {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSkeleton,
+  sidebarMenuItemClassName,
 }

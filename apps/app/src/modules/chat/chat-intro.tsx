@@ -71,11 +71,8 @@ export const ChatStarters = ({
 }: {
   onStart: (prompt: string) => void
 }) => (
-  <Toolbar
-    aria-label="Ways to start"
-    className="mx-auto mt-2 w-[min(31rem,calc(100%-1rem))]"
-  >
-    <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-2">
+  <Toolbar aria-label="Ways to start" className="@container mx-3 mt-2">
+    <div className="grid w-full grid-cols-1 gap-2 @md:grid-cols-2">
       {STARTERS.map(({ description, icon, label, prompt }) => (
         <ToolbarButton
           key={label}

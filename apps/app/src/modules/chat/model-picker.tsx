@@ -71,9 +71,11 @@ const forget = (id: string) => {
   posthog.capture('ai_chat_recent_model_removed')
 }
 
-const choose = (id: string) => {
+const choose = (id: string | null) => {
   chatModelValue.set(id)
-  remember(id)
+  if (id) {
+    remember(id)
+  }
 }
 
 const setOption = (id: string, option: ChatModelOptions) => {
@@ -105,9 +107,7 @@ export const ModelPicker = () => {
   const [highlighted, setHighlighted] = useState('')
   const [configuringId, setConfiguringId] = useState<string | null>(null)
   const models = data?.models ?? []
-  const current =
-    models.find((model) => model.id === picked) ??
-    models.find((model) => model.id === data?.defaultId)
+  const current = models.find((model) => model.id === picked)
   const configuring = models.find((model) => model.id === configuringId)
   const recent = recentIds.flatMap(
     (id) => models.find((model) => model.id === id) ?? []
@@ -146,11 +146,11 @@ export const ModelPicker = () => {
     setSearch('')
   }
 
-  const select = (id: string) => {
+  const select = (id: string | null) => {
     choose(id)
     setOpen(false)
     setSearch('')
-    posthog.capture('ai_chat_model_changed', { model: id })
+    posthog.capture('ai_chat_model_changed', { model: id ?? 'auto' })
   }
 
   const modelRow = (model: (typeof models)[number], value: string) => (
@@ -206,7 +206,7 @@ export const ModelPicker = () => {
         }
       >
         <span className="text-foreground truncate">
-          {current?.name ?? 'Model'}
+          {current?.name ?? 'Auto'}
         </span>
         {current && <span className="shrink-0">{summary(current)}</span>}
         <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} />
@@ -285,7 +285,7 @@ export const ModelPicker = () => {
                     <span className="text-muted-foreground text-xs">
                       {tokens === configuring.contexts.at(-1)
                         ? 'The whole chat'
-                        : 'Older turns drop off'}
+                        : 'Summarized sooner'}
                     </span>
                   </CommandItem>
                 ))}
@@ -312,6 +312,19 @@ export const ModelPicker = () => {
             // A fixed height, not a cap: the popover opens upward from its bottom edge, so a list that resized with the results would move the search field under the caret.
             <CommandList className="h-72">
               <ListEmpty icon={AiBrain01Icon}>No matching models</ListEmpty>
+              <CommandGroup>
+                <CommandItem
+                  value="auto"
+                  keywords={['Auto']}
+                  data-checked={!current}
+                  onSelect={() => select(null)}
+                >
+                  <span className="flex-1 truncate">Auto</span>
+                  <span className="text-muted-foreground text-xs">
+                    Picks a model for each message
+                  </span>
+                </CommandItem>
+              </CommandGroup>
               {!search && recent.length > 0 && (
                 <CommandGroup heading="Recent">
                   {recent.map((model) => (

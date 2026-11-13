@@ -8,8 +8,10 @@ import {
 import type { ChatTools } from '@tamery/ai/tools'
 import { eq, useLiveSuspenseQuery } from '@tanstack/react-db'
 import type { FileUIPart } from 'ai'
+import { isToolUIPart } from 'ai'
 import { Result } from 'better-result'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { useSubscription } from 'seitu/react'
 import { v7 } from 'uuid'
 
 import { agentDatabase } from '~/core/agent/database'
@@ -20,6 +22,7 @@ import { posthog } from '~/lib/posthog'
 import { getChatInstance } from './chat-instance'
 import { chatToolRuns } from './chat-tools'
 import type { PromptMention } from './prompt-mentions'
+import { chatQueueStore } from './stores'
 
 const mentionPart = async (
   mention: PromptMention
@@ -104,15 +107,62 @@ export const useChatSession = ({
     (message) => message.role === 'user'
   )
 
+  // A read the window is still answering keeps the turn open; a change or a note waiting on the user does not.
+  const isWorking =
+    isStreaming ||
+    isAwaitingAnswer ||
+    (lastMessage?.role === 'assistant' &&
+      lastMessage.parts.some(
+        (part) =>
+          isToolUIPart(part) &&
+          (part.state === 'input-streaming' ||
+            (part.state === 'input-available' &&
+              part.type !== 'tool-execute' &&
+              part.type !== 'tool-propose_note'))
+      ))
+  const queueStore = chatQueueStore(chatId)
+  const queue = useSubscription(queueStore)
+
+  const deliver = async (
+    text: string,
+    mentions: PromptMention[],
+    files: FileUIPart[]
+  ) => {
+    const parts = await Promise.all(mentions.map(mentionPart))
+    await sendMessage({
+      id: v7(),
+      parts: [
+        ...(text ? [{ text, type: 'text' as const }] : []),
+        ...files,
+        ...parts,
+      ],
+      role: 'user',
+    })
+  }
+
   useEffect(() => {
     if (isAwaitingAnswer) {
       void resumeStream()
     }
   }, [isAwaitingAnswer, resumeStream])
 
+  const [next] = queue
+  // A table mention is described before the message goes out, and the status only turns busy after, so without this the next render would send a second queued message too.
+  const isFlushing = useRef(false)
+  useEffect(() => {
+    if (!isWorking && next && !isFlushing.current) {
+      isFlushing.current = true
+      queueStore.set((current) => current.filter(({ id }) => id !== next.id))
+      void deliver(next.text, next.mentions, next.files).finally(() => {
+        isFlushing.current = false
+      })
+    }
+  })
+
   return {
     chatHistory: chatHistory.filter((row) => !row.parentChatId),
     chatId,
+    compaction: chat?.compaction ?? null,
     decide: {
       judge: ({
         dialect,
@@ -157,6 +207,28 @@ export const useChatSession = ({
           transcript: displayMessages,
         }),
     },
+    /** Asks `messageId` again with new text; everything after it is replaced by the new answer. */
+    edit: async (
+      messageId: string,
+      text: string,
+      mentions: PromptMention[]
+    ) => {
+      const original = displayMessages.find(({ id }) => id === messageId)
+      if (!original) {
+        return
+      }
+      posthog.capture('ai_chat_message_edited')
+      const parts = [
+        { text, type: 'text' as const },
+        ...original.parts.filter((part) => part.type !== 'text'),
+      ]
+      const added = await Promise.all(mentions.map(mentionPart))
+      await sendMessage({
+        messageId,
+        parts: [...parts, ...added],
+        role: 'user',
+      })
+    },
     error,
     isPaused:
       status === 'ready' &&
@@ -164,7 +236,11 @@ export const useChatSession = ({
       !!lastMessage.metadata?.capped,
     isReady: status === 'ready',
     isStreaming,
+    isWorking,
     messages: displayMessages,
+    queue,
+    removeQueued: (id: string) =>
+      queueStore.set((current) => current.filter((item) => item.id !== id)),
     resume: () => {
       posthog.capture('ai_chat_continued')
       void sendMessage({
@@ -190,22 +266,21 @@ export const useChatSession = ({
     ) => {
       posthog.capture('ai_chat_message_sent', {
         attachments: files.length,
+        queued: isWorking,
         connection_mentions: mentions.filter(
           ({ kind }) => kind === 'connection'
         ).length,
         skill_mentions: mentions.filter(({ kind }) => kind === 'skill').length,
         table_mentions: mentions.filter(({ kind }) => kind === 'table').length,
       })
-      const parts = await Promise.all(mentions.map(mentionPart))
-      await sendMessage({
-        id: v7(),
-        parts: [
-          ...(text ? [{ text, type: 'text' as const }] : []),
-          ...files,
-          ...parts,
-        ],
-        role: 'user',
-      })
+      if (isWorking) {
+        queueStore.set((current) => [
+          ...current,
+          { files, id: v7(), mentions, text },
+        ])
+        return
+      }
+      await deliver(text, mentions, files)
     },
     stop: () => {
       posthog.capture('ai_chat_stopped')

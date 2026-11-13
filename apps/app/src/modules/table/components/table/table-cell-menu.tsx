@@ -1,4 +1,5 @@
 import {
+  AiChat02Icon,
   ArrowTurnBackwardIcon,
   CheckmarkSquare02Icon,
   Copy02Icon,
@@ -32,6 +33,7 @@ import { deleteRowsDialogRef } from './actions-delete'
 
 export const tableCellMenu = ({
   actions,
+  askAi,
   canWriteRows,
   cell,
   element,
@@ -43,6 +45,7 @@ export const tableCellMenu = ({
   store,
 }: {
   actions: ColumnActions
+  askAi: () => void
   canWriteRows: boolean
   cell: DataGridCell
   element: Element | null | undefined
@@ -67,6 +70,7 @@ export const tableCellMenu = ({
     isEditable && staged.canEdit(column, cell.rowIndex) && column.isNullable
 
   const rowItems: AppMenuNode[] = [
+    { icon: AiChat02Icon, label: `Ask AI About ${Row}`, onSelect: askAi },
     ...(isEditable && entry.kind === 'saved'
       ? ([
           {

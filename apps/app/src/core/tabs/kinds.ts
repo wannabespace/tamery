@@ -70,6 +70,12 @@ export const resolveTab = (id: string) => {
 
 export type ResolvedTab = NonNullable<ReturnType<typeof resolveTab>>
 
+/** True when the tab's kind renamed what it shows, so the tab keeps no name of its own. */
+export const renameTabTitle = (tabId: string, title: string) => {
+  const resolved = resolveTab(tabId)
+  return !!resolved?.kind.renameTitle?.(resolved.params, title)
+}
+
 export const tabFullTitle = ({ kind, params }: ResolvedTab) =>
   kind.fullTitle?.(params) ?? kind.title(params)
 

@@ -1,10 +1,6 @@
-import { chatStream } from '@tamery/ai/features'
+import { afterCompaction, chatStream, pickChatModel } from '@tamery/ai/features'
 import { CHAT_LIMITS } from '@tamery/ai/limits'
-import {
-  DEFAULT_CHAT_EFFORT,
-  resolveChatContext,
-  resolveChatModel,
-} from '@tamery/ai/models'
+import { DEFAULT_CHAT_EFFORT, resolveChatContext } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
@@ -55,6 +51,19 @@ export const attachStream = orpc
       return
     }
 
+    const scope = {
+      chatId: input.chatId,
+      feature: AiFeature.Chat,
+      userId: context.user.id,
+    }
+    const model = await pickChatModel({
+      messages,
+      model: input.model,
+      onJevUsage: (usage) => aiUsage.recordPriced(scope, usage),
+    })
+
+    const compaction = await chatPersist.compaction(input.chatId)
+
     const restarted = await chatStream.claim({
       chatId: input.chatId,
       connection: await chatPersist.connection({
@@ -62,26 +71,20 @@ export const attachStream = orpc
         userId: context.user.id,
       }),
       limits: CHAT_LIMITS.message,
-      messages,
-      contextTokens: resolveChatContext(
-        resolveChatModel(input.model),
-        input.context
-      ),
+      messages: afterCompaction(messages, compaction),
+      contextTokens: resolveChatContext(model, input.context),
       effort: input.effort ?? DEFAULT_CHAT_EFFORT,
       fast: input.fast ?? false,
       isSubagent: !!owned.parentChatId,
-      model: resolveChatModel(input.model),
+      model,
       onFinish: (message) =>
         chatPersist.persistMessage({
           chatId: input.chatId,
           message,
           userId: context.user.id,
         }),
-      telemetry: aiUsage.telemetry({
-        chatId: input.chatId,
-        feature: AiFeature.Chat,
-        userId: context.user.id,
-      }),
+      summary: compaction?.summary,
+      telemetry: aiUsage.telemetry(scope),
     })
     if (restarted) {
       yield* restarted
