@@ -50,5 +50,36 @@ export const chatModelOptionsValue = createWebStorageValue({
   type: 'localStorage',
 })
 
+export interface ChatDraft {
+  resourceId: string
+  text: string
+  updatedAt: number
+}
+
+/** Unsent composer text per chat id; a chat with no messages yet lists as a draft under its database. */
+export const chatDraftsValue = createWebStorageValue({
+  defaultValue: {} as Record<string, ChatDraft>,
+  key: 'chat-drafts',
+  schema: type({
+    '[string]': { resourceId: 'string', text: 'string', updatedAt: 'number' },
+  }),
+  type: 'localStorage',
+})
+
+export const setChatDraft = (
+  chatId: string,
+  resourceId: string,
+  text: string
+) =>
+  chatDraftsValue.set((all) => {
+    const { [chatId]: previous, ...drafts } = all
+    if (previous?.text === text) {
+      return all
+    }
+    return text.trim()
+      ? { ...drafts, [chatId]: { resourceId, text, updatedAt: Date.now() } }
+      : drafts
+  })
+
 /** Lets `/model` open the composer's model picker. */
 export const modelPickerOpenStore = createStore(false)

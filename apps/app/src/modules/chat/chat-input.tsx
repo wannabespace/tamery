@@ -23,6 +23,7 @@ import {
 import type { FileUIPart } from 'ai'
 import { useEffect, useRef, useState } from 'react'
 
+import { useConnectionContext } from '~/core/connection/route'
 import { useIsOnline } from '~/store'
 
 import { ApprovalModePicker } from './approval-mode-picker'
@@ -36,6 +37,7 @@ import { ModelPicker } from './model-picker'
 import type { ChatCommand, PromptMention } from './prompt-mentions'
 import { usePromptMentions } from './prompt-mentions'
 import { PromptMenu } from './prompt-menu'
+import { chatDraftsValue, setChatDraft } from './stores'
 
 const DictationButton = ({
   dictation,
@@ -68,12 +70,15 @@ const DictationButton = ({
 }
 
 export const ChatInput = ({
+  chatId,
   isActive,
   isStreaming,
   onCommand,
   onSend,
   onStop,
 }: {
+  /** Whose draft the composer keeps; the draft survives tabs and reloads until it is sent or emptied. */
+  chatId: string
   /** Focuses the composer whenever it turns true. */
   isActive: boolean
   isStreaming: boolean
@@ -82,7 +87,10 @@ export const ChatInput = ({
   onStop: () => void
 }) => {
   const isOnline = useIsOnline()
-  const [value, setValue] = useState('')
+  const { connectionResource } = useConnectionContext()
+  const [value, setValue] = useState(
+    () => chatDraftsValue.get()[chatId]?.text ?? ''
+  )
   const [files, setFiles] = useState<FileUIPart[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -93,6 +101,10 @@ export const ChatInput = ({
     )
     textareaRef.current?.focus()
   })
+
+  useEffect(() => {
+    setChatDraft(chatId, connectionResource.id, value)
+  }, [chatId, connectionResource.id, value])
 
   useEffect(() => {
     if (isActive) {

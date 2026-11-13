@@ -18,6 +18,7 @@ import {
 import { eq, useLiveQuery } from '@tanstack/react-db'
 import { useParams } from '@tanstack/react-router'
 import { useState } from 'react'
+import { useSubscription } from 'seitu/react'
 
 import { useCollections } from '~/core/collections'
 import { useConnectionContext } from '~/core/connection/route'
@@ -25,6 +26,7 @@ import { useNavigatorSearch } from '~/modules/navigator/keyboard'
 import { getNavigatorStore } from '~/modules/navigator/stores'
 
 import { openChat, startNewChat } from './open-chat'
+import { chatDraftsValue } from './stores'
 import { chatTab } from './tab'
 
 const SKELETON_ROWS = 6
@@ -44,10 +46,29 @@ export const ChatList = () => {
   const { tabId } = useParams({ strict: false })
   const activeId = tabId && chatTab.match(tabId)?.chatId
   const [search, setSearch] = useState('')
-  const shown = chats.filter(
-    (chat) =>
-      !chat.parentChatId && matchesSearch(search, chat.title ?? 'New Chat')
-  )
+  const drafts = useSubscription(chatDraftsValue)
+  const draftRows = Object.entries(drafts)
+    .filter(
+      ([id, draft]) =>
+        draft.resourceId === connectionResource.id &&
+        !chats.some((chat) => chat.id === id)
+    )
+    .toSorted(([, a], [, b]) => b.updatedAt - a.updatedAt)
+    .map(([id, draft]) => ({
+      id,
+      isDraft: true,
+      title: draft.text.trim().split('\n')[0] ?? '',
+    }))
+  const shown = [
+    ...draftRows,
+    ...chats
+      .filter((chat) => !chat.parentChatId)
+      .map((chat) => ({
+        id: chat.id,
+        isDraft: false,
+        title: chat.title || 'New Chat',
+      })),
+  ].filter((row) => matchesSearch(search, row.title))
   const { highlightedControlId, highlightedId, listId, searchProps } =
     useNavigatorSearch({
       activeId: activeId || undefined,
@@ -132,7 +153,12 @@ export const ChatList = () => {
                   onClick={() => openChat(connectionResource.id, chat.id)}
                 >
                   <HugeiconsIcon icon={AiChat02Icon} strokeWidth={2} />
-                  <span className="truncate">{chat.title || 'New Chat'}</span>
+                  <span className="truncate">{chat.title}</span>
+                  {chat.isDraft && (
+                    <span className="text-muted-foreground ml-auto shrink-0 text-xs">
+                      Draft
+                    </span>
+                  )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )

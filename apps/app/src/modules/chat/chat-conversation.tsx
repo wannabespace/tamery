@@ -74,6 +74,8 @@ export const ChatConversation = ({
         // One element in both layouts, so the composer keeps its draft and focus while it glides from the middle to the bottom.
         <motion.div layout="position" transition={COMPOSER_TRANSITION}>
           <ChatInput
+            key={session.chatId}
+            chatId={session.chatId}
             isActive={isActive}
             isStreaming={session.isStreaming}
             onCommand={(command) => {

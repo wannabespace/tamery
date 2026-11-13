@@ -112,6 +112,7 @@ export const useChatSession = ({
 
   return {
     chatHistory: chatHistory.filter((row) => !row.parentChatId),
+    chatId,
     decide: {
       judge: ({
         dialect,
