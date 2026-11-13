@@ -119,6 +119,8 @@ export const agentDatabase = {
       kind = 'destructive'
     }
     return {
+      /** Leaves existing data as it was, the only kind auto mode may run without asking. */
+      additive: language.additiveOnly(sql),
       connection,
       /** Rows the planner expects the statement to change, or null when the engine or statement has none or the planner is slow. The pool holds one connection, so settle it before `run`. */
       estimate: async (signal: AbortSignal) => {

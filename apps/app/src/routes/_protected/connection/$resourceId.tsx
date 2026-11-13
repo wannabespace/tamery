@@ -16,8 +16,7 @@ import {
   redirect,
   useNavigate,
 } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
-import { useDeferredValue, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
 import { toast } from 'sonner'
 
@@ -31,19 +30,15 @@ import {
   lastOpenedResourcesStorageValue,
   MAX_REMEMBERED_RESOURCES,
 } from '~/core/connection/last-opened-resources'
-import { useShortcut } from '~/core/keyboard/use-shortcuts'
+import { useShortcut, useShortcuts } from '~/core/keyboard/use-shortcuts'
 import { workspaceSelection } from '~/core/workspace/utils'
 import { useGoBack } from '~/hooks/use-go-back'
 import type { Panel } from '~/lib/panels'
 import { panelSize, useShellLayout } from '~/lib/panels'
-import { AgentView } from '~/modules/chat/agent-view'
-import { ChatList } from '~/modules/chat/chat-list'
-import { ModeSwap } from '~/modules/chat/mode-swap'
-import { chatPanel } from '~/modules/chat/panel'
-import { agentModeValue } from '~/modules/chat/stores'
 import { useEscapeToNavigator } from '~/modules/navigator/keyboard'
-import { Navigator } from '~/modules/navigator/navigator'
+import { showNavigatorSection } from '~/modules/navigator/navigator-header'
 import { navigatorPanel } from '~/modules/navigator/panel'
+import type { NavigatorMode } from '~/modules/navigator/stores'
 import { toggleNavigator } from '~/modules/navigator/stores'
 import { toggleLogger } from '~/modules/query-logger/logger-open'
 import { queryLoggerPanel } from '~/modules/query-logger/panel'
@@ -66,22 +61,12 @@ const REGION_MOTION = {
     className: 'origin-left',
     initial: { scale: 0.85 },
   },
-  right: {
-    animate: { translateX: '0' },
-    initial: { translateX: '100%' },
-  },
 }
 
 const RegionPanel = ({
-  children,
-  hidden = false,
   panel,
   resourceId,
 }: {
-  /** Replaces the panel's own content. */
-  children?: ReactNode
-  /** Collapses the panel without forgetting whether the user had it open. */
-  hidden?: boolean
   panel: Panel
   resourceId: string
 }) => {
@@ -101,11 +86,11 @@ const RegionPanel = ({
       defaultSize={panel.defaultSize}
       minSize={panel.minSize}
       maxSize={panel.maxSize}
-      collapsed={!opened || hidden}
-      onCollapsedChange={(collapsed) => !hidden && openValue.set(!collapsed)}
+      collapsed={!opened}
+      onCollapsedChange={(collapsed) => openValue.set(!collapsed)}
       {...REGION_MOTION[panel.region]}
     >
-      {children ?? <Component />}
+      <Component />
     </ResizablePanel>
   )
 
@@ -147,7 +132,6 @@ const ResourcePage = () => {
     }
   }, [connectionResource.id])
 
-  const isAgentMode = useDeferredValue(useSubscription(agentModeValue))
   const fetching = useFetchingConfig(connection)
   const needsDetails = fetching.type === 'waiting-for-details'
   const locked = fetching.type === 'waiting-for-password' || needsDetails
@@ -156,6 +140,16 @@ const ResourcePage = () => {
   useShortcut('queryLogger', () => toggleLogger(connectionResource.id), {
     enabled: !locked,
   })
+  const showSection = (section: NavigatorMode) => () =>
+    showNavigatorSection(connectionResource.id, section)
+  useShortcuts(
+    [
+      { callback: showSection('tables'), shortcut: 'navigatorTables' },
+      { callback: showSection('definitions'), shortcut: 'navigatorSchema' },
+      { callback: showSection('chats'), shortcut: 'navigatorChats' },
+    ],
+    { enabled: !locked }
+  )
   useEscapeToNavigator(!locked)
 
   // Route context keeps the row from entry, so without this a refetch under a removed connection throws its way to the error page.
@@ -185,19 +179,13 @@ const ResourcePage = () => {
 
   return (
     <ResizableGroup orientation="horizontal" className="p-2">
-      <RegionPanel panel={navigatorPanel} resourceId={connectionResource.id}>
-        <ModeSwap isAgentMode={isAgentMode}>
-          {isAgentMode ? <ChatList /> : <Navigator />}
-        </ModeSwap>
-      </RegionPanel>
+      <RegionPanel panel={navigatorPanel} resourceId={connectionResource.id} />
       <ResizablePanel className="flex flex-col">
         <ResizableGroup orientation="vertical">
           <ResizablePanel className="flex flex-col">
             <div className={resourcePanelClassName}>
-              <TabBar isAgentMode={isAgentMode} />
-              <ModeSwap isAgentMode={isAgentMode}>
-                {isAgentMode ? <AgentView /> : <Outlet />}
-              </ModeSwap>
+              <TabBar />
+              <Outlet />
               <TransactionTabGuard />
             </div>
           </ResizablePanel>
@@ -207,11 +195,6 @@ const ResourcePage = () => {
           />
         </ResizableGroup>
       </ResizablePanel>
-      <RegionPanel
-        panel={chatPanel}
-        resourceId={connectionResource.id}
-        hidden={isAgentMode}
-      />
     </ResizableGroup>
   )
 }

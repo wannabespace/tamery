@@ -9,6 +9,8 @@ import { Result } from 'better-result'
 import { agentDatabase } from '~/core/agent/database'
 import { posthog } from '~/lib/posthog'
 
+import { resumeSubagent } from './subagents-store'
+
 type AppChat = Chat<AppUIMessage>
 type AnyToolCall = Parameters<
   ChatOnToolCallCallback<AppUIMessage>
@@ -23,7 +25,7 @@ const DECLINED = 'The user declined to run this statement.'
 const runs = new Map<string, AbortController>()
 const decided = new Set<string>()
 
-/** A call is decided once per window: a second press, or a card remounted mid-run (agent mode, a chat switch), is ignored. A chat reopened from the collections holds no live turns, and `addToolOutput` only finds a call among those, so the transcript is seeded first. */
+/** A call is decided once per window: a second press, or a card remounted mid-run by a chat switch, is ignored. A chat reopened from the collections holds no live turns, and `addToolOutput` only finds a call among those, so the transcript is seeded first. */
 const claimDecision = (
   chat: AppChat,
   toolCallId: string,
@@ -55,7 +57,8 @@ const getSignal = (chatId: string) => {
 const addReadOutput = async (
   chat: AppChat,
   { toolCallId, ...toolCall }: ToolCall,
-  signal: AbortSignal
+  signal: AbortSignal,
+  connectionResourceId: string
 ) => {
   switch (toolCall.toolName) {
     case 'column_values': {
@@ -119,6 +122,17 @@ const addReadOutput = async (
       const output = await agentDatabase.proposeChange(toolCall.input)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
+    case 'spawn_agent': {
+      const { spawnSubagent } = await import('./subagents')
+      const output = await spawnSubagent({
+        connectionResourceId,
+        input: toolCall.input,
+        parent: chat,
+        signal,
+        toolCallId,
+      })
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
     case 'query': {
       const { run } = await agentDatabase.prepareRead(toolCall.input)
       const output = await run(signal)
@@ -130,9 +144,13 @@ const addReadOutput = async (
   }
 }
 
-const read = async (chat: AppChat, toolCall: ToolCall) => {
+const read = async (
+  chat: AppChat,
+  toolCall: ToolCall,
+  connectionResourceId: string
+) => {
   const result = await Result.tryPromise(() =>
-    addReadOutput(chat, toolCall, getSignal(chat.id))
+    addReadOutput(chat, toolCall, getSignal(chat.id), connectionResourceId)
   )
   posthog.capture('ai_chat_tool_run', {
     success: result.isOk(),
@@ -150,13 +168,17 @@ const read = async (chat: AppChat, toolCall: ToolCall) => {
 
 export const chatToolRuns = {
   /** Answers the model's tool calls in the window. Only reads run on their own: an `execute` waits for the user's Run on its card and a `propose_note` for Save, whatever the transcript or the data it read says. */
-  answer: (chat: AppChat, toolCall: AnyToolCall) => {
+  answer: (
+    chat: AppChat,
+    toolCall: AnyToolCall,
+    connectionResourceId: string
+  ) => {
     if (
       !toolCall.dynamic &&
       toolCall.toolName !== 'execute' &&
       toolCall.toolName !== 'propose_note'
     ) {
-      void read(chat, toolCall)
+      void read(chat, toolCall, connectionResourceId)
     }
   },
   /** The card saves the note itself; this tells the model what the user kept. */
@@ -172,6 +194,7 @@ export const chatToolRuns = {
     transcript: AppUIMessage[]
   }) => {
     if (claimDecision(chat, toolCallId, transcript)) {
+      resumeSubagent(chat.id)
       void chat.addToolOutput({
         output: { note: kept, saved: kept !== null },
         tool: 'propose_note',
@@ -196,6 +219,7 @@ export const chatToolRuns = {
     if (!claimDecision(chat, toolCallId, transcript)) {
       return
     }
+    resumeSubagent(chat.id)
     if (!approved) {
       void chat.addToolOutput({
         errorText: DECLINED,

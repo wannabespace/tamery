@@ -13,6 +13,7 @@ import { ChangeReview } from './change-review'
 import { ChatDisclosure } from './chat-disclosure'
 import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
 import { NotePart } from './note-part'
+import { SubagentPart } from './subagent-part'
 import { ToolResult } from './tool-result'
 import { getStatus } from './tool-status'
 import { WriteApproval } from './write-approval'
@@ -156,6 +157,7 @@ const StatementPart = ({
         <WriteApproval
           connection={connection}
           decideWrite={actions.decide.write}
+          judge={actions.decide.judge}
           input={part.input}
           toolCallId={part.toolCallId}
         />
@@ -204,6 +206,9 @@ export const ToolPart = ({
   }
   if (part.type === 'tool-propose_note') {
     return <NotePart actions={actions} part={part} />
+  }
+  if (part.type === 'tool-spawn_agent') {
+    return <SubagentPart part={part} />
   }
   if (
     part.type === 'tool-propose_change' &&

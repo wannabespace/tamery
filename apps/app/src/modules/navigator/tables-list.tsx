@@ -1,6 +1,11 @@
-import { LayoutTable02Icon, PlusSignIcon } from '@hugeicons/core-free-icons'
+import {
+  LayoutTable02Icon,
+  PlusSignIcon,
+  Search01Icon,
+} from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
+import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import {
   SidebarContent,
   SidebarMenu,
@@ -120,31 +125,26 @@ export const TablesList = ({
 
   if (rows.length === 0) {
     return (
-      <SidebarContent
-        id={listId}
-        className={cn(
-          'items-center justify-center py-8 text-center',
-          className
-        )}
-      >
-        <HugeiconsIcon
-          icon={LayoutTable02Icon}
-          strokeWidth={2}
-          className="text-muted-foreground/50 mb-2 size-8"
-        />
-        <p className="text-muted-foreground text-sm">
-          {search ? `No ${names.table}s found` : `No ${names.table}s yet`}
-        </p>
-        {!search && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={() => onCreateTable()}
+      <SidebarContent id={listId} className={className}>
+        {search ? (
+          <IconEmpty
+            variant="elevated"
+            icon={Search01Icon}
+            title={`No ${names.table}s found`}
+            description="Try another name, or clear the search."
+          />
+        ) : (
+          <IconEmpty
+            variant="elevated"
+            icon={LayoutTable02Icon}
+            title={`No ${names.table}s yet`}
+            description="Create the first one, or ask the AI to design it."
           >
-            <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
-            New {names.table}
-          </Button>
+            <Button variant="outline" size="sm" onClick={() => onCreateTable()}>
+              <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
+              New {names.table}
+            </Button>
+          </IconEmpty>
         )}
       </SidebarContent>
     )

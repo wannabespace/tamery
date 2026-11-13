@@ -1,44 +1,54 @@
 import { type } from 'arktype'
-import { memoize } from 'memoza'
 import { createStore } from 'seitu'
 import { createWebStorageValue } from 'seitu/web'
-import { v7 } from 'uuid'
 
-export const chatOpen = memoize((resourceId: string) =>
-  createWebStorageValue({
-    defaultValue: false,
-    key: `chat-open-${resourceId}`,
-    schema: type('boolean'),
-    type: 'localStorage',
-  })
-)
-
-export const getChatStore = memoize((id: string) =>
-  createWebStorageValue({
-    defaultValue: null,
-    key: `connection-resource-chat-${id}`,
-    schema: type('string | null'),
-    type: 'sessionStorage',
-  })
-)
-
-export const agentModeValue = createWebStorageValue({
-  defaultValue: false,
-  key: 'agent-mode',
-  schema: type('boolean'),
+/** The model the chat answers with; null follows the API's default. */
+export const chatModelValue = createWebStorageValue({
+  defaultValue: null,
+  key: 'chat-model',
+  schema: type('string | null'),
   type: 'localStorage',
 })
 
-export const openChatsValue = memoize((resourceId: string) =>
-  createWebStorageValue({
-    defaultValue: [],
-    key: `agent-chats-${resourceId}`,
-    schema: type('string[]'),
-    type: 'localStorage',
-  })
-)
+export type ApprovalMode = 'ask' | 'auto'
 
-/** The id a chat takes once its first message is sent; renewed by New chat so a sent draft is never reopened as blank. */
-export const draftChatStore = memoize((_resourceId: string) =>
-  createStore(v7())
-)
+/** `ask` waits for Run on every change; `auto` lets the approval judge run the changes it is sure of, never a destructive one. */
+export const approvalModeValue = createWebStorageValue({
+  defaultValue: 'ask' as ApprovalMode,
+  key: 'chat-approval-mode',
+  schema: type("'ask' | 'auto'"),
+  type: 'localStorage',
+})
+
+/** Models the user picked lately, newest first; the picker lists them above the providers. */
+export const recentChatModelsValue = createWebStorageValue({
+  defaultValue: [],
+  key: 'chat-recent-models',
+  schema: type('string[]'),
+  type: 'localStorage',
+})
+
+export type ChatEffort = 'low' | 'medium' | 'high' | 'xhigh'
+
+export interface ChatModelOptions {
+  context?: number
+  effort?: ChatEffort
+  fast?: boolean
+}
+
+/** Effort, context window and fast routing per model id; a missing option follows the model's default. */
+export const chatModelOptionsValue = createWebStorageValue({
+  defaultValue: {} as Record<string, ChatModelOptions>,
+  key: 'chat-model-options',
+  schema: type({
+    '[string]': {
+      'context?': 'number',
+      'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
+      'fast?': 'boolean',
+    },
+  }),
+  type: 'localStorage',
+})
+
+/** Lets `/model` open the composer's model picker. */
+export const modelPickerOpenStore = createStore(false)

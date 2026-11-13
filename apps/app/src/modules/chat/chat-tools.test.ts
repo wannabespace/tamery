@@ -51,7 +51,8 @@ const reply = step(
 const createChat = (answers: UIMessageChunk[][]) => {
   const sent: AppUIMessage[][] = []
   const chat: Chat<AppUIMessage> = new Chat<AppUIMessage>({
-    onToolCall: ({ toolCall }) => chatToolRuns.answer(chat, toolCall),
+    onToolCall: ({ toolCall }) =>
+      chatToolRuns.answer(chat, toolCall, 'resource'),
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     transport: {
       reconnectToStream: () => Promise.resolve(null),

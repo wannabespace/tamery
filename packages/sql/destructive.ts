@@ -106,6 +106,22 @@ export const invalidatesCatalog = (text: string, dialect: DialectSpec) =>
     ({ tokens }) => tokens[0]?.text.toUpperCase() === 'COMMENT'
   )
 
+const ADDITIVE_COMMANDS = new Set(['CREATE', 'INSERT'])
+
+/** Writes that leave existing data as it was, so deleting or dropping what they made undoes them: only INSERT and CREATE, and neither as an upsert or OR REPLACE. */
+export const additiveOnly = (text: string, dialect: DialectSpec) => {
+  const statements = splitStatements(text, dialect)
+  return (
+    statements.length > 0 &&
+    statements.every(({ tokens }) => {
+      const [command, next] = tokens.map((token) => token.text.toUpperCase())
+      // `REPLACE` is not a keyword in every dialect, so `CREATE OR REPLACE` slips past the destructive check below.
+      return ADDITIVE_COMMANDS.has(command ?? '') && next !== 'OR'
+    }) &&
+    keywordsRun(DESTRUCTIVE, text, dialect).length === 0
+  )
+}
+
 export const writesData = (text: string, dialect: DialectSpec) =>
   keywordsRun(DATA_WRITE_KEYWORDS, text, dialect).length > 0
 

@@ -48,7 +48,7 @@ const Line = ({
 }
 
 export const EditIllustration = () => (
-  <ProductCrop className="min-w-0">
+  <ProductCrop stage className="min-w-0">
     <div className="py-3 font-mono text-sm/7">
       {LINES.slice(0, FIRST_ADDED).map((line, index) => (
         <Line key={index} index={index} line={line} />

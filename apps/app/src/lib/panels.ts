@@ -6,8 +6,6 @@ import type { WebStorageValue } from 'seitu/web'
 import { createWebStorageValue } from 'seitu/web'
 
 import { SHELL_LAYOUT_KEY } from '~/lib/constants'
-import { chatPanel } from '~/modules/chat/panel'
-import { agentModeValue } from '~/modules/chat/stores'
 import { navigatorPanel } from '~/modules/navigator/panel'
 import { queryLoggerPanel } from '~/modules/query-logger/panel'
 
@@ -19,10 +17,10 @@ export interface Panel {
   maxSize: number | `${number}%`
   minSize: number
   open: (resourceId: string) => WebStorageValue<boolean>
-  region: 'left' | 'right' | 'bottom'
+  region: 'left' | 'bottom'
 }
 
-const PANELS = [navigatorPanel, queryLoggerPanel, chatPanel]
+const PANELS = [navigatorPanel, queryLoggerPanel]
 
 export const panelSize = memoize(
   (panel: Panel) =>
@@ -43,21 +41,16 @@ export const useShellLayout = (resourceId: string) => {
         SHELL_LAYOUT_KEY,
         JSON.stringify(
           Object.fromEntries(
-            PANELS.filter(
-              (panel) =>
-                panel.open(resourceId).get() &&
-                !(panel === chatPanel && agentModeValue.get())
-            ).map((panel) => [panel.region, panelSize(panel).get()])
+            PANELS.filter((panel) => panel.open(resourceId).get()).map(
+              (panel) => [panel.region, panelSize(panel).get()]
+            )
           )
         )
       )
-    const unsubscribes = [
-      agentModeValue.subscribe(write),
-      ...PANELS.flatMap((panel) => [
-        panel.open(resourceId).subscribe(write),
-        panelSize(panel).subscribe(write),
-      ]),
-    ]
+    const unsubscribes = PANELS.flatMap((panel) => [
+      panel.open(resourceId).subscribe(write),
+      panelSize(panel).subscribe(write),
+    ])
 
     write()
 

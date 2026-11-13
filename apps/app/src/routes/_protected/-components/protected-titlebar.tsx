@@ -44,7 +44,6 @@ import { isViewOnly } from '~/core/workspace/utils'
 import { queryClient } from '~/lib/query-client'
 import { CommandPaletteButton } from '~/modules/actions-center/command-palette-button'
 import { RunsOn } from '~/modules/bridge/runs-on'
-import { AgentModeToggle } from '~/modules/chat/agent-mode-toggle'
 import { OpenInWeb } from '~/modules/open-in-web/open-in-web'
 import { UpdateButton, VersionButton } from '~/modules/updates/update-button'
 import { UserButton } from '~/modules/user-menu/user-button'
@@ -425,7 +424,6 @@ const ConnectionsBreadcrumb = ({
 export const ProtectedTitleBar = () => {
   const removeDialogRef =
     useRef<ComponentRef<typeof RemoveConnectionDialog>>(null)
-  const { resourceId } = useParams({ strict: false })
 
   return (
     <div className="flex shrink-0 flex-col">
@@ -461,12 +459,6 @@ export const ProtectedTitleBar = () => {
           </div>
           <CommandPaletteButton />
           <div className="flex h-full min-w-0 flex-1 basis-0 items-center justify-end gap-1">
-            {resourceId && (
-              <>
-                <AgentModeToggle />
-                <span className="bg-border mx-1 h-4 w-px shrink-0 self-center" />
-              </>
-            )}
             <RunsOn />
             <VersionButton />
             <UpdateButton />

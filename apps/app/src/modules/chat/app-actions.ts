@@ -19,13 +19,11 @@ import {
 import { tablePageStore } from '~/modules/table/lib/store'
 
 import { findChatResult } from './chat-results'
-import { agentModeValue } from './stores'
 
 type Input<K extends keyof ChatTools> = ChatTools[K]['input']
 
 const show = (resourceId: string, tabId: string) => {
   openTab(resourceId, tabId)
-  agentModeValue.set(false)
   history.push(`/connection/${resourceId}/${encodeURIComponent(tabId)}`)
 }
 

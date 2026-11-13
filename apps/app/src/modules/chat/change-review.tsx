@@ -8,8 +8,6 @@ import { tableTabId } from '~/core/tabs/ids'
 import { posthog } from '~/lib/posthog'
 import { VISUALIZER_TAB_ID } from '~/modules/visualizer/lib/tab'
 
-import { agentModeValue } from './stores'
-
 /** A drafted change waits in the table's or the visualizer's own review; this takes the user there. */
 export const ChangeReview = ({
   input,
@@ -28,7 +26,6 @@ export const ChangeReview = ({
         : VISUALIZER_TAB_ID
     openTab(resource.id, tabId)
     posthog.capture('ai_chat_change_reviewed', { where: output.where })
-    agentModeValue.set(false)
     void router.navigate({
       params: { resourceId: resource.id, tabId },
       to: '/connection/$resourceId/$tabId',

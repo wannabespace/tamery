@@ -20,8 +20,6 @@ import { openRunnerTab } from '~/modules/runner/lib/new-query'
 import { runnerPageStore, setQuery } from '~/modules/runner/lib/store'
 import { plural } from '~/utils/plural'
 
-import { agentModeValue } from './stores'
-
 const MAX_VISIBLE_ROWS = 8
 
 export const ToolResult = ({
@@ -66,7 +64,6 @@ export const ToolResult = ({
       target.statement
     )
     posthog.capture('ai_chat_result_opened')
-    agentModeValue.set(false)
     void router.navigate({
       params: { resourceId: resource.id, tabId },
       to: '/connection/$resourceId/$tabId',

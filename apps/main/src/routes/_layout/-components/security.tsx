@@ -150,7 +150,7 @@ const SyncCard = () => {
 export const Security = () => (
   <Chapter
     id="security"
-    number="05"
+    number="06"
     label="Security"
     title="Your connections on every device."
     subtitle="You decide if passwords sync."

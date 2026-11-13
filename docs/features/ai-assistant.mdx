@@ -1,10 +1,10 @@
 ---
 title: 'AI assistant'
 description: 'Ask the AI agent about your data. It reads your schema, runs queries, and changes data after you approve.'
-keywords: ['copilot', 'llm', 'natural language', 'assistant', 'agent mode']
+keywords: ['copilot', 'llm', 'natural language', 'assistant']
 ---
 
-Open a connection and click the chat button in the tab bar, or press **Cmd+L** (**Ctrl+L**), then ask about your data in plain words.
+Open a connection and press **Cmd+L** (**Ctrl+L**), or pick **New chat** from the **+** menu in the tab bar. The chat opens in its own tab, next to your tables and queries. Ask about your data in plain words.
 
 Try:
 
@@ -12,9 +12,13 @@ Try:
 - “Why does this SQL fail?”
 - “Set the status of order 1042 to shipped.”
 
-Each database keeps its own chats. **New chat** starts fresh, and the chat history in the header brings back an older one, on any of your devices. You can stop an answer halfway, and an answer still being written survives a window reload.
+Each database keeps its own chats, on all your devices. Every chat is a tab you can switch to, close and reopen; a new one takes its title from your first question. You can stop an answer halfway, and an answer still being written survives a window reload.
+
+To show the agent something, attach up to four images or PDFs of 5 MB each: click **+** under the message box, paste them, or drop them on it. To speak instead of typing, click the microphone, talk for up to two minutes, and click it again; what you said lands in the message box for you to check before sending. **Esc** drops a recording. The desktop app asks for microphone access the first time.
 
 ## What the agent does
+
+A new chat opens with the message box in the middle and a few ways to start under it, such as an overview of the database or a data quality check; pick one to send it.
 
 The agent reads your schema and runs read-only queries on its own. On a large database it searches table and column names and comments instead of listing everything, and before filtering on a value you named, it checks how that value is spelled in the column. It also looks through your saved queries and builds on them instead of starting from scratch. Each query shows its SQL and the rows it returned as a table under the answer; **Open as Query** opens that SQL in a new Query tab, and the chart button shows a result with dates or categories and a number as a chart. The agent reads at most 200 rows and about 60 KB per query, and a value longer than 2 KB reaches it cut short, so it filters and aggregates in SQL instead of reading whole tables.
 
@@ -26,15 +30,39 @@ To change rows or the schema, the agent drafts the change instead of running it.
 
 When a query is slow, the agent reads its plan and can draft the index that would help in the visualizer, for you to apply.
 
-For anything a draft can't hold, the agent writes a statement instead. A statement that changes data or schema never runs on its own. The chat shows it with **Run** and **Decline**, and the agent continues once you choose. The card waits for you when you reload, switch chats or leave agent mode. On PostgreSQL and MySQL the card also says how many rows the database expects it to change. **Run** turns red when the statement removes data.
+For anything a draft can't hold, the agent writes a statement instead. In **Ask** mode, the default, a statement that changes data or schema never runs on its own. The chat shows it with **Run** and **Decline**, and the agent continues once you choose. The card waits for you when you reload or switch chats. On PostgreSQL and MySQL the card also says how many rows the database expects it to change. **Run** turns red when the statement removes data.
+
+In **Auto** mode, picked under the message box, a statement that only adds, new rows or new tables and indexes, runs on its own when a check against your last message is sure it does only what you asked. Anything that changes or removes existing data, and anything the check is unsure of, still waits for **Run**. **Run** and **Decline** work while the check runs.
+
+### Models
+
+The menu under the message box picks the model that answers, grouped by company. It lists the main models of Anthropic, OpenAI, Google and xAI; type to search all of them, including the rest from Google and Anthropic, DeepSeek, Moonshot, Qwen, Z.ai and Mistral. The models you picked lately sit at the top under **Recent**; the cross next to one removes it from there. **Right arrow** on a model, or the arrow at the end of its row, opens its options; **Left arrow** or **Esc** goes back:
+
+- **Effort**, from **Low** to **Max**: how hard the model thinks before answering. More effort is slower and spends more of your budget.
+- **Context**: **200K** drops the oldest turns of a long chat so each answer stays cheaper and faster; the full window keeps the whole chat.
+- **Fast**: sends the model to its fastest providers, which can cost more.
+
+Each model keeps its own options, and both the pick and the options apply to every chat on this device. When a model's provider fails, the agent answers with another model from the list.
+
+### Subagents
+
+For work that splits into independent pieces, such as checking several tables or connections, the agent can start subagents: separate agents with the same tools, each given one task. Up to four run side by side, and each reports back to the agent that started it. A subagent cannot start subagents of its own, and its changes wait for your **Run** like any other.
+
+Each subagent shows as a line in the answer and in the **Subagents** row above the message box, with whether it is working, needs your approval, or is done. Open one to read its work and approve its changes:
+
+- **Cmd+]** (**Ctrl+]**) shows the next subagent and **Cmd+[** (**Ctrl+[**) the previous one; past the last you are back in the chat.
+- In the **Subagents** row, **Left arrow** and **Right arrow** move between them and **Enter** opens one.
+- **Esc** goes back to the chat.
+
+You read a subagent's chat but never write to it: it answers the agent, not you. Subagents do not appear in your list of chats.
 
 ### In the app
 
-Ask the agent to open things for you: a table with filters and a sort ("show me last week's refunded orders"), SQL in a new Query tab, a download of a result as CSV or JSON, or the share dialog for a table. Opening a table or a query leaves agent mode so you can see it. The share dialog opens filled in, and nothing is shared until you save it.
+Ask the agent to open things for you: a table with filters and a sort ("show me last week's refunded orders"), SQL in a new Query tab, a download of a result as CSV or JSON, or the share dialog for a table. The share dialog opens filled in, and nothing is shared until you save it.
 
-## Agent mode
+## Your chats
 
-Click **Agent** in the title bar, or press **Cmd+Shift+L** (**Ctrl+Shift+L**), to turn the whole connection into the chat. The Navigator lists the connection's chats, the tabs become your open chats, and the chat takes the full width. Click **Agent** again to go back to your tables.
+Pick **Chats** from the menu at the top of the [Navigator](/features/navigator), or press **Cmd+3** (**Ctrl+3**), to list every chat of the connection. Search them like tables, and click one to open it in a tab.
 
 ## Schema notes
 
@@ -53,7 +81,21 @@ Type **@** in the message box to mention:
 | A table of this connection | Its columns, keys, and indexes, so it can write SQL right away |
 | Another connection | Access to it in this chat, for example to compare data across two databases |
 
-The agent queries each connection on its own, then joins or compares the results with SQL in the chat itself, so matching rows across databases is exact rather than done by eye. The combined result shows as a table under the answer. Type **/new** to start a new chat.
+Each connection is one row, standing for the database you opened in it most recently; **Enter** mentions that one. When a connection has more databases, **Right arrow** (or the arrow at the row's end) lists them, and **Left arrow** or **Esc** goes back. Typing a database's name finds it directly.
+
+The agent queries each connection on its own, then joins or compares the results with SQL in the chat itself, so matching rows across databases is exact rather than done by eye. The combined result shows as a table under the answer.
+
+Type **/** at the start of a message for commands:
+
+| Command             | What it does                      |
+| ------------------- | --------------------------------- |
+| **/new**            | Starts a new chat                 |
+| **/model**          | Opens the model and effort picker |
+| **/retry**          | Asks your last message again      |
+| **/copy**           | Copies the last answer            |
+| **/auto**, **/ask** | Switches how changes get approved |
+
+On desktop the same menu lists your own agent skills and commands, read from `~/.claude/skills`, `~/.claude/commands`, `~/.agents/skills` and `~/.codex/skills`. Picking one sends its instructions with your message; they never let a change skip **Run**. A file over 32 KB is left out.
 
 Chats are stored on our servers and processed by external AI providers. See [Security and privacy](/connections/security#ai-and-your-data).
 

@@ -1,6 +1,8 @@
 import { cva } from 'class-variance-authority'
 
-const inputGroupSurface = `bg-input ring-foreground/4 hover:ring-foreground/12 has-[[data-slot=input-group-control]:focus-visible]:focus-ring has-[[data-slot][aria-invalid=true]]:invalid-ring rounded-xl border border-transparent shadow-xs [--input-group-border:var(--default-border-width)] ring focus-within:in-data-[slot=combobox-content]:border-inherit in-data-[slot=combobox-content]:ring-0! data-[size=sm]:rounded-lg data-[size=xs]:rounded-md`
+const surfaceWithoutFocus = `bg-input ring-foreground/4 hover:ring-foreground/12 has-[[data-slot][aria-invalid=true]]:invalid-ring rounded-xl border border-transparent shadow-xs [--input-group-border:var(--default-border-width)] ring focus-within:in-data-[slot=combobox-content]:border-inherit in-data-[slot=combobox-content]:ring-0! data-[size=sm]:rounded-lg data-[size=xs]:rounded-md`
+
+const inputGroupSurface = `${surfaceWithoutFocus} has-[[data-slot=input-group-control]:focus-visible]:focus-ring`
 
 export const inputGroupVariants = cva(
   `group/input-group relative flex h-(--input-group-h) w-full min-w-0 items-center transition-shadow duration-200 outline-none [--input-group-h:--spacing(8)] has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col has-[>textarea]:h-auto data-[size=sm]:[--input-group-h:--spacing(7)] data-[size=xs]:[--input-group-h:--spacing(6)] data-[size=sm]:*:data-[slot=input-group-control]:h-7 data-[size=sm]:*:data-[slot=input-group-control]:text-sm data-[size=xs]:*:data-[slot=input-group-control]:h-6 data-[size=xs]:*:data-[slot=input-group-control]:text-xs has-[>[data-align=block-end]]:[&>input]:pt-3 has-[>[data-align=block-start]]:[&>input]:pb-3 has-[>[data-align=inline-end]]:[&>input]:pr-1.5 has-[>[data-align=inline-start]]:[&>input]:pl-1.5`,
@@ -11,6 +13,7 @@ export const inputGroupVariants = cva(
     variants: {
       variant: {
         default: inputGroupSurface,
+        composer: `${surfaceWithoutFocus} has-[[data-slot=input-group-control]:focus-visible]:ring-foreground/20`,
         flat: `has-[[data-slot=input-group-control]:focus-visible]:focus-ring has-[[data-slot][aria-invalid=true]]:invalid-ring bg-transparent first:rounded-t-xl last:rounded-b-xl`,
         floating: `${inputGroupSurface} shadow-md`,
         inset: `has-[[data-slot=input-group-control]:focus-visible]:focus-ring has-[[data-slot][aria-invalid=true]]:invalid-ring rounded-xl bg-transparent`,

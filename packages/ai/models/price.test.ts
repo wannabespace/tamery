@@ -10,6 +10,12 @@ const fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
       input_cost_per_token: 5e-6,
       output_cost_per_token: 25e-6,
     },
+    'claude-opus-5-5': {
+      cache_creation_input_token_cost: 6.25e-6,
+      cache_read_input_token_cost: 0.5e-6,
+      input_cost_per_token: 5e-6,
+      output_cost_per_token: 25e-6,
+    },
     'openrouter/anthropic/claude-opus-5': {
       cache_creation_input_token_cost: 6.25e-6,
       cache_read_input_token_cost: 0.5e-6,
@@ -51,6 +57,15 @@ it('matches a dated model id against its base entry', async () => {
 
 it('matches an OpenRouter model id against its openrouter entry', async () => {
   expect(await getModelCost('anthropic/claude-opus-5', usage)).toBeCloseTo(
+    await (getModelCost('claude-opus-5', usage) as Promise<number>),
+    10
+  )
+})
+
+it('matches a dotted OpenRouter id and its variant against the bare entry', async () => {
+  expect(
+    await getModelCost('~anthropic/claude-opus-5.5:nitro', usage)
+  ).toBeCloseTo(
     await (getModelCost('claude-opus-5', usage) as Promise<number>),
     10
   )

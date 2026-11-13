@@ -1,4 +1,8 @@
-import { LayoutTable02Icon, PlusSignIcon } from '@hugeicons/core-free-icons'
+import {
+  AiChat02Icon,
+  LayoutTable02Icon,
+  PlusSignIcon,
+} from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
 import { uppercaseFirst } from '@tamery/shared/utils'
@@ -10,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@tamery/ui/components/dropdown-menu'
 import {
@@ -27,6 +32,7 @@ import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import { openTab } from '~/core/tabs/actions'
 import { tableTabId } from '~/core/tabs/ids'
 import { schemaGroups } from '~/core/tabs/kinds'
+import { startNewChat } from '~/modules/chat/open-chat'
 import { newQueryAction } from '~/modules/runner/lib/new-query'
 
 interface TablesAndSchemas {
@@ -55,6 +61,10 @@ export const NewTabMenu = ({
     })
 
   useShortcut('newTab', () => setOpen(true))
+  useShortcut('aiChat', (event) => {
+    event.preventDefault()
+    startNewChat(connectionResource.id)
+  })
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -80,6 +90,13 @@ export const NewTabMenu = ({
         >
           <HugeiconsIcon icon={newQueryAction.icon} strokeWidth={2} />
           {newQueryAction.label}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => startNewChat(connectionResource.id)}>
+          <HugeiconsIcon icon={AiChat02Icon} strokeWidth={2} />
+          New chat
+          <DropdownMenuShortcut>
+            <ShortcutKbd shortcut="aiChat" />
+          </DropdownMenuShortcut>
         </DropdownMenuItem>
         {schemaItems.length > 0 && (
           <>

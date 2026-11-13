@@ -20,18 +20,16 @@ const rise = {
 } satisfies MotionProps
 
 export const Answer = ({
-  frame: { conversation, result, sent, sql, words },
+  frame: { conversation, result, sql, words },
 }: {
   frame: Frame
 }) => (
   <>
-    {sent && (
-      <motion.div {...rise} className="flex flex-col">
-        <Bubble align="end" variant="muted">
-          <BubbleContent>{conversation.question}</BubbleContent>
-        </Bubble>
-      </motion.div>
-    )}
+    <motion.div {...rise} className="flex flex-col">
+      <Bubble align="end" variant="muted">
+        <BubbleContent>{conversation.question}</BubbleContent>
+      </Bubble>
+    </motion.div>
     <div className="flex flex-col gap-3">
       <p className="text-pretty">
         {conversation.answer.split(' ').slice(0, words).join(' ')}

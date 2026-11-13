@@ -7,21 +7,18 @@ import {
   AlertDescription,
 } from '@tamery/ui/components/alert'
 import { Button } from '@tamery/ui/components/button'
-import { cn } from '@tamery/ui/lib/utils'
 
 import { posthog } from '~/lib/posthog'
 import { creditsUrl } from '~/lib/urls'
 
 export const ChatError = ({
-  className,
   error,
   onRetry,
 }: {
-  className?: string
   error: Error
   onRetry: () => void
 }) => (
-  <div className={cn('shrink-0 px-2', className)}>
+  <div className="shrink-0 px-2">
     <Alert variant="destructive">
       <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
       <AlertDescription>{error.message}</AlertDescription>

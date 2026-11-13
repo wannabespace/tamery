@@ -126,7 +126,7 @@ const ProductPanel = () => {
           icon={SparklesIcon}
           title="AI assistant"
           description="Ask in plain English, get the query and the answer."
-          destination={{ docs: '/features/ai-assistant' }}
+          destination={{ hash: 'ask', to: home }}
         />
         <MenuLink
           icon={RoboticIcon}

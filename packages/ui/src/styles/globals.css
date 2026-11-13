@@ -246,7 +246,6 @@
 }
 
 [data-shell-left],
-[data-shell-right],
 [data-shell-bottom] {
   display: none;
 }
@@ -254,11 +253,6 @@
 .shell-left [data-shell-left] {
   display: revert-layer;
   width: var(--shell-left-size);
-}
-
-.shell-right [data-shell-right] {
-  display: revert-layer;
-  width: var(--shell-right-size);
 }
 
 .shell-bottom [data-shell-bottom] {

@@ -5,6 +5,8 @@ import {
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { matchesSearch } from '@tamery/shared/utils'
+import { Button } from '@tamery/ui/components/button'
+import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { SearchInput } from '@tamery/ui/components/custom/search-input'
 import {
   SidebarContent,
@@ -14,20 +16,19 @@ import {
   SidebarMenuSkeleton,
 } from '@tamery/ui/components/sidebar'
 import { eq, useLiveQuery } from '@tanstack/react-db'
+import { useParams } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useSubscription } from 'seitu/react'
 
 import { useCollections } from '~/core/collections'
 import { useConnectionContext } from '~/core/connection/route'
 import { useNavigatorSearch } from '~/modules/navigator/keyboard'
-import { QueryLoggerToggle } from '~/modules/query-logger/query-logger-toggle'
+import { getNavigatorStore } from '~/modules/navigator/stores'
 
-import { chatTabs } from './chat-tabs'
-import { getChatStore } from './stores'
+import { openChat, startNewChat } from './open-chat'
+import { chatTab } from './tab'
 
 const SKELETON_ROWS = 6
 
-/** The Navigator's list in agent mode: every chat of the resource, searchable like the tables. */
 export const ChatList = () => {
   const { connectionResource } = useConnectionContext()
   const { chatsCollection } = useCollections()
@@ -40,22 +41,25 @@ export const ChatList = () => {
         )
         .orderBy(({ chats: chat }) => chat.createdAt, 'desc'),
   })
-  const activeId = useSubscription(getChatStore(connectionResource.id))
+  const { tabId } = useParams({ strict: false })
+  const activeId = tabId && chatTab.match(tabId)?.chatId
   const [search, setSearch] = useState('')
-  const shown = chats.filter((chat) =>
-    matchesSearch(search, chat.title ?? 'New Chat')
+  const shown = chats.filter(
+    (chat) =>
+      !chat.parentChatId && matchesSearch(search, chat.title ?? 'New Chat')
   )
   const { highlightedControlId, highlightedId, listId, searchProps } =
     useNavigatorSearch({
-      activeId: activeId ?? undefined,
+      activeId: activeId || undefined,
       nodes: shown,
+      onBack: () => getNavigatorStore(connectionResource.id).set('tables'),
       onClear: () => setSearch(''),
       search,
     })
 
   return (
-    <div className="text-foreground flex h-full flex-col pr-1.5">
-      <div className="shrink-0 pt-0.5 pb-1.5 pl-2">
+    <>
+      <div className="shrink-0 pb-1.5 pl-2">
         <SearchInput
           size="sm"
           data-mask
@@ -74,7 +78,10 @@ export const ChatList = () => {
           {...searchProps}
         />
       </div>
-      <SidebarContent id={listId} className="min-h-0 flex-1 pl-2">
+      <SidebarContent
+        id={listId}
+        className="scroll-fade min-h-0 flex-1 pb-2 pl-2"
+      >
         {isLoading && (
           <SidebarMenu>
             {Array.from({ length: SKELETON_ROWS }, (_, index) => (
@@ -84,11 +91,32 @@ export const ChatList = () => {
             ))}
           </SidebarMenu>
         )}
-        {!isLoading && shown.length === 0 && (
-          <p className="text-muted-foreground px-2 py-1.5 text-xs">
-            {search ? 'No matching chats' : 'No chats yet'}
-          </p>
-        )}
+        {!isLoading &&
+          shown.length === 0 &&
+          (search ? (
+            <IconEmpty
+              variant="elevated"
+              icon={Search01Icon}
+              title="No matching chats"
+              description="Try another word from the chat's title."
+            />
+          ) : (
+            <IconEmpty
+              variant="elevated"
+              icon={AiChat02Icon}
+              title="No chats yet"
+              description="Ask the AI about your data, change it, or compare it with another connection."
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => startNewChat(connectionResource.id)}
+              >
+                <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
+                New chat
+              </Button>
+            </IconEmpty>
+          ))}
         <SidebarMenu data-mask>
           {shown.map((chat) => {
             const highlighted = chat.id === highlightedId
@@ -101,7 +129,7 @@ export const ChatList = () => {
                   id={highlighted ? highlightedControlId : undefined}
                   tabIndex={-1}
                   isActive={chat.id === activeId}
-                  onClick={() => chatTabs.open(connectionResource.id, chat.id)}
+                  onClick={() => openChat(connectionResource.id, chat.id)}
                 >
                   <HugeiconsIcon icon={AiChat02Icon} strokeWidth={2} />
                   <span className="truncate">{chat.title || 'New Chat'}</span>
@@ -111,19 +139,6 @@ export const ChatList = () => {
           })}
         </SidebarMenu>
       </SidebarContent>
-      <div className="flex shrink-0 flex-col gap-0.5 pt-1.5 pb-0.5 pl-2">
-        <SidebarMenuButton
-          onClick={() => chatTabs.startNew(connectionResource.id)}
-        >
-          <HugeiconsIcon
-            icon={PlusSignIcon}
-            strokeWidth={2}
-            className="text-muted-foreground"
-          />
-          New chat
-        </SidebarMenuButton>
-        <QueryLoggerToggle />
-      </div>
-    </div>
+    </>
   )
 }

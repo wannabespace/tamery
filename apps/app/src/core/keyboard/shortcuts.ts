@@ -21,16 +21,22 @@ export const SHORTCUTS = {
     hotkeys: ['Mod+N'],
     title: 'Add',
   },
-  agentMode: {
-    description:
-      'Turn the connection into one big chat with the AI agent, or back.',
-    hotkeys: ['Mod+Shift+L'],
-    title: 'Agent mode',
-  },
   aiChat: {
-    description: 'Open or close the AI assistant.',
+    description: 'Open a new chat with the AI agent in a tab.',
     hotkeys: ['Mod+L'],
-    title: 'AI chat',
+    title: 'New chat',
+  },
+  nextSubagent: {
+    description:
+      "Show the open chat's next subagent, and after the last one the chat itself.",
+    hotkeys: ['Mod+]'],
+    title: 'Next subagent',
+  },
+  previousSubagent: {
+    description:
+      "Show the open chat's previous subagent, and before the first one the chat itself.",
+    hotkeys: ['Mod+['],
+    title: 'Previous subagent',
   },
   applyEdit: {
     description: 'Save the cell you are editing into every selected cell.',
@@ -107,7 +113,7 @@ export const SHORTCUTS = {
   },
   navigatorCollapse: {
     description:
-      'Collapse a schema, jump from a table up to its schema, or go back from Definitions to Tables.',
+      'Collapse a schema, jump from a table up to its schema, or go back to Tables from Schema or Chats.',
     hotkeys: ['ArrowLeft'],
     title: 'Collapse',
   },
@@ -122,6 +128,22 @@ export const SHORTCUTS = {
       'Open the highlighted table with the grid ready for the arrows, or expand a schema. Right on an expanded schema steps into its tables.',
     hotkeys: ['Enter', 'ArrowRight'],
     title: 'Open',
+  },
+  navigatorTables: {
+    description: 'Show the tables in the Navigator.',
+    hotkeys: ['Mod+1'],
+    title: 'Tables',
+  },
+  navigatorSchema: {
+    description:
+      'Show the schema in the Navigator: indexes, constraints and the rest.',
+    hotkeys: ['Mod+2'],
+    title: 'Schema',
+  },
+  navigatorChats: {
+    description: "Show the connection's AI chats in the Navigator.",
+    hotkeys: ['Mod+3'],
+    title: 'Chats',
   },
   newConnection: {
     description: 'Open the new connection page from the connections list.',

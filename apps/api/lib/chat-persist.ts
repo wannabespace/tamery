@@ -80,12 +80,13 @@ export const chatPersist = {
   ensureChat: async (data: {
     chatId: string
     connectionResourceId: string
+    subagent?: { parentChatId: string; title: string }
     userId: string
   }) => {
     const connection = await chatPersist.connection(data)
 
     const existing = await db.query.chats.findFirst({
-      columns: { title: true, userId: true },
+      columns: { parentChatId: true, title: true, userId: true },
       where: { id: { eq: data.chatId } },
     })
 
@@ -93,7 +94,29 @@ export const chatPersist = {
       if (existing.userId !== data.userId) {
         throw new ORPCError('NOT_FOUND', { message: 'Chat not found' })
       }
-      return { connection, title: existing.title }
+      return {
+        connection,
+        isSubagent: !!existing.parentChatId,
+        title: existing.title,
+      }
+    }
+
+    if (data.subagent) {
+      // A subagent hangs off a top-level chat of the same user and resource, never off another subagent.
+      const parent = await db.query.chats.findFirst({
+        columns: { connectionResourceId: true, parentChatId: true },
+        where: {
+          id: { eq: data.subagent.parentChatId },
+          userId: { eq: data.userId },
+        },
+      })
+      if (
+        !parent ||
+        parent.parentChatId ||
+        parent.connectionResourceId !== data.connectionResourceId
+      ) {
+        throw new ORPCError('NOT_FOUND', { message: 'Chat not found' })
+      }
     }
 
     const [inserted] = await db
@@ -101,6 +124,8 @@ export const chatPersist = {
       .values({
         connectionResourceId: data.connectionResourceId,
         id: data.chatId,
+        parentChatId: data.subagent?.parentChatId,
+        title: data.subagent?.title,
         userId: data.userId,
       })
       .onConflictDoNothing()
@@ -110,7 +135,11 @@ export const chatPersist = {
       chatsPublisher.publish(data.userId, { type: 'insert', value: inserted })
     }
 
-    return { connection, title: null }
+    return {
+      connection,
+      isSubagent: !!data.subagent,
+      title: data.subagent?.title ?? null,
+    }
   },
   loadMessages: async (data: { chatId: string; userId: string }) => {
     const rows = await db

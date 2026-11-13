@@ -13,7 +13,6 @@ import { useTabContext } from '~/core/connection/route'
 import { resourceEnumsQueryOptions } from '~/core/queries/enums/list'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { attachQuerySource } from '~/core/query-editor/query-source'
-import { chatOpen } from '~/modules/chat/stores'
 
 import { useRunnerActions } from '../lib/actions'
 import { useEditorActions } from '../lib/editor-actions'
@@ -53,7 +52,6 @@ export const RunnerEditor = ({
   const actions = useRunnerActions()
   const { data: run } = useQuery(runnerResultsOptions(useRunnerTab()))
 
-  const sidePanelOpened = useSubscription(chatOpen(connectionResource.id))
   const [runAnchor, setRunAnchor] = useState<RunAnchor | null>(null)
   const statementMenuRef = useRef<HTMLButtonElement>(null)
 
@@ -102,12 +100,6 @@ export const RunnerEditor = ({
   useEffect(() => {
     editorRef.current?.focus()
   }, [editorRef])
-
-  useEffect(() => {
-    if (!sidePanelOpened) {
-      editorRef.current?.focus()
-    }
-  }, [sidePanelOpened, editorRef])
 
   useEffect(() => {
     const codeEditor = editorRef.current

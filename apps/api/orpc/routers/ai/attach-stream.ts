@@ -1,5 +1,10 @@
 import { chatStream } from '@tamery/ai/features'
 import { CHAT_LIMITS } from '@tamery/ai/limits'
+import {
+  DEFAULT_CHAT_EFFORT,
+  resolveChatContext,
+  resolveChatModel,
+} from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
@@ -12,10 +17,18 @@ import { orpc, permissionsMiddleware, permix } from '~/orpc'
 export const attachStream = orpc
   .use(permissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
-  .input(type({ chatId: 'string.uuid.v7' }))
+  .input(
+    type({
+      chatId: 'string.uuid.v7',
+      'context?': 'number.integer > 0',
+      'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
+      'fast?': 'boolean',
+      'model?': 'string',
+    })
+  )
   .handler(async function* attachStream({ context, input }) {
     const owned = await db.query.chats.findFirst({
-      columns: { connectionResourceId: true },
+      columns: { connectionResourceId: true, parentChatId: true },
       where: { id: { eq: input.chatId }, userId: { eq: context.user.id } },
     })
 
@@ -50,6 +63,14 @@ export const attachStream = orpc
       }),
       limits: CHAT_LIMITS.message,
       messages,
+      contextTokens: resolveChatContext(
+        resolveChatModel(input.model),
+        input.context
+      ),
+      effort: input.effort ?? DEFAULT_CHAT_EFFORT,
+      fast: input.fast ?? false,
+      isSubagent: !!owned.parentChatId,
+      model: resolveChatModel(input.model),
       onFinish: (message) =>
         chatPersist.persistMessage({
           chatId: input.chatId,

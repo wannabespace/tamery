@@ -63,13 +63,6 @@ const ConnectionShell = () => (
           </div>
         </div>
       </div>
-      <div className="h-full shrink-0" data-shell-right>
-        <div className="flex h-full flex-col pl-1.5">
-          <div className={resourcePanelClassName}>
-            <div className="h-8 shrink-0" />
-          </div>
-        </div>
-      </div>
     </div>
   </ShellFrame>
 )

@@ -1,6 +1,11 @@
 import { chatStream } from '@tamery/ai/features'
 import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
+import {
+  DEFAULT_CHAT_EFFORT,
+  resolveChatContext,
+  resolveChatModel,
+} from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { runInBackground } from '@tamery/shared/background'
 import { CHAT_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
@@ -12,6 +17,23 @@ import { chatPersist } from '~/lib/chat-persist'
 import { credits } from '~/lib/credits'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
+// A file rides in the transcript as a data URL; a remote URL would have the model provider fetch it on the user's behalf.
+const attachmentsFit = (message: AppUIMessage) => {
+  const files = message.parts.filter((part) => part.type === 'file')
+  return (
+    files.length <= CHAT_LIMITS.attachments &&
+    files.every((file) => {
+      const prefix = `data:${file.mediaType};base64,`
+      return (
+        CHAT_LIMITS.attachmentTypes.has(file.mediaType) &&
+        file.url.startsWith(prefix) &&
+        ((file.url.length - prefix.length) * 3) / 4 <=
+          CHAT_LIMITS.attachmentBytes
+      )
+    })
+  )
+}
+
 export const stream = orpc
   .use(permissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
@@ -20,6 +42,11 @@ export const stream = orpc
       chatId: 'string.uuid.v7',
       connectionResourceId: 'string.uuid.v7',
       messages: 'object[]',
+      'context?': 'number.integer > 0',
+      'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
+      'fast?': 'boolean',
+      'model?': 'string',
+      'subagent?': { parentChatId: 'string.uuid.v7', title: 'string' },
     })
   )
   .errors({
@@ -35,7 +62,7 @@ export const stream = orpc
     })
 
     const turn = messages.at(-1)
-    if (!turn || turn.role === 'system') {
+    if (!turn || turn.role === 'system' || !attachmentsFit(turn)) {
       throw errors.BAD_REQUEST()
     }
 
@@ -43,9 +70,10 @@ export const stream = orpc
       throw errors.TOO_MANY_REQUESTS()
     }
 
-    const { connection, title } = await chatPersist.ensureChat({
+    const { connection, isSubagent, title } = await chatPersist.ensureChat({
       chatId: input.chatId,
       connectionResourceId: input.connectionResourceId,
+      subagent: input.subagent,
       userId: context.user.id,
     })
 
@@ -89,6 +117,14 @@ export const stream = orpc
       connection,
       limits: CHAT_LIMITS.message,
       messages: history,
+      contextTokens: resolveChatContext(
+        resolveChatModel(input.model),
+        input.context
+      ),
+      effort: input.effort ?? DEFAULT_CHAT_EFFORT,
+      fast: input.fast ?? false,
+      isSubagent,
+      model: resolveChatModel(input.model),
       onFinish: (message) =>
         chatPersist.persistMessage({
           chatId: input.chatId,

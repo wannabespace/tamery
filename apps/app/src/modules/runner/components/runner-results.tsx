@@ -248,7 +248,7 @@ export const RunnerResults = () => {
                 handle={statementPopover}
                 payload={item.source}
                 openOnHover
-                delay={300}
+                delay={600}
                 render={
                   <TabsTrigger
                     value={String(index)}

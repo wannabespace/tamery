@@ -32,7 +32,7 @@ const ItemSeparator = ({
 const smallItemInsetClassName = 'px-3.5'
 
 const itemVariants = cva(
-  `group/item focus-visible:focus-ring [a]:hover:bg-accent [a]:text-foreground flex w-full flex-wrap items-center rounded-2xl border text-sm transition-colors duration-100 outline-none [a]:transition-colors`,
+  `group/item focus-visible:focus-ring [a]:hover:bg-accent [a]:text-foreground [button]:hover:bg-accent flex w-full flex-wrap items-center rounded-2xl border text-sm transition-colors duration-100 outline-none [a]:transition-colors [button]:text-left`,
   {
     defaultVariants: {
       size: 'default',
@@ -45,7 +45,7 @@ const itemVariants = cva(
         xs: `gap-2 px-2.5 py-2 in-data-[slot=dropdown-menu-content]:p-0`,
       },
       variant: {
-        card: `bg-popover ring-foreground/4 [a]:hover:ring-foreground/12 rounded-xl border-transparent shadow-xs ring [a]:transition-[color,background-color,box-shadow]`,
+        card: `bg-popover ring-foreground/4 [a]:hover:ring-foreground/12 [button]:hover:ring-foreground/12 rounded-xl border-transparent shadow-xs ring transition-[color,background-color,box-shadow]`,
         default: 'border-transparent',
         grouped: `border-foreground/6 rounded-none border-0 border-b last:border-b-0`,
         muted: 'bg-muted/50 border-transparent',

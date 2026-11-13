@@ -64,19 +64,36 @@ const EXTERNAL_URL_PREFIXES = [
   'vscode:mcp/install?',
 ]
 
-// With no handler Electron grants every web permission, so this allowlist is the only gate. Clipboard must stay — grid and connection-string paste read it; nothing behind the rest (camera, mic, geolocation, midi, web notifications: desktop notifies natively over IPC).
+// With no handler Electron grants every web permission, so this allowlist is the only gate. Clipboard must stay — grid and connection-string paste read it; the microphone is chat dictation, for the app's own page and audio only; nothing behind the rest (camera, geolocation, midi, web notifications: desktop notifies natively over IPC).
 const ALLOWED_PERMISSIONS = new Set([
   'clipboard-read',
   'clipboard-sanitized-write',
 ])
 
+const isAppMicrophone = (url: string, mediaTypes: string[] = []) =>
+  isAppUrl(url) &&
+  mediaTypes.length > 0 &&
+  mediaTypes.every((type) => type === 'audio')
+
 const restrictPermissions = () => {
   session.defaultSession.setPermissionRequestHandler(
-    (_webContents, permission, grant) =>
-      grant(ALLOWED_PERMISSIONS.has(permission))
+    (_webContents, permission, grant, details) =>
+      grant(
+        ALLOWED_PERMISSIONS.has(permission) ||
+          (permission === 'media' &&
+            'mediaTypes' in details &&
+            isAppMicrophone(details.requestingUrl, details.mediaTypes))
+      )
   )
-  session.defaultSession.setPermissionCheckHandler((_webContents, permission) =>
-    ALLOWED_PERMISSIONS.has(permission)
+  session.defaultSession.setPermissionCheckHandler(
+    (webContents, permission, _origin, details) =>
+      ALLOWED_PERMISSIONS.has(permission) ||
+      (permission === 'media' &&
+        !!webContents &&
+        isAppMicrophone(
+          webContents.getURL(),
+          details.mediaType ? [details.mediaType] : undefined
+        ))
   )
 }
 

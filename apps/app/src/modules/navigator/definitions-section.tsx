@@ -2,6 +2,7 @@ import { Search01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { matchesSearch } from '@tamery/shared/utils'
 import { HighlightText } from '@tamery/ui/components/custom/highlight'
+import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { SearchInput } from '@tamery/ui/components/custom/search-input'
 import {
   SidebarContent,
@@ -80,9 +81,12 @@ export const DefinitionsPanel = () => {
         className="scroll-fade min-h-0 flex-1 gap-3 pb-2 pl-2"
       >
         {filtered.length === 0 && (
-          <p className="text-muted-foreground px-2 py-6 text-center text-sm">
-            Nothing found
-          </p>
+          <IconEmpty
+            variant="elevated"
+            icon={Search01Icon}
+            title="Nothing found"
+            description="No kind of schema object matches your search."
+          />
         )}
         {filtered.map((group) => (
           <SidebarMenu key={group.label}>

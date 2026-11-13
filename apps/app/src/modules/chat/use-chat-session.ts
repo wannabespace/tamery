@@ -7,6 +7,7 @@ import {
 } from '@tamery/ai/message'
 import type { ChatTools } from '@tamery/ai/tools'
 import { eq, useLiveSuspenseQuery } from '@tanstack/react-db'
+import type { FileUIPart } from 'ai'
 import { Result } from 'better-result'
 import { useEffect } from 'react'
 import { v7 } from 'uuid'
@@ -17,7 +18,6 @@ import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 
 import { getChatInstance } from './chat-instance'
-import { chatTabs } from './chat-tabs'
 import { chatToolRuns } from './chat-tools'
 import type { PromptMention } from './prompt-mentions'
 
@@ -26,6 +26,10 @@ const mentionPart = async (
 ): Promise<AppUIMessage['parts'][number]> => {
   if (mention.kind === 'connection') {
     return { data: mention.connection, type: 'data-connection' }
+  }
+  if (mention.kind === 'skill') {
+    const { description: _, ...skill } = mention.skill
+    return { data: skill, type: 'data-skill' }
   }
   const definition = await Result.tryPromise(() =>
     agentDatabase.describeTable(mention.table)
@@ -107,8 +111,21 @@ export const useChatSession = ({
   }, [isAwaitingAnswer, resumeStream])
 
   return {
-    chatHistory,
+    chatHistory: chatHistory.filter((row) => !row.parentChatId),
     decide: {
+      judge: ({
+        dialect,
+        signal,
+        statement,
+      }: {
+        dialect: string
+        signal: AbortSignal
+        statement: string
+      }) =>
+        orpc.ai.judgeStatement.call(
+          { chatId, dialect, statement },
+          { context: { silent: true }, signal }
+        ),
       note: ({
         kept,
         toolCallId,
@@ -165,18 +182,27 @@ export const useChatSession = ({
         void sendMessage(lastAsked)
       }
     },
-    send: async (text: string, mentions: PromptMention[]) => {
-      chatTabs.open(connectionResourceId, chatId)
+    send: async (
+      text: string,
+      mentions: PromptMention[],
+      files: FileUIPart[] = []
+    ) => {
       posthog.capture('ai_chat_message_sent', {
+        attachments: files.length,
         connection_mentions: mentions.filter(
           ({ kind }) => kind === 'connection'
         ).length,
+        skill_mentions: mentions.filter(({ kind }) => kind === 'skill').length,
         table_mentions: mentions.filter(({ kind }) => kind === 'table').length,
       })
       const parts = await Promise.all(mentions.map(mentionPart))
       await sendMessage({
         id: v7(),
-        parts: [{ text, type: 'text' }, ...parts],
+        parts: [
+          ...(text ? [{ text, type: 'text' as const }] : []),
+          ...files,
+          ...parts,
+        ],
         role: 'user',
       })
     },

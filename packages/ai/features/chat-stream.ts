@@ -8,6 +8,7 @@ import { v7 } from 'uuid'
 import { env } from '../env'
 import type { AgentBudget } from '../limits'
 import type { AppUIMessage } from '../message'
+import type { ChatEffort, ChatModelId } from '../models/list'
 import type { ChatConnection } from './chat-step'
 import { streamChatStep } from './chat-step'
 
@@ -40,9 +41,14 @@ const resumable = createResumableUIMessageStream({
 
 interface ChatStreamInput {
   chatId: string
+  contextTokens: number
+  effort: ChatEffort
+  fast: boolean
+  isSubagent: boolean
   connection: ChatConnection
   limits: AgentBudget
   messages: AppUIMessage[]
+  model: ChatModelId
   onFinish: (message: AppUIMessage) => Promise<void>
   telemetry?: TelemetryOptions
 }
@@ -59,8 +65,13 @@ export const chatStream = {
       const uiStream = await streamChatStep({
         abortSignal: abortController.signal,
         connection: data.connection,
+        contextTokens: data.contextTokens,
+        effort: data.effort,
+        fast: data.fast,
+        isSubagent: data.isSubagent,
         limits: data.limits,
         messages: data.messages,
+        model: data.model,
         onEnd: data.onFinish,
         onError: (error) => {
           console.error(`chat stream ${streamId} failed`, error)

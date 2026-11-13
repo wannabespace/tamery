@@ -1,11 +1,5 @@
-import { File01Icon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
-import { SidebarMenuButton } from '@tamery/ui/components/sidebar'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@tamery/ui/components/tooltip'
+import { HistoryIcon } from '@hugeicons/core-free-icons'
+import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import { useSubscription } from 'seitu/react'
 
 import { useConnectionParams } from '~/core/connection/route'
@@ -18,23 +12,15 @@ export const QueryLoggerToggle = () => {
   const loggerOpened = useSubscription(loggerOpen(resourceId))
 
   return (
-    <Tooltip shortcut={<ShortcutKbd shortcut="queryLogger" />}>
-      <TooltipTrigger
-        render={
-          <SidebarMenuButton
-            aria-pressed={loggerOpened}
-            onClick={() => toggleLogger(resourceId)}
-          />
-        }
-      >
-        <HugeiconsIcon
-          icon={File01Icon}
-          strokeWidth={2}
-          className="text-muted-foreground"
-        />
-        Query logger
-      </TooltipTrigger>
-      <TooltipContent side="right">Toggle query logger</TooltipContent>
-    </Tooltip>
+    <IconButton
+      variant="ghost-faint-muted"
+      size="icon-sm"
+      icon={HistoryIcon}
+      label="Query logger"
+      side="bottom"
+      shortcut={<ShortcutKbd shortcut="queryLogger" />}
+      aria-pressed={loggerOpened}
+      onClick={() => toggleLogger(resourceId)}
+    />
   )
 }

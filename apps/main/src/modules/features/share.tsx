@@ -36,7 +36,7 @@ const FACTS = [
 export const Share = () => (
   <Chapter
     id="share"
-    number="04"
+    number="05"
     label="Share"
     title="Send a table, not a screenshot."
     subtitle="One link, no account needed."

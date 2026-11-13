@@ -13,6 +13,7 @@ import { popupNativeContextMenu } from './context-menu'
 import { pickDatabaseFile } from './database-file'
 import { connectionLinks } from './deep-link'
 import { deviceEncryption } from './device-encryption'
+import { localSkills } from './local-skills'
 import { mcp } from './mcp'
 import { notifyUnfocused } from './notify'
 import { queryProcess } from './query-process'
@@ -75,6 +76,7 @@ export const electron = {
       return localDatabases.unlock(connectionString)
     },
   },
+  localSkills,
   mcp,
   menu: {
     popup: ((arg: MenuPopupRequest, event?: IpcMainInvokeEvent) =>

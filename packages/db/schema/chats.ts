@@ -24,13 +24,21 @@ export const chats = d.snakeCase.table(
       .uuid()
       .references(() => connectionsResources.id, { onDelete: 'cascade' })
       .notNull(),
+    /** Set on a subagent's chat: the chat whose agent started it. Chat lists show only chats without one. */
+    parentChatId: d
+      .uuid()
+      .references((): d.AnyPgColumn => chats.id, { onDelete: 'cascade' }),
     title: d.text(),
     userId: d
       .uuid()
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),
   },
-  (t) => [d.index().on(t.userId), d.index().on(t.connectionResourceId)]
+  (t) => [
+    d.index().on(t.userId),
+    d.index().on(t.connectionResourceId),
+    d.index().on(t.parentChatId),
+  ]
 )
 
 export const chatsSelectSchema = createSelectSchema(chats)

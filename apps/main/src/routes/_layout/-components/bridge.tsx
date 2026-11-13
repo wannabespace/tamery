@@ -36,7 +36,7 @@ const FACTS = [
 export const Bridge = () => (
   <Chapter
     id="cli"
-    number="06"
+    number="07"
     label="CLI"
     title="Your localhost, in the browser."
     subtitle="One command on your computer."

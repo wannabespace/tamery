@@ -11,7 +11,7 @@ import { navigatorOpenValue } from './stores'
 
 let mountedSearch: HTMLInputElement | null = null
 
-const focusSearchAfter = (update: () => void) => {
+export const focusSearchAfter = (update: () => void) => {
   flushSync(update)
   mountedSearch?.focus()
 }

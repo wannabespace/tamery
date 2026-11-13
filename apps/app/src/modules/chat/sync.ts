@@ -9,6 +9,8 @@ import { PERSISTED_SCHEMA_VERSION, syncCollectionOptions } from '~/lib/sync'
 
 export interface Chat extends BaseTable {
   connectionResourceId: string
+  /** Set on a subagent's chat; lists of chats leave those out. */
+  parentChatId?: string | null
   title: string | null
 }
 

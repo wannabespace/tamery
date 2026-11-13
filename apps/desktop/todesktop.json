@@ -38,6 +38,9 @@
   ],
   "mac": {
     "category": "public.app-category.developer-tools",
+    "extendInfo": {
+      "NSMicrophoneUsageDescription": "Tamery uses the microphone to dictate messages to the AI chat."
+    },
     "icon": "./resources/macos-icon.icon"
   },
   "windows": {

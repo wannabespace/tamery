@@ -3,6 +3,7 @@ import { describe, expect, it } from 'bun:test'
 import { Dialect } from '@tamery/shared/enums/connection-type'
 
 import {
+  additiveOnly,
   destructiveKeywords,
   invalidatesCatalog,
   readsOnly,
@@ -329,5 +330,44 @@ describe('readsOnly', () => {
     expect(readsOnly('COMMIT', pg)).toBe(false)
     expect(readsOnly('SET search_path TO evil', pg)).toBe(false)
     expect(readsOnly('', pg)).toBe(false)
+  })
+})
+
+describe('additiveOnly', () => {
+  it('admits inserts and new objects', () => {
+    expect(additiveOnly('INSERT INTO t (a) VALUES (1)', pg)).toBe(true)
+    expect(additiveOnly('INSERT INTO t SELECT * FROM s', pg)).toBe(true)
+    expect(additiveOnly('CREATE TABLE t (a int)', pg)).toBe(true)
+    expect(additiveOnly('CREATE INDEX i ON t (a)', pg)).toBe(true)
+  })
+
+  it('refuses anything that touches existing data', () => {
+    expect(additiveOnly('UPDATE t SET a = 1 WHERE id = 2', pg)).toBe(false)
+    expect(additiveOnly('DELETE FROM t WHERE id = 2', pg)).toBe(false)
+    expect(additiveOnly('ALTER TABLE t ADD COLUMN b int', pg)).toBe(false)
+    expect(
+      additiveOnly(
+        'INSERT INTO t (a) VALUES (1) ON CONFLICT (a) DO UPDATE SET a = 2',
+        pg
+      )
+    ).toBe(false)
+    expect(
+      additiveOnly(
+        'INSERT INTO t (a) VALUES (1) ON DUPLICATE KEY UPDATE a = 2',
+        mysql
+      )
+    ).toBe(false)
+    expect(additiveOnly('REPLACE INTO t VALUES (1)', mysql)).toBe(false)
+    expect(additiveOnly('CREATE OR REPLACE VIEW v AS SELECT 1', pg)).toBe(false)
+  })
+
+  it('refuses writes that are not plainly additive', () => {
+    expect(additiveOnly('GRANT SELECT ON t TO bob', pg)).toBe(false)
+    expect(additiveOnly("COMMENT ON TABLE t IS 'x'", pg)).toBe(false)
+    expect(additiveOnly('CALL refresh()', pg)).toBe(false)
+    expect(additiveOnly('BEGIN; INSERT INTO t VALUES (1); COMMIT', pg)).toBe(
+      false
+    )
+    expect(additiveOnly('', pg)).toBe(false)
   })
 })

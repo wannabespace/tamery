@@ -25,12 +25,20 @@ export const SHORTCUT_GROUPS: { shortcuts: ShortcutId[]; title: string }[] = [
       'toggleNavigator',
       'queryLogger',
       'aiChat',
-      'agentMode',
+      'nextSubagent',
+      'previousSubagent',
     ],
     title: 'Tabs and panels',
   },
   {
-    shortcuts: ['navigatorMove', 'navigatorOpen', 'navigatorCollapse'],
+    shortcuts: [
+      'navigatorTables',
+      'navigatorSchema',
+      'navigatorChats',
+      'navigatorMove',
+      'navigatorOpen',
+      'navigatorCollapse',
+    ],
     title: 'Navigator',
   },
   {
