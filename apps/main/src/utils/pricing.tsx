@@ -1,3 +1,4 @@
+import { PRO_PRICE_USD } from '@tamery/shared/credits'
 import { FREE_SHARE_LIMIT, FREE_WEEKLY_LIMITS } from '@tamery/shared/usage'
 
 export interface PricingPlan {
@@ -37,8 +38,5 @@ export const PRO_PLAN: PricingPlan = {
     'Unlimited shared table links',
   ],
   name: 'Pro',
-  price: {
-    monthly: 15,
-    yearly: 150,
-  },
+  price: PRO_PRICE_USD,
 }

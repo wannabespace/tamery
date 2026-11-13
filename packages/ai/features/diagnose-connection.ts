@@ -23,7 +23,7 @@ const diagnosisOutput = type({
 const PLACEHOLDER = /[<>]/u
 const PORT = /^\d{1,5}$/u
 
-const INSTRUCTIONS = [
+export const DIAGNOSE_INSTRUCTIONS = [
   "You help someone whose database client couldn't connect to their database.",
   'You get the engine (null when the client could not tell), the settings with identifying values replaced by placeholders (<host>, <user>, <database>, <password>, <ssh-host>, <ssh-user>, <ip>, <redacted>), where the client runs, and the driver error.',
   'The desktop app connects directly and can open SSH tunnels; the web app connects through a proxy and cannot tunnel.',
@@ -41,7 +41,7 @@ export const diagnoseConnection = async (data: {
 }) => {
   const { output } = await generateText({
     abortSignal: data.signal,
-    instructions: INSTRUCTIONS,
+    instructions: DIAGNOSE_INSTRUCTIONS,
     model: models.structured,
     output: Output.object({ schema: diagnosisOutput }),
     prompt: [

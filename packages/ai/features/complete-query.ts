@@ -4,7 +4,7 @@ import type { LanguageModelUsage } from 'ai'
 import { generateText } from 'ai'
 
 import { env } from '../env'
-import { models } from '../models/list'
+import { FIM_MODEL, models } from '../models/list'
 import { usageTelemetry } from '../usage/record'
 import { MATCH_USER_STYLE, section } from './prompt'
 
@@ -77,8 +77,6 @@ const chatComplete = async (data: CompleteQueryInput) => {
   return text
 }
 
-const FIM_MODEL = 'codestral-latest'
-
 const mistral = new Mistral({ apiKey: env.MISTRAL_API_KEY })
 
 const TABLE_LINE = /^(?<name>[^\s(]+)(?:\((?<columns>.*)\))?$/u
@@ -126,7 +124,7 @@ const fimComplete = async (data: CompleteQueryInput) => {
   )
   const inputTokens = usage.promptTokens ?? 0
   const outputTokens = usage.completionTokens ?? 0
-  void data.onUsage(FIM_MODEL, {
+  void data.onUsage(`mistral/${FIM_MODEL}`, {
     inputTokenDetails: {
       cacheReadTokens: 0,
       cacheWriteTokens: 0,

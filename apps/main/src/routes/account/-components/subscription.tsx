@@ -1,6 +1,7 @@
 import { Alert02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { SUBSCRIPTION_PAST_DUE_MESSAGE } from '@tamery/shared/constants'
+import { PRO_TRIAL_DAYS } from '@tamery/shared/credits'
 import {
   Alert,
   AlertDescription,
@@ -111,7 +112,7 @@ export const Subscription = () => {
           description={
             subscription
               ? PRO_PLAN.description
-              : `${PRO_PLAN.description}. Starts with a 7-day free trial.`
+              : `${PRO_PLAN.description}. Starts with a ${PRO_TRIAL_DAYS}-day free trial.`
           }
         >
           {subscription ? (

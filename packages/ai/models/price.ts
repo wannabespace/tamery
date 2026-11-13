@@ -4,7 +4,7 @@ import { memoize } from 'memoza'
 const LITELLM_PRICES_URL =
   'https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json'
 
-const fetchPrices = memoize(
+export const fetchPrices = memoize(
   async () => {
     const response = await fetch(LITELLM_PRICES_URL)
     if (!response.ok) {
@@ -32,11 +32,12 @@ export const getModelCost = async (
   const prices = await fetchPrices().catch(() => null)
   const id = modelId.replace(/^~/u, '').replace(/:.*$/u, '')
   const name = id.split('/').at(-1) ?? id
-  // LiteLLM keys OpenRouter's `anthropic/claude-opus-5.5` as `claude-opus-5-5`.
+  // LiteLLM keys OpenRouter's `anthropic/claude-opus-5.5` as `claude-opus-5-5` and `x-ai/grok-4.7` as `xai/grok-4.7`.
   const price =
     [
       `openrouter/${id}`,
       id,
+      id.replace(/^[^/]+/u, (provider) => provider.replaceAll('-', '')),
       name,
       name.replaceAll('.', '-'),
       name.replace(/-\d{8}$/u, ''),

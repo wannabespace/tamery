@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "check-types": "bun check",
+    "economics": "bun run economics.ts",
     "test": "bun test"
   },
   "dependencies": {

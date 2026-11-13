@@ -1,3 +1,8 @@
+/** The Pro subscription; its monthly price is also what its chat may cost in models each month. */
+export const PRO_PRICE_USD = { monthly: 10, yearly: 100 } as const
+
+export const PRO_TRIAL_DAYS = 7
+
 /** AI credits are US dollars of model cost, 1:1, bought by Pro users once the month's included budget is spent; they never expire. */
 export const CREDIT_TOP_UP = {
   amounts: [10, 25, 50, 100],

@@ -4,7 +4,7 @@ import { generateText } from 'ai'
 import { models } from '../models/list'
 import { EDITOR_CONTEXT, section, queryOutputRules } from './prompt'
 
-const updateQueryInstructions = (data: {
+export const updateQueryInstructions = (data: {
   connectionType: string
   context: string
 }) =>

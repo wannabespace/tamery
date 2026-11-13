@@ -5,7 +5,7 @@ import { type } from 'arktype'
 
 import { models } from '../models/list'
 
-const filtersInstructions = (tableContext: string) =>
+export const filtersInstructions = (tableContext: string) =>
   [
     'You are a filters and ordering generator that converts natural language queries into database filters and ordering instructions.',
     'You should understand the sense of the prompt as much as possible.',

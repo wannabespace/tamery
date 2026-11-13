@@ -165,21 +165,26 @@ export const chatModel = memoize(
   { cacheKey: (id, fast) => `${id}:${fast}` }
 )
 
+/** Mistral's id for the editor's fill-in-the-middle completion; LiteLLM prices it as `mistral/codestral-latest`. */
+export const FIM_MODEL = 'codestral-latest'
+
+/** Each fixed model and the one it retries on. */
+export const MODEL_IDS = {
+  fast: ['anthropic/claude-haiku-4.5', 'google/gemini-3.8-flash'],
+  query: ['anthropic/claude-opus-5.5', 'x-ai/grok-4.7'],
+  structured: ['anthropic/claude-sonnet-5.5', 'x-ai/grok-4.7'],
+  transcribe: ['google/gemini-3.8-flash', '~google/gemini-pro-latest'],
+} as const
+
+const retryable = ([id, fallback]: readonly [string, string]) =>
+  createRetryableModel({
+    model: openrouterModel(id),
+    retries: [openrouterModel(fallback)],
+  })
+
 export const models = {
-  fast: createRetryableModel({
-    model: openrouterModel('anthropic/claude-haiku-4.5'),
-    retries: [openrouterModel('google/gemini-3.8-flash')],
-  }),
-  query: createRetryableModel({
-    model: openrouterModel('anthropic/claude-opus-5.5'),
-    retries: [openrouterModel('x-ai/grok-4.7')],
-  }),
-  transcribe: createRetryableModel({
-    model: openrouterModel('google/gemini-3.8-flash'),
-    retries: [openrouterModel('~google/gemini-pro-latest')],
-  }),
-  structured: createRetryableModel({
-    model: openrouterModel('anthropic/claude-sonnet-5.5'),
-    retries: [openrouterModel('x-ai/grok-4.7')],
-  }),
+  fast: retryable(MODEL_IDS.fast),
+  query: retryable(MODEL_IDS.query),
+  structured: retryable(MODEL_IDS.structured),
+  transcribe: retryable(MODEL_IDS.transcribe),
 }

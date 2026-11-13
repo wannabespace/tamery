@@ -1,3 +1,5 @@
+import { PRO_PRICE_USD } from '@tamery/shared/credits'
+
 export const AI_QUERY_LIMITS = {
   context: 60_000,
   error: 4000,
@@ -24,7 +26,7 @@ export const CHAT_LIMITS = {
   ]),
   attachments: 4,
   message: { steps: 25, tokens: 500_000 },
-  monthlyCostUsd: 15,
+  monthlyCostUsd: PRO_PRICE_USD.monthly,
 } as const
 
 /** A dictated message: the window records 16-bit mono WAV at this rate for at most this long, and the API rejects anything larger. */
