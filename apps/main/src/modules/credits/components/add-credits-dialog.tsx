@@ -1,4 +1,4 @@
-import { CREDIT_TOP_UP } from '@tamery/shared/credits'
+import { CREDIT_TOP_UP, topUpChargeCents } from '@tamery/shared/credits'
 import { Button } from '@tamery/ui/components/button'
 import { ButtonGroup } from '@tamery/ui/components/button-group'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
@@ -61,8 +61,9 @@ export const AddCreditsDialog = ({
         <DialogHeader>
           <DialogTitle>Add Credits</DialogTitle>
           <DialogDescription>
-            Credits pay for the AI chat once the month&apos;s included amount is
-            used, at what the model costs us. They never expire.
+            Credits pay for AI once the month&apos;s included amount is used, at
+            what the model costs us. Each top-up adds a{' '}
+            {CREDIT_TOP_UP.fee * 100}% fee. Credits never expire.
           </DialogDescription>
         </DialogHeader>
         <ButtonGroup>
@@ -100,7 +101,9 @@ export const AddCreditsDialog = ({
             onClick={() => amount !== null && checkout(amount)}
           >
             <LoadingContent loading={isPending}>
-              {valid ? `Pay ${formatDollars(amount)}` : 'Pay'}
+              {valid
+                ? `Pay ${formatDollars(topUpChargeCents(amount) / 100)}`
+                : 'Pay'}
             </LoadingContent>
           </Button>
         </DialogFooter>

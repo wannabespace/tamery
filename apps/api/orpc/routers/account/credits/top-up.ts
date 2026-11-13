@@ -1,4 +1,4 @@
-import { CREDIT_TOP_UP } from '@tamery/shared/credits'
+import { CREDIT_TOP_UP, topUpChargeCents } from '@tamery/shared/credits'
 import { type } from 'arktype'
 
 import { CREDITS_PAYMENT_KIND } from '~/lib/credits'
@@ -38,8 +38,10 @@ export const topUp = orpc
         {
           price_data: {
             currency: 'usd',
-            product_data: { name: 'Tamery AI credits' },
-            unit_amount: input.amount * 100,
+            product_data: {
+              name: `Tamery AI credits, including a ${CREDIT_TOP_UP.fee * 100}% fee`,
+            },
+            unit_amount: topUpChargeCents(input.amount),
           },
           quantity: 1,
         },

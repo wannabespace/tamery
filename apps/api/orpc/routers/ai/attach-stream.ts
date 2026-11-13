@@ -51,7 +51,7 @@ export const attachStream = orpc
       return
     }
 
-    if (!(await credits.canChat(context.user.id))) {
+    if (!(await credits.canUseAi(context.user.id))) {
       return
     }
 

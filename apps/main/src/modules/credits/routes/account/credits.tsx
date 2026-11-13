@@ -82,7 +82,7 @@ const RouteComponent = () => {
       <SettingsGroup title="This month">
         <SettingsRow
           title="Included with Pro"
-          description={`${formatDollars(data.included.spent)} of ${formatDollars(data.included.budget)} used since ${format(data.included.since, 'MMMM d')}. The AI chat spends this first.`}
+          description={`${formatDollars(data.included.spent)} of ${formatDollars(data.included.budget)} used since ${format(data.included.since, 'MMMM d')}. Every AI feature spends this first.`}
         >
           <Progress
             className="w-32"

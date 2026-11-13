@@ -8,7 +8,7 @@ import {
 } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { runInBackground } from '@tamery/shared/background'
-import { CHAT_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
+import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { validateUIMessages } from 'ai'
 import { type } from 'arktype'
 
@@ -52,7 +52,7 @@ export const stream = orpc
   .errors({
     BAD_REQUEST: { message: 'Invalid messages' },
     CONFLICT: { message: 'This chat is already generating an answer.' },
-    TOO_MANY_REQUESTS: { message: CHAT_BUDGET_SPENT_MESSAGE },
+    TOO_MANY_REQUESTS: { message: AI_BUDGET_SPENT_MESSAGE },
   })
   .handler(async function* streamHandler({ context, errors, input }) {
     const messages = await validateUIMessages<AppUIMessage>({
@@ -66,7 +66,7 @@ export const stream = orpc
       throw errors.BAD_REQUEST()
     }
 
-    if (!(await credits.canChat(context.user.id))) {
+    if (!(await credits.canUseAi(context.user.id))) {
       throw errors.TOO_MANY_REQUESTS()
     }
 

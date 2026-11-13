@@ -1,6 +1,7 @@
 /**
  * What a month of Free, Pro and a trial costs in AI, estimated from the prompts, input caps and models the API
- * really uses and LiteLLM's prices (`getModelCost`), against what Pro brings in after Stripe.
+ * really uses and LiteLLM's prices (`getModelCost`) plus OpenRouter's fee on the credits we buy, against what Pro
+ * and AI credit top-ups bring in after Stripe.
  * `economics.test.ts` holds the budget; `bun run economics` prints the table. Tokens are estimates at
  * 3.5 characters each (schemas and SQL), with no prompt caching.
  */
@@ -8,8 +9,10 @@ import process from 'node:process'
 
 import {
   CREDIT_TOP_UP,
+  PRO_INCLUDED_AI_USD,
   PRO_PRICE_USD,
   PRO_TRIAL_DAYS,
+  topUpChargeCents,
 } from '@tamery/shared/credits'
 import { FREE_WEEKLY_LIMITS } from '@tamery/shared/usage'
 import type { LanguageModelUsage } from 'ai'
@@ -18,7 +21,7 @@ import { DIAGNOSE_INSTRUCTIONS } from './features/diagnose-connection'
 import { filtersInstructions } from './features/filters'
 import { fixQueryInstructions } from './features/fix-query'
 import { updateQueryInstructions } from './features/update-query'
-import { AI_QUERY_LIMITS, CHAT_LIMITS, DICTATION } from './limits'
+import { AI_QUERY_LIMITS, DICTATION } from './limits'
 import { FIM_MODEL, MODEL_IDS } from './models/list'
 import { getModelCost } from './models/price'
 
@@ -83,7 +86,7 @@ export interface Use {
 }
 
 export const TYPICAL: Use = {
-  chatUsd: 5,
+  chatUsd: 2,
   completionOutputTokens: 30,
   completions: 1500,
   contextChars: 8000,
@@ -103,7 +106,7 @@ export const TYPICAL: Use = {
 
 /** Every size at its cap and far more use than anyone sensible: the most a month can cost. */
 export const HEAVY: Use = {
-  chatUsd: CHAT_LIMITS.monthlyCostUsd,
+  chatUsd: PRO_INCLUDED_AI_USD,
   completionOutputTokens: 200,
   completions: 10_000,
   contextChars: AI_QUERY_LIMITS.context,
@@ -178,9 +181,9 @@ export const freeMonthCost = async (use: Use) =>
   freeCap('complete', use.completions) * (await completionCost(use)) +
   use.diagnoses * (await diagnosisCost(use))
 
-/** Chat is held to the included budget, past it credits pay; nothing else Pro uses is limited. */
+/** Every AI feature spends the included budget; past it, credits pay, so `total` stops there. */
 export const proMonthCost = async (use: Use) => {
-  const chat = Math.min(use.chatUsd, CHAT_LIMITS.monthlyCostUsd)
+  const chat = use.chatUsd
   const filters = use.filters * (await filterCost(use))
   const completions = use.completions * (await completionCost(use))
   const queryEdits = use.queryEdits * (await queryEditCost(use))
@@ -193,16 +196,26 @@ export const proMonthCost = async (use: Use) => {
     filters,
     other,
     queryEdits,
-    total: chat + filters + completions + queryEdits + other,
+    total: Math.min(
+      chat + filters + completions + queryEdits + other,
+      PRO_INCLUDED_AI_USD
+    ),
   }
 }
 
-/** A trial gets the whole month's chat budget in its days, and may never pay. */
+/** A trial gets the whole included budget in its days, and may never pay. */
 export const trialCost = async (use: Use) => {
   const month = await proMonthCost(use)
-  return month.chat + ((month.total - month.chat) * PRO_TRIAL_DAYS) / DAYS
+  const other =
+    month.filters + month.completions + month.queryEdits + month.other
+  return Math.min(
+    month.chat + (other * PRO_TRIAL_DAYS) / DAYS,
+    PRO_INCLUDED_AI_USD
+  )
 }
 
+/** OpenRouter's fee on the credits we buy, on top of every model's list price. */
+const OPENROUTER_FEE = 0.055
 const STRIPE_CARD_RATE = 0.029
 const STRIPE_BILLING_RATE = 0.007
 const STRIPE_FIXED_USD = 0.3
@@ -223,14 +236,21 @@ export const netRevenue = (interval: Interval) =>
   monthsOf(interval)
 
 export const margin = (interval: Interval, aiUsd: number) =>
-  (netRevenue(interval) - aiUsd) / grossRevenue(interval)
+  (netRevenue(interval) - aiUsd * (1 + OPENROUTER_FEE)) / grossRevenue(interval)
 
-/** Credits are sold 1:1 with model cost, so Stripe's fee on a top-up is a loss, as a share of it. */
-export const topUpLoss = (amount: number) =>
-  STRIPE_CARD_RATE + STRIPE_FIXED_USD / amount
+/** What a top-up of `credits` dollars keeps once they are spent, as a share of the charge. */
+export const topUpMargin = (credits: number) => {
+  const charge = topUpChargeCents(credits) / 100
+  return (
+    (charge * (1 - STRIPE_CARD_RATE) -
+      STRIPE_FIXED_USD -
+      credits * (1 + OPENROUTER_FEE)) /
+    charge
+  )
+}
 
 const usd = (n: number) => `$${n < 0.01 ? n.toFixed(4) : n.toFixed(2)}`
-const pct = (n: number) => `${Math.round(n * 100)}%`
+const pct = (n: number) => `${(n * 100).toFixed(1)}%`
 
 const unitLines = async (name: string, use: Use) => [
   name,
@@ -249,7 +269,7 @@ const printReport = async () => {
     '',
     ...(await unitLines('Heavy use (every size at its cap)', HEAVY)),
     '',
-    `Pro $${PRO_PRICE_USD.monthly}/mo or $${PRO_PRICE_USD.yearly}/yr: net ${usd(netRevenue('monthly'))} / ${usd(netRevenue('yearly'))} a month, ${usd(CHAT_LIMITS.monthlyCostUsd)} of chat included`,
+    `Pro $${PRO_PRICE_USD.monthly}/mo or $${PRO_PRICE_USD.yearly}/yr: net ${usd(netRevenue('monthly'))} / ${usd(netRevenue('yearly'))} a month, ${usd(PRO_INCLUDED_AI_USD)} of AI included`,
   ]
   const months = await Promise.all(
     (
@@ -269,7 +289,7 @@ const printReport = async () => {
     `Trial (${PRO_TRIAL_DAYS} days): typical ${usd(await trialCost(TYPICAL))}, heavy ${usd(await trialCost(HEAVY))}`,
     `Free: typical ${usd(await freeMonthCost(TYPICAL))} a month, heavy ${usd(await freeMonthCost(HEAVY))} (${FREE_WEEKLY_LIMITS.filters} filters and ${FREE_WEEKLY_LIMITS.complete} completions a week)`,
     '',
-    `Credits lost to Stripe per top-up: ${[CREDIT_TOP_UP.min, ...CREDIT_TOP_UP.amounts].map((amount) => `$${amount} ${pct(topUpLoss(amount))}`).join(', ')}`
+    `Top-up margin with its ${pct(CREDIT_TOP_UP.fee)} fee: ${[...new Set([...CREDIT_TOP_UP.amounts, CREDIT_TOP_UP.autoTopUpAmount])].map((amount) => `$${amount} ${pct(topUpMargin(amount))}`).join(', ')}`
   )
   process.stdout.write(`${lines.join('\n')}\n`)
 }

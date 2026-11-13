@@ -1,7 +1,7 @@
 import { transcribe as runTranscribe } from '@tamery/ai/features'
 import { DICTATION } from '@tamery/ai/limits'
 import { AiFeature } from '@tamery/ai/usage'
-import { CHAT_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
+import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { type } from 'arktype'
 
 import { aiUsage } from '~/lib/ai-usage'
@@ -25,10 +25,10 @@ export const transcribe = orpc
     })
   )
   .errors({
-    TOO_MANY_REQUESTS: { message: CHAT_BUDGET_SPENT_MESSAGE },
+    TOO_MANY_REQUESTS: { message: AI_BUDGET_SPENT_MESSAGE },
   })
   .handler(async ({ context, errors, input, signal }) => {
-    if (!(await credits.canChat(context.user.id))) {
+    if (!(await credits.canUseAi(context.user.id))) {
       throw errors.TOO_MANY_REQUESTS()
     }
     return runTranscribe({

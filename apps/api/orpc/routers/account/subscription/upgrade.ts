@@ -1,8 +1,12 @@
+import { db } from '@tamery/db'
+import { subscriptions } from '@tamery/db/schema'
 import { PRO_TRIAL_DAYS } from '@tamery/shared/credits'
 import { type } from 'arktype'
+import { and, eq } from 'drizzle-orm'
 
 import { env } from '~/env'
 import { getStripeCustomerId, stripe } from '~/lib/stripe'
+import { tamerySubscriptions } from '~/lib/subscription'
 import { accountMiddleware, orpc } from '~/orpc'
 
 export const upgrade = orpc
@@ -25,7 +29,16 @@ export const upgrade = orpc
 
     const { successUrl, cancelUrl, isYearly } = input
 
-    const customerId = await getStripeCustomerId(stripe, context.user.id)
+    const [customerId, [previous]] = await Promise.all([
+      getStripeCustomerId(stripe, context.user.id),
+      db
+        .select({ id: subscriptions.id })
+        .from(subscriptions)
+        .where(
+          and(eq(subscriptions.userId, context.user.id), tamerySubscriptions)
+        )
+        .limit(1),
+    ])
 
     const priceId = isYearly
       ? env.STRIPE_PRO_ANNUAL_PRICE_ID
@@ -54,7 +67,7 @@ export const upgrade = orpc
         metadata: {
           userId: context.user.id,
         },
-        trial_period_days: PRO_TRIAL_DAYS,
+        ...(!previous && { trial_period_days: PRO_TRIAL_DAYS }),
       },
       success_url: successUrl,
     })

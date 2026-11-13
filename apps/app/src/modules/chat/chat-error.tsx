@@ -1,6 +1,6 @@
 import { Alert02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { CHAT_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
+import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import {
   Alert,
   AlertAction,
@@ -23,7 +23,7 @@ export const ChatError = ({
       <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
       <AlertDescription>{error.message}</AlertDescription>
       <AlertAction>
-        {error.message === CHAT_BUDGET_SPENT_MESSAGE ? (
+        {error.message === AI_BUDGET_SPENT_MESSAGE ? (
           <Button
             size="xs"
             variant="outline"

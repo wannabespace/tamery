@@ -1,4 +1,4 @@
-import { AiFeature, createAiUsage } from '@tamery/ai/usage'
+import { createAiUsage } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import {
   aiUsage as aiUsageTable,
@@ -34,7 +34,7 @@ export const aiUsage = createAiUsage(async (record) => {
       ? await getWorkspaceIdFromChat(record.chatId)
       : null,
   })
-  if (record.feature === AiFeature.Chat && record.cost) {
+  if (record.cost) {
     await credits.spend({ cost: record.cost, userId: record.userId })
   }
 })

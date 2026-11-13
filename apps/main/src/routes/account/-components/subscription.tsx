@@ -17,6 +17,7 @@ import {
 import { smallItemInsetClassName } from '@tamery/ui/components/item'
 import { Tabs, TabsList, TabsTrigger } from '@tamery/ui/components/tabs'
 import { cn } from '@tamery/ui/lib/utils'
+import { useQuery } from '@tanstack/react-query'
 import { getRouteApi, useRouter } from '@tanstack/react-router'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useState } from 'react'
@@ -26,6 +27,7 @@ import {
   useSubscription,
   useUpgradeSubscription,
 } from '~/hooks/use-subscription'
+import { orpc } from '~/lib/orpc'
 import { HOBBY_PLAN, PRO_PLAN } from '~/utils/pricing'
 
 const { useSearch } = getRouteApi('/account/')
@@ -65,6 +67,9 @@ const getStatus = (
 export const Subscription = () => {
   const { period, type: clientType } = useSearch()
   const subscription = useSubscription()
+  const { data: subscriptions } = useQuery(
+    orpc.account.subscription.list.queryOptions()
+  )
   const router = useRouter()
   const returnHref = router.buildLocation({
     search: { type: clientType },
@@ -110,9 +115,9 @@ export const Subscription = () => {
             </span>
           }
           description={
-            subscription
-              ? PRO_PLAN.description
-              : `${PRO_PLAN.description}. Starts with a ${PRO_TRIAL_DAYS}-day free trial.`
+            subscriptions?.length === 0
+              ? `${PRO_PLAN.description}. Starts with a ${PRO_TRIAL_DAYS}-day free trial.`
+              : PRO_PLAN.description
           }
         >
           {subscription ? (

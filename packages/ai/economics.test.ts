@@ -12,16 +12,15 @@ import {
   priced,
   proMonthCost,
   queryEditCost,
-  topUpLoss,
+  topUpMargin,
   trialCost,
   TYPICAL,
 } from './economics'
 
 /**
  * Raising a number here costs money: rethink the change, or raise it on purpose and say why in the commit.
- * Each was measured with Pro at $10 / $100 (in brackets), with a little room for LiteLLM's prices moving.
- * A heavy Pro month is unbounded (Fix, Update, filters and completions have no Pro limit), so only its
- * single calls are held here.
+ * Each was measured with Pro at $10 / $100, $5 of AI included and a 10% top-up fee (in brackets), with a
+ * little room for LiteLLM's prices moving.
  */
 const BUDGET = {
   // One completion at every cap: 60k of schema, 30k before and after the caret ($0.0105).
@@ -32,13 +31,15 @@ const BUDGET = {
   heaviestQueryEditUsd: 0.37,
   // A free account using its whole weekly filters and completions at every cap ($12.69).
   heavyFreeMonthUsd: 13.5,
-  // Stripe keeps this share of the smallest top-up, sold 1:1 with model cost (9%).
-  smallestTopUpLoss: 0.09,
+  // A Pro month that spends the whole included budget (41% / 33%).
+  heavyProMargin: { monthly: 0.38, yearly: 0.3 },
+  // What the smallest top-up keeps once Stripe and OpenRouter take theirs (-1.5%).
+  smallestTopUpMargin: -0.02,
   typicalFreeMonthUsd: 1.25,
-  // $5 of chat, 40 Fix or Update, 40 filters, 1,500 completions (17% / 5%).
-  typicalProMargin: { monthly: 0.14, yearly: 0.02 },
-  // A trial spends the month's chat budget in its seven days ($5.61 typical).
-  typicalTrialUsd: 6,
+  // $2 of chat, 40 Fix or Update, 40 filters, 1,500 completions (45% / 38%).
+  typicalProMargin: { monthly: 0.42, yearly: 0.35 },
+  // A trial may spend the whole included budget in its seven days ($2.61 typical).
+  typicalTrialUsd: 3,
 }
 
 it('prices every model the API calls, fallbacks too', async () => {
@@ -50,14 +51,13 @@ it('prices every model the API calls, fallbacks too', async () => {
   }
 })
 
-it('keeps a typical Pro month its margin', async () => {
-  const { total } = await proMonthCost(TYPICAL)
-  expect(margin('monthly', total)).toBeGreaterThanOrEqual(
-    BUDGET.typicalProMargin.monthly
-  )
-  expect(margin('yearly', total)).toBeGreaterThanOrEqual(
-    BUDGET.typicalProMargin.yearly
-  )
+it.each([
+  ['typical', TYPICAL, BUDGET.typicalProMargin],
+  ['heavy', HEAVY, BUDGET.heavyProMargin],
+] as const)('keeps a %s Pro month its margin', async (_, use, budget) => {
+  const { total } = await proMonthCost(use)
+  expect(margin('monthly', total)).toBeGreaterThanOrEqual(budget.monthly)
+  expect(margin('yearly', total)).toBeGreaterThanOrEqual(budget.yearly)
 })
 
 it('holds the dearest single calls to the budget', async () => {
@@ -83,8 +83,8 @@ it('keeps a typical trial within the budget', async () => {
   expect(await trialCost(TYPICAL)).toBeLessThanOrEqual(BUDGET.typicalTrialUsd)
 })
 
-it('loses no more than the budget to Stripe on the smallest top-up', () => {
-  expect(topUpLoss(CREDIT_TOP_UP.min)).toBeLessThanOrEqual(
-    BUDGET.smallestTopUpLoss
+it('keeps the smallest top-up its margin', () => {
+  expect(topUpMargin(CREDIT_TOP_UP.min)).toBeGreaterThanOrEqual(
+    BUDGET.smallestTopUpMargin
   )
 })

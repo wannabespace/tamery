@@ -1,11 +1,14 @@
-import { CHAT_LIMITS } from '@tamery/ai/limits'
-import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import {
   aiUsage as aiUsageTable,
   creditAccounts,
   creditTopUps,
 } from '@tamery/db/schema'
+import {
+  CREDIT_TOP_UP,
+  PRO_INCLUDED_AI_USD,
+  topUpChargeCents,
+} from '@tamery/shared/credits'
 import { and, desc, eq, gt, sql, sum } from 'drizzle-orm'
 
 import { redis } from '~/lib/redis'
@@ -28,11 +31,7 @@ const getIncludedSpent = async (userId: string) => {
     .select({ cost: sum(aiUsageTable.cost).mapWith(Number) })
     .from(aiUsageTable)
     .where(
-      and(
-        eq(aiUsageTable.userId, userId),
-        eq(aiUsageTable.feature, AiFeature.Chat),
-        gt(aiUsageTable.createdAt, since)
-      )
+      and(eq(aiUsageTable.userId, userId), gt(aiUsageTable.createdAt, since))
     )
   return { since, spent: spent?.cost ?? 0 }
 }
@@ -81,11 +80,11 @@ const topUpAutomatically = async (account: CreditAccount) => {
   }
   await stripe.paymentIntents
     .create({
-      amount: Math.round(account.autoTopUpAmount * 100),
+      amount: topUpChargeCents(account.autoTopUpAmount),
       confirm: true,
       currency: 'usd',
       customer,
-      description: 'Tamery AI credits (auto top-up)',
+      description: `Tamery AI credits (auto top-up), including a ${CREDIT_TOP_UP.fee * 100}% fee`,
       metadata: {
         amount: String(account.autoTopUpAmount),
         automatic: 'true',
@@ -103,13 +102,13 @@ const topUpAutomatically = async (account: CreditAccount) => {
 
 /** AI credits: Pro spends the month's included budget first, then the dollars it bought. */
 export const credits = {
-  /** Whether a chat turn may start: some included budget left, or credits. */
-  canChat: async (userId: string) => {
+  /** Whether an AI call may start: some included budget left, or credits. */
+  canUseAi: async (userId: string) => {
     const [{ spent }, account] = await Promise.all([
       getIncludedSpent(userId),
       getAccount(userId),
     ])
-    return spent < CHAT_LIMITS.monthlyCostUsd || (account?.balance ?? 0) > 0
+    return spent < PRO_INCLUDED_AI_USD || (account?.balance ?? 0) > 0
   },
   /** Adds a paid top-up once, by its payment intent. */
   credit: async (topUp: {
@@ -170,9 +169,9 @@ export const credits = {
       },
       balance: account?.balance ?? 0,
       included: {
-        budget: CHAT_LIMITS.monthlyCostUsd,
+        budget: PRO_INCLUDED_AI_USD,
         since,
-        spent: Math.min(spent, CHAT_LIMITS.monthlyCostUsd),
+        spent: Math.min(spent, PRO_INCLUDED_AI_USD),
       },
       topUps,
     }
@@ -196,10 +195,10 @@ export const credits = {
       await topUpAutomatically(account)
     }
   },
-  /** Takes what a chat call cost past the included budget out of the credits, then tops up if the balance fell under the threshold. The just-recorded call is already in the month's sum. */
+  /** Takes what an AI call cost past the included budget out of the credits, then tops up if the balance fell under the threshold. The just-recorded call is already in the month's sum. */
   spend: async ({ cost, userId }: { cost: number; userId: string }) => {
     const { spent } = await getIncludedSpent(userId)
-    const overage = Math.min(cost, spent - CHAT_LIMITS.monthlyCostUsd)
+    const overage = Math.min(cost, spent - PRO_INCLUDED_AI_USD)
     if (overage <= 0) {
       return
     }

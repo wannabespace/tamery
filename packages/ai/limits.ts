@@ -1,5 +1,3 @@
-import { PRO_PRICE_USD } from '@tamery/shared/credits'
-
 export const AI_QUERY_LIMITS = {
   context: 60_000,
   error: 4000,
@@ -14,7 +12,7 @@ export interface AgentBudget {
   tokens: number
 }
 
-/** The chat agent's budget, Pro only (`ai.chat.use`): what one user message may take before it pauses, and what its model calls may cost in a month, the price of the subscription. */
+/** The chat agent's limits, Pro only (`ai.chat.use`): what one user message may take before it pauses. The month's cost is `PRO_INCLUDED_AI_USD`, shared by every AI feature. */
 export const CHAT_LIMITS = {
   attachmentBytes: 5 * 1024 * 1024,
   attachmentTypes: new Set([
@@ -26,7 +24,6 @@ export const CHAT_LIMITS = {
   ]),
   attachments: 4,
   message: { steps: 25, tokens: 500_000 },
-  monthlyCostUsd: PRO_PRICE_USD.monthly,
 } as const
 
 /** A dictated message: the window records 16-bit mono WAV at this rate for at most this long, and the API rejects anything larger. */

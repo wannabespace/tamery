@@ -1,4 +1,4 @@
-import { PRO_PRICE_USD } from '@tamery/shared/credits'
+import { PRO_INCLUDED_AI_USD, PRO_PRICE_USD } from '@tamery/shared/credits'
 import { FREE_SHARE_LIMIT, FREE_WEEKLY_LIMITS } from '@tamery/shared/usage'
 
 export interface PricingPlan {
@@ -29,11 +29,11 @@ export const HOBBY_PLAN: PricingPlan = {
 }
 
 export const PRO_PLAN: PricingPlan = {
-  description: 'The full AI assistant, without limits',
+  description: 'The full AI assistant, without weekly limits',
   features: [
     'Schema-aware AI assistant',
     'Unlimited AI filters and MCP queries',
-    'Included AI credits',
+    `$${PRO_INCLUDED_AI_USD} of AI included every month`,
     'Extra workspaces',
     'Unlimited shared table links',
   ],
