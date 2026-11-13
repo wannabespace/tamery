@@ -3,11 +3,11 @@ import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import path from 'node:path'
 
-import { getConnectionType } from '@tamery/connection/connection-parts'
 import { type } from 'arktype'
 import { Result } from 'better-result'
-import { app } from 'electron'
 
+import { getConnectionType } from '../connection-parts'
+import { appDataDir } from './app-data'
 import type { Finder } from './local-database'
 import { validEntries } from './local-database'
 
@@ -21,7 +21,7 @@ const IV_BYTES = 16
 const DATA_DIRS = [
   path.join(homedir(), 'Library/DBeaverData'),
   path.join(homedir(), '.local/share/DBeaverData'),
-  path.join(app.getPath('appData'), 'DBeaverData'),
+  path.join(appDataDir(), 'DBeaverData'),
 ]
 
 const dataSourcesSchema = type({ connections: 'Record<string, unknown>' })

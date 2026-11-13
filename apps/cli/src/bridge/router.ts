@@ -4,6 +4,7 @@ import type { RouterClient } from '@orpc/server'
 import { createQueryRouter } from '@tamery/query-proxy'
 import { BRIDGE_PROTOCOL, bridgeKey } from '@tamery/shared/bridge'
 import { challenge } from '@tamery/shared/challenge'
+import { localSkills } from '@tamery/shared/local-skills'
 import { type } from 'arktype'
 import { Result } from 'better-result'
 
@@ -22,6 +23,9 @@ import { printable } from './printable'
 const base = os.$context<{ authorization: string | null; origin: string }>()
 
 const UNNAMED_BROWSER = 'A browser'
+
+const loadLocalDatabases = () =>
+  import('@tamery/connection/local-databases/find')
 
 const authed = base
   .errors({
@@ -165,6 +169,32 @@ export const createRouter = ({
       unpair: authed.handler(({ context }) =>
         pairings.remove(context.browserId)
       ),
+    },
+    localDatabases: {
+      find: authed.handler(async () => {
+        const { localDatabases } = await loadLocalDatabases()
+        return localDatabases.find()
+      }),
+      // A found password is a secret the browser never had, unlike a query it runs: the person at this computer hands each one out.
+      unlock: authed
+        .input(type({ connectionString: 'string > 0' }))
+        .handler(async ({ context, input }) => {
+          const { localDatabases } = await loadLocalDatabases()
+          const label =
+            pairings.find(context.browserId)?.label ?? UNNAMED_BROWSER
+          const allowed = await approvals.ask(
+            `Allow ${paint.bold(label)} to use the password saved on this computer for ${paint.bold(printable(input.connectionString))}?`
+          )
+          await analytics.capture('bridge_local_password_answered', {
+            allowed,
+          })
+          return allowed
+            ? localDatabases.unlock(input.connectionString)
+            : { password: '', withheld: false }
+        }),
+    },
+    localSkills: {
+      list: authed.handler(() => localSkills.list()),
     },
     query: createQueryRouter(authed.errors(queryErrors), {
       connectionString: (input, _context, dialect, errors) =>

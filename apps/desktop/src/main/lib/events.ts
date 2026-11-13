@@ -4,6 +4,7 @@ import type {
   MenuPopupResult,
 } from '@tamery/shared/context-menu'
 import { Dialect } from '@tamery/shared/enums/connection-type'
+import { localSkills } from '@tamery/shared/local-skills'
 import type { IpcMainInvokeEvent } from 'electron'
 import { app, ipcMain, nativeTheme } from 'electron'
 
@@ -13,7 +14,6 @@ import { popupNativeContextMenu } from './context-menu'
 import { pickDatabaseFile } from './database-file'
 import { connectionLinks } from './deep-link'
 import { deviceEncryption } from './device-encryption'
-import { localSkills } from './local-skills'
 import { mcp } from './mcp'
 import { notifyUnfocused } from './notify'
 import { queryProcess } from './query-process'
@@ -21,7 +21,8 @@ import { pickSshKeyFile } from './ssh-key-file'
 import { autoUpdater } from './todesktop'
 
 // Stays lazy so the native keyring addon and the finders' parsers don't load at startup.
-const loadLocalDatabases = () => import('./local-databases/find')
+const loadLocalDatabases = () =>
+  import('@tamery/connection/local-databases/find')
 
 const openAtLogin = {
   get: () => {

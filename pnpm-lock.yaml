@@ -1291,9 +1291,6 @@ importers:
       '@todesktop/cli':
         specifier: 'catalog:'
         version: 1.28.8(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@types/react@19.3.0)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
-      '@types/ini':
-        specifier: 'catalog:'
-        version: 4.1.1
       '@types/mssql':
         specifier: 'catalog:'
         version: 12.3.0(supports-color@7.2.0)
@@ -1451,9 +1448,6 @@ importers:
       memoza:
         specifier: 'catalog:'
         version: 1.4.0
-      mermaid:
-        specifier: 'catalog:'
-        version: 12.3.0
       motion:
         specifier: 'catalog:'
         version: 14.10.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -1783,6 +1777,9 @@ importers:
       '@mongodb-js/shell-bson-parser':
         specifier: 'catalog:'
         version: 1.6.3(bson@7.3.4)
+      '@napi-rs/keyring':
+        specifier: 'catalog:'
+        version: 2.1.2
       '@tamery/mongo':
         specifier: workspace:*
         version: link:../mongo
@@ -1804,6 +1801,12 @@ importers:
       bson:
         specifier: 'catalog:'
         version: 7.3.4
+      fast-xml-parser:
+        specifier: 'catalog:'
+        version: 5.12.0
+      ini:
+        specifier: 'catalog:'
+        version: 7.0.0
       json5:
         specifier: 'catalog:'
         version: 2.2.3
@@ -1835,6 +1838,9 @@ importers:
       '@types/bun':
         specifier: 'catalog:'
         version: 1.4.4
+      '@types/ini':
+        specifier: 'catalog:'
+        version: 4.1.1
       '@types/mssql':
         specifier: 'catalog:'
         version: 12.3.0(supports-color@7.2.0)
@@ -2202,6 +2208,9 @@ importers:
       input-otp:
         specifier: 'catalog:'
         version: 1.5.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      mermaid:
+        specifier: 'catalog:'
+        version: 12.3.0
       motion:
         specifier: 'catalog:'
         version: 14.10.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -16157,8 +16166,8 @@ snapshots:
 
   '@upsetjs/venn.js@2.0.0':
     optionalDependencies:
-      d3-selection: 3.0.0
-      d3-transition: 3.0.1(d3-selection@3.0.0)
+      d3-selection: 3.0.1
+      d3-transition: 3.0.2(d3-selection@3.0.1)
 
   '@upstash/context7-sdk@0.5.1': {}
 
