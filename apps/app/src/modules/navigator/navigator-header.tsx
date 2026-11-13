@@ -1,9 +1,4 @@
-import {
-  AiChat02Icon,
-  ArrowDown01Icon,
-  Layers01Icon,
-  LayoutTable02Icon,
-} from '@hugeicons/core-free-icons'
+import { ArrowDown01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { uppercaseFirst } from '@tamery/shared/utils'
 import { Button } from '@tamery/ui/components/button'
@@ -52,19 +47,16 @@ export const NavigatorHeader = () => {
   const names = useObjectNames()
   const sections = [
     {
-      icon: LayoutTable02Icon,
       label: `${uppercaseFirst(names.table)}s`,
       shortcut: 'navigatorTables',
       value: 'tables',
     },
     {
-      icon: Layers01Icon,
       label: 'Schema',
       shortcut: 'navigatorSchema',
       value: 'definitions',
     },
     {
-      icon: AiChat02Icon,
       label: 'Chats',
       shortcut: 'navigatorChats',
       value: 'chats',
@@ -84,17 +76,11 @@ export const NavigatorHeader = () => {
           <TooltipTrigger
             render={
               <DropdownMenuTrigger
-                render={<Button variant="ghost-faint" size="sm" />}
+                render={<Button variant="heading" size="sm" />}
               />
             }
           >
-            <HugeiconsIcon
-              icon={active.icon}
-              strokeWidth={2}
-              data-icon="inline-start"
-              className="text-muted-foreground"
-            />
-            <span className="font-semibold">{active.label}</span>
+            {active.label}
             <HugeiconsIcon
               icon={ArrowDown01Icon}
               strokeWidth={2}
@@ -105,12 +91,11 @@ export const NavigatorHeader = () => {
           <TooltipContent side="bottom">Switch section</TooltipContent>
         </Tooltip>
         <DropdownMenuContent className="min-w-48">
-          {sections.map(({ icon, label, shortcut, value }) => (
+          {sections.map(({ label, shortcut, value }) => (
             <DropdownMenuItem
               key={value}
               onClick={() => showNavigatorSection(connectionResource.id, value)}
             >
-              <HugeiconsIcon icon={icon} strokeWidth={2} />
               {label}
               <DropdownMenuShortcut>
                 <ShortcutKbd shortcut={shortcut} />

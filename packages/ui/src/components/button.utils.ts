@@ -29,6 +29,7 @@ export const buttonVariants = cva(
         'ghost-faint': `hover:bg-foreground/5 hover:text-foreground aria-expanded:bg-foreground/5 aria-expanded:text-foreground aria-pressed:bg-foreground/10 aria-pressed:text-foreground transition-transform`,
         'ghost-faint-muted': `text-muted-foreground hover:bg-foreground/5 hover:text-foreground aria-expanded:bg-foreground/5 aria-expanded:text-foreground aria-pressed:bg-foreground/10 aria-pressed:text-foreground transition-transform`,
         'ghost-muted': `text-muted-foreground hover:bg-accent hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground aria-pressed:bg-foreground/10 aria-pressed:text-foreground transition-transform`,
+        heading: `text-foreground hover:text-foreground/70 aria-expanded:text-foreground/70 px-0 font-semibold transition-transform`,
         'ghost-tint': `hover:bg-foreground/10 hover:text-foreground aria-expanded:bg-foreground/10 aria-expanded:text-foreground transition-transform`,
         'ghost-tint-muted': `text-muted-foreground hover:bg-foreground/10 hover:text-foreground aria-expanded:bg-foreground/10 aria-expanded:text-foreground transition-transform`,
         link: `text-primary px-0 underline-offset-4 hover:underline`,
