@@ -77,6 +77,11 @@ resource "google_secret_manager_secret" "this" {
     }
   }
 
+  # Destroying a secret deletes every value it holds while running revisions still mount it, so a rename or a dropped name fails the plan: SECRETS.md → Adding, renaming or retiring a secret.
+  lifecycle {
+    prevent_destroy = true
+  }
+
   depends_on = [google_kms_crypto_key_iam_member.secret_manager_uses_key]
 }
 
