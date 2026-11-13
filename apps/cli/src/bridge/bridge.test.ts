@@ -19,6 +19,7 @@ import { querySerializer } from '@tamery/query-proxy/serializer'
 import { bridgeKey } from '@tamery/shared/bridge'
 import { challenge } from '@tamery/shared/challenge'
 import { encrypt } from '@tamery/shared/crypto-node'
+import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { sleep } from '@tamery/shared/utils'
 
 import type { BridgeRouter } from './router'
@@ -120,6 +121,30 @@ void mock.module('../api', () => ({
           : Promise.resolve(serverCopies[id])
       },
     },
+  },
+}))
+
+const FOUND = {
+  connectionString: 'postgresql://me@localhost:5433/app',
+  name: 'Local app',
+  source: 'DBeaver',
+  type: ConnectionType.Postgres,
+}
+const FOUND_WITHOUT_PASSWORD = {
+  ...FOUND,
+  connectionString: 'postgresql://me@localhost:5434/other',
+}
+const FOUND_PASSWORD = 'found-secret'
+
+void mock.module('@tamery/connection/local-databases/find', () => ({
+  localDatabases: {
+    find: () => Promise.resolve([FOUND, FOUND_WITHOUT_PASSWORD]),
+    unlock: (connectionString: string) =>
+      Promise.resolve({
+        password:
+          connectionString === FOUND.connectionString ? FOUND_PASSWORD : '',
+        withheld: false,
+      }),
   },
 }))
 
@@ -675,6 +700,55 @@ describe('connections', () => {
       } as never)
       .catch((error_: unknown) => error_)
     expect(error).toMatchObject({ code: 'BAD_REQUEST' })
+  })
+})
+
+describe('local databases', () => {
+  test('an unpaired browser finds and unlocks nothing', async () => {
+    const client = createClient(null)
+    await expectError(client.localDatabases.find(), 'UNAUTHORIZED')
+    await expectError(
+      client.localDatabases.unlock({
+        connectionString: FOUND.connectionString,
+      }),
+      'UNAUTHORIZED'
+    )
+  })
+
+  test('a string without a found password unlocks nothing and asks nobody', async () => {
+    const client = createClient(paired.secret)
+    expect(await client.localDatabases.find()).toEqual([
+      FOUND,
+      FOUND_WITHOUT_PASSWORD,
+    ])
+    for (const connectionString of [
+      FOUND_WITHOUT_PASSWORD.connectionString,
+      'postgresql://admin:typed-by-the-page@evil.example/app',
+    ]) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- each call must finish before checking nothing waits
+      expect(await client.localDatabases.unlock({ connectionString })).toEqual({
+        password: '',
+        withheld: false,
+      })
+      expect(approvals.waiting()).toHaveLength(0)
+    }
+  })
+
+  test('a found password leaves only once the terminal allows it', async () => {
+    const client = createClient(paired.secret)
+    const input = { connectionString: FOUND.connectionString }
+    const [declined] = await Promise.all([
+      client.localDatabases.unlock(input),
+      answer(false),
+    ])
+    expect(declined.password).toBe('')
+    const [allowed, request] = await Promise.all([
+      client.localDatabases.unlock(input),
+      answer(true),
+    ])
+    expect(allowed.password).toBe(FOUND_PASSWORD)
+    expect(request?.question).toContain(FOUND.connectionString)
+    expect(request?.question).not.toContain(FOUND_PASSWORD)
   })
 })
 

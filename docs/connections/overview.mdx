@@ -25,7 +25,7 @@ Choose an engine, check the details, and click **Save connection**. **Cmd+Enter*
 
 On desktop, and in the web app through a [bridge](/cli/overview) for the computer it runs on, you also get:
 
-- A list of databases found on this computer: running Docker containers, and connections saved in DBeaver, TablePlus, DataGrip, pgAdmin, `pg_service.conf`, `.pgpass`, or `my.cnf`. On macOS, Tamery can take a saved password from the Keychain once macOS asks you.
+- A list of databases found on this computer: running Docker containers, and connections saved in DBeaver, TablePlus, DataGrip, pgAdmin, `pg_service.conf`, `.pgpass`, or `my.cnf`. On macOS, the desktop app can take a saved password from the Keychain once macOS asks you; through a bridge, a saved password reaches the browser only after you allow it in the bridge's terminal, and one in the Keychain you type.
 - **Add via MCP** (desktop only), where your coding agent finds the database in your project and adds it for you.
 - Dropping a SQLite or DuckDB file onto the window (desktop only). See [SQLite](/connections/sqlite) and [DuckDB](/connections/duckdb).
 

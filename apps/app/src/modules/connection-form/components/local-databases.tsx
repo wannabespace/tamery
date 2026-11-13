@@ -17,7 +17,9 @@ export const LocalDatabases = ({
   const { data: databases = [] } = useQuery({
     enabled: !!machine,
     queryFn: localMachine.findDatabases,
-    queryKey: ['localDatabases', machine?.key],
+    queryKey: machine?.queryKey ?? ['localDatabases'],
+    staleTime: 0,
+    throwOnError: false,
   })
 
   if (!machine || databases.length === 0) {
