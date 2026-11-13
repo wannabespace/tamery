@@ -57,8 +57,8 @@ export const upgrade = orpc
     }
 
     const priceId = isYearly
-      ? env.STRIPE_ANNUAL_PRICE_ID
-      : env.STRIPE_MONTH_PRICE_ID
+      ? env.STRIPE_PRO_ANNUAL_PRICE_ID
+      : env.STRIPE_PRO_MONTH_PRICE_ID
 
     if (!priceId) {
       throw errors.INTERNAL_SERVER_ERROR({
