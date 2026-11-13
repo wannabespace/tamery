@@ -1,12 +1,6 @@
 import { Search01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { RefreshButton } from '@tamery/ui/components/custom/refresh-button'
 import { SearchInput } from '@tamery/ui/components/custom/search-input'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@tamery/ui/components/tooltip'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from '@tanstack/react-router'
 import { useEffect } from 'react'
@@ -38,13 +32,9 @@ export const TablesPanel = ({
   })
   const setSearch = (tablesSearch: string) =>
     store.set((state) => ({ ...state, tablesSearch }) satisfies typeof state)
-  const {
-    data: tablesAndSchemas,
-    isPending,
-    refetch,
-    isFetching,
-    dataUpdatedAt,
-  } = useQuery(resourceTablesAndSchemasQueryOptions({ connectionResource }))
+  const { data: tablesAndSchemas, isPending } = useQuery(
+    resourceTablesAndSchemasQueryOptions({ connectionResource })
+  )
   const pinnedTables = useSubscription(store, {
     selector: (state) => state.pinnedTables,
   })
@@ -109,7 +99,7 @@ export const TablesPanel = ({
 
   return (
     <>
-      <div className="flex shrink-0 items-center gap-1 pb-1.5 pl-2">
+      <div className="flex shrink-0 items-center pb-1.5 pl-2">
         <SearchInput
           className="flex-1"
           size="sm"
@@ -128,34 +118,6 @@ export const TablesPanel = ({
           }
           {...searchProps}
         />
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <RefreshButton
-                aria-label={`Refresh ${names.table}s`}
-                variant="outline-muted"
-                size="icon-sm"
-                onClick={() => refetch()}
-                refreshing={isFetching}
-              />
-            }
-          />
-          <TooltipContent side="bottom">
-            <div className="flex flex-col gap-0.5">
-              <span>
-                Refresh {names.table}s
-                {getCapabilities(dialect).flags.includes('schemas') &&
-                  ' and schemas'}
-              </span>
-              <span className="opacity-70">
-                Last updated:{' '}
-                {dataUpdatedAt
-                  ? new Date(dataUpdatedAt).toLocaleTimeString()
-                  : 'never'}
-              </span>
-            </div>
-          </TooltipContent>
-        </Tooltip>
       </div>
       <TablesList
         className="min-h-0 flex-1"

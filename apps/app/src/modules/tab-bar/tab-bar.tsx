@@ -29,6 +29,7 @@ import { parseTableTabId, tableTabId } from '~/core/tabs/ids'
 import { resolveTab, tabLabels } from '~/core/tabs/kinds'
 import { chatTabId } from '~/modules/chat/tab'
 import { toggleNavigator } from '~/modules/navigator/stores'
+import { QueryLoggerToggle } from '~/modules/query-logger/query-logger-toggle'
 
 import { HistoryNav } from './history-nav'
 import { NewTabMenu } from './new-tab-menu'
@@ -233,6 +234,8 @@ export const TabBar = ({ className }: { className?: string }) => {
           dialect={dialect}
           tablesAndSchemas={tablesAndSchemas}
         />
+        <Separator orientation="vertical" className="mx-0.5 h-4!" />
+        <QueryLoggerToggle />
       </div>
     </div>
   )

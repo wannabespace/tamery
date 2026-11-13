@@ -3,7 +3,6 @@ import {
   ArrowDown01Icon,
   ArrowRight01Icon,
   HierarchyIcon,
-  HistoryIcon,
   FlashIcon,
   Key01Icon,
   LayoutTable02Icon,
@@ -136,8 +135,8 @@ export const Navigator = ({
   tab: ShowcaseTab
 }) => (
   <div className="text-foreground flex h-full w-52 shrink-0 flex-col pr-1.5">
-    <div className="mb-1.5 flex h-8 shrink-0 items-center justify-between gap-1 pl-2">
-      <Button variant="heading" size="sm">
+    <div className="mb-1.5 flex h-8 shrink-0 items-center pl-2">
+      <Button variant="heading" size="sm" className="flex-1 justify-start">
         {SECTIONS[tab]}
         <HugeiconsIcon
           icon={ArrowDown01Icon}
@@ -145,9 +144,6 @@ export const Navigator = ({
           data-icon="inline-end"
           className="text-muted-foreground size-3.5"
         />
-      </Button>
-      <Button variant="ghost-faint-muted" size="icon-sm">
-        <HugeiconsIcon icon={HistoryIcon} strokeWidth={2} />
       </Button>
     </div>
     <div className="flex shrink-0 items-center gap-1 pb-1.5 pl-2">

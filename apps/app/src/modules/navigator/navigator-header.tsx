@@ -21,11 +21,11 @@ import { useObjectNames } from '~/core/catalog/names'
 import { useConnectionContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { posthog } from '~/lib/posthog'
-import { QueryLoggerToggle } from '~/modules/query-logger/query-logger-toggle'
 
 import { focusSearchAfter } from './keyboard'
 import type { NavigatorMode } from './stores'
 import { getNavigatorStore, navigatorOpenValue } from './stores'
+import { TablesRefresh } from './tables-refresh'
 
 export const showNavigatorSection = (
   resourceId: string,
@@ -66,7 +66,7 @@ export const NavigatorHeader = () => {
     sections.find(({ value }) => value === navigator) ?? sections[0]
 
   return (
-    <div className="mb-1.5 flex h-8 shrink-0 items-center justify-between gap-1 pl-2">
+    <div className="mb-1.5 flex h-8 shrink-0 items-center pl-2">
       <DropdownMenu>
         <Tooltip
           shortcut={sections.map(({ shortcut }) => (
@@ -104,7 +104,7 @@ export const NavigatorHeader = () => {
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      <QueryLoggerToggle />
+      {navigator === 'tables' && <TablesRefresh />}
     </div>
   )
 }

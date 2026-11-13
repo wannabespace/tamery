@@ -1,6 +1,7 @@
 import {
   AiChat02Icon,
   HierarchyIcon,
+  HistoryIcon,
   LayoutTable02Icon,
   PlusSignIcon,
   Refresh01Icon,
@@ -63,6 +64,10 @@ export const TabBar = ({
       <div className="flex shrink-0 items-center gap-0.5 border-b border-l px-1">
         <Button variant="ghost-muted" size="icon-xs">
           <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
+        </Button>
+        <Separator orientation="vertical" className="mx-0.5 h-4!" />
+        <Button variant="ghost-muted" size="icon-xs">
+          <HugeiconsIcon icon={HistoryIcon} strokeWidth={2} />
         </Button>
       </div>
     </div>

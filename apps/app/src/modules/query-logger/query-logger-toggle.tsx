@@ -13,8 +13,8 @@ export const QueryLoggerToggle = () => {
 
   return (
     <IconButton
-      variant="ghost-faint-muted"
-      size="icon-sm"
+      variant="ghost-muted"
+      size="icon-xs"
       icon={HistoryIcon}
       label="Query logger"
       side="bottom"
