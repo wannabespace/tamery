@@ -31,7 +31,7 @@ export const hostKeys = {
       }
       refused.set(getTunnel(connectionString), hostKey)
       log.info(
-        `Asked the browser whether to trust the SSH host ${paint.bold(printable(hostKey.host))}.`
+        `Refused the SSH host ${paint.bold(printable(hostKey.host))} until a browser trusts its key.`
       )
       return Promise.resolve(false)
     },
