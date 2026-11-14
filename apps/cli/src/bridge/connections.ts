@@ -81,6 +81,15 @@ const getServerCopy = async (
   return copy
 }
 
+/** `resolve` trusts a local copy while the API is down, so only a connection the API confirms right now gets one. */
+const confirmOnServer = (
+  connectionId: string,
+  errors: Pick<QueryErrors, 'NOT_FOUND'>
+) => {
+  serverCopies.delete(connectionId)
+  return getServerCopy(connectionId, false, errors)
+}
+
 export const getLocalAccess = (connectionString: string) => {
   const parts = connectionParts.parse(connectionString)
   const { database, host, type } = parts
@@ -129,7 +138,8 @@ export const connections = {
       })
     }
     const { connectionId } = input
-    const local = await vault.connection(connectionId)
+    const { local, localPassword } =
+      await vault.connectionWithLocalPassword(connectionId)
     const server = await getServerCopy(connectionId, !!local, errors)
     const known = server.connectionString ?? local
     if (!known) {
@@ -156,7 +166,6 @@ export const connections = {
             local,
           })
         : known
-    const localPassword = await vault.localPassword(connectionId)
     const connectionString = localPassword
       ? connectionSecrets.restore(restored, {
           isPasswordExists: true,
@@ -180,15 +189,16 @@ export const connections = {
       ? resourceConnectionString(connectionString, input.resourceName)
       : connectionString
   },
-  /** Never sent to a browser: the bridge fills it in while the connection still names that server, and only where it has no password. */
+  /** A found database's password, never sent to a browser: `resolve` fills it in only while the connection has none and still names `found`'s server. */
   keepLocalPassword: async (
-    connectionId: string,
-    connectionString: string,
+    { connectionId, found }: { connectionId: string; found: string },
+    password: string,
     errors: Pick<QueryErrors, 'NOT_FOUND'>
   ) => {
-    serverCopies.delete(connectionId)
-    await getServerCopy(connectionId, false, errors)
-    await vault.setLocalPassword(connectionId, connectionString)
+    await confirmOnServer(connectionId, errors)
+    const url = new SafeURL(found)
+    url.password = encodeURIComponent(password)
+    await vault.setLocalPassword(connectionId, url.toString())
   },
   /**
    * `false` when the string asks for a file, SSH route or machine login the bridge's copy did not have and `confirm` declined
@@ -205,13 +215,7 @@ export const connections = {
     confirm: (access: string[]) => Promise<boolean>,
     errors: Pick<QueryErrors, 'NOT_FOUND'>
   ) => {
-    // `resolve` trusts a local copy while the API is down, so only a connection the API confirms right now gets one.
-    serverCopies.delete(connectionId)
-    const { isPasswordExists } = await getServerCopy(
-      connectionId,
-      false,
-      errors
-    )
+    const { isPasswordExists } = await confirmOnServer(connectionId, errors)
     const previous = await vault.connection(connectionId)
     const next = previous
       ? connectionSecrets.restore(connectionString, {

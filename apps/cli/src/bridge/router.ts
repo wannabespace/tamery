@@ -9,7 +9,6 @@ import {
   bridgeKey,
 } from '@tamery/shared/bridge'
 import { challenge } from '@tamery/shared/challenge'
-import { SafeURL } from '@tamery/shared/safe-url'
 import { type } from 'arktype'
 import { Result } from 'better-result'
 
@@ -175,17 +174,17 @@ export const createRouter = ({
           const { password } = await localDatabases.unlock(
             input.connectionString
           )
-          if (!password) {
-            return false
+          if (password) {
+            await connections.keepLocalPassword(
+              {
+                connectionId: input.connectionId,
+                found: input.connectionString,
+              },
+              password,
+              errors
+            )
           }
-          const url = new SafeURL(input.connectionString)
-          url.password = encodeURIComponent(password)
-          await connections.keepLocalPassword(
-            input.connectionId,
-            url.toString(),
-            errors
-          )
-          return true
+          return !!password
         }),
     },
     query: createQueryRouter(authed.errors(queryErrors), {
