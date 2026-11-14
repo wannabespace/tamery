@@ -64,7 +64,8 @@ From then on, the web app sends this browser's queries through the bridge for as
 - The bridge listens only on `127.0.0.1`.
 - It accepts only browsers signed in to your own account, and only after you approve them in the terminal.
 - Secrets it keeps are encrypted with a key in the system keychain. On a Linux server without a keychain, the key goes in a file only your user can read.
-- It asks before a connection uses a local file, an SSH tunnel or the computer's own credentials.
+- Allowing a browser lets it use the computer's files, SSH keys and credentials, so allow only your own. Even then, it never opens files in app data folders (`~/Library`, `AppData`, dot folders), and it signs in with the computer's cloud credentials only to MongoDB Atlas.
+- It doesn't run a teammate's edit to a connection that uses those until you allow it in the web app.
 
 ## Docs
 

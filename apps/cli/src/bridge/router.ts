@@ -14,8 +14,10 @@ import { installer } from '../installer'
 import { paint } from '../paint'
 import { updates } from '../update-check'
 import { approvals } from './approvals'
+import { confinement } from './confinement'
 import { connections } from './connections'
 import { queryErrors } from './errors'
+import { hostKeys } from './host-keys'
 import { pairings } from './pairings'
 import { printable } from './printable'
 
@@ -52,6 +54,14 @@ export const createRouter = ({
 
   return {
     bridge: {
+      answerHostKey: authed
+        .input(type({ id: 'string', trusted: 'boolean' }))
+        .handler(async ({ input }) => {
+          hostKeys.answer(input.id, input.trusted)
+          await analytics.capture('bridge_host_key_answered', {
+            trusted: input.trusted,
+          })
+        }),
       hello: base
         .input(type({ browserId: 'string | null', nonce: 'string.hex == 64' }))
         .handler(({ input }) => {
@@ -61,6 +71,7 @@ export const createRouter = ({
             proof: hash ? bridgeKey.proof(hash, input.nonce) : null,
           }
         }),
+      hostKeys: authed.handler(() => hostKeys.waiting()),
       /**
        * Each side has Tamery vouch for its account before anyone is asked: anything that reaches the port (a local process, a
        * `--public-url` client) can send `userId` and pick `label`, so only `browserNonce` shows the request is the user's.
@@ -117,7 +128,7 @@ export const createRouter = ({
           }
           const label = input.label || UNNAMED_BROWSER
           const allowed = await approvals.ask(
-            `Allow ${paint.bold(label)} to run queries on this computer? Only if Tamery shows ${paint.bold(challenge.getUserCode(input.browserNonce))}.`
+            `Allow ${paint.bold(label)} to run queries on this computer, with its files, SSH keys and credentials? Only if Tamery shows ${paint.bold(challenge.getUserCode(input.browserNonce))}.`
           )
           await analytics.capture('bridge_pair_answered', { allowed })
           if (!allowed) {
@@ -128,47 +139,33 @@ export const createRouter = ({
           return { ...pairings.add(label), info: getInfo() }
         }),
       saveSecrets: authed
-        .errors({
-          ACCESS_DECLINED: {
-            message:
-              "The bridge did not allow this connection to open files or sign in with its computer's keys or credentials: it was declined, or nobody answered within 2 minutes. Save it again and allow it in the terminal running `tamery bridge`, or with `tamery bridge approve`.",
-          },
-          NOT_FOUND: queryErrors.NOT_FOUND,
-        })
+        .errors({ NOT_FOUND: queryErrors.NOT_FOUND })
         .input(
           type({
             connectionId: 'string.uuid.v7',
             connectionString: 'string > 0',
           })
         )
-        .handler(async ({ context, errors, input }) => {
-          const label =
-            pairings.find(context.browserId)?.label ?? UNNAMED_BROWSER
-          const saved = await connections.save(
-            input,
-            async (access) => {
-              const allowed = await approvals.ask(
-                `Allow ${paint.bold(label)} to have this computer use ${access.map((item) => paint.bold(printable(item))).join(', ')}?`
-              )
-              await analytics.capture('bridge_access_answered', {
-                access: access.length,
-                allowed,
-              })
-              return allowed
-            },
-            errors
-          )
-          if (!saved) {
-            throw errors.ACCESS_DECLINED()
-          }
+        .handler(async ({ errors, input }) => {
+          await connections.save(input, errors)
         }),
       unpair: authed.handler(({ context }) =>
         pairings.remove(context.browserId)
       ),
     },
     query: createQueryRouter(authed.errors(queryErrors), {
-      connectionString: (input, _context, dialect, errors) =>
-        connections.resolve(input, dialect, errors),
+      connectionString: async (input, _context, dialect, errors) => {
+        const connectionString = await connections.resolve(
+          input,
+          dialect,
+          errors
+        )
+        const refusal = confinement.getRefusal(connectionString)
+        if (refusal) {
+          throw errors.BAD_REQUEST({ message: refusal })
+        }
+        return connectionString
+      },
       owner: (context) => context.browserId,
     }),
   }

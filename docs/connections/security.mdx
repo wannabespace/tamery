@@ -25,7 +25,7 @@ Synced connection strings are encrypted with a workspace key. They are decrypted
 - **Web with [`tamery bridge`](/cli/overview):** the computer running the bridge connects to the database. Queries carry connection IDs, and the bridge gets each connection string through your account. Only the details your sync type keeps off Tamery's servers go from the browser to the bridge, once. Tamery's servers confirm that the bridge and the browser are signed in to the same account, and the bridge refuses requests that reach it through another address than its **Bridge URL**.
 - **Web without a bridge:** Tamery's cloud proxy connects to public database servers and handles the query and its results.
 
-The cloud proxy cannot reach private addresses, open SQLite, DuckDB and certificate files on your computer, or sign in to MongoDB with AWS, OIDC or Kerberos credentials. Use desktop or the bridge for those. Connections whose secrets stay on your device also need desktop or the bridge.
+The cloud proxy cannot reach private addresses, open SQLite, DuckDB and certificate files on your computer, or sign in to MongoDB with AWS, OIDC or Kerberos credentials. Use desktop or the bridge for those. The bridge skips files in app data folders and uses those credentials only for MongoDB Atlas, so a few of these need desktop. Connections whose secrets stay on your device also need desktop or the bridge.
 
 ### Cloud proxy IP addresses
 
@@ -44,7 +44,7 @@ Encryption between Tamery and your database depends on the connection's SSL sett
 
 ## SSH tunnels
 
-SSH tunnels run on desktop and on the computer running `tamery bridge`. Tamery checks the server's host key and asks before trusting an unknown one, the bridge in its terminal. A changed key is refused.
+SSH tunnels run on desktop and on the computer running `tamery bridge`. Tamery checks the server's host key and asks before trusting an unknown one, for the bridge in the web app. A changed key is refused.
 
 You can use your SSH agent, a key file, a pasted private key, or a password. `~/.ssh/config` is supported; `ProxyJump` and `ProxyCommand` are not.
 

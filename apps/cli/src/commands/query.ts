@@ -83,11 +83,11 @@ const resolveConnectionString = async (
       : await getServerConnectionString(id)
   const allowed = await connections.save(
     { connectionId: id, connectionString },
+    errors,
     async (access) =>
       (await askInTerminal(
         `Allow ${paint.bold(name)} to use ${access.map((item) => paint.bold(printable(item))).join(', ')} on this computer?`
-      )) === true,
-    errors
+      )) === true
   )
   if (!allowed) {
     throw new Error(`Did not allow ${paint.bold(name)}.`)

@@ -44,7 +44,7 @@ The CLI runs on macOS (Apple silicon and Intel), Linux (x64 and arm64), and Wind
 
 2. Check that the **Bridge URL** is the one `tamery bridge` printed, usually `http://127.0.0.1:26380`, and click **Connect**.
 
-3. **Settings → Bridge** and the terminal running `tamery bridge` both show a code. If they match, select **Yes** in the terminal and press **Enter**. **No** is selected first, and no answer within 2 minutes counts as no.
+3. **Settings → Bridge** and the terminal running `tamery bridge` both show a code. If they match, select **Yes** in the terminal and press **Enter**. This lets the browser run your connections on that computer, including ones that use its files, SSH keys or credentials. **No** is selected first, and no answer within 2 minutes counts as no.
 
 Keep the bridge running. The web app now sends every query through it, and a computer icon at the top of the window shows its state: a green dot while it answers, red within 10 seconds of it stopping. Hover it for the reason.
 
@@ -80,11 +80,9 @@ Some connections use this computer's files or credentials: a SQLite or DuckDB fi
 - **Saved by someone else:** click **Allow** on **Allow this connection on the bridge**.
 - **Edited since you allowed it,** in anything but the database name and secrets: allow it again. A teammate can't point the bridge at your files or credentials.
 
-The first time a connection uses a file, tunnel or login, the terminal running `tamery bridge` also asks you to confirm.
-
 To try a new connection while paired, save it first. Only saved connections run on the bridge.
 
-SQLite and DuckDB paths, `~/` included, point to files on the bridge's computer. The first DuckDB file downloads DuckDB for the bridge, once. A DuckDB query through the bridge reads only its own file, never other files or URLs. SSH tunnels open there too, with its SSH keys, agent and `~/.ssh/config`. When an SSH host isn't in that computer's `known_hosts`, the bridge asks in its terminal whether to trust it. Without a terminal it refuses, so connect once with `ssh` there first.
+SQLite and DuckDB paths, `~/` included, point to files on the bridge's computer. The bridge doesn't open files in app data folders, such as `~/Library`, `AppData` or a folder in your home folder whose name starts with a dot, where browsers and other apps keep cookies and keys. A MongoDB login with the computer's AWS, OIDC or Kerberos credentials runs on the bridge only for MongoDB Atlas, over TLS that checks the certificate. Open other connections like these in the desktop app. The first DuckDB file downloads DuckDB for the bridge, once. A DuckDB query through the bridge reads only its own file, never other files or URLs. SSH tunnels open there too, with its SSH keys, agent and `~/.ssh/config`. When an SSH host isn't in that computer's `known_hosts`, the web app shows its key fingerprint and asks whether to trust it. **Trust and Connect** adds it to `~/.ssh/known_hosts` on the bridge's computer, and no answer within 2 minutes counts as no.
 
 The bridge reaches databases and files with the rights of the system user that runs it. On a shared server, run it as a user with no more access than it needs.
 

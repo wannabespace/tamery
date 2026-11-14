@@ -174,8 +174,8 @@ export const connections = {
       : connectionString
   },
   /**
-   * `false` when the string asks for a file, SSH route or machine login the bridge's copy did not have and the person at its
-   * terminal declined it: a paired browser's script could otherwise point the bridge at any file or host on this computer.
+   * `false` when the string asks for a file, SSH route or machine login the bridge's copy did not have and `confirm` declined
+   * it. A paired browser passes none: pairing allowed it this computer's files and credentials.
    */
   save: async (
     {
@@ -185,8 +185,8 @@ export const connections = {
       connectionId: string
       connectionString: string
     },
-    confirm: (access: string[]) => Promise<boolean>,
-    errors: Pick<QueryErrors, 'NOT_FOUND'>
+    errors: Pick<QueryErrors, 'NOT_FOUND'>,
+    confirm?: (access: string[]) => Promise<boolean>
   ) => {
     // `resolve` trusts a local copy while the API is down, so only a connection the API confirms right now gets one.
     serverCopies.delete(connectionId)
@@ -202,8 +202,8 @@ export const connections = {
           local: previous,
         })
       : connectionString
-    const added = getUnconfirmedAccess(previous, next)
-    if (added.length > 0 && !(await confirm(added))) {
+    const added = confirm ? getUnconfirmedAccess(previous, next) : []
+    if (added.length > 0 && !(await confirm?.(added))) {
       return false
     }
     await vault.setConnection(connectionId, next)

@@ -12,6 +12,7 @@ import { Result } from 'better-result'
 
 import { analytics } from '../analytics'
 import { approvals } from '../bridge/approvals'
+import { hostKeys } from '../bridge/host-keys'
 import { pairings } from '../bridge/pairings'
 import { createRouter } from '../bridge/router'
 import { serveBridge } from '../bridge/server'
@@ -42,7 +43,7 @@ export const bridge = async (options: {
   intro(`${paint.brand('◆ Tamery bridge')} ${paint.dim(env.VERSION)}`)
   const account = await getAccount()
   const name = os.hostname().replace(/\.local$/u, '')
-  enableSshTunnels()
+  enableSshTunnels(hostKeys.ask)
   confineDuckdbFiles()
   confineSqliteFiles()
   const router = createRouter({ name, userId: account.id })

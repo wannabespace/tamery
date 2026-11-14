@@ -127,6 +127,7 @@ const { createRouter } = await import('./router')
 const { serveBridge } = await import('./server')
 const { pairings } = await import('./pairings')
 const { approvals } = await import('./approvals')
+const { hostKeys } = await import('./host-keys')
 const { vault } = await import('../vault')
 const { configFiles } = await import('../config-files')
 
@@ -191,14 +192,6 @@ const requestAccess = (
 const pair = async () => {
   const [pairing] = await Promise.all([requestAccess(), answer(true)])
   return pairing
-}
-
-/** Saves a string that asks for a file, tunnel or machine login, which the person at the terminal must allow. */
-const saveAllowed = async (
-  client: BridgeRouter,
-  input: Parameters<BridgeRouter['bridge']['saveSecrets']>[0]
-) => {
-  await Promise.all([client.bridge.saveSecrets(input), answer(true)])
 }
 
 const expectError = async (call: Promise<unknown>, code: string) => {
@@ -388,12 +381,12 @@ describe('connections', () => {
         query: 'select 1 as one',
       })
     await expectError(run(), 'UNCONFIRMED')
-    await saveAllowed(client, {
+    await client.bridge.saveSecrets({
       connectionId: ids.full,
       connectionString: `sqlite://${path.join(home, 'other.db')}`,
     })
     await expectError(run(), 'UNCONFIRMED')
-    await saveAllowed(client, {
+    await client.bridge.saveSecrets({
       connectionId: ids.full,
       connectionString: sqliteString,
     })
@@ -417,7 +410,7 @@ describe('connections', () => {
       }),
       'UNCONFIRMED'
     )
-    await saveAllowed(client, {
+    await client.bridge.saveSecrets({
       connectionId: ids.machineLogin,
       connectionString:
         'mongodb://elsewhere.example.com/app?authMechanism=MONGODB-AWS',
@@ -433,7 +426,7 @@ describe('connections', () => {
 
   test('a machine login routed through a proxy the bridge was not allowed is refused', async () => {
     const client = createClient(paired.secret)
-    await saveAllowed(client, {
+    await client.bridge.saveSecrets({
       connectionId: ids.proxied,
       connectionString: machineLoginString,
     })
@@ -469,7 +462,7 @@ describe('connections', () => {
     'a synced tunnel that %s than the one saved on the bridge is refused',
     async (_, saved) => {
       const client = createClient(paired.secret)
-      await saveAllowed(client, {
+      await client.bridge.saveSecrets({
         connectionId: ids.tunnel,
         connectionString: saved,
       })
@@ -483,21 +476,58 @@ describe('connections', () => {
     }
   )
 
-  test('a save that points the bridge at a file it did not have is declined at the terminal', async () => {
+  test("a paired browser's save opens a file without asking, since pairing allowed it", async () => {
     const client = createClient(paired.secret)
-    await Promise.all([
-      expectError(
-        client.bridge.saveSecrets({
-          connectionId: ids.metadataOnly,
-          connectionString: `sqlite://${path.join(home, 'Cookies')}`,
-        }),
-        'ACCESS_DECLINED'
-      ),
-      answer(false),
-    ])
-    expect((await vault.connection(ids.metadataOnly)) ?? '').not.toContain(
-      'Cookies'
+    await client.bridge.saveSecrets({
+      connectionId: ids.full,
+      connectionString: sqliteString,
+    })
+    expect(approvals.waiting()).toHaveLength(0)
+    expect(await vault.connection(ids.full)).toBe(sqliteString)
+  })
+
+  test('a paired browser answers whether to trust an SSH host while the tunnel waits', async () => {
+    const client = createClient(paired.secret)
+    const trusted = hostKeys.ask({
+      fingerprint: 'SHA256:abc',
+      host: 'bastion.example.com',
+      keyType: 'ssh-ed25519',
+    })
+    const [question] = await client.bridge.hostKeys()
+    expect(question).toMatchObject({ host: 'bastion.example.com' })
+    await client.bridge.answerHostKey({ id: question?.id ?? '', trusted: true })
+    expect(await trusted).toBe(true)
+    expect(await client.bridge.hostKeys()).toHaveLength(0)
+  })
+
+  test.each([
+    [
+      'a file in an app data folder',
+      'sqlite:///~/Library/Cookies/Cookies.sqlite',
+    ],
+    ['a cloud login to a server other than Atlas', machineLoginString],
+  ])('a paired browser cannot have the bridge open %s', async (_, saved) => {
+    const client = createClient(paired.secret)
+    serverCopies[ids.socketless] = modified(saved)
+    await client.bridge.saveSecrets({
+      connectionId: ids.socketless,
+      connectionString: saved,
+    })
+    const error = await expectError(
+      saved.startsWith('sqlite')
+        ? client.query.sqlite.execute({
+            connectionId: ids.socketless,
+            query: 'select 1',
+          })
+        : client.query.mongodb.execute({
+            connectionId: ids.socketless,
+            query: 'db.users.find()',
+          }),
+      'BAD_REQUEST'
     )
+    expect(error).toMatchObject({
+      message: expect.stringContaining('desktop app'),
+    })
   })
 
   test('secrets are saved only for a connection Tamery confirms', async () => {
@@ -542,7 +572,7 @@ describe('connections', () => {
     expect(error).toMatchObject({
       data: { connectionId: ids.metadataOnly, fields: 'all' },
     })
-    await saveAllowed(client, {
+    await client.bridge.saveSecrets({
       connectionId: ids.metadataOnly,
       connectionString: sqliteString,
     })

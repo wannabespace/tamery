@@ -15,6 +15,7 @@ import { useConnectionStringsSync } from '~/hooks/use-connection-strings-sync'
 import { useLastOpenedResourcesSync } from '~/hooks/use-last-opened-resources-sync'
 import { queryClient } from '~/lib/query-client'
 import { ActionsCenter } from '~/modules/actions-center/actions-center'
+import { HostKeyDialog } from '~/modules/bridge/host-key-dialog'
 import { useConnectionLinks } from '~/modules/connection-links/use-connection-links'
 import { CopyDatabaseDialog } from '~/modules/copy-database/copy-database-dialog'
 import { GlobalBanner } from '~/modules/global-banner/global-banner'
@@ -55,6 +56,7 @@ const ProtectedLayout = () => {
         <ActionsCenter />
         {window.electron && <McpHost />}
         {window.electron && <CopyDatabaseDialog />}
+        {!window.electron && <HostKeyDialog />}
         <SubscriptionModal />
         <WorkspaceInvitationDialog />
         <div className="flex h-full flex-col">

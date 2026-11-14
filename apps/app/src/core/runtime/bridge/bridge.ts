@@ -18,6 +18,7 @@ import {
   isLoopbackUrl,
   parseBridgeUrl,
 } from './client'
+import { bridgeHostKeys } from './host-keys'
 import type { BridgePairing } from './pairing'
 import {
   bridgeAsks,
@@ -61,9 +62,15 @@ const getPairedClient = memoize((pairing: BridgePairing): BridgeRouter =>
     createBridgeLink(pairing.url, pairing.secret),
     {
       interceptors: [
-        async ({ next }) => {
+        async ({ next, path }) => {
           await ensureConnected(pairing)
-          const call = () => safe(next())
+          const call = () =>
+            path[0] === 'query'
+              ? bridgeHostKeys.watch(
+                  () => safe(next()),
+                  () => getPairedClient(pairing).bridge.hostKeys()
+                )
+              : safe(next())
           const first = await call()
           const asked =
             first.definedError?.code === 'NEEDS_SECRETS'
@@ -110,6 +117,13 @@ const getPairedClient = memoize((pairing: BridgePairing): BridgeRouter =>
 )
 
 export const bridge = {
+  answerHostKey: async (id: string, trusted: boolean) => {
+    bridgeHostKeys.forget(id)
+    const pairing = getActivePairing()
+    if (pairing) {
+      await getPairedClient(pairing).bridge.answerHostKey({ id, trusted })
+    }
+  },
   client: getPairedClient,
   pair: async ({
     browserNonce,
