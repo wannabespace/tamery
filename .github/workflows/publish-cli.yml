@@ -40,10 +40,10 @@ jobs:
         working-directory: apps/cli
         run: bun scripts/build.ts --all
         env:
-          API_URL: ${{ secrets.API_URL }}
-          MAIN_URL: ${{ secrets.MAIN_URL }}
+          API_URL: https://api.tamery.app
+          MAIN_URL: https://tamery.app
           POSTHOG_TOKEN: ${{ secrets.POSTHOG_TOKEN }}
-          WEB_URL: ${{ secrets.WEB_URL }}
+          WEB_URL: https://web.tamery.app
 
       # A cross-compiled darwin binary carries an invalid signature, and macOS kills an arm64 one on start.
       - name: Sign macOS binaries (ad hoc)

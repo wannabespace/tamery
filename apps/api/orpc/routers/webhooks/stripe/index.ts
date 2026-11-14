@@ -22,7 +22,10 @@ const eventMap = new Map<
   ['customer.subscription.updated', subscriptionUpdated],
 ])
 
-const prices = new Set([env.STRIPE_MONTH_PRICE_ID, env.STRIPE_ANNUAL_PRICE_ID])
+const prices = new Set([
+  env.STRIPE_PRO_MONTH_PRICE_ID,
+  env.STRIPE_PRO_ANNUAL_PRICE_ID,
+])
 
 // A subscription moved to a custom price in the Stripe dashboard is still ours once we track it.
 const isTamerySubscription = async (subscription: Stripe.Subscription) => {

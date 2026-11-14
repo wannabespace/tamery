@@ -16,6 +16,7 @@ import {
   createQuery,
 } from '~/core/runtime/query'
 
+import { TABLE_DATA_STALE_TIME } from './list'
 import type { BindValue } from './shape'
 import {
   bindValue,
@@ -257,6 +258,8 @@ export const resourceTableTotalQueryOptions = ({
         filters,
       },
     ],
+    refetchOnWindowFocus: false,
+    staleTime: TABLE_DATA_STALE_TIME,
     throwOnError: false,
   })
 

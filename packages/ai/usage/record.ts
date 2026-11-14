@@ -1,5 +1,5 @@
 import { runInBackground } from '@tamery/shared/background'
-import type { LanguageModelUsage, TelemetryOptions } from 'ai'
+import type { LanguageModelUsage, ProviderMetadata, TelemetryOptions } from 'ai'
 
 import { getModelCost } from '../models/price'
 import type { AiFeature } from './feature'
@@ -19,12 +19,28 @@ export interface AiUsageRecord extends AiUsageScope {
   outputTokens: number
 }
 
+const openRouterCost = (metadata?: ProviderMetadata) => {
+  const usage = metadata?.openrouter?.usage
+  return usage &&
+    typeof usage === 'object' &&
+    'cost' in usage &&
+    typeof usage.cost === 'number'
+    ? usage.cost
+    : undefined
+}
+
 export const usageTelemetry = (
-  onUsage: (modelId: string, usage: LanguageModelUsage) => Promise<void>
+  onUsage: (
+    modelId: string,
+    usage: LanguageModelUsage,
+    providerCost?: number
+  ) => Promise<void>
 ): TelemetryOptions => ({
   integrations: {
-    onLanguageModelCallEnd: ({ modelId, usage }) =>
-      runInBackground(onUsage(modelId, usage)),
+    onLanguageModelCallEnd: ({ modelId, providerMetadata, usage }) =>
+      runInBackground(
+        onUsage(modelId, usage, openRouterCost(providerMetadata))
+      ),
   },
 })
 
@@ -34,14 +50,15 @@ export const createAiUsage = (
   const record = async (
     scope: AiUsageScope,
     modelId: string,
-    usage: LanguageModelUsage
+    usage: LanguageModelUsage,
+    providerCost?: number
   ) => {
     try {
       await onRecord({
         ...scope,
         cacheReadTokens: usage.inputTokenDetails.cacheReadTokens ?? 0,
         cacheWriteTokens: usage.inputTokenDetails.cacheWriteTokens ?? 0,
-        cost: await getModelCost(modelId, usage),
+        cost: providerCost ?? (await getModelCost(modelId, usage)),
         inputTokens: usage.inputTokens ?? 0,
         model: modelId,
         outputTokens: usage.outputTokens ?? 0,
@@ -53,6 +70,8 @@ export const createAiUsage = (
   return {
     record,
     telemetry: (scope: AiUsageScope) =>
-      usageTelemetry((modelId, usage) => record(scope, modelId, usage)),
+      usageTelemetry((modelId, usage, providerCost) =>
+        record(scope, modelId, usage, providerCost)
+      ),
   }
 }

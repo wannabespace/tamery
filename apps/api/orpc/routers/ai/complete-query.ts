@@ -31,8 +31,8 @@ export const completeQuery = orpc
     const result = await runCompleteQuery({
       connectionType: input.type,
       context: input.context,
-      onUsage: (modelId, modelUsage) =>
-        aiUsage.record(scope, modelId, modelUsage),
+      onUsage: (modelId, modelUsage, providerCost) =>
+        aiUsage.record(scope, modelId, modelUsage, providerCost),
       prefix: input.prefix,
       signal,
       suffix: input.suffix,

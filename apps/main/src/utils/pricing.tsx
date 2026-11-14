@@ -38,7 +38,7 @@ export const PRO_PLAN: PricingPlan = {
   ],
   name: 'Pro',
   price: {
-    monthly: 15,
-    yearly: 150,
+    monthly: 10,
+    yearly: 100,
   },
 }

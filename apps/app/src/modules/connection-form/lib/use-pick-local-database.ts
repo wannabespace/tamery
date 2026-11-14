@@ -1,13 +1,14 @@
+import type { LocalDatabase as FoundDatabase } from '@tamery/connection/local-databases/local-database'
 import { useSelector } from '@tanstack/react-form'
 import { Result } from 'better-result'
 import { useRef, useState } from 'react'
 
+import { localMachine } from '~/core/local-machine'
+
 import type { ConnectionForm } from './connection-form'
 import type { PasteVia } from './use-paste-connection'
 
-export type LocalDatabase = Awaited<
-  ReturnType<NonNullable<typeof window.electron>['localDatabases']['find']>
->[number]
+export type LocalDatabase = Omit<FoundDatabase, 'unlock'>
 
 export const usePickLocalDatabase = ({
   form,
@@ -37,7 +38,7 @@ export const usePickLocalDatabase = ({
     }
     unlocking.current = connectionString
     const unlock = await Result.tryPromise(
-      async () => await window.electron?.localDatabases.unlock(connectionString)
+      async () => await localMachine.unlockDatabase(connectionString)
     )
     const unlocked = unlock.unwrapOr(null)
     if (unlocking.current !== connectionString) {

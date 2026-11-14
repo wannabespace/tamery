@@ -120,11 +120,18 @@ resource "google_network_security_server_tls_policy" "cloudflare_only" {
   depends_on = [google_project_service.this["networksecurity.googleapis.com"]]
 }
 
+resource "google_compute_ssl_policy" "modern" {
+  name            = "modern"
+  profile         = "MODERN"
+  min_tls_version = "TLS_1_2"
+}
+
 resource "google_compute_target_https_proxy" "tamery" {
   name              = "tamery"
   url_map           = google_compute_url_map.tamery.id
   certificate_map   = "https://certificatemanager.googleapis.com/v1/${google_certificate_manager_certificate_map.tamery.id}"
   server_tls_policy = google_network_security_server_tls_policy.cloudflare_only.id
+  ssl_policy        = google_compute_ssl_policy.modern.id
 }
 
 resource "google_compute_global_forwarding_rule" "https" {

@@ -20,7 +20,8 @@ import { pickSshKeyFile } from './ssh-key-file'
 import { autoUpdater } from './todesktop'
 
 // Stays lazy so the native keyring addon and the finders' parsers don't load at startup.
-const loadLocalDatabases = () => import('./local-databases/find')
+const loadLocalDatabases = () =>
+  import('@tamery/connection/local-databases/find')
 
 const openAtLogin = {
   get: () => {

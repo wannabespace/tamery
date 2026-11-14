@@ -19,7 +19,8 @@ FROM base
 # A production-only install looks stale to pnpm, which would then reinstall the whole workspace before every `pnpm run`.
 ENV pnpm_config_verify_deps_before_run=false
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts --filter @tamery/api...
-RUN pnpm rebuild --filter @tamery/api...
+# Dropped for its CVEs: nothing in the image may run npm or npx, pnpm comes from corepack.
+RUN pnpm rebuild --filter @tamery/api... && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 COPY . .
 # Without a reference to the checked stage BuildKit skips it, and the type check with it.
 COPY --from=checked /app/apps/api/package.json /tmp/checked

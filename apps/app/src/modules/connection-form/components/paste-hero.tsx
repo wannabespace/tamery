@@ -132,9 +132,9 @@ export const PasteHero = ({
           {PASTE_FORMATS}
         </p>
       )}
-      {window.electron && mode.kind === 'create' && (
+      {mode.kind === 'create' && (
         <>
-          <AgentButton onClick={onAgent} />
+          {window.electron && <AgentButton onClick={onAgent} />}
           <LocalDatabases onPick={onLocalDatabase} />
         </>
       )}

@@ -116,7 +116,13 @@ await Promise.all(
       entrypoints: [path.join(import.meta.dirname, '..', 'src', 'index.ts')],
       // ssh2 loads these native addons inside a try and runs on pure JS without them; bundled, an unbuilt one fails the build.
       // DuckDB's driver is tens of megabytes per platform, so the bridge downloads it on its first DuckDB file.
-      external: ['cpu-features', '*.node', '@duckdb/node-api'],
+      // Keychain's addon is per platform too; the bridge finds local databases without it and leaves their Keychain passwords to the user.
+      external: [
+        'cpu-features',
+        '*.node',
+        '@duckdb/node-api',
+        '@napi-rs/keyring',
+      ],
       minify: true,
       plugins: [bundleDrivers],
     })

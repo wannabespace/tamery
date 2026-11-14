@@ -24,6 +24,14 @@ Only an instance that starts later sees the new value, so start a new revision. 
 gcloud run services update api --region=europe-west3 --revision-suffix="secrets-$(date +%s)"
 ```
 
+## Adding, renaming or retiring a secret
+
+Every name in `api_secrets` (`infra/secrets.tf`) is a secret the api mounts at `latest`. OpenTofu refuses to destroy one, so a name never disappears together with its value while a revision still reads it.
+
+1. **Add:** push the name. The Infra apply creates the secret, then stops at the `api` service, which cannot mount a secret with no value: set it (above) and re-run the workflow.
+2. **Rename:** add the new name beside the old one, set its value, and ship the code that reads it. The old name keeps the running revision booting until the new one takes over.
+3. **Retire** only once no running revision reads the name: drop it and the `prevent_destroy` in one change, approve the apply only if the plan destroys just that secret, and put `prevent_destroy` back in the next change.
+
 ## Rotation
 
 Run the scripts as the `api-rotate` Cloud Run Job. Its command is `bun`, and the arguments pick the script. Each one is a dry run unless you pass `--execute`, and each is safe to re-run:
