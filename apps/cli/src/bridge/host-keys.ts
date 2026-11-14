@@ -22,10 +22,6 @@ const getId = ({ fingerprint, host }: HostKey) => `${host} ${fingerprint}`
 const refused = new Map<string, HostKey>()
 const trusted = new Set<string>()
 
-/**
- * Asked like `NEEDS_SECRETS`, never by holding a query: the tunnel refuses an unknown key, its query fails with
- * `UNKNOWN_HOST_KEY`, and the retry after the browser trusts it finds the key trusted.
- */
 export const hostKeys = {
   confirm:
     (connectionString: string): ConfirmHostKey =>

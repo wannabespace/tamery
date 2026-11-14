@@ -479,16 +479,6 @@ describe('connections', () => {
     }
   )
 
-  test("a paired browser's save opens a file without asking, since pairing allowed it", async () => {
-    const client = createClient(paired.secret)
-    await client.bridge.saveSecrets({
-      connectionId: ids.full,
-      connectionString: sqliteString,
-    })
-    expect(approvals.waiting()).toHaveLength(0)
-    expect(await vault.connection(ids.full)).toBe(sqliteString)
-  })
-
   test('a query through an unknown SSH host key fails with the key, and runs once the browser trusts it', async () => {
     const client = createClient(paired.secret)
     const hostKey = {

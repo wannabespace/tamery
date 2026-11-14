@@ -23,7 +23,6 @@ const getAbsolutePath = (file: string) =>
     ? path.join(os.homedir(), file.slice(2))
     : path.resolve(file)
 
-/** Every symlink resolved, also in a file not created yet. */
 const getRealPath = (file: string): string => {
   const real = Result.try(() => fs.realpathSync.native(file))
   const parent = path.dirname(file)
@@ -58,20 +57,6 @@ const isSpecialFile = (file: string) => {
   return !!stats && !stats.isFile()
 }
 
-const getLocalFiles = (connectionString: string) => {
-  const { host, ssh, type } = connectionParts.parse(connectionString)
-  const { searchParams } = readConnectionString(connectionString)
-  const database =
-    (type === ConnectionType.SQLite || type === ConnectionType.DuckDB) && !host
-      ? getAbsolutePath(databaseFile.path(connectionString))
-      : null
-  const read = [
-    ...FILE_PARAMS.flatMap((param) => searchParams.getAll(param)),
-    ...(ssh?.auth === 'keyPath' && ssh.keyPath ? [ssh.keyPath] : []),
-  ].map(getAbsolutePath)
-  return { database, read }
-}
-
 /**
  * Every seed must be Atlas, since the driver signs in to each. `mongodb+srv://` turns TLS on unless the string turns it off;
  * `mongodb://` leaves it off unless the string turns it on. A `tlsCAFile` replaces the system's authorities.
@@ -100,11 +85,22 @@ const reachesAtlasOverVerifiedTls = (connectionString: string) => {
  */
 export const confinement = {
   getRefusal: (connectionString: string) => {
-    const { database, read } = getLocalFiles(connectionString)
+    const { host, ssh, type } = connectionParts.parse(connectionString)
+    const { searchParams } = readConnectionString(connectionString)
+    const database =
+      (type === ConnectionType.SQLite || type === ConnectionType.DuckDB) &&
+      !host
+        ? getAbsolutePath(databaseFile.path(connectionString))
+        : null
     if (database && isInAppData(database)) {
       return 'The bridge does not open files in app data folders, such as ~/Library, AppData or a folder starting with a dot, where browsers and other apps keep cookies and keys. Move the database elsewhere, or open it in the desktop app.'
     }
-    if ([database, ...read].some((file) => file && isSpecialFile(file))) {
+    const files = [
+      database,
+      ...FILE_PARAMS.flatMap((param) => searchParams.getAll(param)),
+      ssh?.auth === 'keyPath' ? ssh.keyPath : null,
+    ]
+    if (files.some((file) => file && isSpecialFile(getAbsolutePath(file)))) {
       return 'The bridge opens only regular files, never a device, pipe or folder. Check the paths in this connection.'
     }
     if (
