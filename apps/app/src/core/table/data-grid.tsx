@@ -106,7 +106,7 @@ export const DataGrid = ({
     rows,
     scrollRef,
   })
-  const pointer = useGridPointer(cursor)
+  const pointer = useGridPointer(cursor, scrollRef)
   const scrollToCell = useGridHandle({
     cursor,
     cursorRef,

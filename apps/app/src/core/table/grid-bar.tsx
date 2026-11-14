@@ -143,7 +143,10 @@ export const GridBar = ({
         ]
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center">
+    <div
+      data-grid-bar
+      className="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center"
+    >
       <AnimatePresence>
         {shown.length > 0 && (
           <motion.div

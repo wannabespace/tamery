@@ -200,8 +200,40 @@ export const useGridHotkeys = ({
   )
 }
 
-export const useGridPointer = (cursor: GridCursor) => {
+export const useGridPointer = (
+  cursor: GridCursor,
+  scrollRef: RefObject<HTMLDivElement | null>
+) => {
   const dragging = useRef(false)
+  const releaseOnPressAway = useEffectEvent((event: globalThis.MouseEvent) => {
+    const scroller = scrollRef.current
+    const { target } = event
+    if (
+      event.button !== 0 ||
+      !scroller ||
+      !(target instanceof Element) ||
+      scroller.contains(target.closest('[role=row]')) ||
+      target.closest('[data-grid-bar], [data-base-ui-portal]') ||
+      // A scrollbar press lands on the scroller itself, outside its client box.
+      (target === scroller &&
+        (event.offsetX >= scroller.clientWidth ||
+          event.offsetY >= scroller.clientHeight)) ||
+      !cursor.commit()
+    ) {
+      return
+    }
+    cursor.store.set({ anchor: null, cursor: null, edit: null, peek: false })
+    if (scroller.contains(target)) {
+      // Focusing the scroller would place a fresh cursor on the first cell.
+      event.preventDefault()
+      scroller.blur()
+    }
+  })
+  useEffect(() => {
+    document.addEventListener('mousedown', releaseOnPressAway, true)
+    return () =>
+      document.removeEventListener('mousedown', releaseOnPressAway, true)
+  }, [])
   return {
     onClick: (event: MouseEvent) => {
       if (getPosition(event) && isCheckbox(event)) {
