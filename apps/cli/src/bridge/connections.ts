@@ -149,13 +149,20 @@ export const connections = {
     ) {
       throw errors.UNCONFIRMED({ data: { connectionId } })
     }
-    const connectionString =
+    const restored =
       server.connectionString && local
         ? connectionSecrets.restore(server.connectionString, {
             isPasswordExists: server.isPasswordExists,
             local,
           })
         : known
+    const localPassword = await vault.localPassword(connectionId)
+    const connectionString = localPassword
+      ? connectionSecrets.restore(restored, {
+          isPasswordExists: true,
+          local: localPassword,
+        })
+      : restored
     const url = new SafeURL(connectionString)
     const missing = [
       ...(server.isPasswordExists && !url.password ? ['password'] : []),
@@ -172,6 +179,16 @@ export const connections = {
     return input.resourceName
       ? resourceConnectionString(connectionString, input.resourceName)
       : connectionString
+  },
+  /** Never sent to a browser: the bridge fills it in while the connection still names that server, and only where it has no password. */
+  keepLocalPassword: async (
+    connectionId: string,
+    connectionString: string,
+    errors: Pick<QueryErrors, 'NOT_FOUND'>
+  ) => {
+    serverCopies.delete(connectionId)
+    await getServerCopy(connectionId, false, errors)
+    await vault.setLocalPassword(connectionId, connectionString)
   },
   /**
    * `false` when the string asks for a file, SSH route or machine login the bridge's copy did not have and `confirm` declined

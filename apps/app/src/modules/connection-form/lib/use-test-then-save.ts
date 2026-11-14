@@ -126,6 +126,10 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
         {
           color: values.color,
           connectionString,
+          ...(values.foundDatabase &&
+            !values.password && {
+              foundDatabase: values.foundDatabase.connectionString,
+            }),
           label: values.label.trim() || null,
           name: values.name.trim() || generateRandomName(),
           provider: values.provider,

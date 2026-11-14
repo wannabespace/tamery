@@ -53,6 +53,7 @@ const localDatabase = (
           connectionString: connectionSecrets.strip(
             connectionParts.format({ ...server, password: '', type })
           ),
+          hasPassword: !!password,
           name: name || server.database || server.host,
           source,
           type,
@@ -83,6 +84,7 @@ export const localDatabases = {
         first
           ? {
               ...first,
+              hasPassword: first.hasPassword || database.hasPassword,
               unlock: async () => {
                 const unlocked = await first.unlock()
                 if (unlocked.password) {

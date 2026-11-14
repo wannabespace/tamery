@@ -3,6 +3,8 @@ import { MotionCollapse } from '@tamery/ui/components/collapse.motion'
 import { useSelector } from '@tanstack/react-form'
 import { AnimatePresence } from 'motion/react'
 
+import { useLocalMachine } from '~/core/local-machine'
+
 import type { ConnectionForm } from '../lib/connection-form'
 import { getMissing } from '../lib/connection-form'
 import { getEngineFields, getFieldNoun } from '../lib/engine-fields'
@@ -35,6 +37,10 @@ export const PasteNotes = ({
   const engineFields = useSelector(form.store, ({ values }) =>
     getEngineFields(values)
   )
+  const foundDatabase = useSelector(form.store, ({ values }) =>
+    values.password ? null : values.foundDatabase
+  )
+  const machine = useLocalMachine()
   const withheld =
     passwordWithheldBy && missing.includes('password')
       ? ` (${passwordWithheldBy} keeps it in the Keychain)`
@@ -44,6 +50,11 @@ export const PasteNotes = ({
     ...(missing.length > 0
       ? [
           `Add the ${FIELD_LIST.format(missing.map((field) => getFieldNoun(engineFields, field)))}${withheld}.`,
+        ]
+      : []),
+    ...(foundDatabase && machine
+      ? [
+          `Uses the password saved in ${foundDatabase.source} on ${machine.name}, which stays there.`,
         ]
       : []),
     ...fixes.map((fix) => FIX_NOTES[fix]),

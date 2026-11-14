@@ -23,6 +23,7 @@ import { bridgeKey } from '@tamery/shared/bridge'
 import { challenge } from '@tamery/shared/challenge'
 import { encrypt } from '@tamery/shared/crypto-node'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { SafeURL } from '@tamery/shared/safe-url'
 import { sleep } from '@tamery/shared/utils'
 
 import type { BridgeRouter } from './router'
@@ -50,6 +51,8 @@ const ids = {
   noPassword: '0190a1b2-0000-7000-8000-000000000003',
   socketless: '0190a1b2-0000-7000-8000-000000000009',
   unresolved: '0190a1b2-0000-7000-8000-000000000007',
+  found: '0190a1b2-0000-7000-8000-00000000000b',
+  foundElsewhere: '0190a1b2-0000-7000-8000-00000000000c',
 }
 
 const databaseFile = path.join(home, 'test.db')
@@ -81,6 +84,8 @@ const serverCopies: Record<string, unknown> = {
   [ids.noPassword]: modified('postgresql://user:@db.internal:5432/app', true),
   [ids.socketless]: modified(`postgresql://${databaseFile}`),
   [ids.unresolved]: { status: 'no-connection-string' },
+  [ids.found]: modified('postgresql://me@localhost:5433/orders'),
+  [ids.foundElsewhere]: modified('postgresql://me@evil.example:5433/app'),
 }
 let apiDown = false
 let signedOut = false
@@ -129,6 +134,7 @@ void mock.module('../api', () => ({
 
 const FOUND = {
   connectionString: 'postgresql://me@localhost:5433/app',
+  hasPassword: true,
   name: 'Local app',
   source: 'DBeaver',
   type: ConnectionType.Postgres,
@@ -136,6 +142,7 @@ const FOUND = {
 const FOUND_WITHOUT_PASSWORD = {
   ...FOUND,
   connectionString: 'postgresql://me@localhost:5434/other',
+  hasPassword: false,
 }
 const FOUND_PASSWORD = 'found-secret'
 
@@ -747,51 +754,59 @@ describe('connections', () => {
 })
 
 describe('local databases', () => {
-  test('an unpaired browser finds and unlocks nothing', async () => {
+  test('an unpaired browser finds and keeps nothing', async () => {
     const client = createClient(null)
     await expectError(client.localDatabases.find(), 'UNAUTHORIZED')
     await expectError(
-      client.localDatabases.unlock({
+      client.localDatabases.keepPassword({
+        connectionId: ids.found,
         connectionString: FOUND.connectionString,
       }),
       'UNAUTHORIZED'
     )
   })
 
-  test('a string without a found password unlocks nothing and asks nobody', async () => {
+  test('a found password stays on the bridge and fills in only the server it was found on', async () => {
     const client = createClient(paired.secret)
+    const resolved: string[] = []
+    forwarding.use((connectionString) => {
+      resolved.push(connectionString)
+      throw new Error('stopped before connecting')
+    })
+    const runOn = async (connectionId: string) => {
+      await client.query.postgres
+        .execute({ connectionId, query: 'select 1' })
+        .catch(() => null)
+      return new SafeURL(resolved.at(-1) ?? '').password
+    }
     expect(await client.localDatabases.find()).toEqual([
       FOUND,
       FOUND_WITHOUT_PASSWORD,
     ])
     for (const connectionString of [
       FOUND_WITHOUT_PASSWORD.connectionString,
-      'postgresql://admin:typed-by-the-page@evil.example/app',
+      'postgresql://admin@evil.example/app',
     ]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop -- each call must finish before checking nothing waits
-      expect(await client.localDatabases.unlock({ connectionString })).toEqual({
-        password: '',
-        withheld: false,
-      })
-      expect(approvals.waiting()).toHaveLength(0)
+      expect(
+        // oxlint-disable-next-line eslint/no-await-in-loop -- each keep must finish before the next
+        await client.localDatabases.keepPassword({
+          connectionId: ids.found,
+          connectionString,
+        })
+      ).toBe(false)
     }
-  })
-
-  test('a found password leaves only once the terminal allows it', async () => {
-    const client = createClient(paired.secret)
-    const input = { connectionString: FOUND.connectionString }
-    const [declined] = await Promise.all([
-      client.localDatabases.unlock(input),
-      answer(false),
-    ])
-    expect(declined.password).toBe('')
-    const [allowed, request] = await Promise.all([
-      client.localDatabases.unlock(input),
-      answer(true),
-    ])
-    expect(allowed.password).toBe(FOUND_PASSWORD)
-    expect(request?.question).toContain(FOUND.connectionString)
-    expect(request?.question).not.toContain(FOUND_PASSWORD)
+    for (const connectionId of [ids.found, ids.foundElsewhere]) {
+      expect(
+        // oxlint-disable-next-line eslint/no-await-in-loop -- each keep must finish before the next
+        await client.localDatabases.keepPassword({
+          connectionId,
+          connectionString: FOUND.connectionString,
+        })
+      ).toBe(true)
+    }
+    expect(approvals.waiting()).toHaveLength(0)
+    expect(await runOn(ids.found)).toBe(FOUND_PASSWORD)
+    expect(await runOn(ids.foundElsewhere)).toBe('')
   })
 })
 

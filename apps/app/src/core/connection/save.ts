@@ -21,6 +21,8 @@ import { bridge } from '~/core/runtime/bridge/bridge'
 export interface ConnectionDetails {
   color?: string | null
   connectionString: string
+  /** Its password stays on the bridge, which found the database: `bridge.keepLocalPassword`. */
+  foundDatabase?: string
   label?: string | null
   name: string
   provider: Provider | null
@@ -122,7 +124,7 @@ export const saveConnectionString = async ({
 
 const saveConnection = async (
   connectionId: string,
-  { connectionString, ...details }: ConnectionDetails,
+  { connectionString, foundDatabase, ...details }: ConnectionDetails,
   writeRow: (
     row: Omit<Connection, 'createdAt' | 'id' | 'syncType' | 'workspaceId'>
   ) => void
@@ -148,6 +150,17 @@ const saveConnection = async (
     const persisted = await saved.settled
     if (persisted.isErr()) {
       throw persisted.error.cause
+    }
+    if (foundDatabase) {
+      const kept = await Result.tryPromise(() =>
+        bridge.keepLocalPassword(connectionId, foundDatabase)
+      )
+      if (!kept.unwrapOr(false)) {
+        toast.error(
+          "The bridge didn't find this database's saved password anymore. Enter it in the connection.",
+          { id: `bridge-password-${connectionId}` }
+        )
+      }
     }
   }
   return saved

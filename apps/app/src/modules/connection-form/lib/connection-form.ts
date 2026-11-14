@@ -27,6 +27,8 @@ export interface ConnectionFormValues extends Omit<
   'ssh' | 'type'
 > {
   color: string | null
+  /** A database the bridge found with its password, which stays on the bridge: the form leaves the password empty. */
+  foundDatabase: { connectionString: string; source: string } | null
   label: string
   name: string
   ssh: SshTunnel
@@ -38,6 +40,7 @@ export interface ConnectionFormValues extends Omit<
 const DEFAULT_VALUES: ConnectionFormValues = {
   color: null,
   database: '',
+  foundDatabase: null,
   host: '',
   https: null,
   label: '',
@@ -162,7 +165,8 @@ export const getMissing = (values: ConnectionFormValues) =>
   getEngineFields(values).rows.flatMap(({ name, optional }) =>
     optional ||
     values[name].trim() ||
-    (name === 'password' && isLocalHost(values.host.trim()))
+    (name === 'password' &&
+      (isLocalHost(values.host.trim()) || !!values.foundDatabase))
       ? []
       : [name]
   )

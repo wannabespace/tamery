@@ -14,6 +14,7 @@ const KEYCHAIN_ITEM = { name: 'bridge-key', service: 'app.tamery.cli' }
 const vaultData = type({
   account: type({ email: 'string', id: 'string', token: 'string' }).or('null'),
   connections: { '[string]': 'string' },
+  'localPasswords?': { '[string]': 'string' },
 })
 
 const vaultFile = type('string.json.parse').to(vaultData)
@@ -103,8 +104,17 @@ export const vault = {
     const { keyInFile } = await readKey()
     return keyInFile
   },
+  /** A found database's string with its password, which fills only that server: `connections.keepLocalPassword`. */
+  localPassword: async (id: string) => {
+    const { localPasswords } = await read()
+    return localPasswords?.[id] ?? null
+  },
   removeConnection: (id: string) =>
-    change((data) => ({ ...data, connections: omit(data.connections, [id]) })),
+    change((data) => ({
+      ...data,
+      connections: omit(data.connections, [id]),
+      localPasswords: omit(data.localPasswords ?? {}, [id]),
+    })),
   reset: async () => {
     configFiles.remove(configFiles.vault)
     configFiles.remove(configFiles.key)
@@ -112,6 +122,11 @@ export const vault = {
   },
   setAccount: (account: VaultData['account']) =>
     change((data) => ({ ...data, account })),
+  setLocalPassword: (id: string, connectionString: string) =>
+    change((data) => ({
+      ...data,
+      localPasswords: { ...data.localPasswords, [id]: connectionString },
+    })),
   setConnection: (id: string, connectionString: string) =>
     change((data) => ({
       ...data,

@@ -233,6 +233,26 @@ describe('localDatabases', () => {
     )
   })
 
+  it('says an entry has a password only when one was read with it, never asking the Keychain', async () => {
+    const found = await localDatabases.find()
+    const withPassword = found.flatMap(({ hasPassword, name, source }) =>
+      hasPassword ? [`${source} ${name}`] : []
+    )
+    expect(withPassword).toEqual(
+      expect.arrayContaining([
+        'DBeaver Local app',
+        'DBeaver No saved password',
+        '.my.cnf db.local',
+        'Docker maria',
+      ])
+    )
+    const fromKeychain = found.filter(
+      ({ source }) => source === 'TablePlus' || source === 'DataGrip'
+    )
+    expect(fromKeychain.length).toBeGreaterThan(0)
+    expect(fromKeychain.some(({ hasPassword }) => hasPassword)).toBe(false)
+  })
+
   it('unlocks nothing for a string find never returned', async () => {
     expect(
       await localDatabases.unlock('postgresql://me@elsewhere/app')
