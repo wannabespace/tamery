@@ -202,7 +202,8 @@ export const useGridHotkeys = ({
 
 export const useGridPointer = (
   cursor: GridCursor,
-  scrollRef: RefObject<HTMLDivElement | null>
+  scrollRef: RefObject<HTMLDivElement | null>,
+  barRef: RefObject<HTMLDivElement | null>
 ) => {
   const dragging = useRef(false)
   const releaseOnPressAway = useEffectEvent((event: globalThis.MouseEvent) => {
@@ -213,7 +214,8 @@ export const useGridPointer = (
       !scroller ||
       !(target instanceof Element) ||
       scroller.contains(target.closest('[role=row]')) ||
-      target.closest('[data-grid-bar], [data-base-ui-portal]') ||
+      barRef.current?.contains(target) ||
+      target.closest('[data-base-ui-portal]') ||
       // A scrollbar press lands on the scroller itself, outside its client box.
       (target === scroller &&
         (event.offsetX >= scroller.clientWidth ||

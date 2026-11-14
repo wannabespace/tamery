@@ -1,6 +1,6 @@
 import { Separator } from '@tamery/ui/components/separator'
 import { AnimatePresence, motion } from 'motion/react'
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { isNumericColumn } from './cell/utils'
@@ -123,9 +123,11 @@ const Summary = ({ stats }: { stats: [string, StatValue][] }) => (
 export const GridBar = ({
   cursor,
   items,
+  ref,
 }: {
   cursor: GridCursor
   items?: GridBarItem[]
+  ref?: Ref<HTMLDivElement>
 }) => {
   const range = useSubscription(cursor.store, {
     selector: ({ anchor, cursor: at }) => (anchor ? { anchor, at } : null),
@@ -144,7 +146,7 @@ export const GridBar = ({
 
   return (
     <div
-      data-grid-bar
+      ref={ref}
       className="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center"
     >
       <AnimatePresence>
