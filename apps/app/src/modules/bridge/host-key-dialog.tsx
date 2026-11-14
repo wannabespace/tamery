@@ -1,4 +1,3 @@
-import { silently } from '@tamery/shared/utils'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,8 +12,8 @@ import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
-import { bridge } from '~/core/runtime/bridge/bridge'
 import { bridgeHostKeys } from '~/core/runtime/bridge/host-keys'
+import { posthog } from '~/lib/posthog'
 
 export const HostKeyDialog = () => {
   const pending = useSubscription(bridgeHostKeys.store, {
@@ -25,8 +24,10 @@ export const HostKeyDialog = () => {
     setShown(pending)
   }
   const cancelRef = useRef<HTMLButtonElement>(null)
-  const answer = (trusted: boolean) =>
-    pending && silently(() => bridge.answerHostKey(pending.id, trusted))
+  const answer = (trusted: boolean) => {
+    pending?.answer(trusted)
+    posthog.capture('bridge_host_key_answered', { trusted })
+  }
 
   return (
     <AlertDialog
@@ -38,13 +39,13 @@ export const HostKeyDialog = () => {
         <AlertDialogContent key={shown.id} initialFocus={cancelRef}>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Trust the SSH host <span data-mask>{shown.host}</span>?
+              Trust the SSH host <span data-mask>{shown.hostKey.host}</span>?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Its {shown.keyType} key fingerprint is{' '}
-              <InlineCode data-mask>{shown.fingerprint}</InlineCode>. Connect
-              only if this matches the server’s key. The bridge adds it to{' '}
-              <InlineCode>~/.ssh/known_hosts</InlineCode>.
+              Its {shown.hostKey.keyType} key fingerprint is{' '}
+              <InlineCode data-mask>{shown.hostKey.fingerprint}</InlineCode>.
+              Connect only if this matches the server’s key. The bridge adds it
+              to <InlineCode>~/.ssh/known_hosts</InlineCode>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

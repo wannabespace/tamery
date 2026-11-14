@@ -1,5 +1,6 @@
 import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
 import { SafeURL } from '@tamery/shared/safe-url'
+import { Result } from 'better-result'
 
 import {
   connectionParts,
@@ -105,10 +106,29 @@ const MACHINE_CREDENTIAL_MECHANISMS = new Set([
   'MONGODB-OIDC',
 ])
 
+// Sync with the driver's `AuthMechanism`, in its order: it takes the first one `authMechanism` matches as a `\b…\b` pattern, so `AWS` or `A.S` is MONGODB-AWS.
+const MONGODB_AUTH_MECHANISMS = [
+  'MONGODB-AWS',
+  'DEFAULT',
+  'GSSAPI',
+  'PLAIN',
+  'SCRAM-SHA-1',
+  'SCRAM-SHA-256',
+  'MONGODB-X509',
+  'MONGODB-OIDC',
+]
+
+const isMachineCredentialLogin = (authMechanism: string) =>
+  Result.try(() => {
+    // oxlint-disable-next-line eslint/require-unicode-regexp -- the driver's own flags: `u` refuses patterns it accepts
+    const pattern = new RegExp(String.raw`\b${authMechanism}\b`, 'i')
+    const mechanism = MONGODB_AUTH_MECHANISMS.find((name) => pattern.test(name))
+    return !!mechanism && MACHINE_CREDENTIAL_MECHANISMS.has(mechanism)
+  }).unwrapOr(false)
+
 export const describeConnectionString = (connectionString: string) => {
   const { database, host, password, searchParams, user } =
     readConnectionString(connectionString)
-  const authMechanism = searchParams.get('authmechanism')
   const { defaultDatabase, defaultSchema, label, resource } =
     getEngineString(connectionString)
   return {
@@ -123,9 +143,9 @@ export const describeConnectionString = (connectionString: string) => {
     isInternal: isInternalHost(host),
     isPasswordPopulated: !!password,
     missingSecrets: connectionSecrets.missing(searchParams),
-    usesMachineCredentials:
-      !!authMechanism &&
-      MACHINE_CREDENTIAL_MECHANISMS.has(authMechanism.toUpperCase()),
+    usesMachineCredentials: searchParams
+      .getAll('authmechanism')
+      .some(isMachineCredentialLogin),
     usesSsh: !!searchParams.get(SSH_PARAMS.host),
   }
 }

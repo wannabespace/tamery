@@ -1,8 +1,13 @@
 import { log } from '@clack/prompts'
 import { os } from '@orpc/server'
 import type { RouterClient } from '@orpc/server'
+import { forwarding } from '@tamery/connection/forwarding'
 import { createQueryRouter } from '@tamery/query-proxy'
-import { BRIDGE_PROTOCOL, bridgeKey } from '@tamery/shared/bridge'
+import {
+  BRIDGE_PROTOCOL,
+  bridgeHostKey,
+  bridgeKey,
+} from '@tamery/shared/bridge'
 import { challenge } from '@tamery/shared/challenge'
 import { type } from 'arktype'
 import { Result } from 'better-result'
@@ -54,14 +59,6 @@ export const createRouter = ({
 
   return {
     bridge: {
-      answerHostKey: authed
-        .input(type({ id: 'string', trusted: 'boolean' }))
-        .handler(async ({ input }) => {
-          hostKeys.answer(input.id, input.trusted)
-          await analytics.capture('bridge_host_key_answered', {
-            trusted: input.trusted,
-          })
-        }),
       hello: base
         .input(type({ browserId: 'string | null', nonce: 'string.hex == 64' }))
         .handler(({ input }) => {
@@ -71,7 +68,6 @@ export const createRouter = ({
             proof: hash ? bridgeKey.proof(hash, input.nonce) : null,
           }
         }),
-      hostKeys: authed.handler(() => hostKeys.waiting()),
       /**
        * Each side has Tamery vouch for its account before anyone is asked: anything that reaches the port (a local process, a
        * `--public-url` client) can send `userId` and pick `label`, so only `browserNonce` shows the request is the user's.
@@ -147,8 +143,11 @@ export const createRouter = ({
           })
         )
         .handler(async ({ errors, input }) => {
-          await connections.save(input, errors)
+          await connections.save(input, () => Promise.resolve(true), errors)
         }),
+      trustHostKey: authed
+        .input(bridgeHostKey)
+        .handler(({ input }) => hostKeys.trust(input)),
       unpair: authed.handler(({ context }) =>
         pairings.remove(context.browserId)
       ),
@@ -164,6 +163,11 @@ export const createRouter = ({
         if (refusal) {
           throw errors.BAD_REQUEST({ message: refusal })
         }
+        // Opened here, before the driver, so an unknown host key reaches the browser as its own error.
+        await forwarding.of(connectionString).catch((error: unknown) => {
+          const hostKey = hostKeys.getRefused(connectionString, error)
+          throw hostKey ? errors.UNKNOWN_HOST_KEY({ data: hostKey }) : error
+        })
         return connectionString
       },
       owner: (context) => context.browserId,

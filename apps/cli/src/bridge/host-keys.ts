@@ -1,36 +1,55 @@
-import { randomUUID } from 'node:crypto'
-
 import { log } from '@clack/prompts'
+import { connectionParts } from '@tamery/connection/connection-parts'
 import type { ConfirmHostKey } from '@tamery/connection/ssh/host-key'
+import { HOST_KEY_REFUSALS } from '@tamery/connection/ssh/host-key'
+import { tunnelError } from '@tamery/connection/ssh/params'
+import type { bridgeHostKey } from '@tamery/shared/bridge'
+import { toError } from '@tamery/shared/utils'
 
 import { paint } from '../paint'
 import { printable } from './printable'
 
-const ANSWER_TIMEOUT_MS = 2 * 60 * 1000
+type HostKey = typeof bridgeHostKey.infer
 
-type HostKeyQuestion = Parameters<ConfirmHostKey>[0]
+const UNTRUSTED = tunnelError(HOST_KEY_REFUSALS.unknown).message
 
-const waiting = new Map<
-  string,
-  { question: HostKeyQuestion; trust: (trusted: boolean) => void }
->()
+const getTunnel = (connectionString: string) =>
+  JSON.stringify(connectionParts.parse(connectionString).ssh)
 
-/** In memory, unlike `approvals`: a paired browser answers, through this process, while the query that asked waits. */
+const getId = ({ fingerprint, host }: HostKey) => `${host} ${fingerprint}`
+
+// By tunnel: queries through one share its session, so only the first is asked.
+const refused = new Map<string, HostKey>()
+const trusted = new Set<string>()
+
+/**
+ * Asked like `NEEDS_SECRETS`, never by holding a query: the tunnel refuses an unknown key, its query fails with
+ * `UNKNOWN_HOST_KEY`, and the retry after the browser trusts it finds the key trusted.
+ */
 export const hostKeys = {
-  answer: (id: string, trusted: boolean) => waiting.get(id)?.trust(trusted),
-  ask: (question: HostKeyQuestion) => {
-    const id = randomUUID()
-    const { promise, resolve } = Promise.withResolvers<boolean>()
-    const timeout = setTimeout(resolve, ANSWER_TIMEOUT_MS, false)
-    waiting.set(id, { question, trust: resolve })
-    log.info(
-      `Asked the browser whether to trust the SSH host ${paint.bold(printable(question.host))}.`
-    )
-    return promise.finally(() => {
-      clearTimeout(timeout)
-      waiting.delete(id)
-    })
+  confirm:
+    (connectionString: string): ConfirmHostKey =>
+    (hostKey) => {
+      if (trusted.delete(getId(hostKey))) {
+        return Promise.resolve(true)
+      }
+      refused.set(getTunnel(connectionString), hostKey)
+      log.info(
+        `Asked the browser whether to trust the SSH host ${paint.bold(printable(hostKey.host))}.`
+      )
+      return Promise.resolve(false)
+    },
+  getRefused: (connectionString: string, error: unknown) =>
+    toError(error).message === UNTRUSTED
+      ? (refused.get(getTunnel(connectionString)) ?? null)
+      : null,
+  /** Only a key a tunnel presented: a browser cannot plant trust in one ahead of its host. */
+  trust: (hostKey: HostKey) => {
+    for (const [tunnel, asked] of refused) {
+      if (getId(asked) === getId(hostKey)) {
+        refused.delete(tunnel)
+        trusted.add(getId(hostKey))
+      }
+    }
   },
-  waiting: () =>
-    [...waiting].map(([id, { question }]) => ({ id, ...question })),
 }

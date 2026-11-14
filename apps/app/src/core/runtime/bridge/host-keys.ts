@@ -1,54 +1,34 @@
-import type { InferClientOutputs } from '@orpc/client'
-import type { BridgeRouter } from '@tamery/cli/src/bridge/router'
-import { sleep } from '@tamery/shared/utils'
-import { Result } from 'better-result'
+import type { bridgeHostKey } from '@tamery/shared/bridge'
 import { createStore } from 'seitu'
 
-type BridgeHostKey =
-  InferClientOutputs<BridgeRouter>['bridge']['hostKeys'][number]
+type BridgeHostKey = typeof bridgeHostKey.infer
 
-const POLL_MS = 1000
-
-const store = createStore<BridgeHostKey[]>([])
-// A list asked for before an answer reached the bridge still names that key.
-const answered = new Set<string>()
-
-let running = 0
-let polling = false
-
-const poll = async (list: () => Promise<BridgeHostKey[]>): Promise<void> => {
-  await sleep(POLL_MS)
-  if (running === 0) {
-    polling = false
-    store.set([])
-    return
-  }
-  const waiting = await Result.tryPromise(() => list())
-  store.set(waiting.unwrapOr([]).filter((key) => !answered.has(key.id)))
-  return poll(list)
+interface HostKeyQuestion {
+  answer: (trusted: boolean) => void
+  hostKey: BridgeHostKey
+  id: string
 }
 
-/** SSH host keys the bridge waits on a browser to trust. */
+const store = createStore<HostKeyQuestion[]>([])
+const asking = new Map<string, Promise<boolean>>()
+
+/** SSH host keys the bridge refused until this browser trusts them. Queries refused for one key share its question. */
 export const bridgeHostKeys = {
-  forget: (id: string) => {
-    answered.add(id)
-    store.set((keys) => keys.filter((key) => key.id !== id))
+  ask: (hostKey: BridgeHostKey) => {
+    const id = `${hostKey.host} ${hostKey.fingerprint}`
+    const pending = asking.get(id)
+    if (pending) {
+      return pending
+    }
+    const { promise, resolve } = Promise.withResolvers<boolean>()
+    const question = { answer: resolve, hostKey, id }
+    store.set((questions) => [...questions, question])
+    const answered = promise.finally(() => {
+      asking.delete(id)
+      store.set((questions) => questions.filter((asked) => asked !== question))
+    })
+    asking.set(id, answered)
+    return answered
   },
   store,
-  /** The bridge holds a query while its tunnel waits for the answer, so the question is found only by asking alongside it. */
-  watch: async <T>(
-    run: () => Promise<T>,
-    list: () => Promise<BridgeHostKey[]>
-  ) => {
-    running += 1
-    if (!polling) {
-      polling = true
-      void poll(list)
-    }
-    try {
-      return await run()
-    } finally {
-      running -= 1
-    }
-  },
 }

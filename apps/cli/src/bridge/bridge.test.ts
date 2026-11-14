@@ -14,7 +14,10 @@ import process from 'node:process'
 
 import { createORPCClient, ORPCError } from '@orpc/client'
 import { RPCLink } from '@orpc/client/fetch'
+import { forwarding } from '@tamery/connection/forwarding'
 import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/client'
+import { HOST_KEY_REFUSALS } from '@tamery/connection/ssh/host-key'
+import { tunnelError } from '@tamery/connection/ssh/params'
 import { querySerializer } from '@tamery/query-proxy/serializer'
 import { bridgeKey } from '@tamery/shared/bridge'
 import { challenge } from '@tamery/shared/challenge'
@@ -486,18 +489,38 @@ describe('connections', () => {
     expect(await vault.connection(ids.full)).toBe(sqliteString)
   })
 
-  test('a paired browser answers whether to trust an SSH host while the tunnel waits', async () => {
+  test('a query through an unknown SSH host key fails with the key, and runs once the browser trusts it', async () => {
     const client = createClient(paired.secret)
-    const trusted = hostKeys.ask({
+    const hostKey = {
       fingerprint: 'SHA256:abc',
       host: 'bastion.example.com',
       keyType: 'ssh-ed25519',
+    }
+    let isTrusted = false
+    forwarding.use(async (connectionString) => {
+      isTrusted ||= await hostKeys.confirm(connectionString)(hostKey)
+      if (!isTrusted) {
+        throw tunnelError(HOST_KEY_REFUSALS.unknown)
+      }
+      return null
     })
-    const [question] = await client.bridge.hostKeys()
-    expect(question).toMatchObject({ host: 'bastion.example.com' })
-    await client.bridge.answerHostKey({ id: question?.id ?? '', trusted: true })
-    expect(await trusted).toBe(true)
-    expect(await client.bridge.hostKeys()).toHaveLength(0)
+    const saved = `${sqliteString}?ssh_host=bastion.example.com&ssh_user=deploy&ssh_auth=agent`
+    serverCopies[ids.socketless] = modified(saved)
+    await client.bridge.saveSecrets({
+      connectionId: ids.socketless,
+      connectionString: saved,
+    })
+    const run = () =>
+      client.query.sqlite.execute({
+        connectionId: ids.socketless,
+        query: 'select 1 as one',
+      })
+    await client.bridge.trustHostKey(hostKey)
+    const error = await expectError(run(), 'UNKNOWN_HOST_KEY')
+    expect(error).toMatchObject({ data: hostKey })
+    await client.bridge.trustHostKey(hostKey)
+    const { result } = await run()
+    expect(JSON.stringify(result)).toContain('one')
   })
 
   test.each([

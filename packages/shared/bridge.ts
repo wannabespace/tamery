@@ -33,6 +33,12 @@ export const bridgeAttestationInput = type({
 
 export const bridgeUnconfirmed = type({ connectionId: 'string' })
 
+export const bridgeHostKey = type({
+  fingerprint: 'string',
+  host: 'string',
+  keyType: 'string',
+})
+
 /** `'all'` when the bridge holds no string at all, as for **Metadata only**. */
 export const bridgeNeedsSecrets = type({
   connectionId: 'string',
