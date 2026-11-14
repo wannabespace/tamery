@@ -10,7 +10,7 @@ const ItemGroup = ({ className, ...props }: React.ComponentProps<'ul'>) => (
   <ul
     data-slot="item-group"
     className={cn(
-      `group/item-group m-0 flex w-full list-none flex-col gap-4 p-0 has-data-[size=sm]:gap-2.5 has-data-[size=xs]:gap-2`,
+      `group/item-group m-0 flex w-full list-none flex-col gap-4 p-0 has-data-[size=2xs]:gap-0.5 has-data-[size=sm]:gap-2.5 has-data-[size=xs]:gap-2`,
       className
     )}
     {...props}
@@ -43,6 +43,7 @@ const itemVariants = cva(
         default: 'gap-3.5 px-4 py-3.5',
         sm: `gap-3.5 ${smallItemInsetClassName} py-3`,
         xs: `gap-2 px-2.5 py-2 in-data-[slot=dropdown-menu-content]:p-0`,
+        '2xs': 'min-h-7 gap-2 rounded-lg py-0.5 pr-0.5 pl-2.5 text-xs',
       },
       variant: {
         card: `bg-popover ring-foreground/4 [a]:hover:ring-foreground/12 [button]:hover:ring-foreground/12 rounded-xl border-transparent shadow-xs ring transition-[color,background-color,box-shadow]`,

@@ -1,11 +1,17 @@
-import { Cancel01Icon } from '@hugeicons/core-free-icons'
+import {
+  ArrowUp02Icon,
+  Cancel01Icon,
+  Clock01Icon,
+} from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import { textFromMessage } from '@tamery/ai/message'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import {
   Item,
   ItemActions,
   ItemContent,
-  ItemDescription,
+  ItemGroup,
+  ItemMedia,
 } from '@tamery/ui/components/item'
 import { copy } from '@tamery/ui/lib/copy'
 import { cn } from '@tamery/ui/lib/utils'
@@ -102,18 +108,45 @@ export const ChatConversation = ({
         {session.error && (
           <ChatError error={session.error} onRetry={() => session.retry()} />
         )}
-        {session.isPaused && <ChatPaused onContinue={() => session.resume()} />}
+        {session.pausedBy && (
+          <ChatPaused
+            by={session.pausedBy}
+            onContinue={() => session.resume()}
+          />
+        )}
         {beforeInput}
         {session.queue.length > 0 && (
-          <div className="flex shrink-0 flex-col gap-1 px-3 pt-2">
+          <ItemGroup className="mx-3 mt-2 w-auto">
             {session.queue.map((queued) => (
-              <Item key={queued.id} variant="muted" size="xs">
+              <Item key={queued.id} variant="muted" size="2xs">
+                <ItemMedia variant="icon">
+                  <HugeiconsIcon
+                    icon={Clock01Icon}
+                    strokeWidth={2}
+                    className="text-muted-foreground size-3.5"
+                  />
+                </ItemMedia>
                 <ItemContent>
-                  <ItemDescription data-mask>
-                    Queued: {queued.text || `${queued.files.length} files`}
-                  </ItemDescription>
+                  <span data-mask className="text-muted-foreground truncate">
+                    {queued.text || `${queued.files.length} files`}
+                  </span>
                 </ItemContent>
                 <ItemActions>
+                  <IconButton
+                    variant="ghost-muted"
+                    size="icon-xs"
+                    icon={ArrowUp02Icon}
+                    label="Send now"
+                    onClick={() => {
+                      session.removeQueued(queued.id)
+                      void session.send(
+                        queued.text,
+                        queued.mentions,
+                        queued.files,
+                        true
+                      )
+                    }}
+                  />
                   <IconButton
                     variant="ghost-muted"
                     size="icon-xs"
@@ -124,7 +157,7 @@ export const ChatConversation = ({
                 </ItemActions>
               </Item>
             ))}
-          </div>
+          </ItemGroup>
         )}
         {canReply ? (
           // One element in both layouts, so the composer keeps its draft and focus while it glides from the middle to the bottom.
@@ -146,8 +179,8 @@ export const ChatConversation = ({
                 posthog.capture('ai_chat_command', { command })
                 commands[command]()
               }}
-              onSend={(text, mentions, files) => {
-                void session.send(text, mentions, files)
+              onSend={(text, mentions, files, now) => {
+                void session.send(text, mentions, files, now)
               }}
               onStop={() => session.stop()}
             />

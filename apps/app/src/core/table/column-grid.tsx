@@ -31,7 +31,7 @@ const PlainHeader = (
   <div
     role="columnheader"
     style={style}
-    className="flex min-w-0 flex-col justify-center px-2 py-1.5 select-none"
+    className="flex min-h-8 min-w-0 flex-col justify-center px-2 py-1.5 select-none"
     {...dragHandle}
   >
     <div data-mask className="truncate text-xs font-medium">

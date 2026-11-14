@@ -1,8 +1,13 @@
-import { ArrowLeft01Icon } from '@hugeicons/core-free-icons'
+import { ArrowRight01Icon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
-import { Kbd } from '@tamery/ui/components/kbd'
+import { KbdHotkey } from '@tamery/ui/components/custom/shortcuts'
 import { Tabs, TabsList, TabsTrigger } from '@tamery/ui/components/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@tamery/ui/components/tooltip'
 import { cn } from '@tamery/ui/lib/utils'
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { useEffect, useRef } from 'react'
@@ -16,7 +21,7 @@ import type { Subagent } from './subagents-store'
 import { useChatSession } from './use-chat-session'
 
 const headerClassName =
-  'flex h-8 shrink-0 items-center gap-0.5 border-b pr-1 pl-3'
+  'flex h-8 shrink-0 items-center gap-0.5 border-b pr-1 pl-1.5'
 
 /** Every subagent of the chat above its composer: one Tab stop, ←/→ to move, Enter to open. */
 export const SubagentStrip = ({ subagents }: { subagents: Subagent[] }) => {
@@ -38,10 +43,25 @@ export const SubagentStrip = ({ subagents }: { subagents: Subagent[] }) => {
         <TabsList variant="line" className="no-scrollbar overflow-x-auto">
           {subagents.map((agent) => (
             <TabsTrigger key={agent.chatId} value={agent.chatId}>
+              {agent.status === 'done' ? (
+                <HugeiconsIcon
+                  icon={Tick02Icon}
+                  strokeWidth={2}
+                  className="text-muted-foreground"
+                />
+              ) : (
+                <span
+                  className={cn('size-1.5 rounded-full', DOT[agent.status])}
+                />
+              )}
               <span
-                className={cn('size-1.5 rounded-full', DOT[agent.status])}
-              />
-              <span className="max-w-40 truncate">{agent.title}</span>
+                className={cn(
+                  'max-w-64 truncate',
+                  agent.status === 'running' && 'shimmer'
+                )}
+              >
+                {agent.title}
+              </span>
             </TabsTrigger>
           ))}
         </TabsList>
@@ -57,9 +77,12 @@ export const SubagentStrip = ({ subagents }: { subagents: Subagent[] }) => {
 export const SubagentView = ({
   agent,
   onBack,
+  parentTitle,
 }: {
   agent: Subagent
   onBack: () => void
+  /** The chat that started the subagent, which the header leads back to. */
+  parentTitle: string
 }) => {
   const { connectionResource } = useConnectionContext()
   const session = useChatSession({
@@ -81,19 +104,37 @@ export const SubagentView = ({
       className="flex min-h-0 flex-1 flex-col outline-none"
     >
       <div className={headerClassName}>
-        <Button
-          variant="ghost-muted"
-          size="icon-xs"
-          aria-label="Back to the chat"
-          onClick={onBack}
+        <Tooltip
+          shortcut={
+            <KbdHotkey hotkey="Escape" userAgent={navigator.userAgent} />
+          }
         >
-          <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
-        </Button>
-        <span data-mask className="min-w-0 flex-1 truncate text-sm font-medium">
+          <TooltipTrigger
+            render={
+              <Button
+                variant="ghost-muted"
+                size="xs"
+                className="max-w-48 shrink-0"
+                onClick={onBack}
+              />
+            }
+          >
+            <span data-mask className="truncate">
+              {parentTitle}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Back to the chat</TooltipContent>
+        </Tooltip>
+        <HugeiconsIcon
+          icon={ArrowRight01Icon}
+          strokeWidth={2}
+          aria-hidden
+          className="text-muted-foreground/40 size-3.5 shrink-0"
+        />
+        <span data-mask className="min-w-0 truncate px-1.5 text-xs font-medium">
           {agent.title}
         </span>
         <span className="text-xs">{STATUS[agent.status]}</span>
-        <Kbd className="ml-1.5">Esc</Kbd>
       </div>
       <ChatConversation
         canReply={false}

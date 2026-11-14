@@ -54,6 +54,8 @@ export type PromptSuggestion =
       id: string
       /** A row of an expanded connection, named by its resource. */
       isResource?: boolean
+      /** A table's schema, unless it is the connection's default one. */
+      schema?: string
       kind: PromptMention['kind']
       mention: PromptMention
     }
@@ -271,6 +273,8 @@ export const usePromptMentions = ({
           .map((table): PromptSuggestion => ({
             id: `table:${schema.name}.${table.name}`,
             kind: 'table',
+            schema:
+              schema.name === catalog?.defaultSchema ? undefined : schema.name,
             mention: {
               kind: 'table',
               label: `@${table.name}`,

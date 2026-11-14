@@ -26,7 +26,6 @@ import {
   MessageScrollerViewport,
 } from '@tamery/ui/components/message-scroller'
 import { Separator } from '@tamery/ui/components/separator'
-import { Spinner } from '@tamery/ui/components/spinner'
 import { copy } from '@tamery/ui/lib/copy'
 import { cn } from '@tamery/ui/lib/utils'
 import { useQuery } from '@tanstack/react-query'
@@ -35,9 +34,10 @@ import { useRef, useState } from 'react'
 import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 
-import { AgentParts } from './agent-steps'
+import { AgentParts, hasContent, showsProgress } from './agent-steps'
 import { AttachmentChip } from './attachments'
 import type { ToolPartActions } from './chat-tool-types'
+import { Clamped } from './clamped'
 import type { PromptMention } from './prompt-mentions'
 import { usePromptMentions } from './prompt-mentions'
 import { PromptMenu } from './prompt-menu'
@@ -171,11 +171,8 @@ const UserMessage = ({
           />
         ) : (
           text && (
-            <>
-              <Bubble align="end" variant="muted">
-                <BubbleContent data-mask>{text}</BubbleContent>
-              </Bubble>
-              <div className={cn(ACTIONS_CLASS, 'opacity-0')}>
+            <div className="flex w-full items-end justify-end gap-1">
+              <div className={cn(ACTIONS_CLASS, 'shrink-0 opacity-0')}>
                 <IconButton
                   variant="ghost-muted"
                   size="icon-xs"
@@ -196,7 +193,14 @@ const UserMessage = ({
                   />
                 )}
               </div>
-            </>
+              <Bubble align="end" variant="muted">
+                <BubbleContent data-mask>
+                  <Clamped>
+                    <p className="whitespace-pre-wrap">{text}</p>
+                  </Clamped>
+                </BubbleContent>
+              </Bubble>
+            </div>
           )
         )}
       </MessageContent>
@@ -293,6 +297,7 @@ export const ChatMessages = ({
   /** The last message the model now reads only as a summary. */
   compactedThroughId?: string
   decide?: ToolPartActions['decide']
+  /** The request is in flight: the first-token wait under a just-sent message. */
   isPending: boolean
   isWorking: boolean
   messages: AppUIMessage[]
@@ -309,56 +314,72 @@ export const ChatMessages = ({
             role="log"
             aria-label="Chat messages"
             // The kit lint wants a static string here: keep in sync with CHAT_COLUMN.
-            className="mx-auto w-full max-w-2xl gap-4 p-3"
+            className="mx-auto w-full max-w-2xl gap-6 p-3"
           >
-            {messages.map((message) => (
-              <MessageScrollerItem key={message.id} messageId={message.id}>
-                {message.role === 'user' ? (
-                  <UserMessage
-                    message={message}
-                    onEdit={
-                      onEdit && !isWorking
-                        ? (text, mentions) => onEdit(message.id, text, mentions)
-                        : undefined
-                    }
-                  />
-                ) : (
-                  <Message>
-                    <MessageContent data-mask>
-                      <AgentParts
-                        isWorking={isWorking && message === last}
-                        parts={message.parts}
-                        actions={
-                          message === last
-                            ? { decide, isLast: true }
-                            : { isLast: false }
-                        }
-                      />
-                      {!(isWorking && message === last) &&
-                        textFromMessage(message) && (
-                          <AnswerActions
-                            isLatest={message === last}
-                            message={message}
-                            onRegenerate={
-                              message === last ? onRegenerate : undefined
-                            }
-                          />
+            {messages.map((message) =>
+              message.role === 'assistant' &&
+              !(isWorking && message === last) &&
+              !hasContent(message.parts) ? null : (
+                <MessageScrollerItem key={message.id} messageId={message.id}>
+                  {message.role === 'user' ? (
+                    <UserMessage
+                      message={message}
+                      onEdit={
+                        onEdit && !isWorking
+                          ? (text, mentions) =>
+                              onEdit(message.id, text, mentions)
+                          : undefined
+                      }
+                    />
+                  ) : (
+                    <Message>
+                      <MessageContent data-mask>
+                        <AgentParts
+                          isWorking={isWorking && message === last}
+                          parts={message.parts}
+                          actions={
+                            message === last
+                              ? { decide, isLast: true }
+                              : { isLast: false }
+                          }
+                        />
+                        {isWorking && message === last ? (
+                          <div className="flex h-6 items-center">
+                            {!showsProgress(message.parts) && (
+                              <span className="text-muted-foreground shimmer text-xs">
+                                Thinking
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          textFromMessage(message) && (
+                            <AnswerActions
+                              isLatest={message === last}
+                              message={message}
+                              onRegenerate={
+                                message === last ? onRegenerate : undefined
+                              }
+                            />
+                          )
                         )}
-                    </MessageContent>
-                  </Message>
-                )}
-                {isPending && message === last && (
-                  <Message className="mt-2.5">
-                    <MessageContent>
-                      <Spinner className="text-muted-foreground size-4" />
-                    </MessageContent>
-                  </Message>
-                )}
-                {message.id === compactedThroughId && message !== last && (
-                  <CompactedDivider />
-                )}
-              </MessageScrollerItem>
-            ))}
+                      </MessageContent>
+                    </Message>
+                  )}
+                  {isPending && message === last && message.role === 'user' && (
+                    <Message className="mt-2.5">
+                      <MessageContent>
+                        <span className="text-muted-foreground shimmer flex h-6 items-center text-xs">
+                          Thinking
+                        </span>
+                      </MessageContent>
+                    </Message>
+                  )}
+                  {message.id === compactedThroughId && message !== last && (
+                    <CompactedDivider />
+                  )}
+                </MessageScrollerItem>
+              )
+            )}
           </MessageScrollerContent>
         </MessageScrollerViewport>
         <MessageScrollerButton className="absolute inset-x-0 bottom-3 mx-auto" />

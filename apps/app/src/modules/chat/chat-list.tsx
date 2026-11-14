@@ -8,6 +8,7 @@ import {
   Search01Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import type { AppMessagePart } from '@tamery/ai/message'
 import { matchesSearch } from '@tamery/shared/utils'
 import {
   AlertDialog,
@@ -19,6 +20,7 @@ import {
   AlertDialogTitle,
 } from '@tamery/ui/components/alert-dialog'
 import { Button } from '@tamery/ui/components/button'
+import { HighlightText } from '@tamery/ui/components/custom/highlight'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { SearchInput } from '@tamery/ui/components/custom/search-input'
 import {
@@ -30,9 +32,11 @@ import {
   SidebarMenuItem,
   SidebarMenuSkeleton,
 } from '@tamery/ui/components/sidebar'
+import { Spinner } from '@tamery/ui/components/spinner'
+import { cn } from '@tamery/ui/lib/utils'
 import { eq, useLiveQuery } from '@tanstack/react-db'
 import { useParams } from '@tanstack/react-router'
-import { Fragment, useState } from 'react'
+import { Fragment, useState, useSyncExternalStore } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { AppContextMenu, AppMenuButton } from '~/components/app-context-menu'
@@ -43,8 +47,10 @@ import { useNavigatorSearch } from '~/modules/navigator/keyboard'
 import { getNavigatorStore } from '~/modules/navigator/stores'
 
 import { chatActions } from './chat-actions'
+import { getChatInstance } from './chat-instance'
+import { awaitsUser } from './chat-tool-types'
 import { openChat, startNewChat } from './open-chat'
-import { chatDraftsValue } from './stores'
+import { chatDraftsValue, unreadChatsValue } from './stores'
 import { chatTab } from './tab'
 
 const SKELETON_ROWS = 6
@@ -61,13 +67,69 @@ const GROUPS = [
 
 type ChatGroup = (typeof GROUPS)[number]
 
+type ChatStatus = 'failed' | 'unread' | 'waiting' | 'working'
+
+const STATUS_DOT: Record<Exclude<ChatStatus, 'working'>, string> = {
+  failed: 'bg-destructive',
+  unread: 'bg-primary',
+  waiting: 'bg-warning',
+}
+
+const STATUS_LABEL: Record<ChatStatus, string> = {
+  failed: 'Failed',
+  unread: 'New answer',
+  waiting: 'Needs approval',
+  working: 'Working',
+}
+
 interface ChatRow {
   date: Date
   id: string
   isDraft: boolean
   isPinned: boolean
+  /** What the synced transcript says; whether this window is answering it is read live per row. */
+  status?: ChatStatus
   title: string
 }
+
+/** Chats whose latest message holds a change or note waiting on the user. */
+const waitingChatIds = (
+  rows: { chatId: string; messageId: string; part: AppMessagePart }[]
+) => {
+  const lastMessageId = new Map(rows.map((row) => [row.chatId, row.messageId]))
+  return new Set(
+    rows
+      .filter(
+        (row) =>
+          awaitsUser(row.part) &&
+          lastMessageId.get(row.chatId) === row.messageId
+      )
+      .map((row) => row.chatId)
+  )
+}
+
+const useLiveStatus = (chatId: string, connectionResourceId: string) => {
+  const chat = getChatInstance({ chatId, connectionResourceId })
+  const status = useSyncExternalStore(
+    chat['~registerStatusCallback'],
+    () => chat.status
+  )
+  if (status === 'submitted' || status === 'streaming') {
+    return 'working'
+  }
+  return status === 'error' ? 'failed' : undefined
+}
+
+const ChatStatusMark = ({ status }: { status: ChatStatus }) => (
+  <span className="ml-auto flex size-4 shrink-0 items-center justify-center group-hover/menu-item:invisible">
+    <span className="sr-only">{STATUS_LABEL[status]}</span>
+    {status === 'working' ? (
+      <Spinner className="text-muted-foreground size-3" />
+    ) : (
+      <span className={cn('size-1.5 rounded-full', STATUS_DOT[status])} />
+    )}
+  </span>
+)
 
 const groupOf = (row: ChatRow): ChatGroup => {
   if (row.isPinned) {
@@ -109,15 +171,18 @@ const ChatListRow = ({
   isHighlighted,
   onDelete,
   row,
+  search,
 }: {
   controlId?: string
   isActive: boolean
   isHighlighted: boolean
   onDelete: () => void
   row: ChatRow
+  search: string
 }) => {
   const { connectionResource } = useConnectionContext()
   const [draft, setDraft] = useState<string | null>(null)
+  const status = useLiveStatus(row.id, connectionResource.id) ?? row.status
 
   const commitRename = () => {
     const next = draft?.trim()
@@ -165,13 +230,15 @@ const ChatListRow = ({
             isActive={isActive}
             onClick={() => openChat(connectionResource.id, row.id)}
           >
-            <HugeiconsIcon icon={AiChat02Icon} strokeWidth={2} />
-            <span className="truncate">{row.title}</span>
+            <span className="truncate">
+              <HighlightText text={row.title} match={search} />
+            </span>
             {row.isDraft && (
               <span className="text-muted-foreground ml-auto shrink-0 text-xs group-hover/menu-item:invisible">
                 Draft
               </span>
             )}
+            {status && <ChatStatusMark status={status} />}
           </SidebarMenuButton>
           {row.isDraft ? (
             <SidebarMenuAction
@@ -205,7 +272,6 @@ const ChatListRow = ({
         </AppContextMenu>
       ) : (
         <SidebarMenuButton isActive render={<div />}>
-          <HugeiconsIcon icon={AiChat02Icon} strokeWidth={2} />
           <input
             autoFocus
             data-mask
@@ -232,7 +298,11 @@ const ChatListRow = ({
 
 export const ChatList = () => {
   const { connectionResource } = useConnectionContext()
-  const { chatsCollection } = useCollections()
+  const {
+    chatsCollection,
+    chatsMessagesCollection,
+    chatsMessagesPartsCollection,
+  } = useCollections()
   const { data: chats, isLoading } = useLiveQuery({
     query: (q) =>
       q
@@ -242,6 +312,35 @@ export const ChatList = () => {
         )
         .orderBy(({ chats: chat }) => chat.createdAt, 'desc'),
   })
+  const { data: transcriptParts } = useLiveQuery({
+    query: (q) =>
+      q
+        .from({ messages: chatsMessagesCollection })
+        .innerJoin(
+          { parts: chatsMessagesPartsCollection },
+          ({ messages, parts }) => eq(parts.messageId, messages.id)
+        )
+        .innerJoin({ chat: chatsCollection }, ({ chat, messages }) =>
+          eq(messages.chatId, chat.id)
+        )
+        .where(({ chat }) =>
+          eq(chat.connectionResourceId, connectionResource.id)
+        )
+        .orderBy(({ messages }) => messages.createdAt, 'asc')
+        .select(({ messages, parts }) => ({
+          chatId: messages.chatId,
+          messageId: messages.id,
+          part: parts.part,
+        })),
+  })
+  const waiting = waitingChatIds(transcriptParts)
+  const unread = useSubscription(unreadChatsValue)
+  const statusOf = (chatId: string): ChatStatus | undefined => {
+    if (waiting.has(chatId)) {
+      return 'waiting'
+    }
+    return unread.includes(chatId) ? 'unread' : undefined
+  }
   const { tabId } = useParams({ strict: false })
   const activeId = tabId && chatTab.match(tabId)?.chatId
   const [search, setSearch] = useState('')
@@ -270,6 +369,7 @@ export const ChatList = () => {
         id: chat.id,
         isDraft: false,
         isPinned: !!chat.pinnedAt,
+        status: statusOf(chat.id),
         title: chat.title || 'New Chat',
       })),
   ]
@@ -357,6 +457,7 @@ export const ChatList = () => {
                   <ChatListRow
                     key={row.id}
                     row={row}
+                    search={search}
                     isActive={row.id === activeId}
                     isHighlighted={row.id === highlightedId}
                     controlId={

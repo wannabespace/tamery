@@ -10,7 +10,7 @@ import { eq, useLiveSuspenseQuery } from '@tanstack/react-db'
 import type { FileUIPart } from 'ai'
 import { isToolUIPart } from 'ai'
 import { Result } from 'better-result'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 import { v7 } from 'uuid'
 
@@ -41,6 +41,42 @@ const mentionPart = async (
     data: { ...mention.table, definition: definition.unwrapOr(null) },
     type: 'data-table',
   }
+}
+
+/** A read the window is still answering keeps the turn open; a change or a note waiting on the user does not, nor a read left behind by Stop or a reload, which no one will answer. */
+const isAnswering = (
+  message: AppUIMessage | undefined,
+  live: AppUIMessage[],
+  stoppedId: string | undefined
+) =>
+  message?.role === 'assistant' &&
+  message.id === live.at(-1)?.id &&
+  message.id !== stoppedId &&
+  message.parts.some(
+    (part) =>
+      isToolUIPart(part) &&
+      (part.state === 'input-streaming' ||
+        (part.state === 'input-available' &&
+          part.type !== 'tool-execute' &&
+          part.type !== 'tool-propose_note'))
+  )
+
+const pausedBy = ({
+  lastMessage,
+  status,
+  stoppedId,
+}: {
+  lastMessage: AppUIMessage | undefined
+  status: string
+  stoppedId: string | undefined
+}): 'limit' | 'user' | null => {
+  if (status !== 'ready' || !lastMessage) {
+    return null
+  }
+  if (lastMessage.role === 'assistant' && lastMessage.metadata?.capped) {
+    return 'limit'
+  }
+  return lastMessage.id === stoppedId ? 'user' : null
 }
 
 export const useChatSession = ({
@@ -107,21 +143,19 @@ export const useChatSession = ({
     (message) => message.role === 'user'
   )
 
-  // A read the window is still answering keeps the turn open; a change or a note waiting on the user does not.
+  const [stoppedId, setStoppedId] = useState<string>()
   const isWorking =
     isStreaming ||
     isAwaitingAnswer ||
-    (lastMessage?.role === 'assistant' &&
-      lastMessage.parts.some(
-        (part) =>
-          isToolUIPart(part) &&
-          (part.state === 'input-streaming' ||
-            (part.state === 'input-available' &&
-              part.type !== 'tool-execute' &&
-              part.type !== 'tool-propose_note'))
-      ))
+    isAnswering(lastMessage, messages, stoppedId)
   const queueStore = chatQueueStore(chatId)
   const queue = useSubscription(queueStore)
+
+  const halt = async () => {
+    chatToolRuns.stop(chatId)
+    void orpc.ai.abortStream.call({ chatId })
+    await stop()
+  }
 
   const deliver = async (
     text: string,
@@ -223,6 +257,10 @@ export const useChatSession = ({
         ...original.parts.filter((part) => part.type !== 'text'),
       ]
       const added = await Promise.all(mentions.map(mentionPart))
+      // `sendMessage` finds `messageId` only among live turns, and a chat reopened from the collections holds none.
+      if (!instance.messages.some(({ id }) => id === messageId)) {
+        instance.messages = displayMessages
+      }
       await sendMessage({
         messageId,
         parts: [...parts, ...added],
@@ -230,10 +268,8 @@ export const useChatSession = ({
       })
     },
     error,
-    isPaused:
-      status === 'ready' &&
-      lastMessage?.role === 'assistant' &&
-      !!lastMessage.metadata?.capped,
+    /** Why the last answer stopped short and can be continued: its step limit, or the user's own Stop in this window. */
+    pausedBy: pausedBy({ lastMessage, status, stoppedId }),
     isReady: status === 'ready',
     isStreaming,
     isWorking,
@@ -259,34 +295,39 @@ export const useChatSession = ({
         void sendMessage(lastAsked)
       }
     },
+    /** While the agent works, a message waits in the queue, unless `now` stops the agent and sends it at once. */
     send: async (
       text: string,
       mentions: PromptMention[],
-      files: FileUIPart[] = []
+      files: FileUIPart[] = [],
+      now = false
     ) => {
       posthog.capture('ai_chat_message_sent', {
         attachments: files.length,
-        queued: isWorking,
+        interrupted: isWorking && now,
+        queued: isWorking && !now,
         connection_mentions: mentions.filter(
           ({ kind }) => kind === 'connection'
         ).length,
         skill_mentions: mentions.filter(({ kind }) => kind === 'skill').length,
         table_mentions: mentions.filter(({ kind }) => kind === 'table').length,
       })
-      if (isWorking) {
+      if (isWorking && !now) {
         queueStore.set((current) => [
           ...current,
           { files, id: v7(), mentions, text },
         ])
         return
       }
+      if (isWorking) {
+        await halt()
+      }
       await deliver(text, mentions, files)
     },
     stop: () => {
       posthog.capture('ai_chat_stopped')
-      chatToolRuns.stop(chatId)
-      void orpc.ai.abortStream.call({ chatId })
-      void stop()
+      setStoppedId(lastMessage?.id)
+      void halt()
     },
     title: chat?.title || (firstMessage ? textFromMessage(firstMessage) : null),
   }

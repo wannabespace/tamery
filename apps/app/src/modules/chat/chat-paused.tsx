@@ -7,12 +7,20 @@ import {
 } from '@tamery/ui/components/alert'
 import { Button } from '@tamery/ui/components/button'
 
-export const ChatPaused = ({ onContinue }: { onContinue: () => void }) => (
+export const ChatPaused = ({
+  by,
+  onContinue,
+}: {
+  by: 'limit' | 'user'
+  onContinue: () => void
+}) => (
   <div className="shrink-0 px-2">
     <Alert>
       <HugeiconsIcon icon={PauseIcon} strokeWidth={2} />
       <AlertDescription>
-        The agent paused at this message&apos;s step limit.
+        {by === 'limit'
+          ? 'The agent paused at this message’s step limit.'
+          : 'You stopped the agent.'}
       </AlertDescription>
       <AlertAction>
         <Button size="xs" variant="outline" onClick={onContinue}>

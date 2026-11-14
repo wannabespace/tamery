@@ -27,6 +27,24 @@ const show = (resourceId: string, tabId: string) => {
   history.push(`/connection/${resourceId}/${encodeURIComponent(tabId)}`)
 }
 
+/** Puts a statement in a new Query tab of its connection and shows it, without running it. */
+export const openStatement = ({
+  statement,
+  ...target
+}: Input<'open_query'>) => {
+  const { connection, resource } = resolveResource(target)
+  const tabId = openRunnerTab(resource.id)
+  setQuery(
+    runnerPageStore({
+      dialect: getDialect(connection.type),
+      resourceId: resource.id,
+      tabId,
+    }),
+    statement
+  )
+  show(resource.id, tabId)
+}
+
 /** What the agent does in the app rather than in a database. Each opens or exports something for the user; none saves or changes data. */
 export const appActions = {
   createShare: ({ schema, table, ...target }: Input<'create_share'>) => {
@@ -61,18 +79,8 @@ export const appActions = {
     posthog.capture('ai_chat_app_action', { action: 'export_result', format })
     return { exported: records.length }
   },
-  openQuery: ({ statement, ...target }: Input<'open_query'>) => {
-    const { connection, resource } = resolveResource(target)
-    const tabId = openRunnerTab(resource.id)
-    setQuery(
-      runnerPageStore({
-        dialect: getDialect(connection.type),
-        resourceId: resource.id,
-        tabId,
-      }),
-      statement
-    )
-    show(resource.id, tabId)
+  openQuery: (input: Input<'open_query'>) => {
+    openStatement(input)
     posthog.capture('ai_chat_app_action', { action: 'open_query' })
     return { opened: true }
   },

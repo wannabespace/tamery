@@ -25,6 +25,7 @@ import type { ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useConnectionContext } from '~/core/connection/route'
+import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { posthog } from '~/lib/posthog'
 import { useIsOnline } from '~/store'
 
@@ -85,13 +86,19 @@ export const ChatInput = ({
   chatId: string
   /** Focuses the composer whenever it turns true. */
   isActive: boolean
-  /** Sending while it is true queues the message for when the turn ends. */
+  /** While it is true, Enter queues the message for when the turn ends; the send button and ⌘↩ stop the agent and send it at once. */
   isWorking: boolean
   /** What ArrowUp brings back into an empty composer. */
   lastPrompt?: string
   meter?: ReactNode
   onCommand: (command: ChatCommand) => void
-  onSend: (text: string, mentions: PromptMention[], files: FileUIPart[]) => void
+  /** `now` asks to send at once even while the agent works. */
+  onSend: (
+    text: string,
+    mentions: PromptMention[],
+    files: FileUIPart[],
+    now: boolean
+  ) => void
   onStop: () => void
 }) => {
   const isOnline = useIsOnline()
@@ -133,9 +140,9 @@ export const ChatInput = ({
   if (showStop) {
     sendLabel = 'Stop generating'
   } else if (isWorking) {
-    sendLabel = 'Queue message'
+    sendLabel = 'Send now'
   }
-  const submit = () => {
+  const submit = (now = false) => {
     const command = commandOf(value)
     if (command) {
       onCommand(command)
@@ -146,7 +153,7 @@ export const ChatInput = ({
     if (!canSend) {
       return
     }
-    onSend(value.trim(), menu.sentMentions(), files)
+    onSend(value.trim(), menu.sentMentions(), files, now)
     menu.reset()
     setValue('')
     setFiles([])
@@ -225,7 +232,7 @@ export const ChatInput = ({
               !event.nativeEvent.isComposing
             ) {
               event.preventDefault()
-              submit()
+              submit(event.metaKey || event.ctrlKey)
             }
           }}
         />
@@ -253,11 +260,14 @@ export const ChatInput = ({
               <DictationButton dictation={dictation} />
               <Tooltip
                 shortcut={
-                  canSend && (
+                  canSend &&
+                  (isWorking ? (
+                    <ShortcutKbd shortcut="chatSendNow" />
+                  ) : (
                     <Kbd>
                       <EnterIcon />
                     </Kbd>
-                  )
+                  ))
                 }
               >
                 <TooltipTrigger
@@ -268,7 +278,13 @@ export const ChatInput = ({
                       aria-label={sendLabel}
                       {...(showStop
                         ? { onClick: onStop }
-                        : { disabled: !canSend, type: 'submit' })}
+                        : {
+                            disabled: !canSend,
+                            onClick: (event) => {
+                              event.preventDefault()
+                              submit(isWorking)
+                            },
+                          })}
                     />
                   }
                 >

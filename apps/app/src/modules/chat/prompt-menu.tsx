@@ -101,12 +101,13 @@ const SuggestionContent = ({
           {mention.connection.name}
         </span>
         {mention.connection.resource && (
-          <span data-mask className="text-muted-foreground ml-auto truncate">
+          <span data-mask className="text-muted-foreground truncate">
             {mention.connection.resource}
           </span>
         )}
         {suggestion.expandable && (
           <Button
+            className="ml-auto"
             variant="ghost-muted"
             size="icon-xs"
             aria-label="Other resources"
@@ -132,9 +133,11 @@ const SuggestionContent = ({
       <span data-mask className="truncate">
         {mention.table.table}
       </span>
-      <span data-mask className="text-muted-foreground ml-auto truncate">
-        {mention.table.schema}
-      </span>
+      {suggestion.schema && (
+        <span data-mask className="text-muted-foreground truncate">
+          {suggestion.schema}
+        </span>
+      )}
     </>
   )
 }

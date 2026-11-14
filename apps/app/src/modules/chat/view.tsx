@@ -1,4 +1,5 @@
-import { Activity, Suspense } from 'react'
+import { title } from '@tamery/shared/title'
+import { Activity, Suspense, useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { useTabContext } from '~/core/connection/route'
@@ -7,6 +8,7 @@ import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import { ChatConversation } from './chat-conversation'
 import { ChatSkeleton } from './chat-skeleton'
 import { startNewChat } from './open-chat'
+import { unreadChatsValue } from './stores'
 import { openSubagent, useSubagents } from './subagent-part'
 import { SubagentStrip, SubagentView } from './subagent-views'
 import { openSubagentStore } from './subagents-store'
@@ -21,6 +23,23 @@ const TabChat = ({
   connectionResourceId: string
 }) => {
   const session = useChatSession({ chatId, connectionResourceId })
+  const { connection, connectionResource } = useTabContext()
+  // The route's head is computed before the chats sync in and never hears a new title, so the open chat names the window itself.
+  useEffect(() => {
+    document.title = title(
+      session.title ?? 'New chat',
+      connection.name,
+      connectionResource.name
+    )
+  }, [session.title, connection.name, connectionResource.name])
+  const isUnread = useSubscription(unreadChatsValue, {
+    selector: (ids) => ids.includes(chatId),
+  })
+  useEffect(() => {
+    if (isUnread) {
+      unreadChatsValue.set((ids) => ids.filter((id) => id !== chatId))
+    }
+  }, [isUnread, chatId])
   const newChat = () => startNewChat(connectionResourceId)
   const subagents = useSubagents(chatId, session.messages)
   const openId = useSubscription(openSubagentStore(connectionResourceId))
@@ -44,6 +63,7 @@ const TabChat = ({
         <SubagentView
           agent={shown}
           onBack={() => openSubagent(connectionResourceId, null)}
+          parentTitle={session.title ?? 'New chat'}
         />
       )}
       <Activity mode={shown ? 'hidden' : 'visible'}>

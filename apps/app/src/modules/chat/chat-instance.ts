@@ -9,7 +9,11 @@ import { v7 } from 'uuid'
 import { orpc } from '~/lib/orpc'
 
 import { chatToolRuns } from './chat-tools'
-import { chatModelOptionsValue, chatModelValue } from './stores'
+import {
+  chatModelOptionsValue,
+  chatModelValue,
+  unreadChatsValue,
+} from './stores'
 
 const modelPick = () => {
   const model = chatModelValue.get() ?? undefined
@@ -39,7 +43,12 @@ export const getChatInstance = memoize(
     const chat: Chat<AppUIMessage> = new Chat<AppUIMessage>({
       generateId: v7,
       id: data.chatId,
-      onFinish: (event) => finishListeners.get(data.chatId)?.(event),
+      onFinish: (event) => {
+        if (!data.subagent && !event.isAbort) {
+          unreadChatsValue.set((ids) => [...new Set([...ids, data.chatId])])
+        }
+        finishListeners.get(data.chatId)?.(event)
+      },
       onToolCall: ({ toolCall }) =>
         chatToolRuns.answer(chat, toolCall, data.connectionResourceId),
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,

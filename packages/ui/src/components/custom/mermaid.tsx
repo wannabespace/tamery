@@ -3,7 +3,9 @@ import type { ReactNode } from 'react'
 import { useEffect, useId, useState } from 'react'
 
 const ring = 'color-mix(in oklab, var(--foreground) 8%, transparent)'
+const rule = 'color-mix(in oklab, var(--foreground) 8%, var(--popover))'
 
+// An ER entity is drawn as paths, which take no `rx`: it is rounded by a clip-path, and its border is the drop-shadows on its parent, since a stroke or filter on the clipped node itself would be clipped away. The clip sits 1px inside the edge because every row is a stroked rectangle whose sides would otherwise draw a second line against that border.
 const themeCSS = `
   .node rect, .node polygon, .node path {
     fill: var(--popover) !important;
@@ -23,6 +25,14 @@ const themeCSS = `
     rx: 16px;
   }
   .cluster-label .nodeLabel { color: var(--muted-foreground) !important; font-size: 12px; font-weight: 500; }
+  .nodes:has(.outer-path) { filter: drop-shadow(1px 0 0 ${rule}) drop-shadow(-1px 0 0 ${rule}) drop-shadow(0 1px 0 ${rule}) drop-shadow(0 -1px 0 ${rule}); }
+  .node:has(.outer-path) { clip-path: inset(1px round 12px); }
+  .node:has(.outer-path) path { fill: var(--popover) !important; stroke: none !important; filter: none; }
+  .node .divider path, .node :is(.row-rect-odd, .row-rect-even) path:last-child { stroke: ${rule} !important; stroke-width: 1px !important; }
+  .node :is(.attribute-type, .attribute-keys, .attribute-comment) .nodeLabel { color: var(--muted-foreground) !important; font-weight: 400; }
+  .node .attribute-name .nodeLabel { font-weight: 400; }
+  .relationshipLine { stroke: ${ring} !important; stroke-width: 1.5px !important; }
+  .marker.er :is(path, circle) { fill: var(--background) !important; stroke: color-mix(in oklab, var(--foreground) 35%, transparent) !important; stroke-width: 1px !important; }
 `
 
 const renderChart = async (id: string, chart: string) => {
@@ -37,7 +47,10 @@ const renderChart = async (id: string, chart: string) => {
     },
     theme: 'base',
     themeCSS,
-    themeVariables: { fontSize: '14px' },
+    er: { entityPadding: 12 },
+    themeVariables: {
+      fontSize: chart.trimStart().startsWith('erDiagram') ? '12px' : '14px',
+    },
   })
   const { svg } = await mermaid.render(id, chart)
   return svg

@@ -3,8 +3,15 @@ import { Response } from '@tamery/ui/components/response'
 
 import { ChatDisclosure } from './chat-disclosure'
 import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
-import { NoteProposal } from './note-proposal'
+import { NoteProposal, NoteTitle } from './note-proposal'
 import { getStatus } from './tool-status'
+
+const verb = (part: Extract<ChatToolPart, { type: 'tool-propose_note' }>) => {
+  if (part.state !== 'output-available') {
+    return 'Proposed'
+  }
+  return part.output.saved ? 'Saved' : 'Dismissed'
+}
 
 export const NotePart = ({
   actions,
@@ -13,30 +20,25 @@ export const NotePart = ({
   actions: ToolPartActions
   part: Extract<ChatToolPart, { type: 'tool-propose_note' }>
 }) => {
-  const awaitsDecision = part.state === 'input-available' && !!actions.decide
+  if (part.state === 'input-available' && actions.decide) {
+    return (
+      <NoteProposal
+        decideNote={actions.decide.note}
+        input={part.input}
+        toolCallId={part.toolCallId}
+      />
+    )
+  }
 
   return (
-    <div className="flex flex-col gap-2">
-      <ChatDisclosure
-        icon={NoteIcon}
-        label={part.output?.saved ? 'Saved a note' : 'Proposed a note'}
-        status={
-          awaitsDecision ? (
-            <span className="text-warning">Needs review</span>
-          ) : (
-            getStatus(part, actions.isLast)
-          )
-        }
-      >
-        <Response>{part.output?.note ?? part.input?.note ?? ''}</Response>
-      </ChatDisclosure>
-      {awaitsDecision && actions.decide && (
-        <NoteProposal
-          decideNote={actions.decide.note}
-          input={part.input}
-          toolCallId={part.toolCallId}
-        />
-      )}
-    </div>
+    <ChatDisclosure
+      icon={NoteIcon}
+      label={
+        <NoteTitle input={part.input} prefix={`${verb(part)} a schema note`} />
+      }
+      status={getStatus(part, actions.isLast)}
+    >
+      <Response>{part.output?.note ?? part.input?.note ?? ''}</Response>
+    </ChatDisclosure>
   )
 }

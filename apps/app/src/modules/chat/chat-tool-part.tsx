@@ -1,10 +1,14 @@
 import {
   DatabaseIcon,
+  HierarchyIcon,
   PencilEdit02Icon,
+  PlayIcon,
   Search01Icon,
+  ServerStack01Icon,
   Wrench01Icon,
 } from '@hugeicons/core-free-icons'
-import { ResponseCodeBlock } from '@tamery/ui/components/response'
+import type { ChatTools } from '@tamery/ai/tools'
+import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 
 import { tableTypeIcon } from '~/core/catalog/table-type'
 import { useCollections } from '~/core/collections'
@@ -13,61 +17,91 @@ import { ChangeReview } from './change-review'
 import { ChatDisclosure } from './chat-disclosure'
 import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
 import { NotePart } from './note-part'
+import { StatementCard } from './statement-card'
 import { SubagentPart } from './subagent-part'
-import { ToolResult } from './tool-result'
-import { getStatus } from './tool-status'
+import { getStatus, isDeclined, isRunning } from './tool-status'
 import { WriteApproval } from './write-approval'
 
-/** A call's line names its input's `detail` field when the model has sent it. */
+/** A call's line, in the past once it is done and in the present while it runs; it names its input's `detail` field once the model has sent it. */
 const LABELS: Partial<
   Record<
     ChatToolPart['type'],
-    { detail?: string; plain: string; with?: string }
+    { detail?: string; done: string; live: string; object?: string }
   >
 > = {
   'tool-column_values': {
     detail: 'column',
-    plain: 'Read column values',
-    with: 'Read values of',
+    done: 'Read values of',
+    live: 'Reading values of',
+    object: 'a column',
+  },
+  'tool-create_share': {
+    detail: 'table',
+    done: 'Opened sharing for',
+    live: 'Opening sharing for',
+    object: 'a table',
   },
   'tool-describe_table': {
     detail: 'table',
-    plain: 'Read a table',
-    with: 'Read',
+    done: 'Read',
+    live: 'Reading',
+    object: 'a table',
   },
-  'tool-explain': { plain: 'Read a query plan' },
+  'tool-explain': {
+    done: 'Read the query plan',
+    live: 'Reading the query plan',
+  },
   'tool-export_result': {
     detail: 'format',
-    plain: 'Exported a result',
-    with: 'Exported a result as',
+    done: 'Exported a result as',
+    live: 'Exporting a result as',
+    object: 'a file',
   },
-  'tool-list_connections': { plain: 'Listed connections' },
+  'tool-list_connections': {
+    done: 'Listed connections',
+    live: 'Listing connections',
+  },
   'tool-list_tables': {
     detail: 'schema',
-    plain: 'Listed tables',
-    with: 'Listed tables in',
+    done: 'Listed tables in',
+    live: 'Listing tables in',
+    object: 'the database',
   },
-  'tool-open_query': { plain: 'Opened a Query tab' },
+  'tool-open_query': {
+    done: 'Opened a Query tab',
+    live: 'Opening a Query tab',
+  },
   'tool-open_table': {
     detail: 'table',
-    plain: 'Opened a table',
-    with: 'Opened',
+    done: 'Opened',
+    live: 'Opening',
+    object: 'a table',
   },
   'tool-propose_change': {
     detail: 'table',
-    plain: 'Drafting a change',
-    with: 'Drafting a change in',
+    done: 'Drafted a change in',
+    live: 'Drafting a change in',
+    object: 'a table',
   },
   'tool-search_saved_queries': {
     detail: 'query',
-    plain: 'Searched saved queries',
-    with: 'Searched saved queries for',
+    done: 'Searched saved queries for',
+    live: 'Searching saved queries for',
+    object: 'a query',
   },
   'tool-search_schema': {
     detail: 'query',
-    plain: 'Searched the schema',
-    with: 'Searched the schema for',
+    done: 'Searched the schema for',
+    live: 'Searching the schema for',
+    object: 'names',
   },
+}
+
+const getDetailValue = (part: ChatToolPart, key: string | undefined) => {
+  const value: unknown = Object.entries(part.input ?? {}).find(
+    ([name]) => name === key
+  )?.[1]
+  return typeof value === 'string' && value ? value : null
 }
 
 const getLabel = (part: ChatToolPart) => {
@@ -75,12 +109,72 @@ const getLabel = (part: ChatToolPart) => {
   if (!label) {
     return null
   }
-  const detail: unknown = Object.entries(part.input ?? {}).find(
-    ([key]) => key === label.detail
-  )?.[1]
-  return typeof detail === 'string' && detail
-    ? `${label.with} ${detail}`
-    : label.plain
+  const detail = getDetailValue(part, label.detail)
+  if (detail) {
+    return (
+      <>
+        {label.done} <InlineCode data-mask>{detail}</InlineCode>
+      </>
+    )
+  }
+  return label.object ? `${label.done} ${label.object}` : label.done
+}
+
+/** What a running call is doing, as plain text a shimmer can sweep. */
+export const getLiveLabel = (part: ChatToolPart) => {
+  const label = LABELS[part.type]
+  if (!label) {
+    return 'Working'
+  }
+  const object = getDetailValue(part, label.detail) ?? label.object
+  return object ? `${label.live} ${object}` : label.live
+}
+
+const listAt = (value: unknown, key: string): unknown[] => {
+  const found: unknown =
+    value && typeof value === 'object'
+      ? Object.entries(value).find(([name]) => name === key)?.[1]
+      : undefined
+  return Array.isArray(found) ? found : []
+}
+
+const counted = (count: number, one: string, many: string) =>
+  `${count} ${count === 1 ? one : many}`
+
+const getSummary = (part: ChatToolPart) => {
+  if (part.state !== 'output-available') {
+    return null
+  }
+  switch (part.type) {
+    case 'tool-list_connections': {
+      return Array.isArray(part.output)
+        ? counted(part.output.length, 'connection', 'connections')
+        : null
+    }
+    case 'tool-list_tables': {
+      const tables = listAt(part.output, 'schemas').flatMap((schema) =>
+        listAt(schema, 'tables')
+      )
+      return counted(tables.length, 'table', 'tables')
+    }
+    case 'tool-describe_table': {
+      return counted(listAt(part.output, 'columns').length, 'column', 'columns')
+    }
+    case 'tool-search_schema': {
+      return counted(
+        listAt(part.output, 'tables').length +
+          listAt(part.output, 'columns').length,
+        'match',
+        'matches'
+      )
+    }
+    case 'tool-search_saved_queries': {
+      return counted(listAt(part.output, 'queries').length, 'query', 'queries')
+    }
+    default: {
+      return null
+    }
+  }
 }
 
 const getIcon = (part: ChatToolPart) => {
@@ -101,10 +195,43 @@ const getIcon = (part: ChatToolPart) => {
     case 'tool-query': {
       return DatabaseIcon
     }
+    case 'tool-list_connections': {
+      return ServerStack01Icon
+    }
+    case 'tool-explain': {
+      return HierarchyIcon
+    }
+    case 'tool-open_query': {
+      return PlayIcon
+    }
     default: {
       return Wrench01Icon
     }
   }
+}
+
+const usePartConnection = (connectionId: string | undefined) => {
+  const { connectionsCollection } = useCollections()
+  return connectionId ? connectionsCollection.get(connectionId) : undefined
+}
+
+const ExplainPlan = ({
+  input,
+  sets,
+}: {
+  input: ChatTools['explain']['input']
+  sets: ChatTools['explain']['output']
+}) => {
+  const connection = usePartConnection(input.connectionId)
+  return (
+    <StatementCard
+      connection={connection}
+      sets={sets}
+      statement={input.statement}
+      status={null}
+      target={connection && input}
+    />
+  )
 }
 
 const StatementPart = ({
@@ -114,45 +241,38 @@ const StatementPart = ({
   actions: ToolPartActions
   part: Extract<ChatToolPart, { type: 'tool-execute' | 'tool-query' }>
 }) => {
-  const { connectionsCollection } = useCollections()
   const { input } = part
-  const connection = input?.connectionId
-    ? connectionsCollection.get(input.connectionId)
-    : undefined
-  const verb = part.type === 'tool-execute' ? 'Change' : 'Query'
+  const connection = usePartConnection(input?.connectionId)
   const awaitsApproval =
     part.type === 'tool-execute' &&
     part.state === 'input-available' &&
     !!actions.decide
 
+  if (part.state === 'input-streaming' && !connection) {
+    return null
+  }
+
   return (
-    <div className="flex flex-col gap-2">
-      <ChatDisclosure
-        icon={getIcon(part)}
-        label={
-          connection ? (
-            <>
-              {verb} on <span data-mask>{connection.name}</span>
-            </>
-          ) : (
-            verb
-          )
-        }
-        status={
-          awaitsApproval ? (
-            <span className="text-warning">Needs approval</span>
-          ) : (
-            getStatus(part, actions.isLast)
-          )
-        }
-      >
-        {input?.statement && (
-          <ResponseCodeBlock code={input.statement} language="sql" />
-        )}
-        {part.state === 'output-error' && (
-          <ResponseCodeBlock code={part.errorText} language="text" />
-        )}
-      </ChatDisclosure>
+    <StatementCard
+      connection={connection}
+      error={
+        part.state === 'output-error' && !isDeclined(part)
+          ? part.errorText
+          : undefined
+      }
+      sets={part.state === 'output-available' ? part.output : undefined}
+      statement={input?.statement}
+      status={
+        awaitsApproval ? (
+          <span className="text-warning">Needs approval</span>
+        ) : (
+          getStatus(part, actions.isLast)
+        )
+      }
+      target={
+        connection && part.state !== 'input-streaming' ? part.input : undefined
+      }
+    >
       {awaitsApproval && actions.decide && (
         <WriteApproval
           connection={connection}
@@ -162,15 +282,22 @@ const StatementPart = ({
           toolCallId={part.toolCallId}
         />
       )}
-      {part.state === 'output-available' && connection && (
-        <ToolResult
-          connection={connection}
-          sets={part.output}
-          target={part.input}
-        />
-      )}
-    </div>
+    </StatementCard>
   )
+}
+
+const getDetail = (part: ChatToolPart) => {
+  if (part.type === 'tool-explain' && part.state === 'output-available') {
+    return <ExplainPlan input={part.input} sets={part.output} />
+  }
+  if (part.state === 'output-error' && !isDeclined(part)) {
+    return (
+      <p data-mask className="text-destructive text-xs whitespace-pre-wrap">
+        {part.errorText}
+      </p>
+    )
+  }
+  return null
 }
 
 export const ToolPart = ({
@@ -185,23 +312,13 @@ export const ToolPart = ({
   }
   if (part.type === 'tool-combine') {
     return (
-      <div className="flex flex-col gap-2">
-        <ChatDisclosure
-          icon={DatabaseIcon}
-          label="Combined results"
-          status={getStatus(part, actions.isLast)}
-        >
-          {part.input?.statement && (
-            <ResponseCodeBlock code={part.input.statement} language="sql" />
-          )}
-          {part.state === 'output-error' && (
-            <ResponseCodeBlock code={part.errorText} language="text" />
-          )}
-        </ChatDisclosure>
-        {part.state === 'output-available' && (
-          <ToolResult connection={null} sets={part.output} target={null} />
-        )}
-      </div>
+      <StatementCard
+        connection={null}
+        error={part.state === 'output-error' ? part.errorText : undefined}
+        sets={part.state === 'output-available' ? part.output : undefined}
+        statement={part.input?.statement}
+        status={getStatus(part, actions.isLast)}
+      />
     )
   }
   if (part.type === 'tool-propose_note') {
@@ -214,37 +331,19 @@ export const ToolPart = ({
     part.type === 'tool-propose_change' &&
     part.state === 'output-available'
   ) {
-    return (
-      <div className="flex flex-col gap-2">
-        <ChatDisclosure
-          icon={PencilEdit02Icon}
-          label={`Drafted a change in ${part.input.table}`}
-        >
-          <ResponseCodeBlock
-            code={JSON.stringify(part.input.change, null, 2)}
-            language="json"
-          />
-        </ChatDisclosure>
-        <ChangeReview input={part.input} output={part.output} />
-      </div>
-    )
+    return <ChangeReview input={part.input} output={part.output} />
   }
 
+  const running = isRunning(part, actions.isLast)
   return (
     <ChatDisclosure
       icon={getIcon(part)}
-      label={getLabel(part)}
-      status={getStatus(part, actions.isLast)}
+      label={running ? getLiveLabel(part) : getLabel(part)}
+      live={running}
+      status={!running && getStatus(part, actions.isLast)}
+      summary={getSummary(part)}
     >
-      {part.state === 'output-available' && part.output !== undefined && (
-        <ResponseCodeBlock
-          code={JSON.stringify(part.output, null, 2)}
-          language="json"
-        />
-      )}
-      {part.state === 'output-error' && (
-        <ResponseCodeBlock code={part.errorText} language="text" />
-      )}
+      {getDetail(part)}
     </ChatDisclosure>
   )
 }

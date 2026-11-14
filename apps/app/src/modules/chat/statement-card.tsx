@@ -1,118 +1,176 @@
+import { DatabaseIcon, PlayIcon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import type { ChatTools } from '@tamery/ai/tools'
 import { Dialect, getDialect } from '@tamery/shared/enums/connection-type'
 import { DEFAULT_ROW_HEIGHT } from '@tamery/table/constants'
-import { Button } from '@tamery/ui/components/button'
+import { CodeBlock } from '@tamery/ui/components/custom/code-block'
+import { CopyIconButton } from '@tamery/ui/components/custom/copy-button'
+import { IconButton } from '@tamery/ui/components/custom/icon-button'
+import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 import { cn } from '@tamery/ui/lib/utils'
-import { useRouter } from '@tanstack/react-router'
-import { Result } from 'better-result'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useState } from 'react'
 
-import { resolveTarget } from '~/core/agent/target'
 import type { Connection } from '~/core/connection/sync'
+import { getQueryLanguage } from '~/core/runtime/language'
 import { ChartToggle } from '~/core/table/chart-toggle'
 import { LazyResultsChart } from '~/core/table/lazy-results-chart'
 import { getResultChart } from '~/core/table/result-chart'
+import type { ResultChart } from '~/core/table/result-chart'
 import { resultGrid } from '~/core/table/result-grid'
 import { ResultsTable } from '~/core/table/results-table'
 import { posthog } from '~/lib/posthog'
-import { openRunnerTab } from '~/modules/runner/lib/new-query'
-import { runnerPageStore, setQuery } from '~/modules/runner/lib/store'
 import { plural } from '~/utils/plural'
+
+import { openStatement } from './app-actions'
+import { Clamped } from './clamped'
+import { ToolCard, ToolCardHeader } from './tool-card'
 
 const MAX_VISIBLE_ROWS = 8
 
-export const ToolResult = ({
+type ResultSets = ChatTools['query']['output']
+
+const summarize = (sets: ResultSets) => {
+  const set = sets.findLast(({ columns }) => columns.length > 0)
+  if (set) {
+    return set.truncated
+      ? `${set.rows.length}+ rows`
+      : plural(set.rows.length, 'row')
+  }
+  const affected = sets.reduce(
+    (sum, { affectedRows }) => sum + (affectedRows ?? 0),
+    0
+  )
+  return `${plural(affected, 'row')} affected`
+}
+
+export const ResultGrid = ({
+  chart,
+  dialect,
+  grid,
+}: {
+  /** Set while the result shows as its chart. */
+  chart: ResultChart | null
+  dialect: Dialect
+  grid: ReturnType<typeof resultGrid>
+}) => (
+  <div
+    className={cn(
+      'relative flex flex-col',
+      chart ? 'h-56' : 'h-(--grid-height)'
+    )}
+    style={
+      {
+        '--grid-height': `${(Math.min(grid.rows.length, MAX_VISIBLE_ROWS) + 1) * DEFAULT_ROW_HEIGHT}px`,
+      } as CSSProperties
+    }
+  >
+    {chart ? (
+      <LazyResultsChart chart={chart} />
+    ) : (
+      <ResultsTable columns={grid.columns} rows={grid.rows} dialect={dialect} />
+    )}
+  </div>
+)
+
+/** One statement the agent ran or wants to run: where, the SQL, then its rows, its error or the decision it waits on. */
+export const StatementCard = ({
+  children,
   connection,
+  error,
   sets,
+  statement,
+  status,
   target,
 }: {
-  /** Null for combined results, which run in the chat's own SQLite and have no connection to open them in. */
-  connection: Connection | null
-  sets: ChatTools['query']['output']
-  target: ChatTools['query']['input'] | null
+  /** The pending decision, under the SQL. */
+  children?: ReactNode
+  /** Null for combined results, which run in the chat's own SQLite; undefined when the call's connection is gone. */
+  connection: Connection | null | undefined
+  error?: string
+  sets?: ResultSets
+  statement: string | undefined
+  /** Replaces the result's row count while the statement is not done. */
+  status: ReactNode
+  target?: Omit<ChatTools['query']['input'], 'statement'>
 }) => {
-  const router = useRouter()
   const [asChart, setAsChart] = useState(false)
   const dialect = connection ? getDialect(connection.type) : Dialect.SQLite
-  const resource = target
-    ? Result.try(() => resolveTarget(target)).unwrapOr(null)?.resource
-    : null
-  const set = sets.findLast(({ columns }) => columns.length > 0)
-
-  if (!set) {
-    const affected = sets.reduce(
-      (sum, { affectedRows }) => sum + (affectedRows ?? 0),
-      0
-    )
-    return (
-      <p className="text-muted-foreground pl-1.5 text-xs">
-        {plural(affected, 'row')} affected
-      </p>
-    )
-  }
-
-  const { columns, rows } = resultGrid(set, '')
-  const chart = getResultChart(columns, rows)
-  const openAsQuery = () => {
-    if (!(resource && target)) {
-      return
-    }
-    const tabId = openRunnerTab(resource.id)
-    setQuery(
-      runnerPageStore({ dialect, resourceId: resource.id, tabId }),
-      target.statement
-    )
-    posthog.capture('ai_chat_result_opened')
-    void router.navigate({
-      params: { resourceId: resource.id, tabId },
-      to: '/connection/$resourceId/$tabId',
-    })
-  }
+  const set = sets?.findLast(({ columns }) => columns.length > 0)
+  const grid = set && set.rows.length > 0 ? resultGrid(set, '') : null
+  const chart = grid && getResultChart(grid.columns, grid.rows)
 
   return (
-    <div className="bg-background ring-foreground/4 flex flex-col overflow-hidden rounded-xl ring">
-      {rows.length > 0 && (
-        <div
-          className={cn(
-            'flex flex-col',
-            asChart && chart ? 'h-56' : 'h-(--grid-height)'
-          )}
-          style={
-            {
-              '--grid-height': `${(Math.min(rows.length, MAX_VISIBLE_ROWS) + 1) * DEFAULT_ROW_HEIGHT}px`,
-            } as CSSProperties
-          }
-        >
-          {asChart && chart ? (
-            <LazyResultsChart chart={chart} />
+    <ToolCard>
+      <ToolCardHeader
+        icon={
+          connection ? (
+            <ConnectionIcon
+              type={connection.type}
+              provider={connection.provider}
+            />
           ) : (
-            <ResultsTable columns={columns} rows={rows} dialect={dialect} />
-          )}
+            <HugeiconsIcon icon={DatabaseIcon} strokeWidth={2} />
+          )
+        }
+        title={
+          connection ? (
+            <span data-mask>{connection.name}</span>
+          ) : (
+            connection === null && 'Combined results'
+          )
+        }
+        status={status ?? (sets && summarize(sets))}
+        actions={
+          <>
+            {chart && <ChartToggle asChart={asChart} onChange={setAsChart} />}
+            {statement && (
+              <CopyIconButton text={statement} label="Copy SQL" side="top" />
+            )}
+            {statement && target && (
+              <IconButton
+                icon={PlayIcon}
+                label="Open in a Query tab"
+                side="top"
+                size="icon-xs"
+                variant="ghost-muted"
+                onClick={() => {
+                  openStatement({ ...target, statement })
+                  posthog.capture('ai_chat_statement_opened')
+                }}
+              />
+            )}
+          </>
+        }
+      />
+      {statement && (
+        <CodeBlock
+          className="max-h-40"
+          code={statement}
+          language={getQueryLanguage(dialect).highlight}
+          padding="popup"
+          size="xs"
+          wrap
+        />
+      )}
+      {error && (
+        <div
+          data-mask
+          className="text-destructive flex flex-col items-start px-3 py-2.5 font-mono text-xs"
+        >
+          <Clamped height="short">
+            <p className="whitespace-pre-wrap">{error}</p>
+          </Clamped>
         </div>
       )}
-      <div className="flex h-8 items-center gap-1 border-t pr-1 pl-3">
-        <span className="text-muted-foreground text-xs tabular-nums">
-          {plural(rows.length, 'row')}
-          {set.truncated && ', more not shown'}
-        </span>
-        {chart && (
-          <div className="ml-auto">
-            <ChartToggle asChart={asChart} onChange={setAsChart} />
-          </div>
-        )}
-        {target && (
-          <Button
-            size="xs"
-            variant="ghost-muted"
-            className={cn(!chart && 'ml-auto')}
-            disabled={!resource}
-            onClick={openAsQuery}
-          >
-            Open as Query
-          </Button>
-        )}
-      </div>
-    </div>
+      {grid && (
+        <ResultGrid
+          chart={asChart ? chart : null}
+          dialect={dialect}
+          grid={grid}
+        />
+      )}
+      {children}
+    </ToolCard>
   )
 }

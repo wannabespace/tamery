@@ -20,7 +20,7 @@ type ToolCall = Exclude<
   { dynamic: true } | { toolName: 'execute' } | { toolName: 'propose_note' }
 >
 
-const DECLINED = 'The user declined to run this statement.'
+export const DECLINED = 'The user declined to run this statement.'
 
 const runs = new Map<string, AbortController>()
 const decided = new Set<string>()

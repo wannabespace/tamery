@@ -10,6 +10,7 @@
 
 - Level-2 and level-3 boxes take `rounded-xl` + the control hairline `ring ring-foreground/4`, never `border`: both are 0.5px in this repo, but a border lives inside the box and takes layout space while the ring sits outside it. Never `ring-[0.5px]`/`ring-1`. Panes take no shadow, grouped lists `shadow-xs`.
 - **Every popup paints `bg-popover`** — popover, dropdown and context menu alike — and dark `--popover` sits between the pane and the fields (0.254 between 0.2437 and `--input`'s 0.2633): a step up so a popup over the table reads as its own surface, still below the fields so a field inside a popup stays raised.
+- **A grid paints its sticky header and pinned cells `bg-grid-surface`**, which is `--background` unless the surface hosting it sets `--grid-surface` to its own fill (the chat's `ToolCard` sets `var(--popover)`): a header painted the pane's colour on a level-3 card reads as a darker band.
 - **A card inside a level-2 pane must be level 3** (`bg-popover`): `--card` and `--background` are the same value, so a `bg-card` block on a pane shows only its hairline and reads as unlayered.
 - **The connection list is level 3** (`bg-popover`), as is its dashed add row's hover: it sits on the canvas in one column with the search field and toolbar buttons, and a level-2 card under level-3 controls reads as the sunken one.
 - Glass floating chrome: `bg-popover/70` + `backdrop-blur` + `ring-foreground/4`.

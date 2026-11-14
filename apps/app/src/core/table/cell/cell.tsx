@@ -214,8 +214,8 @@ export const TableCell = ({
         (value === null || value === undefined || value === '') &&
           'text-muted-foreground/60',
         draft?.isCommitting && 'animate-pulse',
-        pinned && 'bg-background group-hover/row:bg-accent z-10',
-        isDragging && 'bg-background z-10'
+        pinned && 'group-hover/row:bg-accent bg-grid-surface z-10',
+        isDragging && 'bg-grid-surface z-10'
       )}
     >
       {flash !== undefined && (

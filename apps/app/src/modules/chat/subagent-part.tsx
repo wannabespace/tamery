@@ -1,8 +1,12 @@
-import { AiNetworkIcon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
+import {
+  AiNetworkIcon,
+  ArrowRight01Icon,
+  Tick02Icon,
+} from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { AppUIMessage } from '@tamery/ai/message'
-import { Button } from '@tamery/ui/components/button'
-import { Spinner } from '@tamery/ui/components/spinner'
+import { IconButton } from '@tamery/ui/components/custom/icon-button'
+import { Response } from '@tamery/ui/components/response'
 import type { ReactNode } from 'react'
 import { useSubscription } from 'seitu/react'
 
@@ -10,18 +14,20 @@ import { useConnectionContext } from '~/core/connection/route'
 import { posthog } from '~/lib/posthog'
 
 import type { ChatToolPart } from './chat-tool-types'
+import { Clamped } from './clamped'
 import type { Subagent, SubagentStatus } from './subagents-store'
 import { openSubagentStore, subagentsStore } from './subagents-store'
+import { ToolCard, ToolCardHeader } from './tool-card'
 
 export const STATUS: Record<SubagentStatus | 'stopped', ReactNode> = {
-  done: <span className="text-muted-foreground">Done</span>,
-  failed: <span className="text-destructive">Failed</span>,
-  running: (
-    <span className="text-muted-foreground flex items-center gap-1.5">
-      <Spinner className="size-3" />
-      Working
+  done: (
+    <span className="text-muted-foreground flex items-center gap-1">
+      <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} className="size-3" />
+      Done
     </span>
   ),
+  failed: <span className="text-destructive">Failed</span>,
+  running: <span className="text-muted-foreground shimmer">Working</span>,
   stopped: <span className="text-muted-foreground">Stopped</span>,
   waiting: <span className="text-warning">Needs approval</span>,
 }
@@ -29,7 +35,7 @@ export const STATUS: Record<SubagentStatus | 'stopped', ReactNode> = {
 export const DOT: Record<SubagentStatus, string> = {
   done: 'bg-muted-foreground/50',
   failed: 'bg-destructive',
-  running: 'bg-primary animate-pulse',
+  running: 'bg-primary',
   waiting: 'bg-warning',
 }
 
@@ -77,7 +83,7 @@ export const openSubagent = (resourceId: string, chatId: string | null) => {
   }
 }
 
-/** The line a `spawn_agent` call leaves in its parent's answer; pressing it shows the subagent's chat. */
+/** The card a `spawn_agent` call leaves in its parent's answer: its task while it works, its report once done, and a way into its chat. */
 export const SubagentPart = ({ part }: { part: SpawnPart }) => {
   const { connectionResource } = useConnectionContext()
   const live = useSubscription(subagentsStore).find(
@@ -88,21 +94,41 @@ export const SubagentPart = ({ part }: { part: SpawnPart }) => {
     (part.state === 'output-available' ? part.output.chatId : null)
 
   return (
-    <Button
-      variant="ghost-muted"
-      size="sm"
-      className="w-full justify-start"
-      disabled={!chatId}
-      onClick={() => chatId && openSubagent(connectionResource.id, chatId)}
-    >
-      <HugeiconsIcon icon={AiNetworkIcon} strokeWidth={2} />
-      <span className="text-foreground truncate">
-        {part.input?.title ?? 'Subagent'}
-      </span>
-      <span className="ml-auto text-xs">
-        {STATUS[live?.status ?? partStatus(part)]}
-      </span>
-      {chatId && <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />}
-    </Button>
+    <ToolCard>
+      <ToolCardHeader
+        icon={<HugeiconsIcon icon={AiNetworkIcon} strokeWidth={2} />}
+        title={
+          <>
+            <span className="text-muted-foreground font-normal">Subagent</span>{' '}
+            <span data-mask>{part.input?.title}</span>
+          </>
+        }
+        status={STATUS[live?.status ?? partStatus(part)]}
+        actions={
+          chatId && (
+            <IconButton
+              icon={ArrowRight01Icon}
+              label="Open the subagent"
+              side="top"
+              size="icon-xs"
+              variant="ghost-muted"
+              onClick={() => openSubagent(connectionResource.id, chatId)}
+            />
+          )
+        }
+      />
+      <div
+        data-mask
+        className="text-muted-foreground flex flex-col items-start px-3 py-2.5 text-xs"
+      >
+        <Clamped height="short">
+          {part.state === 'output-available' ? (
+            <Response>{part.output.answer}</Response>
+          ) : (
+            <p>{part.input?.task}</p>
+          )}
+        </Clamped>
+      </div>
+    </ToolCard>
   )
 }

@@ -26,6 +26,12 @@ export const SHORTCUTS = {
     hotkeys: ['Mod+L'],
     title: 'New chat',
   },
+  chatSendNow: {
+    description:
+      'While the agent works, stop it and send the message at once instead of queuing it.',
+    hotkeys: ['Mod+Enter'],
+    title: 'Send now',
+  },
   nextSubagent: {
     description:
       "Show the open chat's next subagent, and after the last one the chat itself.",

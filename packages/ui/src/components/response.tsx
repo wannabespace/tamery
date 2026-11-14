@@ -1,25 +1,49 @@
-import { ArrowDown01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import type { IconSvgElement } from '@hugeicons/react'
 import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 import { CopyButton } from '@tamery/ui/components/custom/copy-button'
 import { Mermaid } from '@tamery/ui/components/custom/mermaid'
 import { cn } from '@tamery/ui/lib/utils'
 import type { VariantProps } from 'class-variance-authority'
 import type * as React from 'react'
-import { createContext, use, useState } from 'react'
+import { createContext, use } from 'react'
 import { Streamdown } from 'streamdown'
 import type { ExtraProps } from 'streamdown'
 
 import { responseVariants } from './response.utils'
 
-const COLLAPSED_LINES = 10
-
 interface ResponseSlots {
-  /** Extra buttons in a fenced block's header, beside Copy. */
-  codeActions?: (code: string, language: string) => React.ReactNode
-  /** Turns an inline code span into a button, such as a table name the app can open; null keeps the plain span. */
-  inlineCodeAction?: (text: string) => (() => void) | null
+  /** Turns an inline code span into a button led by `icon`, such as a table name the app can open; null keeps the plain span. */
+  inlineCodeAction?: (
+    text: string
+  ) => { icon: IconSvgElement; open: () => void } | null
+  /** Draws a Markdown table from its header cells and body rows as plain text; unset keeps the HTML table. */
+  table?: (table: { columns: string[]; rows: string[][] }) => React.ReactNode
 }
+
+type HastNode = NonNullable<ExtraProps['node']>
+type HastChild = HastNode['children'][number]
+
+const textOf = (node: HastChild): string => {
+  if (node.type === 'text') {
+    return node.value
+  }
+  return node.type === 'element' ? node.children.map(textOf).join('') : ''
+}
+
+const rowsOf = (node: HastNode): string[][] =>
+  node.children.flatMap((child) => {
+    if (child.type !== 'element') {
+      return []
+    }
+    return child.tagName === 'tr'
+      ? [
+          child.children
+            .filter((cell) => cell.type === 'element')
+            .map((cell) => textOf(cell).trim()),
+        ]
+      : rowsOf(child)
+  })
 
 // A context, not per-render `components`: Streamdown remounts every block whose component identity changes, so a streaming answer would lose collapsed states each chunk.
 const ResponseSlotsContext = createContext<ResponseSlots>({})
@@ -47,60 +71,29 @@ export const ResponseCodeBlock = ({
 }: React.ComponentProps<'div'> & {
   code: string
   language: string
-}) => {
-  const { codeActions } = use(ResponseSlotsContext)
-  const [expanded, setExpanded] = useState(false)
-  const lines = code.split('\n')
-  const hidden = lines.length - COLLAPSED_LINES
-  const collapsed = hidden > 0 && !expanded
-
-  return (
-    <div
-      className={cn(
-        'bg-foreground/3 my-2 min-w-0 overflow-hidden rounded-lg',
-        className
-      )}
-      {...props}
-    >
-      <div className="text-muted-foreground text-2xs flex h-6 items-center gap-0.5 pr-0.5 pl-2">
-        <span className="min-w-0 flex-1 truncate">
-          {LANGUAGE_LABELS[language] ?? language}
-        </span>
-        {codeActions?.(code, language)}
-        <CopyButton
-          className="text-muted-foreground size-5 [&_svg]:size-3"
-          size="icon-sm"
-          text={code}
-          variant="ghost"
-        />
-      </div>
-      <CodeBlock
-        className={collapsed ? 'pb-0' : 'max-h-72 pb-2'}
-        code={collapsed ? lines.slice(0, COLLAPSED_LINES).join('\n') : code}
-        language={language}
+}) => (
+  <div
+    className={cn(
+      'bg-popover ring-foreground/4 min-w-0 overflow-hidden rounded-xl shadow-xs ring',
+      className
+    )}
+    {...props}
+  >
+    <div className="text-muted-foreground text-2xs flex h-6 items-center gap-0.5 pr-0.5 pl-2">
+      <span className="min-w-0 flex-1 truncate">
+        {LANGUAGE_LABELS[language] ?? language}
+      </span>
+      <CopyButton
+        aria-label="Copy code"
+        className="text-muted-foreground size-5 [&_svg]:size-3"
+        size="icon-sm"
+        text={code}
+        variant="ghost"
       />
-      {hidden > 0 && (
-        <button
-          className="text-muted-foreground hover:bg-foreground/3 hover:text-foreground text-2xs flex h-6 w-full items-center gap-1 px-2 transition-colors"
-          onClick={() => setExpanded((current) => !current)}
-          type="button"
-        >
-          <HugeiconsIcon
-            icon={ArrowDown01Icon}
-            strokeWidth={2}
-            className={cn(
-              'size-3 transition-transform',
-              expanded && 'rotate-180'
-            )}
-          />
-          {expanded
-            ? 'Show less'
-            : `Show ${hidden} more ${hidden === 1 ? 'line' : 'lines'}`}
-        </button>
-      )}
     </div>
-  )
-}
+    <CodeBlock className="max-h-72 pb-2" code={code} language={language} />
+  </div>
+)
 
 const Code = ({
   children,
@@ -114,9 +107,11 @@ const Code = ({
     const language =
       /language-(?<language>\S+)/u.exec(className ?? '')?.groups?.language ??
       'text'
-    const block = <ResponseCodeBlock code={code} language={language} />
+    const block = (
+      <ResponseCodeBlock className="my-4" code={code} language={language} />
+    )
     return language === 'mermaid' ? (
-      <Mermaid chart={code} className="my-2" fallback={block} />
+      <Mermaid chart={code} className="my-4" fallback={block} />
     ) : (
       block
     )
@@ -125,11 +120,18 @@ const Code = ({
     typeof children === 'string' ? inlineCodeAction?.(children) : null
   const codeClassName = cn(
     'bg-foreground/5 rounded-md px-1 py-px font-mono text-[0.9em]',
-    action && 'text-primary hover:bg-foreground/10 transition-colors',
+    action &&
+      'text-primary hover:bg-foreground/10 inline-flex items-center gap-1 transition-colors',
     className
   )
   return action ? (
-    <button type="button" className={codeClassName} data-mask onClick={action}>
+    <button
+      type="button"
+      className={codeClassName}
+      data-mask
+      onClick={() => action.open()}
+    >
+      <HugeiconsIcon icon={action.icon} strokeWidth={2} className="size-3" />
       {children}
     </button>
   ) : (
@@ -141,17 +143,24 @@ const Code = ({
 
 const Table = ({
   className,
-  node: _node,
+  node,
   ...props
-}: React.ComponentProps<'table'> & ExtraProps) => (
-  <div className="bg-background ring-foreground/4 my-2 overflow-x-auto rounded-xl ring">
-    <table
-      className={cn('w-full text-xs whitespace-nowrap', className)}
-      data-mask
-      {...props}
-    />
-  </div>
-)
+}: React.ComponentProps<'table'> & ExtraProps) => {
+  const { table } = use(ResponseSlotsContext)
+  const [columns, ...rows] = table && node ? rowsOf(node) : []
+  if (table && columns) {
+    return <div className="my-4">{table({ columns, rows })}</div>
+  }
+  return (
+    <div className="bg-background ring-foreground/4 my-4 overflow-x-auto rounded-xl ring">
+      <table
+        className={cn('w-full text-xs whitespace-nowrap', className)}
+        data-mask
+        {...props}
+      />
+    </div>
+  )
+}
 
 const TableHead = ({
   className,
@@ -202,14 +211,14 @@ const components = {
 
 export const Response = ({
   className,
-  codeActions,
   inlineCodeAction,
+  table,
   variant,
   ...props
 }: React.ComponentProps<typeof Streamdown> &
   ResponseSlots &
   VariantProps<typeof responseVariants>) => (
-  <ResponseSlotsContext value={{ codeActions, inlineCodeAction }}>
+  <ResponseSlotsContext value={{ inlineCodeAction, table }}>
     <Streamdown
       className={cn(responseVariants({ variant }), className)}
       components={components}

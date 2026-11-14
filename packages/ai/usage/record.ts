@@ -1,5 +1,6 @@
 import { runInBackground } from '@tamery/shared/background'
 import type { LanguageModelUsage, ProviderMetadata, TelemetryOptions } from 'ai'
+import { type } from 'arktype'
 
 import { getModelCost } from '../models/price'
 import type { AiFeature } from './feature'
@@ -19,14 +20,17 @@ export interface AiUsageRecord extends AiUsageScope {
   outputTokens: number
 }
 
+const usageCost = type({
+  cost: 'number',
+  'costDetails?': { 'upstreamInferenceCost?': 'number | null' },
+})
+
+// With the provider's own key (BYOK) OpenRouter reports only its fee as `cost`, often 0, and the provider's bill apart; a total of 0 is a bill it left out, never a free call.
 const openRouterCost = (metadata?: ProviderMetadata) => {
-  const usage = metadata?.openrouter?.usage
-  return usage &&
-    typeof usage === 'object' &&
-    'cost' in usage &&
-    typeof usage.cost === 'number'
-    ? usage.cost
-    : undefined
+  const usage = usageCost(metadata?.openrouter?.usage)
+  return usage instanceof type.errors
+    ? undefined
+    : usage.cost + (usage.costDetails?.upstreamInferenceCost ?? 0) || undefined
 }
 
 export const usageTelemetry = (

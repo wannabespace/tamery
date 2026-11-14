@@ -54,6 +54,14 @@ export const chatModelOptionsValue = createWebStorageValue({
   type: 'localStorage',
 })
 
+/** Chats whose answer finished while they were not on screen; showing one reads it. */
+export const unreadChatsValue = createWebStorageValue({
+  defaultValue: [] as string[],
+  key: 'chat-unread',
+  schema: type('string[]'),
+  type: 'localStorage',
+})
+
 export interface ChatDraft {
   resourceId: string
   text: string

@@ -1,10 +1,10 @@
 import { CheckListIcon } from '@hugeicons/core-free-icons'
 import type { AppMessagePart } from '@tamery/ai/message'
-import { Spinner } from '@tamery/ui/components/spinner'
-import { isStaticToolUIPart } from 'ai'
+import { isStaticToolUIPart, isToolUIPart } from 'ai'
 
 import { ChatDisclosure } from './chat-disclosure'
 import { MessagePart } from './chat-message-part'
+import { getLiveLabel } from './chat-tool-part'
 import type { ToolPartActions } from './chat-tool-types'
 
 type Segment =
@@ -19,14 +19,14 @@ const isLegwork = (part: AppMessagePart) => {
     return false
   }
   switch (part.type) {
+    case 'tool-combine':
     case 'tool-execute':
     case 'tool-propose_note':
+    case 'tool-query':
     case 'tool-spawn_agent': {
       return false
     }
-    case 'tool-combine':
-    case 'tool-propose_change':
-    case 'tool-query': {
+    case 'tool-propose_change': {
       return part.state !== 'output-available'
     }
     default: {
@@ -39,6 +39,9 @@ const isVisible = (part: AppMessagePart) =>
   part.type === 'text' || part.type === 'reasoning'
     ? !!part.text.trim()
     : isStaticToolUIPart(part)
+
+/** A turn interrupted before it wrote or ran anything has nothing to show. */
+export const hasContent = (parts: AppMessagePart[]) => parts.some(isVisible)
 
 const toSegments = (parts: AppMessagePart[]) => {
   const segments: Segment[] = []
@@ -55,6 +58,34 @@ const toSegments = (parts: AppMessagePart[]) => {
   return segments
 }
 
+/** The live fold names the step in flight, or Thinking between steps. */
+const currentStep = (parts: AppMessagePart[]) => {
+  const last = parts.at(-1)
+  return last &&
+    isStaticToolUIPart(last) &&
+    last.state !== 'output-available' &&
+    last.state !== 'output-error'
+    ? getLiveLabel(last)
+    : 'Thinking'
+}
+
+const isText = (segment: Segment) =>
+  segment.kind === 'part' && segment.part.type === 'text'
+
+/** Tool work that follows tool work sits close as one block; text keeps the answer's wider rhythm around it. */
+const toBlocks = (segments: Segment[]) => {
+  const blocks: { prose: boolean; segments: Segment[]; start: number }[] = []
+  for (const [index, segment] of segments.entries()) {
+    const last = blocks.at(-1)
+    if (last && !last.prose && !isText(segment)) {
+      last.segments.push(segment)
+    } else {
+      blocks.push({ prose: isText(segment), segments: [segment], start: index })
+    }
+  }
+  return blocks
+}
+
 const plural = (count: number) => (count === 1 ? '1 step' : `${count} steps`)
 
 export const AgentParts = ({
@@ -68,21 +99,23 @@ export const AgentParts = ({
   parts: AppMessagePart[]
 }) => {
   const segments = toSegments(parts)
-  return segments.map((segment, index) => {
+  const render = (segment: Segment, index: number) => {
     if (segment.kind === 'part') {
       return <MessagePart key={index} actions={actions} part={segment.part} />
     }
+    const isLive = isWorking && index === segments.length - 1
     const [only] = segment.parts
-    if (segment.parts.length === 1 && only) {
+    if (segment.parts.length === 1 && only && !isLive) {
       return <MessagePart key={index} actions={actions} part={only} />
     }
-    const isLive = isWorking && index === segments.length - 1
     return (
       <ChatDisclosure
         key={index}
         icon={CheckListIcon}
-        label={isLive ? 'Working' : plural(segment.parts.length)}
-        status={isLive && <Spinner className="size-3" />}
+        label={
+          isLive ? currentStep(segment.parts) : plural(segment.parts.length)
+        }
+        live={isLive}
       >
         <div className="flex flex-col gap-1.5">
           {segment.parts.map((part, partIndex) => (
@@ -91,5 +124,29 @@ export const AgentParts = ({
         </div>
       </ChatDisclosure>
     )
-  })
+  }
+  return toBlocks(segments).map(({ prose, start, segments: run }) =>
+    prose ? (
+      run.map((segment, offset) => render(segment, start + offset))
+    ) : (
+      <div key={start} className="flex flex-col gap-2">
+        {run.map((segment, offset) => render(segment, start + offset))}
+      </div>
+    )
+  )
+}
+
+/** The live answer's last part already shows that work goes on: text being written, the Working fold, or a tool still running or waiting. */
+export const showsProgress = (parts: AppMessagePart[]) => {
+  const last = toSegments(parts).at(-1)
+  if (!last || last.kind === 'steps') {
+    return !!last
+  }
+  const { part } = last
+  return (
+    part.type === 'text' ||
+    (isToolUIPart(part) &&
+      part.state !== 'output-available' &&
+      part.state !== 'output-error')
+  )
 }

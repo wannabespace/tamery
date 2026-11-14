@@ -18,7 +18,7 @@ import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { silently } from '@tamery/shared/utils'
 import type { TelemetryOptions } from 'ai'
 import { isDeepEqualData, isToolUIPart } from 'ai'
-import { and, asc, eq, gte, inArray, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNull } from 'drizzle-orm'
 
 import { aiUsage } from '~/lib/ai-usage'
 import { inMemberWorkspace } from '~/lib/workspace'
@@ -143,21 +143,26 @@ export const chatPersist = {
             gte(chatsMessages.createdAt, target.createdAt)
           )
         )
+        .orderBy(desc(chatsMessages.createdAt))
       const ids = rows.map(({ id }) => id)
       const deletedParts = await tx
         .delete(chatsMessagesParts)
         .where(inArray(chatsMessagesParts.messageId, ids))
-        .returning({ id: chatsMessagesParts.id })
+        .returning({
+          id: chatsMessagesParts.id,
+          messageId: chatsMessagesParts.messageId,
+        })
       await tx.delete(chatsMessages).where(inArray(chatsMessages.id, ids))
       return { deleted: ids, parts: deletedParts }
     })
-    for (const { id } of parts) {
-      chatsMessagesPartsPublisher.publish(data.userId, {
-        key: id,
-        type: 'delete',
-      })
-    }
+    // Newest first: while the edited message stays shown live, a later message still synced would otherwise list above it for a frame.
     for (const id of deleted) {
+      for (const part of parts.filter(({ messageId }) => messageId === id)) {
+        chatsMessagesPartsPublisher.publish(data.userId, {
+          key: part.id,
+          type: 'delete',
+        })
+      }
       chatsMessagesPublisher.publish(data.userId, { key: id, type: 'delete' })
     }
     const compaction = await chatPersist.compaction(data.chatId)
