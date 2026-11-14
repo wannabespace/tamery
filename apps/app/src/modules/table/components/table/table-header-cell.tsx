@@ -115,6 +115,12 @@ export const TableHeaderCell = ({
           onPointerDownCapture={() => {
             pressClosedEditor.current = !!cursor.store.get().edit
           }}
+          // Focusing the grid without a cursor places one on the first cell and scrolls to it, away from the pressed column.
+          onMouseDown={(event) => {
+            if (!cursor.store.get().cursor && isHeaderPress(event)) {
+              event.preventDefault()
+            }
+          }}
           onClick={(event) =>
             actions.sortable &&
             !pressClosedEditor.current &&
