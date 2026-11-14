@@ -143,6 +143,14 @@ const RULES: DiagnosisRule[] = [
   },
   {
     diagnose: () => ({
+      hint: 'MotherDuck stopped serving this organization. An organization admin must pick the Free, Lite or Business plan at app.motherduck.com to restore access.',
+      title: 'Your MotherDuck trial has ended',
+    }),
+    engine: ConnectionType.DuckDB,
+    match: /motherduck trial has ended/iu,
+  },
+  {
+    diagnose: () => ({
       focus: 'user',
       hint: 'The server locked this account, after too many failed sign-ins or by an administrator. Unlock it on the server, or wait for the lockout to clear.',
       title: 'This account is locked',
