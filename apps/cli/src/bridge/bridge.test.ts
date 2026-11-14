@@ -1,5 +1,6 @@
 import {
   afterAll,
+  afterEach,
   beforeAll,
   describe,
   expect,
@@ -244,6 +245,11 @@ beforeAll(async () => {
 afterAll(async () => {
   await server.stop(true)
   fs.rmSync(home, { force: true, recursive: true })
+})
+
+// A test that stands in for the tunnel opener puts back none, so the next one never runs through its stand-in.
+afterEach(() => {
+  forwarding.use(() => Promise.resolve(null))
 })
 
 describe('requests', () => {
