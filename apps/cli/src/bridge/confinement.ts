@@ -3,12 +3,11 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { connectionParts } from '@tamery/connection/connection-parts'
-import { databaseFile } from '@tamery/connection/database-file'
 import { getHostHint } from '@tamery/connection/hosts'
+import { localPath } from '@tamery/connection/local-path'
 import { readConnectionString } from '@tamery/connection/parse-connection-string'
 import { describeConnectionString, FILE_PARAMS } from '@tamery/connection/utils'
 import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
-import { Result } from 'better-result'
 
 /** Besides every dot folder: where browsers, mail and other apps keep cookies, sessions and keys. */
 const APP_DATA_FOLDERS = new Set(['appdata', 'library', 'snap'])
@@ -18,32 +17,38 @@ const UNVERIFIED_TLS_PARAMS = [
   'tlsinsecure',
 ]
 
-const getAbsolutePath = (file: string) =>
-  file.startsWith('~/')
-    ? path.join(os.homedir(), file.slice(2))
-    : path.resolve(file)
-
-const getRealPath = (file: string): string => {
-  const real = Result.try(() => fs.realpathSync.native(file))
-  const parent = path.dirname(file)
-  return real.isOk() || parent === file
-    ? real.unwrapOr(file)
-    : path.join(getRealPath(parent), path.basename(file))
-}
-
 const getFolderId = (folder: string) => {
   const stats = fs.statSync(folder, { bigint: true, throwIfNoEntry: false })
   return stats ? `${stats.dev}:${stats.ino}` : null
 }
 
-/** Finds the home folder by its identity, not its spelling: a symlinked home, macOS's `/System/Volumes/Data` and another case all name it. */
+const isAppDataFolder = (folder: string) => {
+  const name = folder.toLowerCase()
+  return name.startsWith('.') || APP_DATA_FOLDERS.has(name)
+}
+
+/**
+ * This computer's home is found by identity, not spelling: a symlinked home, macOS's `/System/Volumes/Data` and another case
+ * all name it. Any other `Users/<name>` counts too, as WSL mounts Windows' homes under `/mnt/c/Users`.
+ */
 const isInAppData = (file: string) => {
+  const folders = file.split(path.sep)
+  if (
+    folders.some(
+      (folder, index) =>
+        folders[index - 2]?.toLowerCase() === 'users' && isAppDataFolder(folder)
+    )
+  ) {
+    return true
+  }
   const home = getFolderId(os.homedir())
-  let child = getRealPath(file)
+  if (!home) {
+    return false
+  }
+  let child = file
   for (let parent = path.dirname(child); parent !== child;) {
     if (getFolderId(parent) === home) {
-      const folder = path.basename(child).toLowerCase()
-      return folder.startsWith('.') || APP_DATA_FOLDERS.has(folder)
+      return isAppDataFolder(path.basename(child))
     }
     child = parent
     parent = path.dirname(parent)
@@ -90,17 +95,21 @@ export const confinement = {
     const database =
       (type === ConnectionType.SQLite || type === ConnectionType.DuckDB) &&
       !host
-        ? getAbsolutePath(databaseFile.path(connectionString))
+        ? localPath.getDatabaseFile(connectionString)
         : null
     if (database && isInAppData(database)) {
       return 'The bridge does not open files in app data folders, such as ~/Library, AppData or a folder starting with a dot, where browsers and other apps keep cookies and keys. Move the database elsewhere, or open it in the desktop app.'
     }
     const files = [
       database,
-      ...FILE_PARAMS.flatMap((param) => searchParams.getAll(param)),
-      ssh?.auth === 'keyPath' ? ssh.keyPath : null,
+      ...FILE_PARAMS.flatMap((param) =>
+        searchParams.getAll(param).map((file) => path.resolve(file))
+      ),
+      ssh?.auth === 'keyPath' && ssh.keyPath
+        ? localPath.expand(ssh.keyPath)
+        : null,
     ]
-    if (files.some((file) => file && isSpecialFile(getAbsolutePath(file)))) {
+    if (files.some((file) => file && isSpecialFile(file))) {
       return 'The bridge opens only regular files, never a device, pipe or folder. Check the paths in this connection.'
     }
     if (

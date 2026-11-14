@@ -58,6 +58,9 @@ const ids = {
 const databaseFile = path.join(home, 'test.db')
 const sqliteString = `sqlite://${databaseFile}`
 fs.writeFileSync(databaseFile, '')
+const appDataFile = path.join(home, 'Users', 'me', 'Library', 'Cookies.sqlite')
+fs.mkdirSync(path.dirname(appDataFile), { recursive: true })
+fs.writeFileSync(appDataFile, '')
 
 const modified = (connectionString: string, isPasswordExists = false) => ({
   connectionString,
@@ -546,10 +549,7 @@ describe('connections', () => {
   })
 
   test.each([
-    [
-      'a file in an app data folder',
-      'sqlite:///~/Library/Cookies/Cookies.sqlite',
-    ],
+    ['a file in an app data folder', `sqlite://${appDataFile}`],
     ['a cloud login to a server other than Atlas', machineLoginString],
   ])('a paired browser cannot have the bridge open %s', async (_, saved) => {
     const client = createClient(paired.secret)

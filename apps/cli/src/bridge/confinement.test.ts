@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterAll, describe, expect, spyOn, test } from 'bun:test'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -9,11 +9,41 @@ import { ConnectionType } from '@tamery/shared/enums/connection-type'
 
 import { confinement } from './confinement'
 
-const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'tamery-confinement-'))
-const linkedHome = path.join(folder, 'home')
-fs.symlinkSync(os.homedir(), linkedHome)
+const folder = fs.realpathSync(
+  fs.mkdtempSync(path.join(os.tmpdir(), 'tamery-confinement-'))
+)
+const home = path.join(folder, 'home')
+const linkedHome = path.join(folder, 'linked-home')
+const homedir = spyOn(os, 'homedir').mockReturnValue(home)
+
+const create = (file: string) => {
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, '')
+  return file
+}
+
+for (const file of [
+  '.mozilla/firefox/default/cookies.sqlite',
+  '..private/cookies.sqlite',
+  'Library/Messages/chat.db',
+  '.ssh/notes.db',
+  '.secret/x.db',
+  'Projects/app/dev.db',
+]) {
+  create(path.join(home, file))
+}
+fs.mkdirSync(path.join(home, '.secret', 'sub'))
+fs.symlinkSync(
+  path.join(home, '.secret', 'sub'),
+  path.join(home, 'Projects', 'link')
+)
+fs.symlinkSync(home, linkedHome)
+const windowsCookies = create(
+  path.join(folder, 'mnt/c/Users/me/AppData/Roaming/Mozilla/cookies.sqlite')
+)
 
 afterAll(() => {
+  homedir.mockRestore()
   fs.rmSync(folder, { force: true, recursive: true })
 })
 
@@ -23,15 +53,15 @@ describe('confinement', () => {
     ['~/..private/cookies.sqlite', false],
     ['~/Library/Messages/chat.db', false],
     [
-      `${os.homedir().toUpperCase()}/LIBRARY/Messages/chat.db`,
+      `${home.toUpperCase()}/LIBRARY/Messages/chat.db`,
       process.platform === 'linux',
     ],
-    [path.join(os.homedir(), 'Projects', '..', '.ssh', 'notes.db'), false],
-    [path.join(linkedHome, '.config', 'notes.db'), false],
-    [path.join(linkedHome, 'Projects', 'app.db'), true],
-    [folder, false],
+    [path.join(home, 'Projects', '..', '.ssh', 'notes.db'), false],
+    [path.join(linkedHome, '.ssh', 'notes.db'), false],
+    [windowsCookies, false],
+    ['~/Projects', false],
+    [path.join(linkedHome, 'Projects', 'app', 'dev.db'), true],
     ['~/Projects/app/dev.db', true],
-    ['/srv/data/app.db', true],
   ])('a SQLite file at %s opens: %p', (file, opens) => {
     expect(
       confinement.getRefusal(
@@ -41,6 +71,7 @@ describe('confinement', () => {
   })
 
   test.each([
+    [`sqlite://${home}/Projects/link%2F..%2Fx.db`, false],
     [`postgresql://db.example.com/app?sslkey=${folder}`, false],
     [
       `postgresql://db.example.com/app?ssh_host=bastion.example.com&ssh_auth=keyPath&ssh_key_path=${folder}`,
