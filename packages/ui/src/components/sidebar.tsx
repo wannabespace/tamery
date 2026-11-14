@@ -23,19 +23,10 @@ const SidebarMenu = ({ className, ...props }: ComponentProps<'ul'>) => (
   />
 )
 
-const sidebarMenuItemClassName =
-  'group/menu-item relative data-open:before:bg-muted-foreground data-open:before:absolute data-open:before:top-3.5 data-open:before:-left-2 data-open:before:size-1 data-open:before:-translate-y-1/2 data-open:before:rounded-full'
+const sidebarMenuItemClassName = 'group/menu-item relative'
 
-const SidebarMenuItem = ({
-  className,
-  isOpen,
-  ...props
-}: ComponentProps<'li'> & { isOpen?: boolean }) => (
-  <li
-    className={cn(sidebarMenuItemClassName, className)}
-    data-open={isOpen || undefined}
-    {...props}
-  />
+const SidebarMenuItem = ({ className, ...props }: ComponentProps<'li'>) => (
+  <li className={cn(sidebarMenuItemClassName, className)} {...props} />
 )
 
 const SidebarMenuButton = ({

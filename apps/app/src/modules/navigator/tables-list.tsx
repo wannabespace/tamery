@@ -18,12 +18,8 @@ import { cn } from '@tamery/ui/lib/utils'
 import { motion } from 'motion/react'
 import type { CSSProperties, ComponentRef } from 'react'
 import { useDeferredValue, useEffect, useEffectEvent, useRef } from 'react'
-import { useSubscription } from 'seitu/react'
 
 import { useObjectNames } from '~/core/catalog/names'
-import { useConnectionContext } from '~/core/connection/route'
-import { getConnectionResourceStore } from '~/core/connection/stores'
-import { tableTabId } from '~/core/tabs/ids'
 
 import { DropSchemaDialog } from './drop-schema-dialog'
 import { DropTableDialog } from './drop-table-dialog'
@@ -64,11 +60,6 @@ export const TablesList = ({
   search?: string
 }) => {
   const names = useObjectNames()
-  const { connectionResource } = useConnectionContext()
-  const tabs = useSubscription(
-    getConnectionResourceStore(connectionResource.id),
-    { selector: (state) => state.tabs }
-  )
   const dropSchema = useRef<ComponentRef<typeof DropSchemaDialog>>(null)
   const dropTable = useRef<ComponentRef<typeof DropTableDialog>>(null)
   const renameSchema = useRef<ComponentRef<typeof RenameSchemaDialog>>(null)
@@ -218,13 +209,6 @@ export const TablesList = ({
                 )}
                 inert={row === stickyRow}
                 data-highlighted={highlighted || undefined}
-                data-open={
-                  (row.kind === 'table' &&
-                    tabs.some(
-                      (tab) => tab.id === tableTabId(row.schema, row.table.name)
-                    )) ||
-                  undefined
-                }
                 style={
                   { '--row-height': `${virtualRow.size}px` } as CSSProperties
                 }

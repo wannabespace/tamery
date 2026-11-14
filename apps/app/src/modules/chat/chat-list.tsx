@@ -39,14 +39,13 @@ import { AppContextMenu, AppMenuButton } from '~/components/app-context-menu'
 import type { AppMenuNode } from '~/components/app-menu'
 import { getCollections, useCollections } from '~/core/collections'
 import { useConnectionContext } from '~/core/connection/route'
-import { getConnectionResourceStore } from '~/core/connection/stores'
 import { useNavigatorSearch } from '~/modules/navigator/keyboard'
 import { getNavigatorStore } from '~/modules/navigator/stores'
 
 import { chatActions } from './chat-actions'
 import { openChat, startNewChat } from './open-chat'
 import { chatDraftsValue } from './stores'
-import { chatTab, chatTabId } from './tab'
+import { chatTab } from './tab'
 
 const SKELETON_ROWS = 6
 const DAY = 24 * 60 * 60 * 1000
@@ -108,14 +107,12 @@ const ChatListRow = ({
   controlId,
   isActive,
   isHighlighted,
-  isOpen,
   onDelete,
   row,
 }: {
   controlId?: string
   isActive: boolean
   isHighlighted: boolean
-  isOpen: boolean
   onDelete: () => void
   row: ChatRow
 }) => {
@@ -155,10 +152,7 @@ const ChatListRow = ({
   ]
 
   return (
-    <SidebarMenuItem
-      data-highlighted={isHighlighted || undefined}
-      isOpen={isOpen}
-    >
+    <SidebarMenuItem data-highlighted={isHighlighted || undefined}>
       {draft === null ? (
         <AppContextMenu
           items={items}
@@ -253,10 +247,6 @@ export const ChatList = () => {
   const [search, setSearch] = useState('')
   const [deleting, setDeleting] = useState<ChatRow | null>(null)
   const drafts = useSubscription(chatDraftsValue)
-  const tabs = useSubscription(
-    getConnectionResourceStore(connectionResource.id),
-    { selector: (state) => state.tabs }
-  )
   const mentioning = chatsMentioning(search)
 
   const rows: ChatRow[] = [
@@ -369,7 +359,6 @@ export const ChatList = () => {
                     row={row}
                     isActive={row.id === activeId}
                     isHighlighted={row.id === highlightedId}
-                    isOpen={tabs.some((tab) => tab.id === chatTabId(row.id))}
                     controlId={
                       row.id === highlightedId
                         ? highlightedControlId
