@@ -11,6 +11,7 @@ import type * as React from 'react'
 
 /** A step's line; with children it opens to show them, without it is a plain line. */
 export const ChatDisclosure = ({
+  action,
   children,
   icon: Icon,
   label,
@@ -18,6 +19,8 @@ export const ChatDisclosure = ({
   status,
   summary,
 }: {
+  /** A control beside the line, outside its toggle. */
+  action?: React.ReactNode
   children?: React.ReactNode
   icon: IconSvgElement
   label: React.ReactNode
@@ -44,14 +47,17 @@ export const ChatDisclosure = ({
   }
   return (
     <Collapsible>
-      <CollapsibleTrigger variant="disclosure" className="group">
-        {line}
-        <HugeiconsIcon
-          icon={ArrowRight01Icon}
-          strokeWidth={2}
-          className="size-3 transition-transform duration-200 group-data-panel-open:rotate-90"
-        />
-      </CollapsibleTrigger>
+      <div className="flex items-center gap-1">
+        <CollapsibleTrigger variant="disclosure" className="group min-w-0">
+          {line}
+          <HugeiconsIcon
+            icon={ArrowRight01Icon}
+            strokeWidth={2}
+            className="size-3 transition-transform duration-200 group-data-panel-open:rotate-90"
+          />
+        </CollapsibleTrigger>
+        {action}
+      </div>
       <CollapsibleContent variant="disclosure" className="mt-1.5 mb-1 ml-1.5">
         <div className="flex flex-col gap-2">{children}</div>
       </CollapsibleContent>

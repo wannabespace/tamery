@@ -36,6 +36,7 @@ import {
   readAttachments,
 } from './attachments'
 import { useDictation } from './dictation'
+import { splitMentions } from './mention-text'
 import { ModelPicker } from './model-picker'
 import type { ChatCommand, PromptMention } from './prompt-mentions'
 import { commandOf, usePromptMentions } from './prompt-mentions'
@@ -65,7 +66,10 @@ const DictationButton = ({
           />
         }
       >
-        <HugeiconsIcon icon={Mic01Icon} strokeWidth={2} />
+        <HugeiconsIcon
+          icon={dictation.isRecording ? StopIcon : Mic01Icon}
+          strokeWidth={2}
+        />
       </TooltipTrigger>
       <TooltipContent side="top">{label}</TooltipContent>
     </Tooltip>
@@ -73,6 +77,7 @@ const DictationButton = ({
 }
 
 export const ChatInput = ({
+  canInterrupt = true,
   chatId,
   isActive,
   isWorking,
@@ -81,7 +86,10 @@ export const ChatInput = ({
   onCommand,
   onSend,
   onStop,
+  suggestion,
 }: {
+  /** False for a subagent: a message while it works always waits for its turn, since stopping it would fail its report. */
+  canInterrupt?: boolean
   /** Whose draft the composer keeps; the draft survives tabs and reloads until it is sent or emptied. */
   chatId: string
   /** Focuses the composer whenever it turns true. */
@@ -100,6 +108,8 @@ export const ChatInput = ({
     now: boolean
   ) => void
   onStop: () => void
+  /** The placeholder of an empty composer, which Tab takes as the message. */
+  suggestion?: string
 }) => {
   const isOnline = useIsOnline()
   const { connectionResource } = useConnectionContext()
@@ -108,6 +118,7 @@ export const ChatInput = ({
   )
   const [files, setFiles] = useState<FileUIPart[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const highlightRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const menu = usePromptMentions({ setValue, textareaRef, value })
   const dictation = useDictation((text) => {
@@ -134,13 +145,18 @@ export const ChatInput = ({
     setFiles((current) => [...current, ...parts])
   }
 
-  const canSend = (!!value.trim() || files.length > 0) && isOnline
+  const isDictating = dictation.isRecording || dictation.isTranscribing
+  const canSend =
+    (!!value.trim() || files.length > 0) && isOnline && !isDictating
   const showStop = isWorking && !canSend
+  const sendsNow = isWorking && canInterrupt
   let sendLabel = 'Send message'
   if (showStop) {
     sendLabel = 'Stop generating'
-  } else if (isWorking) {
+  } else if (sendsNow) {
     sendLabel = 'Send now'
+  } else if (isWorking) {
+    sendLabel = 'Queue message'
   }
   const submit = (now = false) => {
     const command = commandOf(value)
@@ -184,58 +200,95 @@ export const ChatInput = ({
             </AttachmentGroup>
           </InputGroupAddon>
         )}
-        <InputGroupTextarea
-          ref={textareaRef}
-          data-mask
-          aria-label="Message"
-          placeholder={
-            dictation.isRecording
-              ? 'Listening…'
-              : 'Ask, @ to mention, / for commands'
-          }
-          rows={2}
-          className="field-sizing-content max-h-64 min-h-14 px-3 pt-2.5"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          onSelect={(event) => menu.onSelect(event)}
-          onDragOver={(event) => {
-            if (event.dataTransfer.types.includes('Files')) {
-              event.preventDefault()
+        <div className="relative flex w-full">
+          <div
+            ref={highlightRef}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 overflow-hidden border border-transparent px-3 pt-2.5 pb-2 text-base wrap-break-word whitespace-pre-wrap text-transparent md:text-sm"
+          >
+            {splitMentions(
+              value,
+              menu.sentMentions().map(({ label }) => label)
+            ).map((part, index) =>
+              part.isMention ? (
+                <mark
+                  key={index}
+                  className="bg-muted ring-muted rounded-sm text-transparent ring-2"
+                >
+                  {part.text}
+                </mark>
+              ) : (
+                part.text
+              )
+            )}
+          </div>
+          <InputGroupTextarea
+            ref={textareaRef}
+            data-mask
+            aria-label="Message"
+            placeholder={
+              dictation.isRecording
+                ? 'Listening…'
+                : (suggestion ?? 'Ask, @ to mention, / for commands')
             }
-          }}
-          onDrop={(event) => {
-            if (event.dataTransfer.files.length > 0) {
-              event.preventDefault()
-              void attach([...event.dataTransfer.files])
-            }
-          }}
-          onPaste={(event) => {
-            if (event.clipboardData.files.length > 0) {
-              event.preventDefault()
-              void attach([...event.clipboardData.files])
-            }
-          }}
-          onKeyDown={(event) => {
-            if (menu.onKeyDown(event)) {
-              return
-            }
-            if (event.key === 'Escape' && dictation.isRecording) {
-              event.preventDefault()
-              dictation.cancel()
-            } else if (event.key === 'ArrowUp' && !value && lastPrompt) {
-              event.preventDefault()
-              posthog.capture('ai_chat_prompt_recalled')
-              setValue(lastPrompt)
-            } else if (
-              event.key === 'Enter' &&
-              !event.shiftKey &&
-              !event.nativeEvent.isComposing
-            ) {
-              event.preventDefault()
-              submit(event.metaKey || event.ctrlKey)
-            }
-          }}
-        />
+            rows={2}
+            className="relative field-sizing-content max-h-64 min-h-14 px-3 pt-2.5"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            onScroll={(event) => {
+              if (highlightRef.current) {
+                highlightRef.current.scrollTop = event.currentTarget.scrollTop
+              }
+            }}
+            onSelect={(event) => menu.onSelect(event)}
+            onDragOver={(event) => {
+              if (event.dataTransfer.types.includes('Files')) {
+                event.preventDefault()
+              }
+            }}
+            onDrop={(event) => {
+              if (event.dataTransfer.files.length > 0) {
+                event.preventDefault()
+                void attach([...event.dataTransfer.files])
+              }
+            }}
+            onPaste={(event) => {
+              if (event.clipboardData.files.length > 0) {
+                event.preventDefault()
+                void attach([...event.clipboardData.files])
+              }
+            }}
+            onKeyDown={(event) => {
+              if (menu.onKeyDown(event)) {
+                return
+              }
+              if (event.key === 'Escape' && dictation.isRecording) {
+                event.preventDefault()
+                dictation.cancel()
+              } else if (
+                event.key === 'Tab' &&
+                !event.shiftKey &&
+                !value &&
+                suggestion
+              ) {
+                event.preventDefault()
+                posthog.capture('ai_chat_suggestion_taken')
+                setValue(suggestion)
+              } else if (event.key === 'ArrowUp' && !value && lastPrompt) {
+                event.preventDefault()
+                posthog.capture('ai_chat_prompt_recalled')
+                setValue(lastPrompt)
+              } else if (
+                event.key === 'Enter' &&
+                !event.shiftKey &&
+                !event.nativeEvent.isComposing
+              ) {
+                event.preventDefault()
+                submit(canInterrupt && (event.metaKey || event.ctrlKey))
+              }
+            }}
+          />
+        </div>
         <InputGroupAddon align="block-end">
           <div className="flex min-w-0 flex-1 items-center gap-1">
             <Tooltip>
@@ -261,7 +314,7 @@ export const ChatInput = ({
               <Tooltip
                 shortcut={
                   canSend &&
-                  (isWorking ? (
+                  (sendsNow ? (
                     <ShortcutKbd shortcut="chatSendNow" />
                   ) : (
                     <Kbd>
@@ -282,7 +335,7 @@ export const ChatInput = ({
                             disabled: !canSend,
                             onClick: (event) => {
                               event.preventDefault()
-                              submit(isWorking)
+                              submit(sendsNow)
                             },
                           })}
                     />

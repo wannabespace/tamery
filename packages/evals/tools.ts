@@ -234,7 +234,7 @@ const answer = (part: ToolPart): unknown => {
       return { review: 'The user has not reviewed it yet.', where: 'table' }
     }
     case 'tool-propose_note': {
-      return { note: null, saved: false }
+      return { note: part.input.note, saved: true }
     }
     case 'tool-query': {
       return read(getEngine(part.input.connectionId), part.input.statement)

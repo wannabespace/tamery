@@ -11,8 +11,12 @@ export interface AppMessageMetadata {
   finishedAt?: number
   /** The model that wrote the answer; Auto keeps a turn's tool steps on it. */
   model?: ChatModelId
+  /** The user's thumbs on the answer. */
+  rating?: 'down' | 'up'
   startedAt?: number
   stopped?: boolean
+  /** The user's likely next message, offered as the composer's placeholder once the answer ends. */
+  suggestion?: string
   tokens?: number
 }
 
@@ -62,7 +66,7 @@ export const messagesFromPartRows = (rows: MessagePartRow[]): AppUIMessage[] =>
     }
   )
 
-// A message only grows, so the longer copy is the newer one; on a tie the live copy carries tool outputs the row lacks.
+// A message only grows, so the longer copy is the newer one; on a tie the live copy carries tool outputs the row lacks. The row still adds what the server writes after the stream ends (the suggestion).
 export const mergeMessages = (
   persisted: AppUIMessage[],
   live: AppUIMessage[]
@@ -73,7 +77,7 @@ export const mergeMessages = (
     ...persisted.map((message) => {
       const current = liveById.get(message.id)
       return current && current.parts.length >= message.parts.length
-        ? current
+        ? { ...current, metadata: { ...message.metadata, ...current.metadata } }
         : message
     }),
     ...live.filter((message) => !persistedIds.has(message.id)),

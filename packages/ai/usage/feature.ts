@@ -1,6 +1,7 @@
 export enum AiFeature {
   ApprovalJudge = 'approval_judge',
   Chat = 'chat',
+  ChatSuggestion = 'chat_suggestion',
   ChatTitle = 'chat_title',
   CompleteQuery = 'complete_query',
   Dictation = 'dictation',
@@ -13,6 +14,7 @@ export enum AiFeature {
 export const aiFeatureLabels: Record<AiFeature, string> = {
   [AiFeature.ApprovalJudge]: 'Approval judge',
   [AiFeature.Chat]: 'Chat',
+  [AiFeature.ChatSuggestion]: 'Chat suggestion',
   [AiFeature.ChatTitle]: 'Chat title',
   [AiFeature.CompleteQuery]: 'Complete query',
   [AiFeature.Dictation]: 'Dictation',

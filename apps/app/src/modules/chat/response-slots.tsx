@@ -1,26 +1,19 @@
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import { useQuery } from '@tanstack/react-query'
+import type { ReactElement } from 'react'
 
 import { tableTypeIcon } from '~/core/catalog/table-type'
 import { useConnectionContext } from '~/core/connection/route'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { resultGrid } from '~/core/table/result-grid'
-import { openTab } from '~/core/tabs/actions'
-import { tableTabId } from '~/core/tabs/ids'
-import { history } from '~/lib/last-location'
-import { posthog } from '~/lib/posthog'
 
 import { ResultGrid } from './statement-card'
+import { TablePeek } from './table-peek'
 import { ToolCard } from './tool-card'
-
-const preview = (resourceId: string, tabId: string) => {
-  openTab(resourceId, tabId, true)
-  history.push(`/connection/${resourceId}/${encodeURIComponent(tabId)}`)
-}
 
 const unquote = (name: string) => name.replaceAll(/["`[\]]/gu, '')
 
-/** What an answer's Markdown can do in this connection: open a table it names in code, and draw its tables as the results grid. */
+/** What an answer's Markdown can do in this connection: peek a table it names in code, and draw its tables as the results grid. */
 export const useResponseSlots = () => {
   const { connectionResource } = useConnectionContext()
   const { data } = useQuery(
@@ -43,6 +36,7 @@ export const useResponseSlots = () => {
   }
 
   return {
+    linkPreview: true,
     table: ({ columns, rows }: { columns: string[]; rows: string[][] }) => (
       <ToolCard>
         <ResultGrid
@@ -60,13 +54,9 @@ export const useResponseSlots = () => {
       return (
         target && {
           icon: tableTypeIcon[target.type],
-          open: () => {
-            preview(
-              connectionResource.id,
-              tableTabId(target.schema, target.table)
-            )
-            posthog.capture('ai_chat_table_link_opened')
-          },
+          render: (button: ReactElement) => (
+            <TablePeek target={target} trigger={button} />
+          ),
         }
       )
     },

@@ -37,13 +37,16 @@ const COMPOSER_TRANSITION = { duration: 0.3, ease: [0.32, 0.72, 0, 1] } as const
 
 export const ChatConversation = ({
   beforeInput,
+  canInterrupt = true,
   canReply = true,
   isActive,
   onNewChat,
   session,
 }: {
   beforeInput?: ReactNode
-  /** False for a subagent's chat: it answers its parent, so the user reads and approves but never writes to it. */
+  /** False for a subagent: what the user writes waits for its turn instead of stopping it. */
+  canInterrupt?: boolean
+  /** False for a finished subagent's chat: it answered its parent, so the user only reads it. */
   canReply?: boolean
   isActive: boolean
   onNewChat: () => void
@@ -132,21 +135,23 @@ export const ChatConversation = ({
                   </span>
                 </ItemContent>
                 <ItemActions>
-                  <IconButton
-                    variant="ghost-muted"
-                    size="icon-xs"
-                    icon={ArrowUp02Icon}
-                    label="Send now"
-                    onClick={() => {
-                      session.removeQueued(queued.id)
-                      void session.send(
-                        queued.text,
-                        queued.mentions,
-                        queued.files,
-                        true
-                      )
-                    }}
-                  />
+                  {canInterrupt && (
+                    <IconButton
+                      variant="ghost-muted"
+                      size="icon-xs"
+                      icon={ArrowUp02Icon}
+                      label="Send now"
+                      onClick={() => {
+                        session.removeQueued(queued.id)
+                        void session.send(
+                          queued.text,
+                          queued.mentions,
+                          queued.files,
+                          true
+                        )
+                      }}
+                    />
+                  )}
                   <IconButton
                     variant="ghost-muted"
                     size="icon-xs"
@@ -164,10 +169,16 @@ export const ChatConversation = ({
           <motion.div layout="position" transition={COMPOSER_TRANSITION}>
             <ChatInput
               key={session.chatId}
+              canInterrupt={canInterrupt}
               chatId={session.chatId}
               isActive={isActive}
               isWorking={session.isWorking}
               lastPrompt={lastAsked ? textFromMessage(lastAsked) : undefined}
+              suggestion={
+                session.messages.at(-1) === lastAnswer
+                  ? lastAnswer?.metadata?.suggestion
+                  : undefined
+              }
               meter={
                 <ContextMeter
                   chatId={session.chatId}

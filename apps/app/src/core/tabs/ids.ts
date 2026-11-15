@@ -4,6 +4,10 @@ import type { DefinitionsSection } from '~/core/catalog/sections'
 const escapeIdPart = (part: string) =>
   part.replaceAll('%', '%25').replaceAll(':', '%3A')
 
+/** A tab's URL for code outside the router; its `:` separators stay readable, as the router's own links write them. */
+export const tabPath = (resourceId: string, tabId: string) =>
+  `/connection/${resourceId}/${encodeURIComponent(tabId).replaceAll('%3A', ':')}`
+
 export const tableTabId = (schema: string, table: string) =>
   `table:${escapeIdPart(schema)}:${escapeIdPart(table)}`
 

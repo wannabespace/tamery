@@ -154,7 +154,7 @@ export const chatTools = {
   }),
   propose_note: tool({
     description:
-      'Propose a note about the database for the user to keep: a fact its schema does not say, learned from the data or the user, e.g. "amounts are in cents" or "status 3 means refunded". It is about the whole database (schema and table null), a table (column null) or one column. Nothing is saved unless the user saves it, possibly edited; the output says whether they did and the text they kept. Never propose what the schema already says.',
+      'Save a note about the database: a fact its schema does not say, learned from the data or the user, e.g. "amounts are in cents" or "status 3 means refunded". It is about the whole database (schema and table null), a table (column null) or one column. It is saved at once and every later AI prompt about the database reads it; the user can edit or delete it in Settings. Never note what the schema already says or what is already noted.',
     inputSchema: type({
       '...': target,
       column: 'string | null',

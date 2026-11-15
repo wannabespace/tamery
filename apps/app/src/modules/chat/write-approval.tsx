@@ -14,10 +14,10 @@ import { useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { agentDatabase } from '~/core/agent/database'
-import { WriteEstimate } from '~/core/agent/write-estimate'
 import type { Connection } from '~/core/connection/sync'
 import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
+import { plural } from '~/utils/plural'
 
 import type { ToolPartActions } from './chat-tool-types'
 import { approvalModeValue } from './stores'
@@ -36,16 +36,16 @@ const autoNote = (state: {
   runs: boolean
 }) => {
   if (state.checking) {
-    return 'Auto is checking this change'
+    return 'Auto is checking'
   }
   if (state.runs) {
-    return 'Auto is running this change'
+    return 'Auto is running it'
   }
   if (state.asked) {
-    return 'Auto wants your review before this runs'
+    return 'Auto wants your review'
   }
   if (state.changesExisting) {
-    return 'Changes to existing data always wait for you'
+    return 'Edits existing data, so it waits'
   }
   return null
 }
@@ -127,53 +127,47 @@ export const WriteApproval = ({
     runs: autoRuns,
   })
 
+  const hint =
+    note ??
+    (typeof estimate.data === 'number' && `~${plural(estimate.data, 'row')}`)
+
   return (
-    <div className="flex flex-col gap-2 p-2">
-      {typeof estimate.data === 'number' && (
-        <div className="pl-1">
-          <WriteEstimate rows={estimate.data} />
-        </div>
-      )}
-      <div className="flex items-center gap-1.5">
-        <span
-          className={cn(
-            'text-muted-foreground mr-auto pl-1 text-xs',
-            verdict.isFetching && 'shimmer'
-          )}
-        >
-          {note}
+    <>
+      {hint && (
+        <span className={cn('truncate', verdict.isFetching && 'shimmer')}>
+          {hint}
         </span>
-        <Button
-          size="xs"
-          variant="ghost-muted"
-          disabled={isRunning}
-          onClick={() => {
-            posthog.capture('ai_chat_write_declined', decision)
-            void decideWrite({ approved: false, input, toolCallId })
-          }}
+      )}
+      <Button
+        size="xs"
+        variant="ghost-muted"
+        disabled={isRunning}
+        onClick={() => {
+          posthog.capture('ai_chat_write_declined', decision)
+          void decideWrite({ approved: false, input, toolCallId })
+        }}
+      >
+        Decline
+      </Button>
+      <Tooltip disabled={!destructive}>
+        <TooltipTrigger
+          render={
+            <Button
+              size="xs"
+              variant={destructive ? 'destructive' : 'default'}
+              disabled={isRunning}
+              onClick={() => {
+                posthog.capture('ai_chat_write_approved', decision)
+                run.mutate()
+              }}
+            />
+          }
         >
-          Decline
-        </Button>
-        <Tooltip disabled={!destructive}>
-          <TooltipTrigger
-            render={
-              <Button
-                size="xs"
-                variant={destructive ? 'destructive' : 'default'}
-                disabled={isRunning}
-                onClick={() => {
-                  posthog.capture('ai_chat_write_approved', decision)
-                  run.mutate()
-                }}
-              />
-            }
-          >
-            {isRunning && <Spinner />}
-            Run
-          </TooltipTrigger>
-          <TooltipContent side="top">Removes data or schema</TooltipContent>
-        </Tooltip>
-      </div>
-    </div>
+          {isRunning && <Spinner />}
+          Run
+        </TooltipTrigger>
+        <TooltipContent side="top">Removes data or schema</TooltipContent>
+      </Tooltip>
+    </>
   )
 }

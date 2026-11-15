@@ -146,12 +146,23 @@ export const stream = orpc
       fast: input.fast ?? false,
       isSubagent,
       model,
-      onFinish: (message) =>
-        chatPersist.persistMessage({
+      onFinish: async (message) => {
+        await chatPersist.persistMessage({
           chatId: input.chatId,
           message,
           userId: context.user.id,
-        }),
+        })
+        if (!isSubagent && !message.metadata?.stopped) {
+          runInBackground(
+            chatPersist.persistSuggestion({
+              chatId: input.chatId,
+              history,
+              message,
+              userId: context.user.id,
+            })
+          )
+        }
+      },
       summary: compaction?.summary,
       telemetry,
     })

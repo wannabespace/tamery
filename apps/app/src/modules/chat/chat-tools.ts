@@ -17,7 +17,7 @@ type AnyToolCall = Parameters<
 >[0]['toolCall']
 type ToolCall = Exclude<
   AnyToolCall,
-  { dynamic: true } | { toolName: 'execute' } | { toolName: 'propose_note' }
+  { dynamic: true } | { toolName: 'execute' }
 >
 
 export const DECLINED = 'The user declined to run this statement.'
@@ -122,6 +122,23 @@ const addReadOutput = async (
       const output = await agentDatabase.proposeChange(toolCall.input)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
+    case 'propose_note': {
+      const [{ resolveResource }, { schemaNotes }] = await Promise.all([
+        import('~/core/agent/target'),
+        import('~/core/schema-notes/notes'),
+      ])
+      const { column, note, schema, table } = toolCall.input
+      const { resource } = resolveResource(toolCall.input)
+      schemaNotes.add(
+        { column, connectionResourceId: resource.id, note, schema, table },
+        'agent'
+      )
+      return chat.addToolOutput({
+        output: { note, saved: true },
+        tool: toolCall.toolName,
+        toolCallId,
+      })
+    }
     case 'spawn_agent': {
       const { spawnSubagent } = await import('./subagents')
       const output = await spawnSubagent({
@@ -167,39 +184,14 @@ const read = async (
 }
 
 export const chatToolRuns = {
-  /** Answers the model's tool calls in the window. Only reads run on their own: an `execute` waits for the user's Run on its card and a `propose_note` for Save, whatever the transcript or the data it read says. */
+  /** Answers the model's tool calls in the window. Everything but an `execute` runs on its own: it waits for the user's Run on its card, whatever the transcript or the data it read says. */
   answer: (
     chat: AppChat,
     toolCall: AnyToolCall,
     connectionResourceId: string
   ) => {
-    if (
-      !toolCall.dynamic &&
-      toolCall.toolName !== 'execute' &&
-      toolCall.toolName !== 'propose_note'
-    ) {
+    if (!toolCall.dynamic && toolCall.toolName !== 'execute') {
       void read(chat, toolCall, connectionResourceId)
-    }
-  },
-  /** The card saves the note itself; this tells the model what the user kept. */
-  note: ({
-    chat,
-    kept,
-    toolCallId,
-    transcript,
-  }: {
-    chat: AppChat
-    kept: string | null
-    toolCallId: string
-    transcript: AppUIMessage[]
-  }) => {
-    if (claimDecision(chat, toolCallId, transcript)) {
-      resumeSubagent(chat.id)
-      void chat.addToolOutput({
-        output: { note: kept, saved: kept !== null },
-        tool: 'propose_note',
-        toolCallId,
-      })
     }
   },
   stop: (chatId: string) => runs.get(chatId)?.abort(),

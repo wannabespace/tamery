@@ -83,6 +83,12 @@ const LABELS: Partial<
     live: 'Drafting a change in',
     object: 'a table',
   },
+  'tool-propose_note': {
+    detail: 'table',
+    done: 'Saved a schema note on',
+    live: 'Saving a schema note on',
+    object: 'this database',
+  },
   'tool-search_saved_queries': {
     detail: 'query',
     done: 'Searched saved queries for',
@@ -263,8 +269,14 @@ const StatementPart = ({
       sets={part.state === 'output-available' ? part.output : undefined}
       statement={input?.statement}
       status={
-        awaitsApproval ? (
-          <span className="text-warning">Needs approval</span>
+        awaitsApproval && actions.decide ? (
+          <WriteApproval
+            connection={connection}
+            decideWrite={actions.decide.write}
+            judge={actions.decide.judge}
+            input={part.input}
+            toolCallId={part.toolCallId}
+          />
         ) : (
           getStatus(part, actions.isLast)
         )
@@ -272,17 +284,7 @@ const StatementPart = ({
       target={
         connection && part.state !== 'input-streaming' ? part.input : undefined
       }
-    >
-      {awaitsApproval && actions.decide && (
-        <WriteApproval
-          connection={connection}
-          decideWrite={actions.decide.write}
-          judge={actions.decide.judge}
-          input={part.input}
-          toolCallId={part.toolCallId}
-        />
-      )}
-    </StatementCard>
+    />
   )
 }
 
@@ -322,10 +324,10 @@ export const ToolPart = ({
     )
   }
   if (part.type === 'tool-propose_note') {
-    return <NotePart actions={actions} part={part} />
+    return <NotePart isLast={actions.isLast} part={part} />
   }
   if (part.type === 'tool-spawn_agent') {
-    return <SubagentPart part={part} />
+    return <SubagentPart isLast={actions.isLast} part={part} />
   }
   if (
     part.type === 'tool-propose_change' &&

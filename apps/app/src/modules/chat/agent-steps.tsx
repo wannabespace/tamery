@@ -21,7 +21,6 @@ const isLegwork = (part: AppMessagePart) => {
   switch (part.type) {
     case 'tool-combine':
     case 'tool-execute':
-    case 'tool-propose_note':
     case 'tool-query':
     case 'tool-spawn_agent': {
       return false
@@ -129,7 +128,7 @@ export const AgentParts = ({
     prose ? (
       run.map((segment, offset) => render(segment, start + offset))
     ) : (
-      <div key={start} className="flex flex-col gap-2">
+      <div key={start} className="flex flex-col gap-3">
         {run.map((segment, offset) => render(segment, start + offset))}
       </div>
     )

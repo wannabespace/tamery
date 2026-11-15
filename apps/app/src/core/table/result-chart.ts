@@ -1,4 +1,6 @@
 const MAX_BARS = 50
+const MAX_LABEL_LENGTH = 40
+const ID_COLUMN = /(?:^|_)id$/iu
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}(?:[T ][\d:.]+(?:Z|[+-][\d:]+)?)?$/u
 
 const isPresent = (value: unknown) => value !== null && value !== undefined
@@ -28,7 +30,7 @@ export interface ResultChart {
   y: string
 }
 
-/** The chart a result's shape asks for: a time and a number make a line in time order, a few categories and a number make bars. Anything else has none. */
+/** The chart a result's shape asks for: a time and a number make a line in time order, a few categories and a number make bars. Bars label by the short text column that tells rows apart best, and plot the first number that is not an id. Anything else has none. */
 export const getResultChart = (
   columns: string[],
   rows: Record<string, unknown>[]
@@ -40,15 +42,32 @@ export const getResultChart = (
     const values = rows.map((row) => row[column]).filter(isPresent)
     return values.length > 0 && values.every(test)
   }
+  const distinct = (column: string) =>
+    new Set(
+      rows
+        .map((row) => row[column])
+        .filter(isPresent)
+        .map(String)
+    ).size
   const time = columns.find((column) => holds(column, isTime))
-  const category = columns.find(
-    (column) =>
-      holds(column, (value) => typeof value === 'string') &&
-      !holds(column, isNumber) &&
-      !holds(column, isTime)
-  )
+  const [category] = columns
+    .filter(
+      (column) =>
+        holds(
+          column,
+          (value) =>
+            typeof value === 'string' && value.length <= MAX_LABEL_LENGTH
+        ) &&
+        !holds(column, isNumber) &&
+        !holds(column, isTime) &&
+        distinct(column) > 1
+    )
+    .toSorted((a, b) => distinct(b) - distinct(a))
   const x = time ?? (rows.length <= MAX_BARS ? category : undefined)
-  const y = columns.find((column) => column !== x && holds(column, isNumber))
+  const numbers = columns.filter(
+    (column) => column !== x && holds(column, isNumber)
+  )
+  const y = numbers.find((column) => !ID_COLUMN.test(column)) ?? numbers[0]
   if (!(x && y)) {
     return null
   }

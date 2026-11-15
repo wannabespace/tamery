@@ -60,3 +60,15 @@ test('numbers alone, one row or no number make no chart', () => {
     )
   ).toBeNull()
 })
+
+test('bars label by the column that tells rows apart and skip ids', () => {
+  expect(
+    getResultChart(
+      ['schema', 'table', 'id', 'size'],
+      [
+        { id: 1, schema: 'public', size: 30, table: 'orders' },
+        { id: 2, schema: 'public', size: 10, table: 'users' },
+      ]
+    )
+  ).toMatchObject({ x: 'table', y: 'size' })
+})

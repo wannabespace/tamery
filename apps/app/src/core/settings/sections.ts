@@ -2,6 +2,7 @@ import {
   ComputerTerminal01Icon,
   KeyboardIcon,
   McpServerIcon,
+  NoteIcon,
   PaintBoardIcon,
   Settings02Icon,
   UserGroupIcon,
@@ -13,6 +14,7 @@ import { McpSettings } from '~/modules/mcp/mcp-settings'
 import { AppearanceSettings } from './appearance'
 import { GeneralSettings } from './general'
 import { KeyboardSettings } from './keyboard'
+import { SchemaNotesSettings } from './schema-notes'
 import { WorkspaceSettings } from './workspace'
 
 export const settingsSections = [
@@ -43,6 +45,12 @@ export const settingsSections = [
     icon: KeyboardIcon,
     label: 'Keyboard',
     slug: 'keyboard',
+  },
+  {
+    component: SchemaNotesSettings,
+    icon: NoteIcon,
+    label: 'Schema notes',
+    slug: 'schema-notes',
   },
   window.electron
     ? {

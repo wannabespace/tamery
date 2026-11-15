@@ -4,6 +4,7 @@ import { v7 } from 'uuid'
 import { getCollections } from '~/core/collections'
 import { getConnectionResourceStore } from '~/core/connection/stores'
 import { openTab } from '~/core/tabs/actions'
+import { tabPath } from '~/core/tabs/ids'
 import { checkOrUpgrade } from '~/core/user/permissions'
 import { history } from '~/lib/last-location'
 import { posthog } from '~/lib/posthog'
@@ -16,7 +17,7 @@ import { chatTab, chatTabId } from './tab'
 export const openChat = (resourceId: string, chatId: string) => {
   const tabId = openTab(resourceId, chatTabId(chatId))
   openSubagentStore(resourceId).set(null)
-  history.push(`/connection/${resourceId}/${encodeURIComponent(tabId)}`)
+  history.push(tabPath(resourceId, tabId))
 }
 
 const isBlankChat = (resourceId: string, chatId: string) =>

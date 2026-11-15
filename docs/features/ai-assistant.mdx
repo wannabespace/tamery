@@ -14,11 +14,11 @@ Try:
 
 Each database keeps its own chats, on all your devices. Every chat is a tab you can switch to, close and reopen; a new one takes its title from your first question. **New chat** goes back to an open chat you have not written in yet instead of opening another; text you typed but did not send stays in its chat as a draft, listed under **Chats** until you send or clear it. You can stop an answer halfway, and an answer still being written survives a window reload.
 
-To show the agent something, attach up to four images or PDFs of 5 MB each: click **+** under the message box, paste them, or drop them on it. To speak instead of typing, click the microphone, talk for up to two minutes, and click it again; what you said lands in the message box for you to check before sending. **Esc** drops a recording. The desktop app asks for microphone access the first time.
+To show the agent something, attach up to four images or PDFs of 5 MB each: click **+** under the message box, paste them, or drop them on it. To speak instead of typing, click the microphone, talk for up to two minutes, and click its stop button; what you said lands in the message box for you to check before sending, and nothing can be sent while you record. **Esc** drops a recording. The desktop app asks for microphone access the first time.
 
-While the agent works you can keep typing: **Enter** queues your message, and it goes out as soon as the answer ends. **⌘ Enter**, or the **Send now** button, stops the agent and sends your message at once. Queued messages show above the message box, where the arrow sends one at once and **×** takes one back. In an empty message box, **Up arrow** brings back your last message.
+While the agent works you can keep typing: **Enter** queues your message, and it goes out as soon as the answer ends. **⌘ Enter**, or the **Send now** button, stops the agent and sends your message at once. Queued messages show above the message box, where the arrow sends one at once and **×** takes one back. In an empty message box, **Up arrow** brings back your last message. After an answer, the empty box suggests a likely next question; press **Tab** to take it, then edit or send it.
 
-Hover over a message of yours to copy or edit it; an edited message is asked again, and everything after it is replaced by the new answer. Under an answer you can copy it, ask again, and mark it as good or bad; it also says which model wrote it and how long it took. Click an attached image to see it whole; clicking a PDF saves it.
+Hover over a message of yours to copy or edit it; an edited message is asked again, and everything after it is replaced by the new answer. Under an answer you can copy it, ask again, and mark it as good or bad (click the mark again to clear it); it also says which model wrote it and how long it took. Click an attached image to see it whole; clicking a PDF saves it.
 
 ## What the agent does
 
@@ -26,7 +26,7 @@ A new chat opens with the message box in the middle and a few ways to start unde
 
 The agent reads your schema and runs read-only queries on its own. On a large database it searches table and column names and comments instead of listing everything, and before filtering on a value you named, it checks how that value is spelled in the column. It also looks through your saved queries and builds on them instead of starting from scratch. Each query shows as a card with the connection, its SQL and the rows it returned. From the card you can copy the SQL, open it in a new Query tab to change and rerun it, and, for a result with dates or categories and a number, show it as a chart. The agent reads at most 200 rows and about 60 KB per query, and a value longer than 2 KB reaches it cut short, so it filters and aggregates in SQL instead of reading whole tables.
 
-The agent's reasoning and schema lookups between the parts of an answer fold into one line, such as **5 steps**; click it to see each step and what it found, such as **Read `orders` 12 columns**. Queries, changes waiting for you and notes always stay in view.
+The agent's reasoning and schema lookups between the parts of an answer fold into one line, such as **5 steps**; click it to see each step and what it found, such as **Read `orders` 12 columns**. Queries and changes waiting for you always stay in view.
 
 While it works, the chat names the step in progress, such as **Reading orders**. One message lets the agent take up to 25 steps. When it reaches that, the agent stops, says what it found and what is left, and **Continue** lets it carry on. **Continue** also appears when you stop the agent yourself.
 
@@ -60,13 +60,11 @@ The circle next to the model shows how full the chat's context is. Click it to s
 
 For work that splits into independent pieces, such as checking several tables or connections, the agent can start subagents: separate agents with the same tools, each given one task. Up to four run side by side, and each reports back to the agent that started it. A subagent cannot start subagents of its own, and its changes wait for your **Run** like any other.
 
-Each subagent shows as a line in the answer and in the **Subagents** row above the message box, with whether it is working, needs your approval, or is done. Open one to read its work and approve its changes:
+Each subagent shows as a line in the answer with whether it is working, needs your approval, is done or failed; open the line to read the task the agent gave it. The panel button beside it opens the subagent's chat in a panel over the right side of the chat, where you read its work and approve its changes; **Esc** closes it. While subagents are working or waiting for you, a **Subagents** button above the message box lists them.
 
-- **Cmd+]** (**Ctrl+]**) shows the next subagent and **Cmd+[** (**Ctrl+[**) the previous one; past the last you are back in the chat.
-- In the **Subagents** row, **Left arrow** and **Right arrow** move between them and **Enter** opens one.
-- **Esc** goes back to the chat.
+While a subagent works, you can write to it in its panel: your message waits until it finishes its current step, and the agent that started it hears what you asked along with its report.
 
-You read a subagent's chat but never write to it: it answers the agent, not you. Subagents do not appear in your list of chats.
+Once a subagent is done its chat is read-only: it answers the agent, not you. Subagents do not appear in your list of chats.
 
 ### In the app
 
@@ -78,13 +76,13 @@ To ask about one row, right-click it in a table and choose **Ask AI About Row**:
 
 ## Your chats
 
-Pick **Chats** from the menu at the top of the [Navigator](/features/navigator), or press **Cmd+3** (**Ctrl+3**), to list every chat of the connection, grouped by date with pinned chats on top. Search finds a chat by its title or by anything said in it; click one to open it in a tab. The end of a chat's row shows how it stands: a spinner while the agent answers, a yellow dot when a change or note waits for you, a blue dot for an answer you have not opened yet, and a red dot when the answer failed. Right-click a chat, or use its **⋯** button, to rename, pin or delete it; renaming a chat's tab (double-click it, or **Rename** in its menu) renames the chat too. Deleting a chat can't be undone; a draft has only its delete button, and goes without asking.
+Pick **Chats** from the menu at the top of the [Navigator](/features/navigator), or press **Cmd+3** (**Ctrl+3**), to list every chat of the connection, grouped by date with pinned chats on top. Search finds a chat by its title or by anything said in it; click one to open it in a tab. The end of a chat's row shows how it stands: a spinner while the agent answers, a yellow dot when a change waits for you, a blue dot for an answer you have not opened yet, and a red dot when the answer failed. Right-click a chat, or use its **⋯** button, to rename, pin or delete it; renaming a chat's tab (double-click it, or **Rename** in its menu) renames the chat too. Deleting a chat can't be undone; a draft has only its delete button, and goes without asking.
 
 ## Schema notes
 
 Notes tell the AI what your schema doesn't: "amounts are in cents", "status 3 means refunded", "use `orders_v2`, not `orders`". A note can be about the whole database, a table or one column. Every AI feature that works with that database reads them: the chat, **Ask AI** filters, and the Query editor's completions, edits and fixes.
 
-When the agent learns something like this, it proposes a note. Edit the text if you like, then **Save** or **Dismiss**; nothing is kept until you save it. To add, edit or delete notes yourself, click a table in the [Schema visualizer](/features/schema-visualizer) and use **Notes** in its panel.
+When the agent learns something like this, it saves a note right away and says so in the chat, such as **Saved a schema note on `orders.amount`**; click the line to read the note. **Settings → Schema notes** lists every note, grouped by connection and database, where you can edit or delete any of them. To add a note yourself, click a table in the [Schema visualizer](/features/schema-visualizer) and use **Notes** in its panel.
 
 Notes sync to your other devices with the connection and are stored encrypted.
 
@@ -98,6 +96,8 @@ Type **@** in the message box to mention:
 | Another connection | Access to it in this chat, for example to compare data across two databases |
 
 Each connection is one row, standing for the database you opened in it most recently; **Enter** mentions that one. When a connection has more databases, **Right arrow** (or the arrow at the row's end) lists them, and **Left arrow** or **Esc** goes back. Typing a database's name finds it directly.
+
+In a sent message, click a mentioned database to open it, or a mentioned table to see its first rows.
 
 The agent queries each connection on its own, then joins or compares the results with SQL in the chat itself, so matching rows across databases is exact rather than done by eye. The joined table shows as a **Combined results** card.
 

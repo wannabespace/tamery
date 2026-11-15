@@ -92,7 +92,7 @@ interface ChatRow {
   title: string
 }
 
-/** Chats whose latest message holds a change or note waiting on the user. */
+/** Chats whose latest message holds a change waiting on the user. */
 const waitingChatIds = (
   rows: { chatId: string; messageId: string; part: AppMessagePart }[]
 ) => {

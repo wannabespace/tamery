@@ -3,6 +3,7 @@ import {
   afterCompaction,
   compactMessages,
   generateChatTitle,
+  generateNextPrompt,
 } from '@tamery/ai/features'
 import type { AppUIMessage, ChatCompaction } from '@tamery/ai/message'
 import { messagesFromPartRows } from '@tamery/ai/message'
@@ -443,6 +444,54 @@ export const chatPersist = {
         })
       }
     }
+  },
+  persistSuggestion: async (data: {
+    chatId: string
+    history: AppUIMessage[]
+    message: AppUIMessage
+    userId: string
+  }) => {
+    await silently(async () => {
+      const suggestion = await generateNextPrompt({
+        messages: [...data.history, data.message],
+        telemetry: aiUsage.telemetry({
+          chatId: data.chatId,
+          feature: AiFeature.ChatSuggestion,
+          userId: data.userId,
+        }),
+      })
+      if (!suggestion) {
+        return
+      }
+
+      const where = and(
+        eq(chatsMessages.id, data.message.id),
+        eq(chatsMessages.chatId, data.chatId),
+        eq(chatsMessages.role, 'assistant')
+      )
+      const updated = await db.transaction(async (tx) => {
+        const [current] = await tx
+          .select({ metadata: chatsMessages.metadata })
+          .from(chatsMessages)
+          .where(where)
+        if (!current) {
+          return null
+        }
+        const [value] = await tx
+          .update(chatsMessages)
+          .set({ metadata: { ...current.metadata, suggestion } })
+          .where(where)
+          .returning()
+        return value
+      })
+
+      if (updated) {
+        chatsMessagesPublisher.publish(data.userId, {
+          type: 'update',
+          value: updated,
+        })
+      }
+    })
   },
   persistTitle: async (data: {
     chatId: string

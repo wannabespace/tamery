@@ -32,18 +32,6 @@ export const SHORTCUTS = {
     hotkeys: ['Mod+Enter'],
     title: 'Send now',
   },
-  nextSubagent: {
-    description:
-      "Show the open chat's next subagent, and after the last one the chat itself.",
-    hotkeys: ['Mod+]'],
-    title: 'Next subagent',
-  },
-  previousSubagent: {
-    description:
-      "Show the open chat's previous subagent, and before the first one the chat itself.",
-    hotkeys: ['Mod+['],
-    title: 'Previous subagent',
-  },
   applyEdit: {
     description: 'Save the cell you are editing into every selected cell.',
     hotkeys: ['Mod+Enter'],

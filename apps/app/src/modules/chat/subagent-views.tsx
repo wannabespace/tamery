@@ -1,147 +1,168 @@
-import { ArrowRight01Icon, Tick02Icon } from '@hugeicons/core-free-icons'
+import { AiNetworkIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
-import { KbdHotkey } from '@tamery/ui/components/custom/shortcuts'
-import { Tabs, TabsList, TabsTrigger } from '@tamery/ui/components/tabs'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@tamery/ui/components/tooltip'
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@tamery/ui/components/drawer'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@tamery/ui/components/dropdown-menu'
 import { cn } from '@tamery/ui/lib/utils'
-import { useHotkey } from '@tanstack/react-hotkeys'
-import { useEffect, useRef } from 'react'
+import { Suspense, useState } from 'react'
 
 import { useConnectionContext } from '~/core/connection/route'
-import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 
 import { ChatConversation } from './chat-conversation'
 import { DOT, openSubagent, STATUS } from './subagent-part'
 import type { Subagent } from './subagents-store'
 import { useChatSession } from './use-chat-session'
 
-const headerClassName =
-  'flex h-8 shrink-0 items-center gap-0.5 border-b pr-1 pl-1.5'
+const ACTIVE: [Subagent['status'], string][] = [
+  ['running', 'working'],
+  ['waiting', 'waiting for you'],
+]
 
-/** Every subagent of the chat above its composer: one Tab stop, ←/→ to move, Enter to open. */
-export const SubagentStrip = ({ subagents }: { subagents: Subagent[] }) => {
-  const { connectionResource } = useConnectionContext()
-  if (subagents.length === 0) {
-    return null
-  }
-
-  return (
-    <div className="flex items-center gap-2 px-3 pt-1">
-      <span className="text-muted-foreground shrink-0 text-xs">Subagents</span>
-      <Tabs
-        value={null}
-        onValueChange={(chatId: string) =>
-          openSubagent(connectionResource.id, chatId)
-        }
-        className="min-w-0"
-      >
-        <TabsList variant="line" className="no-scrollbar overflow-x-auto">
-          {subagents.map((agent) => (
-            <TabsTrigger key={agent.chatId} value={agent.chatId}>
-              {agent.status === 'done' ? (
-                <HugeiconsIcon
-                  icon={Tick02Icon}
-                  strokeWidth={2}
-                  className="text-muted-foreground"
-                />
-              ) : (
-                <span
-                  className={cn('size-1.5 rounded-full', DOT[agent.status])}
-                />
-              )}
-              <span
-                className={cn(
-                  'max-w-64 truncate',
-                  agent.status === 'running' && 'shimmer'
-                )}
-              >
-                {agent.title}
-              </span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-      <span className="text-muted-foreground ml-auto shrink-0 text-xs">
-        <ShortcutKbd shortcut="nextSubagent" />
-      </span>
-    </div>
-  )
-}
-
-/** A subagent's own chat in the panel, read and approved but never replied to: it reports to its parent. Escape goes back. */
-export const SubagentView = ({
-  agent,
-  onBack,
-  parentTitle,
+const SubagentChat = ({
+  chatId,
+  isActive,
+  onClose,
 }: {
-  agent: Subagent
-  onBack: () => void
-  /** The chat that started the subagent, which the header leads back to. */
-  parentTitle: string
+  chatId: string
+  /** While it works or waits, the user can write to it; its answer to them still goes to its parent. */
+  isActive: boolean
+  onClose: () => void
 }) => {
   const { connectionResource } = useConnectionContext()
   const session = useChatSession({
-    chatId: agent.chatId,
+    chatId,
     connectionResourceId: connectionResource.id,
   })
-  const ref = useRef<HTMLDivElement>(null)
+  return (
+    <ChatConversation
+      canInterrupt={false}
+      canReply={isActive}
+      isActive={false}
+      onNewChat={onClose}
+      session={session}
+    />
+  )
+}
 
-  useEffect(() => {
-    ref.current?.focus({ preventScroll: true })
-  }, [])
-
-  useHotkey('Escape', onBack, { target: ref })
+/** A subagent's own chat in a side drawer over its parent: read, approved, and written to while it works; it reports to the chat that started it. */
+export const SubagentDrawer = ({
+  agent,
+  onClose,
+  parentTitle,
+}: {
+  agent: Subagent | undefined
+  onClose: () => void
+  parentTitle: string
+}) => {
+  const [shown, setShown] = useState<{
+    agent: Subagent
+    opener: Element | null
+  }>()
+  if (agent && agent.chatId !== shown?.agent.chatId) {
+    setShown({ agent, opener: document.activeElement })
+  }
+  const current = agent ?? shown?.agent
 
   return (
-    <div
-      ref={ref}
-      tabIndex={-1}
-      className="flex min-h-0 flex-1 flex-col outline-none"
-    >
-      <div className={headerClassName}>
-        <Tooltip
-          shortcut={
-            <KbdHotkey hotkey="Escape" userAgent={navigator.userAgent} />
+    <Drawer
+      open={!!agent}
+      onOpenChange={(open) => !open && onClose()}
+      onOpenChangeComplete={(open) => {
+        if (!open) {
+          if (shown?.opener instanceof HTMLElement) {
+            shown.opener.focus()
           }
+          setShown(undefined)
+        }
+      }}
+      swipeDirection="right"
+      size="sm"
+    >
+      {current && (
+        <DrawerContent className="sm:[--drawer-content-width:42rem]!">
+          <DrawerHeader>
+            <DrawerTitle data-mask>{current.title}</DrawerTitle>
+            <div className="flex items-center gap-1.5 text-xs">
+              <DrawerDescription data-mask className="truncate">
+                Subagent of {parentTitle}
+              </DrawerDescription>
+              {STATUS[current.status]}
+            </div>
+          </DrawerHeader>
+          <Suspense fallback={null}>
+            <SubagentChat
+              chatId={current.chatId}
+              isActive={ACTIVE.some(([status]) => status === current.status)}
+              onClose={onClose}
+            />
+          </Suspense>
+        </DrawerContent>
+      )}
+    </Drawer>
+  )
+}
+
+/** The subagents still at work above the composer, as one menu: gone once none is working or waiting. */
+export const SubagentStrip = ({ subagents }: { subagents: Subagent[] }) => {
+  const { connectionResource } = useConnectionContext()
+  const active = subagents.filter(({ status }) =>
+    ACTIVE.some(([state]) => state === status)
+  )
+  if (active.length === 0) {
+    return null
+  }
+  const summary = ACTIVE.flatMap(([status, label]) => {
+    const count = active.filter((agent) => agent.status === status).length
+    return count > 0 ? [`${count} ${label}`] : []
+  }).join(' · ')
+
+  return (
+    <div className="flex items-center px-3 pt-1">
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost-muted" size="xs" />}
         >
-          <TooltipTrigger
-            render={
-              <Button
-                variant="ghost-muted"
-                size="xs"
-                className="max-w-48 shrink-0"
-                onClick={onBack}
-              />
-            }
+          <HugeiconsIcon icon={AiNetworkIcon} strokeWidth={2} />
+          Subagents
+          <span
+            className={cn(
+              'text-muted-foreground',
+              active.some(({ status }) => status === 'running') && 'shimmer'
+            )}
           >
-            <span data-mask className="truncate">
-              {parentTitle}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>Back to the chat</TooltipContent>
-        </Tooltip>
-        <HugeiconsIcon
-          icon={ArrowRight01Icon}
-          strokeWidth={2}
-          aria-hidden
-          className="text-muted-foreground/40 size-3.5 shrink-0"
-        />
-        <span data-mask className="min-w-0 truncate px-1.5 text-xs font-medium">
-          {agent.title}
-        </span>
-        <span className="text-xs">{STATUS[agent.status]}</span>
-      </div>
-      <ChatConversation
-        canReply={false}
-        isActive={false}
-        onNewChat={onBack}
-        session={session}
-      />
+            {summary}
+          </span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top">
+          {active.map((agent) => (
+            <DropdownMenuItem
+              key={agent.chatId}
+              onClick={() => openSubagent(connectionResource.id, agent.chatId)}
+            >
+              <span
+                className={cn(
+                  'size-1.5 shrink-0 rounded-full',
+                  DOT[agent.status]
+                )}
+              />
+              <span data-mask className="truncate">
+                {agent.title}
+              </span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }

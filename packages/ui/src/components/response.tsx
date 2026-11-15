@@ -1,22 +1,31 @@
+import { ArrowUpRight01Icon, GlobeIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { IconSvgElement } from '@hugeicons/react'
 import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 import { CopyButton } from '@tamery/ui/components/custom/copy-button'
 import { Mermaid } from '@tamery/ui/components/custom/mermaid'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@tamery/ui/components/popover'
 import { cn } from '@tamery/ui/lib/utils'
 import type { VariantProps } from 'class-variance-authority'
 import type * as React from 'react'
-import { createContext, use } from 'react'
+import { createContext, use, useState } from 'react'
 import { Streamdown } from 'streamdown'
 import type { ExtraProps } from 'streamdown'
 
 import { responseVariants } from './response.utils'
 
 interface ResponseSlots {
-  /** Turns an inline code span into a button led by `icon`, such as a table name the app can open; null keeps the plain span. */
-  inlineCodeAction?: (
-    text: string
-  ) => { icon: IconSvgElement; open: () => void } | null
+  /** Turns an inline code span into a button led by `icon`, such as a table name the app can peek; `render` places that button, as a popover's trigger for one. Null keeps the plain span. */
+  inlineCodeAction?: (text: string) => {
+    icon: IconSvgElement
+    render: (button: React.ReactElement) => React.ReactNode
+  } | null
+  /** Web links lead with their site's favicon, read at full ink, and show their address on hover; unset keeps plain links. */
+  linkPreview?: boolean
   /** Draws a Markdown table from its header cells and body rows as plain text; unset keeps the HTML table. */
   table?: (table: { columns: string[]; rows: string[][] }) => React.ReactNode
 }
@@ -85,10 +94,9 @@ export const ResponseCodeBlock = ({
       </span>
       <CopyButton
         aria-label="Copy code"
-        className="text-muted-foreground size-5 [&_svg]:size-3"
-        size="icon-sm"
+        size="icon-2xs"
         text={code}
-        variant="ghost"
+        variant="ghost-muted"
       />
     </div>
     <CodeBlock className="max-h-72 pb-2" code={code} language={language} />
@@ -125,15 +133,12 @@ const Code = ({
     className
   )
   return action ? (
-    <button
-      type="button"
-      className={codeClassName}
-      data-mask
-      onClick={() => action.open()}
-    >
-      <HugeiconsIcon icon={action.icon} strokeWidth={2} className="size-3" />
-      {children}
-    </button>
+    action.render(
+      <button type="button" className={codeClassName} data-mask>
+        <HugeiconsIcon icon={action.icon} strokeWidth={2} className="size-3" />
+        {children}
+      </button>
+    )
   ) : (
     <code className={codeClassName} data-mask {...props}>
       {children}
@@ -200,7 +205,98 @@ const TableBody = ({
   ...props
 }: React.ComponentProps<'tbody'> & ExtraProps) => <tbody {...props} />
 
+const hostOf = (href: string | undefined) => {
+  const url = href && URL.canParse(href) ? new URL(href) : null
+  return url?.protocol.startsWith('http') ? url.hostname : null
+}
+
+const Favicon = ({ host }: { host: string }) => {
+  const [failed, setFailed] = useState(false)
+  return failed ? (
+    <HugeiconsIcon
+      icon={GlobeIcon}
+      strokeWidth={2}
+      className="text-muted-foreground mr-1 inline size-4 align-text-bottom"
+    />
+  ) : (
+    <img
+      alt=""
+      src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
+      className="ring-foreground/10 mr-1 inline size-4 rounded-sm align-text-bottom ring"
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
+const Link = ({
+  children,
+  href,
+  node: _node,
+  ...props
+}: React.ComponentProps<'a'> & ExtraProps) => {
+  const { linkPreview } = use(ResponseSlotsContext)
+  const host = hostOf(href)
+  if (!(linkPreview && host && href)) {
+    return (
+      <a href={href} {...props}>
+        {children}
+      </a>
+    )
+  }
+  const site = host.replace(/^www\./u, '')
+  return (
+    <Popover>
+      <PopoverTrigger
+        openOnHover
+        delay={300}
+        render={
+          // oxlint-disable-next-line jsx-a11y/control-has-associated-label -- the trigger renders the link's text inside this anchor
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="text-foreground decoration-foreground/30 hover:decoration-foreground underline underline-offset-4 transition-colors"
+          />
+        }
+      >
+        <Favicon host={host} />
+        {typeof children === 'string' && URL.canParse(children)
+          ? site
+          : children}
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        align="start"
+        padding="none"
+        className="w-auto"
+      >
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="text-muted-foreground hover:text-foreground flex max-w-80 items-center gap-2 px-3 py-2 text-xs transition-colors"
+        >
+          <HugeiconsIcon
+            icon={GlobeIcon}
+            strokeWidth={2}
+            className="size-3.5 shrink-0"
+          />
+          <span className="truncate">
+            {href.replace(/^https?:\/\//u, '').replace(/\/$/u, '')}
+          </span>
+          <HugeiconsIcon
+            icon={ArrowUpRight01Icon}
+            strokeWidth={2}
+            className="size-3.5 shrink-0"
+          />
+        </a>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 const components = {
+  a: Link,
   code: Code,
   table: Table,
   tbody: TableBody,
@@ -212,13 +308,14 @@ const components = {
 export const Response = ({
   className,
   inlineCodeAction,
+  linkPreview,
   table,
   variant,
   ...props
 }: React.ComponentProps<typeof Streamdown> &
   ResponseSlots &
   VariantProps<typeof responseVariants>) => (
-  <ResponseSlotsContext value={{ inlineCodeAction, table }}>
+  <ResponseSlotsContext value={{ inlineCodeAction, linkPreview, table }}>
     <Streamdown
       className={cn(responseVariants({ variant }), className)}
       components={components}

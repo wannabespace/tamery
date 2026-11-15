@@ -28,7 +28,7 @@ export const MessagePart = ({
     }
     case 'reasoning': {
       return part.text.trim() ? (
-        <ChatDisclosure icon={BrainIcon} label="Reasoning">
+        <ChatDisclosure icon={BrainIcon} label="Thinking">
           <div className="text-muted-foreground">
             <Response>{part.text}</Response>
           </div>

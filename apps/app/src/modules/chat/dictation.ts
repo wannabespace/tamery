@@ -11,6 +11,8 @@ const writeAscii = (view: DataView, offset: number, text: string) => {
   }
 }
 
+const SILENCE = 0.02
+
 // OpenRouter takes no WebM, the only audio Chromium records, so the recording is resampled into 16-bit mono WAV.
 const toWav = async (recording: Blob) => {
   const context = new AudioContext()
@@ -29,6 +31,10 @@ const toWav = async (recording: Blob) => {
   source.start()
   const rendered = await offline.startRendering()
   const samples = rendered.getChannelData(0)
+  // The model invents words for silence instead of returning nothing, so a silent recording is never sent.
+  if (!samples.some((sample) => Math.abs(sample) > SILENCE)) {
+    return null
+  }
 
   const view = new DataView(new ArrayBuffer(44 + samples.length * 2))
   writeAscii(view, 0, 'RIFF')
@@ -66,8 +72,10 @@ export const useDictation = (onText: (text: string) => void) => {
   const [isRecording, setIsRecording] = useState(false)
   const transcribe = useMutation({
     meta: { event: 'ai_chat_dictated' },
-    mutationFn: async (recording: Blob) =>
-      orpc.ai.transcribe.call({ audio: await toWav(recording) }),
+    mutationFn: async (recording: Blob) => {
+      const audio = await toWav(recording)
+      return audio ? orpc.ai.transcribe.call({ audio }) : ''
+    },
     onSuccess: (text) => {
       if (text) {
         onText(text)

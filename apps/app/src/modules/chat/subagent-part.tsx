@@ -1,23 +1,21 @@
 import {
   AiNetworkIcon,
-  ArrowRight01Icon,
+  SidebarRightIcon,
   Tick02Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { AppUIMessage } from '@tamery/ai/message'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
-import { Response } from '@tamery/ui/components/response'
 import type { ReactNode } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { useConnectionContext } from '~/core/connection/route'
 import { posthog } from '~/lib/posthog'
 
+import { ChatDisclosure } from './chat-disclosure'
 import type { ChatToolPart } from './chat-tool-types'
-import { Clamped } from './clamped'
 import type { Subagent, SubagentStatus } from './subagents-store'
 import { openSubagentStore, subagentsStore } from './subagents-store'
-import { ToolCard, ToolCardHeader } from './tool-card'
 
 export const STATUS: Record<SubagentStatus | 'stopped', ReactNode> = {
   done: (
@@ -41,11 +39,18 @@ export const DOT: Record<SubagentStatus, string> = {
 
 type SpawnPart = Extract<ChatToolPart, { type: 'tool-spawn_agent' }>
 
-const partStatus = (part: SpawnPart): SubagentStatus | 'stopped' => {
+/** On the live turn an unsettled call is a subagent starting; on an earlier one it never finished. */
+const partStatus = (
+  part: SpawnPart,
+  isLast: boolean
+): SubagentStatus | 'stopped' => {
   if (part.state === 'output-available') {
     return 'done'
   }
-  return part.state === 'output-error' ? 'failed' : 'stopped'
+  if (part.state === 'output-error') {
+    return 'failed'
+  }
+  return isLast ? 'running' : 'stopped'
 }
 
 /** A chat's subagents in the order they started: the live ones of this window, then the finished ones of its transcript. */
@@ -83,8 +88,14 @@ export const openSubagent = (resourceId: string, chatId: string | null) => {
   }
 }
 
-/** The card a `spawn_agent` call leaves in its parent's answer: its task while it works, its report once done, and a way into its chat. */
-export const SubagentPart = ({ part }: { part: SpawnPart }) => {
+/** The line a `spawn_agent` call leaves in its parent's answer: its state, its prompt when opened, and a way into its chat. */
+export const SubagentPart = ({
+  isLast,
+  part,
+}: {
+  isLast: boolean
+  part: SpawnPart
+}) => {
   const { connectionResource } = useConnectionContext()
   const live = useSubscription(subagentsStore).find(
     (agent) => agent.toolCallId === part.toolCallId
@@ -93,42 +104,37 @@ export const SubagentPart = ({ part }: { part: SpawnPart }) => {
     live?.chatId ??
     (part.state === 'output-available' ? part.output.chatId : null)
 
+  const status = live?.status ?? partStatus(part, isLast)
+
   return (
-    <ToolCard>
-      <ToolCardHeader
-        icon={<HugeiconsIcon icon={AiNetworkIcon} strokeWidth={2} />}
-        title={
-          <>
-            <span className="text-muted-foreground font-normal">Subagent</span>{' '}
-            <span data-mask>{part.input?.title}</span>
-          </>
-        }
-        status={STATUS[live?.status ?? partStatus(part)]}
-        actions={
-          chatId && (
-            <IconButton
-              icon={ArrowRight01Icon}
-              label="Open the subagent"
-              side="top"
-              size="icon-xs"
-              variant="ghost-muted"
-              onClick={() => openSubagent(connectionResource.id, chatId)}
-            />
-          )
-        }
-      />
-      <div
+    <ChatDisclosure
+      icon={AiNetworkIcon}
+      label={
+        part.input?.title
+          ? `${status === 'running' ? 'Running' : 'Ran'} a subagent: ${part.input.title}`
+          : 'Subagent'
+      }
+      live={status === 'running'}
+      status={status !== 'running' && STATUS[status]}
+      action={
+        chatId && (
+          <IconButton
+            icon={SidebarRightIcon}
+            label="Open the subagent"
+            side="top"
+            size="icon-2xs"
+            variant="ghost-muted"
+            onClick={() => openSubagent(connectionResource.id, chatId)}
+          />
+        )
+      }
+    >
+      <p
         data-mask
-        className="text-muted-foreground flex flex-col items-start px-3 py-2.5 text-xs"
+        className="text-muted-foreground text-xs whitespace-pre-wrap"
       >
-        <Clamped height="short">
-          {part.state === 'output-available' ? (
-            <Response>{part.output.answer}</Response>
-          ) : (
-            <p>{part.input?.task}</p>
-          )}
-        </Clamped>
-      </div>
-    </ToolCard>
+        {part.input?.task}
+      </p>
+    </ChatDisclosure>
   )
 }

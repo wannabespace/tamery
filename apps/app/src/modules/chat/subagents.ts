@@ -10,6 +10,8 @@ import { posthog } from '~/lib/posthog'
 
 import { getChatInstance, onChatFinish } from './chat-instance'
 import { awaitsUser } from './chat-tool-types'
+import { messageParts } from './prompt-mentions'
+import { chatQueueStore } from './stores'
 import { setSubagentStatus, subagentsStore } from './subagents-store'
 
 const MAX_RUNNING = 4
@@ -19,6 +21,20 @@ const lastStep = (message: AppUIMessage) =>
   message.parts.slice(
     message.parts.findLastIndex((part) => part.type === 'step-start') + 1
   )
+
+/** The parent only sees the report, so it is the subagent's whole conversation after its task: each answer, and what the user told it along the way, or the parent reads the extra work as the subagent's own and loses the answer to its task. */
+const reportOf = (messages: AppUIMessage[]) =>
+  messages
+    .slice(1)
+    .map((message) => {
+      const text = textFromMessage(message)
+      return message.role === 'user'
+        ? `The user then told this subagent: ${text}`
+        : text
+    })
+    .filter(Boolean)
+    .join('\n\n')
+    .slice(0, ANSWER_LIMIT)
 
 export const spawnSubagent = async ({
   connectionResourceId,
@@ -73,10 +89,19 @@ export const spawnSubagent = async ({
       } else if (message.parts.some(awaitsUser)) {
         setSubagentStatus(chatId, 'waiting')
       } else if (!lastStep(message).some(isToolUIPart)) {
-        report.resolve({
-          answer: textFromMessage(message).slice(0, ANSWER_LIMIT),
-          chatId,
-        })
+        // What the user queued for the subagent runs before it reports, or its answer would never reach the parent; the queue is sent here, not by the chat view, which may be closed.
+        const [next, ...rest] = chatQueueStore(chatId).get()
+        if (next) {
+          chatQueueStore(chatId).set(rest)
+          void messageParts(next.text, next.mentions, next.files).then(
+            (parts) => child.sendMessage({ parts, role: 'user' })
+          )
+        } else {
+          report.resolve({
+            answer: reportOf(child.messages),
+            chatId,
+          })
+        }
       }
     }
   )

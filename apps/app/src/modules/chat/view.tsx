@@ -1,16 +1,15 @@
 import { title } from '@tamery/shared/title'
-import { Activity, Suspense, useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { useTabContext } from '~/core/connection/route'
-import { useShortcut } from '~/core/keyboard/use-shortcuts'
 
 import { ChatConversation } from './chat-conversation'
 import { ChatSkeleton } from './chat-skeleton'
 import { startNewChat } from './open-chat'
 import { unreadChatsValue } from './stores'
 import { openSubagent, useSubagents } from './subagent-part'
-import { SubagentStrip, SubagentView } from './subagent-views'
+import { SubagentDrawer, SubagentStrip } from './subagent-views'
 import { openSubagentStore } from './subagents-store'
 import type { ChatParams } from './tab'
 import { useChatSession } from './use-chat-session'
@@ -43,37 +42,20 @@ const TabChat = ({
   const newChat = () => startNewChat(connectionResourceId)
   const subagents = useSubagents(chatId, session.messages)
   const openId = useSubscription(openSubagentStore(connectionResourceId))
-  const shown = subagents.find((agent) => agent.chatId === openId)
-  const views = [null, ...subagents.map((agent) => agent.chatId)]
-  const step = (delta: number) => {
-    const index = views.indexOf(shown?.chatId ?? null)
-    openSubagent(
-      connectionResourceId,
-      views[(index + delta + views.length) % views.length] ?? null
-    )
-  }
-  const canStep = subagents.length > 0
-
-  useShortcut('nextSubagent', () => step(1), { enabled: canStep })
-  useShortcut('previousSubagent', () => step(-1), { enabled: canStep })
 
   return (
     <>
-      {shown && (
-        <SubagentView
-          agent={shown}
-          onBack={() => openSubagent(connectionResourceId, null)}
-          parentTitle={session.title ?? 'New chat'}
-        />
-      )}
-      <Activity mode={shown ? 'hidden' : 'visible'}>
-        <ChatConversation
-          beforeInput={<SubagentStrip subagents={subagents} />}
-          isActive={!shown}
-          onNewChat={newChat}
-          session={session}
-        />
-      </Activity>
+      <ChatConversation
+        beforeInput={<SubagentStrip subagents={subagents} />}
+        isActive={!openId}
+        onNewChat={newChat}
+        session={session}
+      />
+      <SubagentDrawer
+        agent={subagents.find((agent) => agent.chatId === openId)}
+        onClose={() => openSubagent(connectionResourceId, null)}
+        parentTitle={session.title ?? 'New chat'}
+      />
     </>
   )
 }

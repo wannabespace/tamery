@@ -1,4 +1,4 @@
-import { DatabaseIcon, PlayIcon } from '@hugeicons/core-free-icons'
+import { Alert02Icon, DatabaseIcon, PlayIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { ChatTools } from '@tamery/ai/tools'
 import { Dialect, getDialect } from '@tamery/shared/enums/connection-type'
@@ -73,9 +73,15 @@ export const ResultGrid = ({
   </div>
 )
 
-/** One statement the agent ran or wants to run: where, the SQL, then its rows, its error or the decision it waits on. */
+const connectionTitle = (connection: Connection, resource?: string | null) => (
+  <span data-mask>
+    {connection.name}
+    {resource && <span className="text-muted-foreground"> / {resource}</span>}
+  </span>
+)
+
+/** One statement the agent ran or wants to run: where and its state (or the decision it waits on), the SQL, then its rows or its error. */
 export const StatementCard = ({
-  children,
   connection,
   error,
   sets,
@@ -83,14 +89,12 @@ export const StatementCard = ({
   status,
   target,
 }: {
-  /** The pending decision, under the SQL. */
-  children?: ReactNode
   /** Null for combined results, which run in the chat's own SQLite; undefined when the call's connection is gone. */
   connection: Connection | null | undefined
   error?: string
   sets?: ResultSets
   statement: string | undefined
-  /** Replaces the result's row count while the statement is not done. */
+  /** Replaces the result's row count while the statement is not done; a pending change's decision sits here. */
   status: ReactNode
   target?: Omit<ChatTools['query']['input'], 'statement'>
 }) => {
@@ -114,11 +118,9 @@ export const StatementCard = ({
           )
         }
         title={
-          connection ? (
-            <span data-mask>{connection.name}</span>
-          ) : (
-            connection === null && 'Combined results'
-          )
+          connection
+            ? connectionTitle(connection, target?.resource)
+            : connection === null && 'Combined results'
         }
         status={status ?? (sets && summarize(sets))}
         actions={
@@ -154,13 +156,17 @@ export const StatementCard = ({
         />
       )}
       {error && (
-        <div
-          data-mask
-          className="text-destructive flex flex-col items-start px-3 py-2.5 font-mono text-xs"
-        >
-          <Clamped height="short">
-            <p className="whitespace-pre-wrap">{error}</p>
-          </Clamped>
+        <div className="flex gap-2 px-3 py-2.5 text-xs">
+          <HugeiconsIcon
+            icon={Alert02Icon}
+            strokeWidth={2}
+            className="text-destructive mt-px size-3.5 shrink-0"
+          />
+          <div data-mask className="flex min-w-0 flex-col items-start">
+            <Clamped height="short">
+              <p className="whitespace-pre-wrap">{error}</p>
+            </Clamped>
+          </div>
         </div>
       )}
       {grid && (
@@ -170,7 +176,6 @@ export const StatementCard = ({
           grid={grid}
         />
       )}
-      {children}
     </ToolCard>
   )
 }

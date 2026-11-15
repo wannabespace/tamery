@@ -7,7 +7,7 @@ import { valueToText } from '@tamery/shared/value-text'
 
 import { resolveResource } from '~/core/agent/target'
 import { openTab } from '~/core/tabs/actions'
-import { tableTabId } from '~/core/tabs/ids'
+import { tabPath, tableTabId } from '~/core/tabs/ids'
 import { history } from '~/lib/last-location'
 import { posthog } from '~/lib/posthog'
 import { openRunnerTab } from '~/modules/runner/lib/new-query'
@@ -24,7 +24,7 @@ type Input<K extends keyof ChatTools> = ChatTools[K]['input']
 
 const show = (resourceId: string, tabId: string) => {
   openTab(resourceId, tabId)
-  history.push(`/connection/${resourceId}/${encodeURIComponent(tabId)}`)
+  history.push(tabPath(resourceId, tabId))
 }
 
 /** Puts a statement in a new Query tab of its connection and shows it, without running it. */

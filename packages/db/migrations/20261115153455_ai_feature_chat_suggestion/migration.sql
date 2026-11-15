@@ -1,0 +1,1 @@
+ALTER TYPE "ai_feature" ADD VALUE 'chat_suggestion' BEFORE 'chat_title';

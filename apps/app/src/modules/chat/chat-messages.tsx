@@ -38,6 +38,7 @@ import { AgentParts, hasContent, showsProgress } from './agent-steps'
 import { AttachmentChip } from './attachments'
 import type { ToolPartActions } from './chat-tool-types'
 import { Clamped } from './clamped'
+import { MentionText } from './mention-text'
 import type { PromptMention } from './prompt-mentions'
 import { usePromptMentions } from './prompt-mentions'
 import { PromptMenu } from './prompt-menu'
@@ -158,7 +159,7 @@ const UserMessage = ({
 
   return (
     <Message align="end">
-      <MessageContent className="items-end">
+      <MessageContent className="relative items-end">
         <MessageFiles message={message} />
         {isEditing && onEdit ? (
           <EditMessage
@@ -171,8 +172,22 @@ const UserMessage = ({
           />
         ) : (
           text && (
-            <div className="flex w-full items-end justify-end gap-1">
-              <div className={cn(ACTIONS_CLASS, 'shrink-0 opacity-0')}>
+            <>
+              <Bubble align="end" variant="muted">
+                <BubbleContent data-mask>
+                  <Clamped>
+                    <p className="whitespace-pre-wrap">
+                      <MentionText message={message} text={text} />
+                    </p>
+                  </Clamped>
+                </BubbleContent>
+              </Bubble>
+              <div
+                className={cn(
+                  ACTIONS_CLASS,
+                  'absolute top-full -right-1 mt-0.5 opacity-0'
+                )}
+              >
                 <IconButton
                   variant="ghost-muted"
                   size="icon-xs"
@@ -193,14 +208,7 @@ const UserMessage = ({
                   />
                 )}
               </div>
-              <Bubble align="end" variant="muted">
-                <BubbleContent data-mask>
-                  <Clamped>
-                    <p className="whitespace-pre-wrap">{text}</p>
-                  </Clamped>
-                </BubbleContent>
-              </Bubble>
-            </div>
+            </>
           )
         )}
       </MessageContent>
@@ -220,16 +228,22 @@ const AnswerActions = ({
   const { data } = useQuery(
     orpc.ai.models.queryOptions({ staleTime: Infinity })
   )
-  const [rating, setRating] = useState<'down' | 'up' | null>(null)
   const { finishedAt, model, startedAt } = message.metadata ?? {}
+  const [rating, setRating] = useState(message.metadata?.rating)
   const modelName = data?.models.find(({ id }) => id === model)?.name
-  const rate = (next: 'down' | 'up') => {
+  const rate = (pressed: 'down' | 'up') => {
+    const next = pressed === rating ? undefined : pressed
+    const { rating: _, ...metadata } = message.metadata ?? {}
     setRating(next)
-    posthog.capture('ai_chat_answer_rated', { model, rating: next })
+    posthog.capture('ai_chat_answer_rated', { model, rating: next ?? 'none' })
+    void orpc.chatsMessages.update.call({
+      id: message.id,
+      metadata: next ? { ...metadata, rating: next } : metadata,
+    })
   }
 
   return (
-    <div className={cn(ACTIONS_CLASS, !isLatest && 'opacity-0')}>
+    <div className={cn(ACTIONS_CLASS, '-mt-3 -ml-1', !isLatest && 'opacity-0')}>
       <IconButton
         variant="ghost-muted"
         size="icon-xs"

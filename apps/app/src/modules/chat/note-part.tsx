@@ -1,12 +1,18 @@
 import { NoteIcon } from '@hugeicons/core-free-icons'
+import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { Response } from '@tamery/ui/components/response'
 
 import { ChatDisclosure } from './chat-disclosure'
-import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
-import { NoteProposal, NoteTitle } from './note-proposal'
-import { getStatus } from './tool-status'
+import type { ChatToolPart } from './chat-tool-types'
+import { getStatus, isRunning } from './tool-status'
 
-const verb = (part: Extract<ChatToolPart, { type: 'tool-propose_note' }>) => {
+type NoteToolPart = Extract<ChatToolPart, { type: 'tool-propose_note' }>
+
+const getTarget = ({ input }: NoteToolPart) =>
+  input?.table &&
+  (input.column ? `${input.table}.${input.column}` : input.table)
+
+const getVerb = (part: NoteToolPart) => {
   if (part.state !== 'output-available') {
     return 'Proposed'
   }
@@ -14,31 +20,36 @@ const verb = (part: Extract<ChatToolPart, { type: 'tool-propose_note' }>) => {
 }
 
 export const NotePart = ({
-  actions,
+  isLast,
   part,
 }: {
-  actions: ToolPartActions
-  part: Extract<ChatToolPart, { type: 'tool-propose_note' }>
+  isLast: boolean
+  part: NoteToolPart
 }) => {
-  if (part.state === 'input-available' && actions.decide) {
-    return (
-      <NoteProposal
-        decideNote={actions.decide.note}
-        input={part.input}
-        toolCallId={part.toolCallId}
-      />
-    )
-  }
+  const running = isRunning(part, isLast)
+  const target = getTarget(part)
+  const text = part.output?.note ?? part.input?.note
+  const verb = running ? 'Saving' : getVerb(part)
 
   return (
     <ChatDisclosure
       icon={NoteIcon}
       label={
-        <NoteTitle input={part.input} prefix={`${verb(part)} a schema note`} />
+        <>
+          {verb} a schema note on{' '}
+          {target && running && <span data-mask>{target}</span>}
+          {target && !running && <InlineCode data-mask>{target}</InlineCode>}
+          {!target && 'this database'}
+        </>
       }
-      status={getStatus(part, actions.isLast)}
+      live={running}
+      status={!running && getStatus(part, isLast)}
     >
-      <Response>{part.output?.note ?? part.input?.note ?? ''}</Response>
+      {text && (
+        <div data-mask>
+          <Response>{text}</Response>
+        </div>
+      )}
     </ChatDisclosure>
   )
 }

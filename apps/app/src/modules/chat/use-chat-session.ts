@@ -8,13 +8,11 @@ import {
 import type { ChatTools } from '@tamery/ai/tools'
 import { eq, useLiveSuspenseQuery } from '@tanstack/react-db'
 import type { FileUIPart } from 'ai'
-import { isToolUIPart } from 'ai'
-import { Result } from 'better-result'
+import { isToolUIPart, lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
 import { useEffect, useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 import { v7 } from 'uuid'
 
-import { agentDatabase } from '~/core/agent/database'
 import { useCollections } from '~/core/collections'
 import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
@@ -22,28 +20,10 @@ import { posthog } from '~/lib/posthog'
 import { getChatInstance } from './chat-instance'
 import { chatToolRuns } from './chat-tools'
 import type { PromptMention } from './prompt-mentions'
+import { mentionPart, messageParts } from './prompt-mentions'
 import { chatQueueStore } from './stores'
 
-const mentionPart = async (
-  mention: PromptMention
-): Promise<AppUIMessage['parts'][number]> => {
-  if (mention.kind === 'connection') {
-    return { data: mention.connection, type: 'data-connection' }
-  }
-  if (mention.kind === 'skill') {
-    const { description: _, ...skill } = mention.skill
-    return { data: skill, type: 'data-skill' }
-  }
-  const definition = await Result.tryPromise(() =>
-    agentDatabase.describeTable(mention.table)
-  )
-  return {
-    data: { ...mention.table, definition: definition.unwrapOr(null) },
-    type: 'data-table',
-  }
-}
-
-/** A read the window is still answering keeps the turn open; a change or a note waiting on the user does not, nor a read left behind by Stop or a reload, which no one will answer. */
+/** A read the window is still answering keeps the turn open; a change waiting on the user does not, nor a read left behind by Stop or a reload, which no one will answer. */
 const isAnswering = (
   message: AppUIMessage | undefined,
   live: AppUIMessage[],
@@ -56,9 +36,7 @@ const isAnswering = (
     (part) =>
       isToolUIPart(part) &&
       (part.state === 'input-streaming' ||
-        (part.state === 'input-available' &&
-          part.type !== 'tool-execute' &&
-          part.type !== 'tool-propose_note'))
+        (part.state === 'input-available' && part.type !== 'tool-execute'))
   )
 
 const pausedBy = ({
@@ -144,9 +122,14 @@ export const useChatSession = ({
   )
 
   const [stoppedId, setStoppedId] = useState<string>()
+  // Between the window answering a step's tool calls and the SDK sending them back, nothing streams: without this the queue would send into the middle of the turn.
+  const isContinuing =
+    lastMessage?.id !== stoppedId &&
+    lastAssistantMessageIsCompleteWithToolCalls({ messages })
   const isWorking =
     isStreaming ||
     isAwaitingAnswer ||
+    isContinuing ||
     isAnswering(lastMessage, messages, stoppedId)
   const queueStore = chatQueueStore(chatId)
   const queue = useSubscription(queueStore)
@@ -162,14 +145,9 @@ export const useChatSession = ({
     mentions: PromptMention[],
     files: FileUIPart[]
   ) => {
-    const parts = await Promise.all(mentions.map(mentionPart))
     await sendMessage({
       id: v7(),
-      parts: [
-        ...(text ? [{ text, type: 'text' as const }] : []),
-        ...files,
-        ...parts,
-      ],
+      parts: await messageParts(text, mentions, files),
       role: 'user',
     })
   }
@@ -211,19 +189,6 @@ export const useChatSession = ({
           { chatId, dialect, statement },
           { context: { silent: true }, signal }
         ),
-      note: ({
-        kept,
-        toolCallId,
-      }: {
-        kept: string | null
-        toolCallId: string
-      }) =>
-        chatToolRuns.note({
-          chat: instance,
-          kept,
-          toolCallId,
-          transcript: displayMessages,
-        }),
       write: ({
         approved,
         input,

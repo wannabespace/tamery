@@ -1,16 +1,22 @@
+import type { AppUIMessage } from '@tamery/ai/message'
 import type { ChatDataParts } from '@tamery/ai/tools'
 import { matchesSearch } from '@tamery/shared/utils'
 import { eq, useLiveQuery } from '@tanstack/react-db'
 import { useQuery } from '@tanstack/react-query'
+import type { FileUIPart } from 'ai'
+import { Result } from 'better-result'
 import { useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { agentDatabase } from '~/core/agent/database'
 import { useCollections } from '~/core/collections'
 import { lastOpenedResourcesStorageValue } from '~/core/connection/last-opened-resources'
 import { useConnectionContext } from '~/core/connection/route'
 import { localMachine, useLocalMachine } from '~/core/local-machine'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import { posthog } from '~/lib/posthog'
+
+import { escapeRegExp } from './mention-text'
 
 export type PromptMention =
   | {
@@ -126,6 +132,12 @@ const resourceSuggestion = (
   },
 })
 
+/** The label stands as a word of its own, so `@users` never matches inside `a@users.com` or `@users_v2`. */
+const mentionedIn = (text: string, label: string) =>
+  new RegExp(`(?:^|\\s)${escapeRegExp(label)}(?=$|[\\s.,;:!?)])`, 'u').test(
+    text
+  )
+
 const triggerAt = (text: string, caret: number): Trigger | null => {
   const before = text.slice(0, caret)
   const match = /(?:^|\s)(?<char>[@/])(?<query>[^\s@/]*)$/u.exec(before)
@@ -193,6 +205,17 @@ export const usePromptMentions = ({
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const lastOpened = useSubscription(lastOpenedResourcesStorageValue)
 
+  const tableMention = (schema: string, table: string): PromptMention => ({
+    kind: 'table',
+    label: `@${table}`,
+    table: {
+      connectionId: connection.id,
+      resource: connectionResource.name,
+      schema,
+      table,
+    },
+  })
+
   const trigger = dismissed === value ? null : triggerAt(value, caret)
   const query = trigger?.query ?? ''
   const recency = (item: ResourceRow) => {
@@ -207,6 +230,15 @@ export const usePromptMentions = ({
       (item) => item.connectionId
     )
   ).flatMap((group) => (group ? [group] : []))
+  /** Every connection and table the text could mention, so a mention typed by hand or restored with a draft counts like a picked one. */
+  const known = (): PromptMention[] => [
+    ...byConnection.flatMap((group) =>
+      group.map((item) => resourceSuggestion(item, group.length).mention)
+    ),
+    ...(catalog?.schemas ?? []).flatMap((schema) =>
+      schema.tables.map((table) => tableMention(schema.name, table.name))
+    ),
+  ]
   const expanded =
     trigger?.char === '@'
       ? byConnection.find((group) => group[0]?.connectionId === expandedId)
@@ -275,16 +307,7 @@ export const usePromptMentions = ({
             kind: 'table',
             schema:
               schema.name === catalog?.defaultSchema ? undefined : schema.name,
-            mention: {
-              kind: 'table',
-              label: `@${table.name}`,
-              table: {
-                connectionId: connection.id,
-                resource: connectionResource.name,
-                schema: schema.name,
-                table: table.name,
-              },
-            },
+            mention: tableMention(schema.name, table.name),
           }))
       ),
     ]).slice(0, MAX_SUGGESTIONS)
@@ -389,13 +412,45 @@ export const usePromptMentions = ({
       setCaret(event.currentTarget.selectionStart),
     pick,
     reset: () => setMentions([]),
-    sentMentions: () =>
-      mentions.filter(
+    sentMentions: () => {
+      const all = [...mentions, ...known()]
+      return all.filter(
         (mention, index) =>
-          value.includes(mention.label) &&
-          mentions.findIndex(({ label }) => label === mention.label) === index
-      ),
+          mentionedIn(value, mention.label) &&
+          all.findIndex(({ label }) => label === mention.label) === index
+      )
+    },
     setHighlighted,
     suggestions,
   }
 }
+
+export const mentionPart = async (
+  mention: PromptMention
+): Promise<AppUIMessage['parts'][number]> => {
+  if (mention.kind === 'connection') {
+    return { data: mention.connection, type: 'data-connection' }
+  }
+  if (mention.kind === 'skill') {
+    const { description: _, ...skill } = mention.skill
+    return { data: skill, type: 'data-skill' }
+  }
+  const definition = await Result.tryPromise(() =>
+    agentDatabase.describeTable(mention.table)
+  )
+  return {
+    data: { ...mention.table, definition: definition.unwrapOr(null) },
+    type: 'data-table',
+  }
+}
+
+/** A user turn's parts: its text, then its files, then what its mentions describe. */
+export const messageParts = async (
+  text: string,
+  mentions: PromptMention[],
+  files: FileUIPart[]
+): Promise<AppUIMessage['parts']> => [
+  ...(text ? [{ text, type: 'text' as const }] : []),
+  ...files,
+  ...(await Promise.all(mentions.map(mentionPart))),
+]
