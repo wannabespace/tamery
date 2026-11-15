@@ -1,3 +1,4 @@
+import { AiChat02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { AppUIMessage } from '@tamery/ai/message'
 import type { ChatDataParts } from '@tamery/ai/tools'
@@ -12,6 +13,7 @@ import { tableTypeIcon } from '~/core/catalog/table-type'
 import { useCollections } from '~/core/collections'
 import { posthog } from '~/lib/posthog'
 
+import { openChat } from './open-chat'
 import { TablePeek } from './table-peek'
 
 const CHIP =
@@ -82,6 +84,40 @@ const ConnectionChip = ({
   )
 }
 
+/** Opens the mentioned chat; a plain chip once it is deleted. */
+const ChatChip = ({
+  children,
+  chatId,
+}: {
+  children: ReactNode
+  chatId: string
+}) => {
+  const { chatsCollection } = useCollections()
+  const { data: chat } = useLiveQuery(
+    (q) =>
+      q
+        .from({ row: chatsCollection })
+        .where(({ row }) => eq(row.id, chatId))
+        .findOne(),
+    [chatId]
+  )
+  if (!chat) {
+    return <span className={CHIP}>{children}</span>
+  }
+  return (
+    <button
+      type="button"
+      className={cn(CHIP_ACTION, 'py-0')}
+      onClick={() => {
+        posthog.capture('ai_chat_mention_opened', { kind: 'chat' })
+        openChat(chat.connectionResourceId, chat.id)
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
 /** The connections and tables a sent message mentioned, under the labels the composer wrote for them. */
 const messageMentions = (message: AppUIMessage): Mention[] =>
   message.parts.flatMap((part) => {
@@ -95,6 +131,19 @@ const messageMentions = (message: AppUIMessage): Mention[] =>
       return [
         { chip, label: `@${part.data.name}/${part.data.resource}` },
         { chip, label: `@${part.data.name}` },
+      ]
+    }
+    if (part.type === 'data-chat') {
+      return [
+        {
+          chip: (text: string) => (
+            <ChatChip chatId={part.data.chatId}>
+              <HugeiconsIcon icon={AiChat02Icon} strokeWidth={2} />
+              {text}
+            </ChatChip>
+          ),
+          label: `@${part.data.title}`,
+        },
       ]
     }
     if (part.type === 'data-table') {

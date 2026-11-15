@@ -3,6 +3,7 @@ import type { ChatDataParts } from '@tamery/ai/tools'
 import { matchesSearch } from '@tamery/shared/utils'
 import { eq, useLiveQuery } from '@tanstack/react-db'
 import { useQuery } from '@tanstack/react-query'
+import { useParams } from '@tanstack/react-router'
 import type { FileUIPart } from 'ai'
 import { Result } from 'better-result'
 import { useState } from 'react'
@@ -17,8 +18,14 @@ import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list
 import { posthog } from '~/lib/posthog'
 
 import { escapeRegExp } from './mention-text'
+import { chatTab } from './tab'
 
 export type PromptMention =
+  | {
+      chat: ChatDataParts['chat']
+      kind: 'chat'
+      label: string
+    }
   | {
       connection: ChatDataParts['connection']
       kind: 'connection'
@@ -79,6 +86,8 @@ interface Trigger {
 }
 
 const MAX_SUGGESTIONS = 30
+/** Chats come last and only once the query names one, so they never crowd out connections and tables. */
+const MAX_CHAT_SUGGESTIONS = 3
 
 const skillCommand = (name: string) => `skill:${name}`
 
@@ -89,6 +98,9 @@ const suggestionName = (suggestion: PromptSuggestion) => {
   const { mention } = suggestion
   if (mention.kind === 'skill') {
     return skillCommand(mention.skill.name)
+  }
+  if (mention.kind === 'chat') {
+    return mention.chat.title
   }
   return mention.kind === 'table'
     ? mention.table.table
@@ -150,6 +162,20 @@ const triggerAt = (text: string, caret: number): Trigger | null => {
   return { char, query, start: caret - query.length - 1 }
 }
 
+/** A chat's title has spaces, so its query runs on past them while some title still holds it; the space after a whole title ends it, so a picked chat never reopens the menu. */
+const chatTriggerAt = (
+  text: string,
+  caret: number,
+  titles: string[]
+): Trigger | null => {
+  const query = /(?:^|\s)@(?<query>[^@\n]*)$/u.exec(text.slice(0, caret))
+    ?.groups?.query
+  return query &&
+    titles.some((title) => title.toLowerCase().includes(query.toLowerCase()))
+    ? { char: '@', query, start: caret - query.length - 1 }
+    : null
+}
+
 /** `@` mentions a connection or a table of this one, `/` at the start writes a command for Enter to run. The textarea keeps focus; the arrows and Enter drive the menu through `onKeyDown` while it is open. */
 export const usePromptMentions = ({
   commands = true,
@@ -164,8 +190,22 @@ export const usePromptMentions = ({
   value: string
 }) => {
   const { connection, connectionResource } = useConnectionContext()
-  const { connectionsCollection, connectionsResourcesCollection } =
-    useCollections()
+  const {
+    chatsCollection,
+    connectionsCollection,
+    connectionsResourcesCollection,
+  } = useCollections()
+  const { data: chats } = useLiveQuery({
+    query: (q) =>
+      q
+        .from({ chats: chatsCollection })
+        .where(({ chats: chat }) =>
+          eq(chat.connectionResourceId, connectionResource.id)
+        )
+        .orderBy(({ chats: chat }) => chat.updatedAt, 'desc'),
+  })
+  const { tabId } = useParams({ strict: false })
+  const currentChatId = tabId && chatTab.match(tabId)?.chatId
   const { data: resources } = useLiveQuery({
     query: (q) =>
       q
@@ -214,7 +254,25 @@ export const usePromptMentions = ({
     },
   })
 
-  const trigger = dismissed === value ? null : triggerAt(value, caret)
+  const chatMentions = chats.flatMap((chat) =>
+    chat.title && !chat.parentChatId && chat.id !== currentChatId
+      ? [
+          {
+            chat: { chatId: chat.id, title: chat.title },
+            kind: 'chat' as const,
+            label: `@${chat.title}`,
+          },
+        ]
+      : []
+  )
+  const trigger =
+    dismissed === value
+      ? null
+      : (chatTriggerAt(
+          value,
+          caret,
+          chatMentions.map(({ chat }) => chat.title)
+        ) ?? triggerAt(value, caret))
   const query = trigger?.query ?? ''
   const recency = (item: ResourceRow) => {
     const index = lastOpened.indexOf(item.id)
@@ -236,6 +294,7 @@ export const usePromptMentions = ({
     ...(catalog?.schemas ?? []).flatMap((schema) =>
       schema.tables.map((table) => tableMention(schema.name, table.name))
     ),
+    ...chatMentions,
   ]
   const expanded =
     trigger?.char === '@'
@@ -283,7 +342,7 @@ export const usePromptMentions = ({
           })),
       ])
     }
-    return byMatch(query, [
+    const named = byMatch(query, [
       ...byConnection.flatMap((group): PromptSuggestion[] => {
         const latest = group.find((item) =>
           matchesSearch(query, item.name, item.resource)
@@ -309,6 +368,22 @@ export const usePromptMentions = ({
           }))
       ),
     ]).slice(0, MAX_SUGGESTIONS)
+    if (!query) {
+      return named
+    }
+    return [
+      ...named,
+      ...byMatch(
+        query,
+        chatMentions
+          .filter((mention) => matchesSearch(query, mention.chat.title))
+          .map((mention) => ({
+            id: `chat:${mention.chat.chatId}`,
+            kind: 'chat' as const,
+            mention,
+          }))
+      ).slice(0, MAX_CHAT_SUGGESTIONS),
+    ]
   }
   const suggestions = listed()
 
@@ -424,6 +499,9 @@ export const mentionPart = async (
 ): Promise<AppUIMessage['parts'][number]> => {
   if (mention.kind === 'connection') {
     return { data: mention.connection, type: 'data-connection' }
+  }
+  if (mention.kind === 'chat') {
+    return { data: mention.chat, type: 'data-chat' }
   }
   if (mention.kind === 'skill') {
     const { description: _, ...skill } = mention.skill

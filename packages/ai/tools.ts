@@ -189,10 +189,26 @@ export const chatTools = {
       value: `${UNTRUSTED_DATA_NOTE}\n${output.answer}`,
     }),
   }),
+  read_chat: tool({
+    description:
+      "Read one of the user's earlier chats in Tamery: what each message said and the SQL each query or change ran, oldest first. A long chat keeps its latest messages and is marked truncated.",
+    inputSchema: type({
+      chatId: type.string.describe('Chat id from search_chats or a mention'),
+    }),
+    outputSchema: type.unknown,
+    toModelOutput: asDatabaseData,
+  }),
   query: tool({
     description: `Run one read-only SQL statement in the connection's own dialect; statements that write are rejected. ${MCP_RESULT_LIMITS} The user sees the rows as a table under your call, so never repeat them in your answer.`,
     inputSchema: statementInput,
     outputSchema: resultSetsType,
+    toModelOutput: asDatabaseData,
+  }),
+  search_chats: tool({
+    description:
+      "Search the user's earlier chats in Tamery by their title and what was said in them, newest first: each match's id, title, date, connection and the passages holding the words. Read a whole chat with read_chat.",
+    inputSchema: type({ query: 'string' }),
+    outputSchema: type.unknown,
     toModelOutput: asDatabaseData,
   }),
   search_saved_queries: tool({
@@ -212,6 +228,7 @@ export type ChatTools = InferUITools<typeof chatTools>
 
 // oxlint-disable-next-line typescript/consistent-type-definitions -- UIMessage needs an index-signature-compatible map, which an interface is not
 export type ChatDataParts = {
+  chat: { chatId: string; title: string }
   connection: typeof target.infer & { name: string; type: ConnectionType }
   skill: { instructions: string; name: string; source: string }
   table: typeof target.infer & {

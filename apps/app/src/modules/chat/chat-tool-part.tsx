@@ -1,4 +1,5 @@
 import {
+  AiChat02Icon,
   DatabaseIcon,
   HierarchyIcon,
   PencilEdit02Icon,
@@ -86,6 +87,16 @@ const LABELS: Partial<
     done: 'Saved a schema note on',
     live: 'Saving a schema note on',
     object: 'this database',
+  },
+  'tool-read_chat': {
+    done: 'Read an earlier chat',
+    live: 'Reading an earlier chat',
+  },
+  'tool-search_chats': {
+    detail: 'query',
+    done: 'Searched chats for',
+    live: 'Searching chats for',
+    object: 'a conversation',
   },
   'tool-search_saved_queries': {
     detail: 'query',
@@ -175,6 +186,9 @@ const getSummary = (part: ChatToolPart) => {
     case 'tool-search_saved_queries': {
       return counted(listAt(part.output, 'queries').length, 'query', 'queries')
     }
+    case 'tool-search_chats': {
+      return counted(listAt(part.output, 'chats').length, 'chat', 'chats')
+    }
     default: {
       return null
     }
@@ -188,9 +202,13 @@ const getIcon = (part: ChatToolPart) => {
     case 'tool-list_tables': {
       return tableTypeIcon.table
     }
+    case 'tool-search_chats':
     case 'tool-search_saved_queries':
     case 'tool-search_schema': {
       return Search01Icon
+    }
+    case 'tool-read_chat': {
+      return AiChat02Icon
     }
     case 'tool-propose_change': {
       return PencilEdit02Icon

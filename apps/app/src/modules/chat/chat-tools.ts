@@ -110,6 +110,16 @@ const addReadOutput = async (
         toolCallId,
       })
     }
+    case 'read_chat': {
+      const { pastChats } = await import('./past-chats')
+      const output = pastChats.read(toolCall.input.chatId)
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
+    case 'search_chats': {
+      const { pastChats } = await import('./past-chats')
+      const output = pastChats.search(toolCall.input, chat.id)
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
     case 'search_saved_queries': {
       const output = agentDatabase.searchSavedQueries(toolCall.input)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })

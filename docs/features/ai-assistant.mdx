@@ -24,7 +24,7 @@ Hover over a message of yours to copy or edit it; an edited message is asked aga
 
 A new chat opens with the message box in the middle and a few ways to start under it, such as an overview of the database or a data quality check; pick one to send it.
 
-The agent reads your schema and runs read-only queries on its own. On a large database it searches table and column names and comments instead of listing everything, and before filtering on a value you named, it checks how that value is spelled in the column. It also looks through your saved queries and builds on them instead of starting from scratch. Each query shows as a card with the connection, its SQL and the rows it returned. From the card you can copy the SQL, open it in a new Query tab to change and rerun it, and, for a result with dates or categories and a number, show it as a chart. The agent reads at most 200 rows and about 60 KB per query, and a value longer than 2 KB reaches it cut short, so it filters and aggregates in SQL instead of reading whole tables.
+The agent reads your schema and runs read-only queries on its own. On a large database it searches table and column names and comments instead of listing everything, and before filtering on a value you named, it checks how that value is spelled in the column. It also looks through your saved queries and builds on them instead of starting from scratch, and when you refer to an earlier conversation ("like last time"), it searches your chats and reads the one you mean, including the SQL it ran there. Each query shows as a card with the connection, its SQL and the rows it returned. From the card you can copy the SQL, open it in a new Query tab to change and rerun it, and, for a result with dates or categories and a number, show it as a chart. The agent reads at most 200 rows and about 60 KB per query, and a value longer than 2 KB reaches it cut short, so it filters and aggregates in SQL instead of reading whole tables.
 
 The agent's reasoning and schema lookups between the parts of an answer fold into one line, such as **5 steps**; click it to see each step and what it found, such as **Read `orders` 12 columns**. Queries and changes waiting for you always stay in view.
 
@@ -94,10 +94,13 @@ Type **@** in the message box to mention:
 | --- | --- |
 | A table of this connection | Its columns, keys, and indexes, so it can write SQL right away |
 | Another connection | Access to it in this chat, for example to compare data across two databases |
+| An earlier chat of this connection | Its title; the agent reads what was said there when it needs to |
 
 Each connection is one row, standing for the database you opened in it most recently; **Enter** mentions that one. When a connection has more databases, **Right arrow** (or the arrow at the row's end) lists them, and **Left arrow** or **Esc** goes back. Typing a database's name finds it directly.
 
-In a sent message, click a mentioned database to open it, or a mentioned table to see its first rows.
+Chats show up only once you type part of a title, at most three, below the connections and tables.
+
+In a sent message, click a mentioned database or chat to open it, or a mentioned table to see its first rows.
 
 The agent queries each connection on its own, then joins or compares the results with SQL in the chat itself, so matching rows across databases is exact rather than done by eye. The joined table shows as a **Combined results** card.
 

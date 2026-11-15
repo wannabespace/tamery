@@ -212,6 +212,9 @@ const answer = (part: ToolPart): unknown => {
       const { column, connectionId, schema, table } = part.input
       return columnValues(getEngine(connectionId), schema, table, column)
     }
+    case 'tool-search_chats': {
+      return { chats: [], truncated: false }
+    }
     case 'tool-search_saved_queries': {
       return { queries: [], truncated: false }
     }

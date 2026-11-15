@@ -12,6 +12,7 @@ import type { PromptSuggestion, usePromptMentions } from './prompt-mentions'
 import { SuggestionContent } from './prompt-suggestion'
 
 const GROUPS = {
+  chat: 'Chats',
   command: 'Commands',
   connection: 'Connections',
   skill: 'Your skills',

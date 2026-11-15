@@ -269,6 +269,7 @@ export const useChatSession = ({
     ) => {
       posthog.capture('ai_chat_message_sent', {
         attachments: files.length,
+        chat_mentions: mentions.filter(({ kind }) => kind === 'chat').length,
         interrupted: isWorking && now,
         queued: isWorking && !now,
         connection_mentions: mentions.filter(

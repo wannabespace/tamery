@@ -1,5 +1,6 @@
 import {
   AiBrain01Icon,
+  AiChat02Icon,
   BookOpen01Icon,
   ChatAdd01Icon,
   Copy01Icon,
@@ -54,6 +55,16 @@ export const SuggestionContent = ({
         </span>
         <span className="text-muted-foreground/70 shrink-0">
           {mention.skill.source}
+        </span>
+      </>
+    )
+  }
+  if (mention.kind === 'chat') {
+    return (
+      <>
+        <HugeiconsIcon icon={AiChat02Icon} strokeWidth={2} />
+        <span data-mask className="truncate">
+          {mention.chat.title}
         </span>
       </>
     )
