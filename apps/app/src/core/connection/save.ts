@@ -103,8 +103,8 @@ export const saveConnectionString = async ({
   const settle = async () => {
     const persisted = await Result.tryPromise(() => tx.isPersisted.promise)
     if (persisted.isOk()) {
-      // After the server holds the row, which the bridge checks first, and before the connection opens: a file, tunnel or
-      // machine login runs on the bridge only once its terminal allowed it. A failure only toasts, never fails the save.
+      // After the server holds the row, which the bridge checks first, and before the connection opens, which needs what the
+      // bridge keeps. A failure only toasts, never fails the save.
       const sent = await Result.tryPromise(async () => {
         await (foundConnectionString
           ? bridge.keepFoundPassword({

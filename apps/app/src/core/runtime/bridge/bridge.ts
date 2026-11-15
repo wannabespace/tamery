@@ -130,7 +130,7 @@ const getPairedClient = memoize((pairing: BridgePairing): BridgeRouter =>
 
 export const bridge = {
   client: getPairedClient,
-  /** Throws when the bridge no longer has `found`'s password, as after a restart since it found the database. */
+  /** Throws when the bridge kept nothing: it restarted since finding the database, or `found` is not on its computer or not the saved string's server. */
   keepFoundPassword: async (input: {
     connectionId: string
     connectionString: string
