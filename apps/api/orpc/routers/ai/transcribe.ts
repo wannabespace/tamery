@@ -1,11 +1,11 @@
 import { transcribe as runTranscribe } from '@tamery/ai/features'
 import { DICTATION } from '@tamery/ai/limits'
+import { canTranscribe } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
-import { credits } from '~/lib/credits'
+import { payForAi } from '~/lib/ai-key'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 const WAV_HEADER_BYTES = 44
@@ -31,19 +31,28 @@ export const transcribe = orpc
   )
   .errors({
     BAD_REQUEST: { message: 'The recording is not a WAV file.' },
+    NOT_SUPPORTED: {
+      message:
+        "Dictation needs a Google or OpenRouter key: your AI provider's models take no audio.",
+    },
     TOO_MANY_REQUESTS: { message: AI_BUDGET_SPENT_MESSAGE },
   })
   .handler(async ({ context, errors, input, signal }) => {
     if (!(await isWav(input.audio))) {
       throw errors.BAD_REQUEST()
     }
-    if (!(await credits.canUseAi(context.user.id))) {
-      throw errors.TOO_MANY_REQUESTS()
+    const { key, telemetry } = await payForAi(
+      context.user.id,
+      errors.TOO_MANY_REQUESTS
+    )
+    if (!canTranscribe(key)) {
+      throw errors.NOT_SUPPORTED()
     }
     return runTranscribe({
       audio: input.audio,
+      key,
       signal,
-      telemetry: aiUsage.telemetry({
+      telemetry: telemetry({
         feature: AiFeature.Dictation,
         userId: context.user.id,
       }),

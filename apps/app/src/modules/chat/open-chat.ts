@@ -58,7 +58,7 @@ export const askAboutRow = (data: {
   setChatDraft(
     chatId,
     data.resourceId,
-    `About this row of \`${data.schema}.${data.table}\`:\n\`\`\`json\n${valueToText(data.row, 2).slice(0, ROW_TEXT_LIMIT)}\n\`\`\`\n`
+    `About this row of ${data.schema}.${data.table}: ${valueToText(data.row).slice(0, ROW_TEXT_LIMIT)}\n`
   )
   openChat(data.resourceId, chatId)
 }

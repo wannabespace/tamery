@@ -11,6 +11,7 @@ import {
   SEARCH_SAVED_QUERIES_DESCRIPTION,
   SEARCH_SCHEMA_DESCRIPTION,
   UNTRUSTED_DATA_NOTE,
+  UNTRUSTED_WEB_NOTE,
 } from '@tamery/shared/mcp'
 import type { InferUITools } from 'ai'
 import { tool } from 'ai'
@@ -55,6 +56,28 @@ export const resultSetsType = type({
 }).array()
 
 export const chatTools = {
+  ask_user: tool({
+    description:
+      'Ask the user one to four questions when a choice is theirs and changes what you do next: which of several matching rows or tables they mean, how to treat a case the request leaves open, which of two approaches they want. Never ask what you can find out with your other tools. Give each question two to five short answers to pick from; the user can always write their own instead. Your turn pauses until they answer, and the output holds each question with the answers they chose or wrote.',
+    inputSchema: type({
+      questions: type({
+        description: type('string | null')
+          .describe('One line of context under the question')
+          .default(null),
+        multiple: type.boolean
+          .describe('True when several answers may apply together')
+          .default(false),
+        options: type({
+          description: type('string | null').default(null),
+          label: type.string.describe('A short answer, a few words'),
+        }).array(),
+        question: 'string',
+      }).array(),
+    }),
+    outputSchema: type({
+      answers: type({ answer: 'string[]', question: 'string' }).array(),
+    }),
+  }),
   column_values: tool({
     description: COLUMN_VALUES_DESCRIPTION,
     inputSchema: type({
@@ -78,9 +101,9 @@ export const chatTools = {
   }),
   create_share: tool({
     description:
-      "Open the table's share dialog in Tamery for the user, showing the table as it is now (open it with open_table first to share a filtered view). The user picks the link's settings and saves it; nothing is shared until they do.",
+      "Open the table's share dialog in Tamery for the user, showing the table as it is now: the dialog applies the filters the table has open, and `filters` says how many (open it with open_table first to share a filtered view). The user picks the link's settings and saves it; nothing is shared until they do.",
     inputSchema: tableTarget,
-    outputSchema: opened,
+    outputSchema: opened.merge({ filters: 'number' }),
   }),
   describe_table: tool({
     description:
@@ -221,6 +244,23 @@ export const chatTools = {
     inputSchema: type({ '...': target, query: 'string' }),
     outputSchema: type.unknown,
     toModelOutput: asDatabaseData,
+  }),
+  web_search: tool({
+    description:
+      "Search the web and get a short answer with its sources: documentation, versions, error messages, public facts the database cannot tell. The query leaves Tamery for a search engine, so write it from general terms only and never put rows, values, names or anything else read from the user's databases in it. Ask one self-contained question per call.",
+    inputSchema: type({
+      query: type.string.describe(
+        'A self-contained question, e.g. "Which PostgreSQL version added MERGE"'
+      ),
+    }),
+    outputSchema: type({
+      answer: 'string',
+      sources: type({ title: 'string', url: 'string' }).array(),
+    }),
+    toModelOutput: ({ output }) => ({
+      type: 'text' as const,
+      value: `${UNTRUSTED_WEB_NOTE}\n${JSON.stringify(output)}`,
+    }),
   }),
 }
 

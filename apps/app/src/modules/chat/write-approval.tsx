@@ -127,9 +127,12 @@ export const WriteApproval = ({
     runs: autoRuns,
   })
 
-  const hint =
-    note ??
-    (typeof estimate.data === 'number' && `~${plural(estimate.data, 'row')}`)
+  const hint = [
+    note,
+    typeof estimate.data === 'number' && `~${plural(estimate.data, 'row')}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <>
@@ -166,7 +169,9 @@ export const WriteApproval = ({
           {isRunning && <Spinner />}
           Run
         </TooltipTrigger>
-        <TooltipContent side="top">Removes data or schema</TooltipContent>
+        <TooltipContent side="top">
+          Changes or removes existing data or schema
+        </TooltipContent>
       </Tooltip>
     </>
   )

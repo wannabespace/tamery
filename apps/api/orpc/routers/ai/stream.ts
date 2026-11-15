@@ -10,12 +10,11 @@ import { resolveChatContext } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { runInBackground } from '@tamery/shared/background'
 import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
-import { validateUIMessages } from 'ai'
+import { isToolUIPart, validateUIMessages } from 'ai'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
+import { payForAi } from '~/lib/ai-key'
 import { chatPersist } from '~/lib/chat-persist'
-import { credits } from '~/lib/credits'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 // A file rides in the transcript as a data URL; a remote URL would have the model provider fetch it on the user's behalf.
@@ -67,9 +66,7 @@ export const stream = orpc
       throw errors.BAD_REQUEST()
     }
 
-    if (!(await credits.canUseAi(context.user.id))) {
-      throw errors.TOO_MANY_REQUESTS()
-    }
+    const payer = await payForAi(context.user.id, errors.TOO_MANY_REQUESTS)
 
     const { connection, isSubagent, title } = await chatPersist.ensureChat({
       chatId: input.chatId,
@@ -106,6 +103,7 @@ export const stream = orpc
         chatPersist.persistTitle({
           chatId: input.chatId,
           messages: history,
+          payer,
           userId: context.user.id,
         })
       )
@@ -117,12 +115,13 @@ export const stream = orpc
       userId: context.user.id,
     }
     const model = await pickChatModel({
+      key: payer.key,
       messages: history,
       model: input.model,
-      onJevUsage: (usage) => aiUsage.recordPriced(scope, usage),
+      onJevUsage: payer.recordJev(scope),
     })
     const contextTokens = resolveChatContext(model, input.context)
-    const telemetry = aiUsage.telemetry(scope)
+    const telemetry = payer.telemetry(scope)
     const stored = await chatPersist.compaction(input.chatId)
     const compaction =
       turn.role === 'user' &&
@@ -130,6 +129,7 @@ export const stream = orpc
         ? await chatPersist.compact({
             chatId: input.chatId,
             history,
+            key: payer.key,
             previous: stored,
             telemetry,
             userId: context.user.id,
@@ -144,6 +144,7 @@ export const stream = orpc
       effort: input.effort,
       fast: input.fast,
       isSubagent,
+      key: payer.key,
       model,
       onFinish: async (message) => {
         await chatPersist.persistMessage({
@@ -151,12 +152,16 @@ export const stream = orpc
           message,
           userId: context.user.id,
         })
-        if (!isSubagent && !message.metadata?.stopped) {
+        const lastPart = message.parts.at(-1)
+        // A step ending on a tool call is not the answer's end: the window answers it, or the change waits for Run.
+        const isAnswered = !(lastPart && isToolUIPart(lastPart))
+        if (!isSubagent && !message.metadata?.stopped && isAnswered) {
           runInBackground(
             chatPersist.persistSuggestion({
               chatId: input.chatId,
               history,
               message,
+              payer,
               userId: context.user.id,
             })
           )

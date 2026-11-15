@@ -30,13 +30,17 @@ The agent's reasoning and schema lookups between the parts of an answer fold int
 
 While it works, the chat names the step in progress, such as **Reading orders**. One message lets the agent take up to 25 steps. When it reaches that, the agent stops, says what it found and what is left, and **Continue** lets it carry on. **Continue** also appears when you stop the agent yourself.
 
-Each month of Pro includes $5 of AI, which the chat shares with every other AI feature; past that, the chat spends [AI credits](/account/ai-credits), which you add by hand or top up automatically.
+Each month of Pro includes $5 of AI, which the chat shares with every other AI feature; past that, the chat spends [AI credits](/account/ai-credits), which you add by hand or top up automatically. With [your own AI key](/account/ai-key), your provider bills the chat instead.
 
-To change rows or the schema, the agent drafts the change instead of running it. Row edits and new rows appear as drafts in the table, schema changes as drafts in the [Schema visualizer](/features/schema-visualizer), and a deletion opens the table's delete confirmation. The chat shows each draft as a card that says what it changes, such as **Insert 1 row into orders**, with the rows it touches; **Open draft** takes you there, and nothing reaches the database until you save or apply it.
+To change rows or the schema, the agent drafts the change instead of running it. Row edits and new rows appear as drafts in the table, schema changes as drafts in the [Schema visualizer](/features/schema-visualizer), and a deletion opens the table's delete confirmation. The chat shows each draft as a card that says what it changes, such as **Insert 1 row into orders**, with the rows it touches; **Open draft** takes you there, and nothing reaches the database until you save or apply it. Once you save or discard it, the card says so and opens the table or the visualizer instead.
+
+When a choice is yours, such as which of several matching rows you meant or what a new table should hold, the agent asks you instead of guessing. Its questions appear in the answer with a few answers to pick from, and you can always type your own; with several questions, **Next** and **Previous** step through them, and **Answer** sends them all. The agent waits until you answer, and the chat list marks the chat with a yellow dot meanwhile. To skip the questions, write your next message instead.
+
+For what your database can't tell it, such as how a feature of your database engine works, which version added it, or what an error message means, the agent searches the web. Its line in the answer, such as **Searched the web for** and the question, opens the pages it read. The search sees only the question the agent writes, never your data, and it spends your AI budget like the rest of the chat.
 
 When a query is slow, the agent reads its plan and can draft the index that would help in the visualizer, for you to apply.
 
-For anything a draft can't hold, the agent writes a statement instead. In **Ask** mode, the default, a statement that changes data or schema never runs on its own. The chat shows it with **Run** and **Decline**, and the agent continues once you choose. Statements that belong together come as one transaction, so you approve them once. The card waits for you when you reload or switch chats. On PostgreSQL and MySQL the card also says how many rows the database expects it to change. **Run** turns red when the statement removes data.
+For anything a draft can't hold, the agent writes a statement instead. In **Ask** mode, the default, a statement that changes data or schema never runs on its own. The chat shows it with **Run** and **Decline**, and the agent continues once you choose. Statements that belong together come as one transaction, so you approve them once. The card waits for you when you reload or switch chats. On PostgreSQL and MySQL the card also says how many rows the database expects it to change. **Run** turns red when the statement changes or removes existing data or schema.
 
 In **Auto** mode, picked under the message box, a statement that only adds, new rows or new tables and indexes, runs on its own when a check against your last message is sure it does only what you asked. Anything that changes or removes existing data, and anything the check is unsure of, still waits for **Run**. **Run** and **Decline** work while the check runs.
 
@@ -60,7 +64,7 @@ The circle next to the model shows how full the chat's context is. Click it to s
 
 For work that splits into independent pieces, such as checking several tables or connections, the agent can start subagents: separate agents with the same tools, each given one task. Up to four run side by side, and each reports back to the agent that started it. The agent picks each subagent's model, a lighter one for a quick lookup or a stronger one for a hard analysis, or leaves it on yours; the model shows under the subagent's answers. A subagent cannot start subagents of its own, and its changes wait for your **Run** like any other.
 
-Each subagent shows as a line in the answer with whether it is working, needs your approval, is done or failed; open the line to read the task the agent gave it. The panel button beside it opens the subagent's chat in a panel over the right side of the chat, where you read its work and approve its changes; **Esc** closes it. While subagents are working or waiting for you, a **Subagents** button above the message box lists them.
+Each subagent shows as a line in the answer with whether it is working, needs your approval, is done or failed; open the line to read the task the agent gave it. The panel button beside it opens the subagent's chat in a panel over the right side of the chat, where you read its work and approve its changes; **Esc** or its **×** closes it. While subagents are working or waiting for you, a **Subagents** button above the message box lists them.
 
 While a subagent works, you can write to it in its panel: your message waits until it finishes its current step, and the agent that started it hears what you asked along with its report.
 
@@ -126,6 +130,6 @@ In the Query editor, [**Edit with AI**, **Fix with AI**, and completions](/featu
 
 When a connection test fails, **Explain with AI** tells you what probably went wrong.
 
-The chat and SQL help need [Pro](/account/plans). On Free you get 20 AI filters a week, and **Explain with AI** is free for everyone. Tamery picks the model for each task, so there is nothing to configure.
+The chat and SQL help need [Pro](/account/plans) or [your own AI key](/account/ai-key). On Free you get 20 AI filters a week, and **Explain with AI** is free for everyone. Tamery picks the model for each task, so there is nothing to configure.
 
 To let a coding agent look at your tables and run SQL itself, connect it through [MCP](/mcp/overview).

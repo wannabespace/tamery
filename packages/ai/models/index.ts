@@ -11,4 +11,11 @@ export {
   STANDARD_CHAT_CONTEXT,
 } from './list'
 export type { ChatEffort, ChatModelId } from './list'
+export {
+  canTranscribe,
+  chatModelsFor,
+  OWN_KEY_AUTO_MODELS,
+  verifyAiKey,
+} from './own-key'
+export type { AiKey } from './own-key'
 export { getModelCost } from './price'

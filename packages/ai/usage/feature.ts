@@ -9,6 +9,7 @@ export enum AiFeature {
   Filters = 'filters',
   FixQuery = 'fix_query',
   UpdateQuery = 'update_query',
+  WebSearch = 'web_search',
 }
 
 export const aiFeatureLabels: Record<AiFeature, string> = {
@@ -22,4 +23,5 @@ export const aiFeatureLabels: Record<AiFeature, string> = {
   [AiFeature.Filters]: 'Filters',
   [AiFeature.FixQuery]: 'Fix query',
   [AiFeature.UpdateQuery]: 'Update query',
+  [AiFeature.WebSearch]: 'Web search',
 }

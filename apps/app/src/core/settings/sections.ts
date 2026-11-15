@@ -1,4 +1,5 @@
 import {
+  AiMagicIcon,
   ComputerTerminal01Icon,
   KeyboardIcon,
   McpServerIcon,
@@ -11,6 +12,7 @@ import {
 import { BridgeSettings } from '~/modules/bridge/bridge-settings'
 import { McpSettings } from '~/modules/mcp/mcp-settings'
 
+import { AiSettings } from './ai'
 import { AppearanceSettings } from './appearance'
 import { GeneralSettings } from './general'
 import { KeyboardSettings } from './keyboard'
@@ -45,6 +47,12 @@ export const settingsSections = [
     icon: KeyboardIcon,
     label: 'Keyboard',
     slug: 'keyboard',
+  },
+  {
+    component: AiSettings,
+    icon: AiMagicIcon,
+    label: 'AI',
+    slug: 'ai',
   },
   {
     component: SchemaNotesSettings,

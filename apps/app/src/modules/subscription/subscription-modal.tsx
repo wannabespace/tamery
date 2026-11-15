@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@tamery/ui/components/dialog'
+import { Link } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
 import { toast } from 'sonner'
@@ -19,12 +20,16 @@ import { accountUrl } from '~/lib/urls'
 import { appStore, setIsSubscriptionDialogOpen } from '~/store'
 
 export const SubscriptionModal = () => {
-  const { isSubscriptionDialogOpen, upgradeHint } = useSubscription(appStore, {
-    selector: (state) => ({
-      isSubscriptionDialogOpen: state.isSubscriptionDialogOpen,
-      upgradeHint: state.upgradeHint,
-    }),
-  })
+  const { isSubscriptionDialogOpen, offerAiKey, upgradeHint } = useSubscription(
+    appStore,
+    {
+      selector: (state) => ({
+        isSubscriptionDialogOpen: state.isSubscriptionDialogOpen,
+        offerAiKey: state.offerAiKey,
+        upgradeHint: state.upgradeHint,
+      }),
+    }
+  )
   const { subscription } = useUserSubscription()
 
   useEffect(() => {
@@ -51,16 +56,30 @@ export const SubscriptionModal = () => {
           </DialogTitle>
           <DialogDescription>
             {upgradeHint ??
-              'Upgrade to unlock this and everything else. Tamery is independent, and your support is what keeps it going.'}
+              (offerAiKey
+                ? 'Upgrade to unlock this and everything else, or add your own Anthropic, OpenAI, Google or OpenRouter key to use AI on the Free plan, billed by your provider.'
+                : 'Upgrade to unlock this and everything else. Tamery is independent, and your support is what keeps it going.')}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setIsSubscriptionDialogOpen(false)}
-          >
-            Maybe Later
-          </Button>
+          {offerAiKey ? (
+            <Button
+              variant="outline"
+              render={
+                <Link to="/settings/$section" params={{ section: 'ai' }} />
+              }
+              onClick={() => setIsSubscriptionDialogOpen(false)}
+            >
+              Add Your Key
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => setIsSubscriptionDialogOpen(false)}
+            >
+              Maybe Later
+            </Button>
+          )}
           <Button
             render={
               <a

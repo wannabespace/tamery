@@ -7,7 +7,7 @@ import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 export const topUp = orpc
   .use(permissionsMiddleware)
-  .use(permix.checkMiddleware('ai.chat.use'))
+  .use(permix.checkMiddleware('ai.credits.buy'))
   .input(
     type({
       amount: type.number

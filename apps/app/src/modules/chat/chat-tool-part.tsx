@@ -1,6 +1,7 @@
 import {
   AiChat02Icon,
   DatabaseIcon,
+  GlobalSearchIcon,
   HierarchyIcon,
   PencilEdit02Icon,
   PlayIcon,
@@ -12,6 +13,7 @@ import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 
 import { tableTypeIcon } from '~/core/catalog/table-type'
 
+import { AskUserPart } from './ask-user-part'
 import { ChangeReview } from './change-review'
 import { ChatDisclosure } from './chat-disclosure'
 import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
@@ -20,6 +22,7 @@ import { StatementCard } from './statement-card'
 import { ExplainPlan, StatementPart } from './statement-part'
 import { SubagentPart } from './subagent-part'
 import { getStatus, isDeclined, isRunning } from './tool-status'
+import { WebSources } from './web-sources'
 
 /** A call's line, in the past once it is done and in the present while it runs; it names its input's `detail` field once the model has sent it. */
 const LABELS: Partial<
@@ -110,6 +113,12 @@ const LABELS: Partial<
     live: 'Searching the schema for',
     object: 'names',
   },
+  'tool-web_search': {
+    detail: 'query',
+    done: 'Searched the web for',
+    live: 'Searching the web for',
+    object: 'an answer',
+  },
 }
 
 const getDetailValue = (part: ChatToolPart, key: string | undefined) => {
@@ -189,6 +198,9 @@ const getSummary = (part: ChatToolPart) => {
     case 'tool-search_chats': {
       return counted(listAt(part.output, 'chats').length, 'chat', 'chats')
     }
+    case 'tool-web_search': {
+      return counted(part.output.sources.length, 'source', 'sources')
+    }
     default: {
       return null
     }
@@ -225,6 +237,9 @@ const getIcon = (part: ChatToolPart) => {
     case 'tool-open_query': {
       return PlayIcon
     }
+    case 'tool-web_search': {
+      return GlobalSearchIcon
+    }
     default: {
       return Wrench01Icon
     }
@@ -234,6 +249,9 @@ const getIcon = (part: ChatToolPart) => {
 const getDetail = (part: ChatToolPart) => {
   if (part.type === 'tool-explain' && part.state === 'output-available') {
     return <ExplainPlan input={part.input} sets={part.output} />
+  }
+  if (part.type === 'tool-web_search' && part.state === 'output-available') {
+    return <WebSources sources={part.output.sources} />
   }
   if (part.state === 'output-error' && !isDeclined(part)) {
     return (
@@ -262,15 +280,18 @@ export const ToolPart = ({
         error={part.state === 'output-error' ? part.errorText : undefined}
         sets={part.state === 'output-available' ? part.output : undefined}
         statement={part.input?.statement}
-        status={getStatus(part, actions.isLast)}
+        status={getStatus(part, actions.isLive)}
       />
     )
   }
+  if (part.type === 'tool-ask_user') {
+    return <AskUserPart actions={actions} part={part} />
+  }
   if (part.type === 'tool-propose_note') {
-    return <NotePart isLast={actions.isLast} part={part} />
+    return <NotePart isLive={actions.isLive} part={part} />
   }
   if (part.type === 'tool-spawn_agent') {
-    return <SubagentPart isLast={actions.isLast} part={part} />
+    return <SubagentPart isLive={actions.isLive} part={part} />
   }
   if (
     part.type === 'tool-propose_change' &&
@@ -279,13 +300,13 @@ export const ToolPart = ({
     return <ChangeReview input={part.input} output={part.output} />
   }
 
-  const running = isRunning(part, actions.isLast)
+  const running = isRunning(part, actions.isLive)
   return (
     <ChatDisclosure
       icon={getIcon(part)}
       label={running ? getLiveLabel(part) : getLabel(part)}
       live={running}
-      status={!running && getStatus(part, actions.isLast)}
+      status={!running && getStatus(part, actions.isLive)}
       summary={getSummary(part)}
     >
       {getDetail(part)}

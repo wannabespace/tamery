@@ -12,6 +12,23 @@ const usePartConnection = (connectionId: string | undefined) => {
   return connectionId ? connectionsCollection.get(connectionId) : undefined
 }
 
+/** A call that names no resource runs on its connection's default one, which its card names too. */
+const usePartTarget = <T extends ChatTools['query']['input']>(
+  input: T | undefined
+) => {
+  const { connectionStringsCollection } = useCollections()
+  return (
+    input && {
+      ...input,
+      resource:
+        input.resource ??
+        connectionStringsCollection.get(input.connectionId)
+          ?.defaultResourceName ??
+        null,
+    }
+  )
+}
+
 export const ExplainPlan = ({
   input,
   sets,
@@ -20,13 +37,14 @@ export const ExplainPlan = ({
   sets: ChatTools['explain']['output']
 }) => {
   const connection = usePartConnection(input.connectionId)
+  const target = usePartTarget(input)
   return (
     <StatementCard
       connection={connection}
       sets={sets}
       statement={input.statement}
       status={null}
-      target={connection && input}
+      target={connection && target}
     />
   )
 }
@@ -40,6 +58,9 @@ export const StatementPart = ({
 }) => {
   const { input } = part
   const connection = usePartConnection(input?.connectionId)
+  const target = usePartTarget(
+    part.state === 'input-streaming' ? undefined : part.input
+  )
   const awaitsApproval =
     part.type === 'tool-execute' &&
     part.state === 'input-available' &&
@@ -69,12 +90,10 @@ export const StatementPart = ({
             toolCallId={part.toolCallId}
           />
         ) : (
-          getStatus(part, actions.isLast)
+          getStatus(part, actions.isLive)
         )
       }
-      target={
-        connection && part.state !== 'input-streaming' ? part.input : undefined
-      }
+      target={connection && target}
     />
   )
 }

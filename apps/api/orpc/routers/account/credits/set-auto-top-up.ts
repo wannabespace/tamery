@@ -6,7 +6,7 @@ import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 export const setAutoTopUp = orpc
   .use(permissionsMiddleware)
-  .use(permix.checkMiddleware('ai.chat.use'))
+  .use(permix.checkMiddleware('ai.credits.buy'))
   .input(
     type({
       amount: type.number.atLeast(CREDIT_TOP_UP.min).atMost(CREDIT_TOP_UP.max),

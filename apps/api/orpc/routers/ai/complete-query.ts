@@ -1,6 +1,7 @@
 import { completeQuery as runCompleteQuery } from '@tamery/ai/features'
 import { AI_QUERY_LIMITS } from '@tamery/ai/limits'
 import { AiFeature } from '@tamery/ai/usage'
+import { AI_KEY_HINT } from '@tamery/shared/ai-key'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { type } from 'arktype'
 
@@ -21,18 +22,25 @@ export const completeQuery = orpc
   )
   .errors({
     TOO_MANY_REQUESTS: {
-      message:
-        'Weekly AI autocomplete limit reached. Upgrade to Pro for unlimited suggestions.',
+      message: `Weekly AI autocomplete limit reached. Upgrade to Pro, ${AI_KEY_HINT}, for unlimited suggestions.`,
     },
   })
   .handler(async ({ context, errors, input, signal }) => {
-    await usage.enforce(context, 'complete', errors.TOO_MANY_REQUESTS)
+    const { key } = await usage.enforce(
+      context,
+      'complete',
+      errors.TOO_MANY_REQUESTS
+    )
     const scope = { feature: AiFeature.CompleteQuery, userId: context.user.id }
     const result = await runCompleteQuery({
       connectionType: input.type,
       context: input.context,
-      onUsage: (modelId, modelUsage, providerCost) =>
-        aiUsage.record(scope, modelId, modelUsage, providerCost),
+      key,
+      onUsage: async (modelId, modelUsage, providerCost) => {
+        if (!key) {
+          await aiUsage.record(scope, modelId, modelUsage, providerCost)
+        }
+      },
       prefix: input.prefix,
       signal,
       suffix: input.suffix,

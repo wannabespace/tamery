@@ -4,6 +4,7 @@ import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { type } from 'arktype'
 
+import { aiKey } from '~/lib/ai-key'
 import { aiUsage } from '~/lib/ai-usage'
 import { authMiddleware, orpc } from '~/orpc'
 
@@ -25,14 +26,18 @@ export const diagnoseConnection = orpc
       userSet: 'boolean',
     })
   )
-  .handler(({ context, input: { error, ...settings }, signal }) =>
-    diagnose({
+  .handler(async ({ context, input: { error, ...settings }, signal }) => {
+    const key = await aiKey.get(context.user.id)
+    return diagnose({
       error,
+      key,
       settings: { ...settings, runtime: context.isDesktop ? 'desktop' : 'web' },
       signal,
-      telemetry: aiUsage.telemetry({
-        feature: AiFeature.DiagnoseConnection,
-        userId: context.user.id,
-      }),
+      telemetry: key
+        ? undefined
+        : aiUsage.telemetry({
+            feature: AiFeature.DiagnoseConnection,
+            userId: context.user.id,
+          }),
     })
-  )
+  })

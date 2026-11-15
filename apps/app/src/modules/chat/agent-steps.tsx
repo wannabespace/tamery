@@ -19,6 +19,7 @@ const isLegwork = (part: AppMessagePart) => {
     return false
   }
   switch (part.type) {
+    case 'tool-ask_user':
     case 'tool-combine':
     case 'tool-execute':
     case 'tool-query':

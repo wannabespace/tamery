@@ -1,4 +1,5 @@
 import { ORPCError, os } from '@orpc/server'
+import { AI_KEY_HINT } from '@tamery/shared/ai-key'
 import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
 import { decrypt } from '@tamery/shared/crypto-node'
 import type { Permissions } from '@tamery/shared/permissions'
@@ -6,6 +7,7 @@ import { getPermissions } from '@tamery/shared/permissions'
 import { isAPIError } from 'better-auth/api'
 import { createPermix } from 'permix/orpc'
 
+import { aiKey } from '~/lib/ai-key'
 import { auth } from '~/lib/auth'
 import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { redis } from '~/lib/redis'
@@ -174,7 +176,7 @@ export const optionalAuthMiddleware = logMiddleware.use(
 )
 
 export const permix = createPermix<Permissions>({
-  onForbidden: ({ context }) => {
+  onForbidden: ({ context, path }) => {
     if (context.user.isAnonymous) {
       throw new ORPCError('FORBIDDEN', {
         message: 'Sign in with an account to use this feature.',
@@ -182,8 +184,9 @@ export const permix = createPermix<Permissions>({
     }
 
     throw new ORPCError('FORBIDDEN', {
-      message:
-        'To use this feature, a subscription is required. Please subscribe to a Pro plan to continue.',
+      message: path?.startsWith('ai.')
+        ? `To use this feature, subscribe to a Pro plan ${AI_KEY_HINT}.`
+        : 'To use this feature, a subscription is required. Please subscribe to a Pro plan to continue.',
     })
   },
 }).contextKey('permissions')
@@ -196,7 +199,10 @@ export const permissionsMiddleware = logMiddleware.use(
       throw errors.UNAUTHORIZED()
     }
 
-    const subscription = await getSubscription(session.user.id)
+    const [subscription, hasAiKey] = await Promise.all([
+      getSubscription(session.user.id),
+      aiKey.has(session.user.id),
+    ])
 
     context.addLogData({
       userId: session.user.id,
@@ -211,7 +217,7 @@ export const permissionsMiddleware = logMiddleware.use(
         ...session,
         decryptConnectionString,
         ...permix.setupContext(
-          getPermissions({ subscription, user: session.user })
+          getPermissions({ hasAiKey, subscription, user: session.user })
         ),
       },
     })

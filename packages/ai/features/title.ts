@@ -3,7 +3,8 @@ import { generateText } from 'ai'
 
 import type { AppUIMessage } from '../message'
 import { textFromMessage } from '../message'
-import { models } from '../models/list'
+import type { AiKey } from '../models/own-key'
+import { modelsFor } from '../models/own-key'
 import { section } from './prompt'
 
 const TITLE_INSTRUCTIONS = [
@@ -18,6 +19,7 @@ const TITLE_INSTRUCTIONS = [
 export const generateChatTitle = async (data: {
   messages: AppUIMessage[]
   signal?: AbortSignal
+  key?: AiKey | null
   telemetry?: TelemetryOptions
 }) => {
   const firstUserMessage = data.messages.find(
@@ -32,7 +34,7 @@ export const generateChatTitle = async (data: {
     abortSignal: data.signal,
     instructions: TITLE_INSTRUCTIONS,
     maxOutputTokens: 32,
-    model: models.fast,
+    model: modelsFor(data.key).fast,
     prompt: section('MESSAGE', prompt),
     telemetry: data.telemetry,
   })

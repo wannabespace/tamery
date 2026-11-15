@@ -2,18 +2,14 @@ import { PencilEdit02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { ChatTools } from '@tamery/ai/tools'
 import { Dialect } from '@tamery/shared/enums/connection-type'
-import { Button } from '@tamery/ui/components/button'
 import { InlineCode } from '@tamery/ui/components/custom/inline-code'
-import { useRouter } from '@tanstack/react-router'
+import { Result } from 'better-result'
 
 import { resolveResource } from '~/core/agent/target'
 import { resultGrid } from '~/core/table/result-grid'
-import { openTab } from '~/core/tabs/actions'
-import { tableTabId } from '~/core/tabs/ids'
-import { posthog } from '~/lib/posthog'
-import { VISUALIZER_TAB_ID } from '~/modules/visualizer/lib/tab'
 import { plural } from '~/utils/plural'
 
+import { DraftFooter } from './draft-footer'
 import { ResultGrid } from './statement-card'
 import { ToolCard, ToolCardHeader } from './tool-card'
 
@@ -91,7 +87,7 @@ const rowsGrid = (rows: Record<string, unknown>[]) => {
   )
 }
 
-/** A drafted change waits in the table's or the visualizer's own review; this says what it is and takes the user there. */
+/** A drafted change: what it is, and where it waits for the user. */
 export const ChangeReview = ({
   input,
   output,
@@ -99,23 +95,12 @@ export const ChangeReview = ({
   input: ChatTools['propose_change']['input']
   output: ChatTools['propose_change']['output']
 }) => {
-  const router = useRouter()
   const [before, after] = describe(input.change)
   const rows = changedRows(input.change)
-
-  const review = () => {
-    const { resource } = resolveResource(input)
-    const tabId =
-      output.where === 'table'
-        ? tableTabId(input.schema, input.table)
-        : VISUALIZER_TAB_ID
-    openTab(resource.id, tabId)
-    posthog.capture('ai_chat_change_reviewed', { where: output.where })
-    void router.navigate({
-      params: { resourceId: resource.id, tabId },
-      to: '/connection/$resourceId/$tabId',
-    })
-  }
+  // A connection that can no longer be reached (locked, removed) has nowhere to open the draft.
+  const resource = Result.try(() => resolveResource(input).resource).unwrapOr(
+    null
+  )
 
   return (
     <ToolCard>
@@ -127,7 +112,6 @@ export const ChangeReview = ({
             {after && <span data-mask> {after}</span>}
           </>
         }
-        status="Draft"
       />
       {rows.length > 0 && (
         <ResultGrid
@@ -136,16 +120,9 @@ export const ChangeReview = ({
           grid={rowsGrid(rows)}
         />
       )}
-      <div className="flex items-center gap-1.5 p-2">
-        <span className="text-muted-foreground mr-auto pl-1 text-xs">
-          {output.where === 'table'
-            ? 'Nothing changes until you save the draft in the table'
-            : 'Nothing changes until you apply the draft in the visualizer'}
-        </span>
-        <Button size="xs" onClick={review}>
-          Open draft
-        </Button>
-      </div>
+      {resource && (
+        <DraftFooter input={input} output={output} resourceId={resource.id} />
+      )}
     </ToolCard>
   )
 }

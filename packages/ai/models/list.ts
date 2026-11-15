@@ -153,21 +153,6 @@ const CHAT_FALLBACKS: ChatModelId[] = [
   '~google/gemini-pro-latest',
 ]
 
-const openrouterModel = (id: string) =>
-  openrouter(id, { usage: { include: true } })
-
-// `:nitro` is OpenRouter's shortcut for routing to the fastest providers of a model, not a separate model.
-export const chatModel = memoize(
-  (id: ChatModelId, fast: boolean) =>
-    createRetryableModel({
-      model: openrouterModel(fast ? `${id}:nitro` : id),
-      retries: CHAT_FALLBACKS.filter((fallback) => fallback !== id).map(
-        (fallback) => openrouterModel(fallback)
-      ),
-    }),
-  { cacheKey: (id, fast) => `${id}:${fast}` }
-)
-
 /** Mistral's id for the editor's fill-in-the-middle completion. */
 export const FIM_MODEL = 'codestral-latest'
 
@@ -178,21 +163,41 @@ export const FIM_PRICED_ID = `mistral/${FIM_MODEL}`
 export const MODEL_IDS = {
   fast: ['anthropic/claude-haiku-4.5', 'google/gemini-3.8-flash'],
   query: ['anthropic/claude-opus-5.5', 'x-ai/grok-4.7'],
+  search: ['google/gemini-3.8-flash', 'anthropic/claude-haiku-4.5'],
   structured: ['anthropic/claude-sonnet-5.5', 'x-ai/grok-4.7'],
   summary: ['google/gemini-3.8-flash', 'anthropic/claude-sonnet-5.5'],
   transcribe: ['google/gemini-3.8-flash', '~google/gemini-pro-latest'],
 } as const
 
-const retryable = ([id, fallback]: readonly [string, string]) =>
-  createRetryableModel({
-    model: openrouterModel(id),
-    retries: [openrouterModel(fallback)],
-  })
-
-export const models = {
-  fast: retryable(MODEL_IDS.fast),
-  query: retryable(MODEL_IDS.query),
-  structured: retryable(MODEL_IDS.structured),
-  summary: retryable(MODEL_IDS.summary),
-  transcribe: retryable(MODEL_IDS.transcribe),
+/** The chat's and every fixed feature's models on one OpenRouter account: Tamery's, or a user's own key. */
+export const openRouterModels = (provider: typeof openrouter) => {
+  const model = (id: string) => provider(id, { usage: { include: true } })
+  const retryable = ([id, fallback]: readonly [string, string]) =>
+    createRetryableModel({ model: model(id), retries: [model(fallback)] })
+  return {
+    // `:nitro` is OpenRouter's shortcut for routing to the fastest providers of a model, not a separate model.
+    chat: (id: ChatModelId, fast: boolean) =>
+      createRetryableModel({
+        model: model(fast ? `${id}:nitro` : id),
+        retries: CHAT_FALLBACKS.filter((fallback) => fallback !== id).map(
+          (fallback) => model(fallback)
+        ),
+      }),
+    models: {
+      fast: retryable(MODEL_IDS.fast),
+      query: retryable(MODEL_IDS.query),
+      search: retryable(MODEL_IDS.search),
+      structured: retryable(MODEL_IDS.structured),
+      summary: retryable(MODEL_IDS.summary),
+      transcribe: retryable(MODEL_IDS.transcribe),
+    },
+  }
 }
+
+const tamery = openRouterModels(openrouter)
+
+export const chatModel = memoize(tamery.chat, {
+  cacheKey: (id, fast) => `${id}:${fast}`,
+})
+
+export const { models } = tamery

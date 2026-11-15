@@ -12,6 +12,10 @@ packages:
 catalog:
   '@journeyapps/wa-sqlite': ^1.7.2
   '@paper-design/shaders-react': ^0.0.82
+  # Pinned to the providers built on the same @ai-sdk/provider-utils as `ai`: a second copy splits the tool types.
+  '@ai-sdk/anthropic': 4.0.98
+  '@ai-sdk/google': 4.0.113
+  '@ai-sdk/openai': 4.0.110
   '@ai-sdk/react': ^4.0.167
   '@base-ui/react': ^1.9.0
   '@blobatar/react': ^2.7.0

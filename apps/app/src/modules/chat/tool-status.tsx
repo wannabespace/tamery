@@ -4,11 +4,11 @@ import { DECLINED } from './chat-tools'
 export const isDeclined = (part: ChatToolPart) =>
   part.state === 'output-error' && part.errorText === DECLINED
 
-/** On the last turn an unsettled call is still running; on an earlier one it never ran. */
-export const isRunning = (part: ChatToolPart, isLast: boolean) =>
-  isLast && part.state !== 'output-available' && part.state !== 'output-error'
+/** While its turn still works an unsettled call is running; once the turn ended or was stopped, it never ran. */
+export const isRunning = (part: ChatToolPart, isLive: boolean) =>
+  isLive && part.state !== 'output-available' && part.state !== 'output-error'
 
-export const getStatus = (part: ChatToolPart, isLast: boolean) => {
+export const getStatus = (part: ChatToolPart, isLive: boolean) => {
   if (isDeclined(part)) {
     return <span className="text-muted-foreground">Declined</span>
   }
@@ -18,7 +18,7 @@ export const getStatus = (part: ChatToolPart, isLast: boolean) => {
   if (part.state === 'output-available') {
     return null
   }
-  return isLast ? (
+  return isLive ? (
     <span className="shimmer">Running</span>
   ) : (
     <span className="text-muted-foreground">Not run</span>

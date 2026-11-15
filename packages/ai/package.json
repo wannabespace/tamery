@@ -7,6 +7,9 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/google": "catalog:",
+    "@ai-sdk/openai": "catalog:",
     "@mistralai/mistralai": "catalog:",
     "@openrouter/ai-sdk-provider": "catalog:",
     "@tamery/shared": "workspace:*",

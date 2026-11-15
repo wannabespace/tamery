@@ -1,20 +1,25 @@
 import {
   CHAT_EFFORTS,
   chatContexts,
-  chatModels,
+  chatModelsFor,
   DEFAULT_CHAT_EFFORT,
 } from '@tamery/ai/models'
 
+import { aiKey } from '~/lib/ai-key'
 import { orpc, permissionsMiddleware } from '~/orpc'
 
-export const models = orpc.use(permissionsMiddleware).handler(() => ({
-  defaultEffort: DEFAULT_CHAT_EFFORT,
-  efforts: CHAT_EFFORTS,
-  models: chatModels.map(({ id, name, provider, ...model }) => ({
-    contexts: chatContexts(id),
-    featured: 'featured' in model,
-    id,
-    name,
-    provider,
-  })),
-}))
+export const models = orpc
+  .use(permissionsMiddleware)
+  .handler(async ({ context }) => ({
+    defaultEffort: DEFAULT_CHAT_EFFORT,
+    efforts: CHAT_EFFORTS,
+    models: chatModelsFor(await aiKey.get(context.user.id)).map(
+      ({ id, name, provider, ...model }) => ({
+        contexts: chatContexts(id),
+        featured: 'featured' in model,
+        id,
+        name,
+        provider,
+      })
+    ),
+  }))

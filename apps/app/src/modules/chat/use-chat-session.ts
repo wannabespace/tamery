@@ -6,6 +6,7 @@ import {
   textFromMessage,
 } from '@tamery/ai/message'
 import type { ChatTools } from '@tamery/ai/tools'
+import { omit } from '@tamery/shared/utils'
 import { eq, useLiveSuspenseQuery } from '@tanstack/react-db'
 import type { FileUIPart } from 'ai'
 import { isToolUIPart, lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
@@ -18,6 +19,7 @@ import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 
 import { getChatInstance } from './chat-instance'
+import { awaitsUser } from './chat-tool-types'
 import { chatToolRuns } from './chat-tools'
 import type { PromptMention } from './prompt-mentions'
 import { mentionPart, messageParts } from './prompt-mentions'
@@ -36,14 +38,16 @@ const isAnswering = (
     (part) =>
       isToolUIPart(part) &&
       (part.state === 'input-streaming' ||
-        (part.state === 'input-available' && part.type !== 'tool-execute'))
+        (part.state === 'input-available' && !awaitsUser(part)))
   )
 
 const pausedBy = ({
+  lastAsked,
   lastMessage,
   status,
   stoppedId,
 }: {
+  lastAsked: AppUIMessage | undefined
   lastMessage: AppUIMessage | undefined
   status: string
   stoppedId: string | undefined
@@ -54,7 +58,9 @@ const pausedBy = ({
   if (lastMessage.role === 'assistant' && lastMessage.metadata?.capped) {
     return 'limit'
   }
-  return lastMessage.id === stoppedId ? 'user' : null
+  return lastMessage.id === stoppedId || lastAsked?.metadata?.stopped
+    ? 'user'
+    : null
 }
 
 export const useChatSession = ({
@@ -176,6 +182,15 @@ export const useChatSession = ({
     chatId,
     compaction: chat?.compaction ?? null,
     decide: {
+      answer: (data: {
+        output: ChatTools['ask_user']['output']
+        toolCallId: string
+      }) =>
+        chatToolRuns.reply({
+          ...data,
+          chat: instance,
+          transcript: displayMessages,
+        }),
       judge: ({
         dialect,
         signal,
@@ -233,8 +248,8 @@ export const useChatSession = ({
       })
     },
     error,
-    /** Why the last answer stopped short and can be continued: its step limit, or the user's own Stop in this window. */
-    pausedBy: pausedBy({ lastMessage, status, stoppedId }),
+    /** Why the last answer stopped short and can be continued: its step limit, or the user's Stop. */
+    pausedBy: pausedBy({ lastAsked, lastMessage, status, stoppedId }),
     isReady: status === 'ready',
     isStreaming,
     isWorking,
@@ -257,7 +272,11 @@ export const useChatSession = ({
         return
       }
       if (lastAsked) {
-        void sendMessage(lastAsked)
+        // The live copy wins over the synced one, so a kept stop would pause the new answer too.
+        void sendMessage({
+          ...lastAsked,
+          metadata: omit(lastAsked.metadata ?? {}, ['stopped']),
+        })
       }
     },
     /** While the agent works, a message waits in the queue, unless `now` stops the agent and sends it at once. */

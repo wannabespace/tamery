@@ -69,11 +69,19 @@ export const ChatConversation = ({
     copy: () => {
       if (lastAnswer) {
         void copy(textFromMessage(lastAnswer), 'Copied')
+      } else {
+        toast('There is no answer to copy yet')
       }
     },
     model: () => modelPickerOpenStore.set(true),
     new: onNewChat,
-    retry: () => session.retry(),
+    retry: () => {
+      if (lastAsked) {
+        session.retry()
+      } else {
+        toast('There is no message to ask again yet')
+      }
+    },
   }
 
   const isEmpty = session.messages.length === 0

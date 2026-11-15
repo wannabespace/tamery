@@ -20,13 +20,13 @@ const getVerb = (part: NoteToolPart) => {
 }
 
 export const NotePart = ({
-  isLast,
+  isLive,
   part,
 }: {
-  isLast: boolean
+  isLive: boolean
   part: NoteToolPart
 }) => {
-  const running = isRunning(part, isLast)
+  const running = isRunning(part, isLive)
   const target = getTarget(part)
   const text = part.output?.note ?? part.input?.note
   const verb = running ? 'Saving' : getVerb(part)
@@ -43,7 +43,7 @@ export const NotePart = ({
         </>
       }
       live={running}
-      status={!running && getStatus(part, isLast)}
+      status={!running && getStatus(part, isLive)}
     >
       {text && (
         <div data-mask>

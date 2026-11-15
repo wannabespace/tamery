@@ -43,6 +43,7 @@ type ChatStreamInput = Pick<
   | 'effort'
   | 'fast'
   | 'isSubagent'
+  | 'key'
   | 'messages'
   | 'model'
   | 'summary'
@@ -68,6 +69,7 @@ export const chatStream = {
         effort: data.effort,
         fast: data.fast,
         isSubagent: data.isSubagent,
+        key: data.key,
         limits: CHAT_LIMITS.message,
         messages: data.messages,
         model: data.model,

@@ -52,7 +52,8 @@ export const appActions = {
     show(resource.id, tableTabId(schema, table))
     shareRequests.set(getShareRequestKey(resource.id, schema, table))
     posthog.capture('ai_chat_app_action', { action: 'create_share' })
-    return { opened: true }
+    const { filters } = tablePageStore({ id: resource.id, schema, table }).get()
+    return { filters: filters.length, opened: true }
   },
   exportResult: (
     messages: AppUIMessage[],

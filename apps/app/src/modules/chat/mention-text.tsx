@@ -17,7 +17,7 @@ import { openChat } from './open-chat'
 import { TablePeek } from './table-peek'
 
 const CHIP =
-  'bg-background text-foreground rounded-md box-decoration-clone px-1 py-0.5 transition-colors [&_svg]:mr-1 [&_svg]:inline [&_svg]:size-3.5 [&_svg]:align-text-bottom'
+  'bg-background text-foreground rounded-md box-decoration-clone px-1 py-0.5 transition-colors [&_svg]:mr-1 [&_svg]:inline [&_svg]:size-3.5 [&_svg]:align-[-2px]'
 
 const CHIP_ACTION = cn(
   CHIP,

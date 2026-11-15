@@ -21,6 +21,8 @@ export interface JevUsage {
 
 /** Asks Jev, TypeSafe's decision model on OpenRouter, and reports its usage. Throws when it fails or takes too long, so each caller keeps its own fallback. */
 export const askJev = async (data: {
+  /** A user's own OpenRouter key; Tamery's account otherwise. */
+  apiKey?: string
   onUsage: (usage: JevUsage) => Promise<void>
   questions: Record<string, object>
   signal?: AbortSignal
@@ -33,7 +35,7 @@ export const askJev = async (data: {
       state: data.state,
     }),
     headers: {
-      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${data.apiKey ?? env.OPENROUTER_API_KEY}`,
       'Content-Type': 'application/json',
     },
     method: 'POST',

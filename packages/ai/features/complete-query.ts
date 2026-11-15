@@ -4,7 +4,9 @@ import type { LanguageModelUsage } from 'ai'
 import { generateText } from 'ai'
 
 import { env } from '../env'
-import { FIM_MODEL, FIM_PRICED_ID, models } from '../models/list'
+import { FIM_MODEL, FIM_PRICED_ID } from '../models/list'
+import type { AiKey } from '../models/own-key'
+import { modelsFor } from '../models/own-key'
 import { usageTelemetry } from '../usage/record'
 import { MATCH_USER_STYLE, section } from './prompt'
 
@@ -46,6 +48,7 @@ const completeInstructions = (data: {
 interface CompleteQueryInput {
   connectionType: string
   context: string
+  key?: AiKey | null
   onUsage: (
     modelId: string,
     usage: LanguageModelUsage,
@@ -62,12 +65,13 @@ const chatComplete = async (data: CompleteQueryInput) => {
     instructions: {
       content: completeInstructions(data),
       providerOptions: {
+        anthropic: { cacheControl: { type: 'ephemeral' } },
         openrouter: { cacheControl: { type: 'ephemeral' } },
       },
       role: 'system',
     },
     maxOutputTokens: 200,
-    model: models.fast,
+    model: modelsFor(data.key).fast,
     prompt: [
       section('TEXT BEFORE CARET', `${data.prefix}${CARET}`),
       section('TEXT AFTER CARET', `${CARET}${data.suffix}`),
@@ -143,6 +147,10 @@ const fimComplete = async (data: CompleteQueryInput) => {
 }
 
 export const completeQuery = async (data: CompleteQueryInput) => {
+  // Codestral runs on Tamery's Mistral account, never on any of the user's own keys.
+  if (data.key) {
+    return chatComplete(data)
+  }
   // Codestral FIM completes mongosh and SQL alike and never writes prose; the chat model is only a fallback when FIM errors.
   try {
     return await fimComplete(data)

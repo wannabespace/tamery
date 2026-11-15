@@ -1,7 +1,8 @@
 import type { TelemetryOptions } from 'ai'
 import { generateText } from 'ai'
 
-import { models } from '../models/list'
+import type { AiKey } from '../models/own-key'
+import { modelsFor } from '../models/own-key'
 
 const TRANSCRIBE_INSTRUCTIONS = [
   'Transcribe the recording word for word, in the language it is spoken in, with punctuation.',
@@ -9,15 +10,21 @@ const TRANSCRIBE_INSTRUCTIONS = [
   'Return only the transcript. For silence or noise, return nothing.',
 ].join('\n')
 
+/** Throws on a key whose provider takes no audio; `modelsFor(key).transcribe` tells beforehand. */
 export const transcribe = async (data: {
   audio: File
+  key?: AiKey | null
   signal?: AbortSignal
   telemetry?: TelemetryOptions
 }) => {
+  const model = modelsFor(data.key).transcribe
+  if (!model) {
+    throw new Error(`${data.key?.provider} takes no audio`)
+  }
   const { text } = await generateText({
     abortSignal: data.signal,
     instructions: TRANSCRIBE_INSTRUCTIONS,
-    model: models.transcribe,
+    model,
     prompt: [
       {
         content: [

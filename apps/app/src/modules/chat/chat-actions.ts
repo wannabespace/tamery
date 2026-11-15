@@ -3,7 +3,6 @@ import { removeTabs } from '~/core/tabs/actions'
 import { history } from '~/lib/last-location'
 import { posthog } from '~/lib/posthog'
 
-import { renameChat } from './rename-chat'
 import { setChatDraft } from './stores'
 import { chatTabId } from './tab'
 
@@ -24,7 +23,6 @@ export const chatActions = {
       mutateOffline(() => chatsCollection.delete(chatId))
     }
   },
-  rename: renameChat,
   togglePin: (chatId: string, pinned: boolean) => {
     posthog.capture('ai_chat_pinned', { pinned })
     mutateOffline(() =>

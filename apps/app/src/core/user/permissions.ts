@@ -14,6 +14,7 @@ import { authClient, getSessionUser, isAnonymous } from '~/lib/auth'
 import { API_QUERY_KEY, queryClient } from '~/lib/query-client'
 import { promptSignIn, setIsSubscriptionDialogOpen } from '~/store'
 
+import { aiKeyQueryOptions, useAiKey } from './ai-key'
 import {
   isActiveSubscription,
   subscriptionsQueryOptions,
@@ -51,7 +52,8 @@ export const checkOrUpgrade = (...args: Parameters<typeof permix.check>) => {
   } else {
     setIsSubscriptionDialogOpen(
       true,
-      typeof path === 'string' ? (UPGRADE_HINTS[path] ?? null) : null
+      typeof path === 'string' ? (UPGRADE_HINTS[path] ?? null) : null,
+      { offerAiKey: typeof path === 'string' && path.startsWith('ai.') }
     )
   }
 
@@ -60,17 +62,21 @@ export const checkOrUpgrade = (...args: Parameters<typeof permix.check>) => {
 
 export const loadPermissions = async () => {
   const user = await getSessionUser()
-  const subscriptions = user?.isAnonymous
-    ? null
-    : await Result.tryPromise(() =>
-        queryClient.query({
-          ...subscriptionsQueryOptions,
-          staleTime: 'static',
-        })
-      )
+  const [subscriptions, aiKey] = user?.isAnonymous
+    ? [null, null]
+    : await Promise.all([
+        Result.tryPromise(() =>
+          queryClient.query({
+            ...subscriptionsQueryOptions,
+            staleTime: 'static',
+          })
+        ),
+        Result.tryPromise(() => queryClient.query(aiKeyQueryOptions)),
+      ])
 
   permix.setup(
     getPermissions({
+      hasAiKey: !!aiKey?.unwrapOr(null),
       subscription:
         subscriptions?.unwrapOr(null)?.find(isActiveSubscription) ?? null,
       user: user ?? {},
@@ -88,10 +94,11 @@ export const resetGuestState = async () => {
 export const usePermissionsSync = () => {
   const user = authClient.useSession().data?.user
   const { isLoading, subscription } = useSubscription()
+  const { aiKey, isLoading: isAiKeyLoading } = useAiKey()
 
   useEffect(() => {
-    if (user && !isLoading) {
-      permix.setup(getPermissions({ subscription, user }))
+    if (user && !isLoading && !isAiKeyLoading) {
+      permix.setup(getPermissions({ hasAiKey: !!aiKey, subscription, user }))
     }
-  }, [user, isLoading, subscription])
+  }, [user, isLoading, isAiKeyLoading, aiKey, subscription])
 }

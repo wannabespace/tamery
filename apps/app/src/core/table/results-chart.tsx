@@ -40,7 +40,13 @@ const axes = (chart: ResultChart) => (
         tickFormatter={shorten}
       />
     ) : (
-      <XAxis dataKey="x" tickLine={false} axisLine={false} minTickGap={24} />
+      <XAxis
+        dataKey="x"
+        tickLine={false}
+        axisLine={false}
+        interval="preserveStartEnd"
+        minTickGap={24}
+      />
     )}
     <YAxis
       tickLine={false}

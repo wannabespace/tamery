@@ -4,6 +4,7 @@ import type { IconSvgElement } from '@hugeicons/react'
 import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 import { CopyButton } from '@tamery/ui/components/custom/copy-button'
 import { Mermaid } from '@tamery/ui/components/custom/mermaid'
+import { Favicon } from '@tamery/ui/components/favicon'
 import {
   Popover,
   PopoverContent,
@@ -12,7 +13,7 @@ import {
 import { cn } from '@tamery/ui/lib/utils'
 import type { VariantProps } from 'class-variance-authority'
 import type * as React from 'react'
-import { createContext, use, useState } from 'react'
+import { createContext, use } from 'react'
 import { Streamdown } from 'streamdown'
 import type { ExtraProps } from 'streamdown'
 
@@ -210,24 +211,6 @@ const hostOf = (href: string | undefined) => {
   return url?.protocol.startsWith('http') ? url.hostname : null
 }
 
-const Favicon = ({ host }: { host: string }) => {
-  const [failed, setFailed] = useState(false)
-  return failed ? (
-    <HugeiconsIcon
-      icon={GlobeIcon}
-      strokeWidth={2}
-      className="text-muted-foreground mr-1 inline size-4 align-text-bottom"
-    />
-  ) : (
-    <img
-      alt=""
-      src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
-      className="ring-foreground/10 mr-1 inline size-4 rounded-sm align-text-bottom ring"
-      onError={() => setFailed(true)}
-    />
-  )
-}
-
 const Link = ({
   children,
   href,
@@ -259,7 +242,7 @@ const Link = ({
           />
         }
       >
-        <Favicon host={host} />
+        <Favicon host={host} className="mr-1 inline size-4 align-text-bottom" />
         {typeof children === 'string' && URL.canParse(children)
           ? site
           : children}

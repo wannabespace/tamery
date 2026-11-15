@@ -17,7 +17,7 @@ type AnyToolCall = Parameters<
 >[0]['toolCall']
 type ToolCall = Exclude<
   AnyToolCall,
-  { dynamic: true } | { toolName: 'execute' }
+  { dynamic: true } | { toolName: 'ask_user' | 'execute' }
 >
 
 export const DECLINED = 'The user declined to run this statement.'
@@ -165,6 +165,14 @@ const addReadOutput = async (
       const output = await run(signal)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
+    case 'web_search': {
+      const { orpc } = await import('~/lib/orpc')
+      const output = await orpc.ai.webSearch.call(
+        { chatId: chat.id, query: toolCall.input.query },
+        { context: { silent: true }, signal }
+      )
+      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
+    }
     default: {
       return toolCall satisfies never
     }
@@ -194,14 +202,33 @@ const read = async (
 }
 
 export const chatToolRuns = {
-  /** Answers the model's tool calls in the window. Everything but an `execute` runs on its own: it waits for the user's Run on its card, whatever the transcript or the data it read says. */
+  /** Answers the model's tool calls in the window. Everything but an `execute` or an `ask_user` runs on its own: those wait for the user on their card, whatever the transcript or the data it read says. */
   answer: (
     chat: AppChat,
     toolCall: AnyToolCall,
     connectionResourceId: string
   ) => {
-    if (!toolCall.dynamic && toolCall.toolName !== 'execute') {
+    if (
+      !toolCall.dynamic &&
+      toolCall.toolName !== 'execute' &&
+      toolCall.toolName !== 'ask_user'
+    ) {
       void read(chat, toolCall, connectionResourceId)
+    }
+  },
+  reply: ({
+    chat,
+    output,
+    toolCallId,
+    transcript,
+  }: {
+    chat: AppChat
+    output: ChatTools['ask_user']['output']
+    toolCallId: string
+    transcript: AppUIMessage[]
+  }) => {
+    if (claimDecision(chat, toolCallId, transcript)) {
+      void chat.addToolOutput({ output, tool: 'ask_user', toolCallId })
     }
   },
   stop: (chatId: string) => runs.get(chatId)?.abort(),

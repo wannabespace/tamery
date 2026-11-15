@@ -50,6 +50,7 @@ import { chatActions } from './chat-actions'
 import { getChatInstance } from './chat-instance'
 import { awaitsUser } from './chat-tool-types'
 import { openChat, startNewChat } from './open-chat'
+import { RenameChatDialog } from './rename-chat-dialog'
 import { chatDraftsValue, unreadChatsValue } from './stores'
 import { chatTab } from './tab'
 
@@ -170,6 +171,7 @@ const ChatListRow = ({
   isActive,
   isHighlighted,
   onDelete,
+  onRename,
   row,
   search,
 }: {
@@ -177,20 +179,12 @@ const ChatListRow = ({
   isActive: boolean
   isHighlighted: boolean
   onDelete: () => void
+  onRename: () => void
   row: ChatRow
   search: string
 }) => {
   const { connectionResource } = useConnectionContext()
-  const [draft, setDraft] = useState<string | null>(null)
   const status = useLiveStatus(row.id, connectionResource.id) ?? row.status
-
-  const commitRename = () => {
-    const next = draft?.trim()
-    if (next && next !== row.title) {
-      chatActions.rename(row.id, next)
-    }
-    setDraft(null)
-  }
 
   const items: AppMenuNode[] = [
     ...(row.isDraft
@@ -199,7 +193,7 @@ const ChatListRow = ({
           {
             icon: PencilEdit01Icon,
             label: 'Rename',
-            onSelect: () => setDraft(row.title),
+            onSelect: onRename,
           },
           {
             icon: row.isPinned ? PinOffIcon : PinIcon,
@@ -218,80 +212,57 @@ const ChatListRow = ({
 
   return (
     <SidebarMenuItem data-highlighted={isHighlighted || undefined}>
-      {draft === null ? (
-        <AppContextMenu
-          items={items}
-          className="block"
-          contentProps={{ className: 'min-w-48' }}
+      <AppContextMenu
+        items={items}
+        className="block"
+        contentProps={{ className: 'min-w-48' }}
+      >
+        <SidebarMenuButton
+          id={controlId}
+          tabIndex={-1}
+          isActive={isActive}
+          onClick={() => openChat(connectionResource.id, row.id)}
         >
-          <SidebarMenuButton
-            id={controlId}
-            tabIndex={-1}
-            isActive={isActive}
-            onClick={() => openChat(connectionResource.id, row.id)}
-          >
-            <span className="truncate">
-              <HighlightText text={row.title} match={search} />
+          <span className="truncate">
+            <HighlightText text={row.title} match={search} />
+          </span>
+          {row.isDraft && (
+            <span className="text-muted-foreground ml-auto shrink-0 text-xs group-hover/menu-item:invisible">
+              Draft
             </span>
-            {row.isDraft && (
-              <span className="text-muted-foreground ml-auto shrink-0 text-xs group-hover/menu-item:invisible">
-                Draft
-              </span>
-            )}
-            {status && <ChatStatusMark status={status} />}
-          </SidebarMenuButton>
-          {row.isDraft ? (
-            <SidebarMenuAction
-              showOnHover
-              tabIndex={-1}
-              aria-label="Delete draft"
-              className="top-1/2 -translate-y-1/2"
-              onClick={onDelete}
-            >
-              <HugeiconsIcon
-                icon={Delete02Icon}
-                strokeWidth={2}
-                className="size-3.5!"
-              />
-            </SidebarMenuAction>
-          ) : (
-            <AppMenuButton
-              variant="muted"
-              items={items}
-              contentProps={{ className: 'min-w-48' }}
-              render={
-                <SidebarMenuAction
-                  showOnHover
-                  tabIndex={-1}
-                  aria-label="Chat actions"
-                  className="top-1/2 -translate-y-1/2"
-                />
-              }
-            />
           )}
-        </AppContextMenu>
-      ) : (
-        <SidebarMenuButton isActive render={<div />}>
-          <input
-            autoFocus
-            data-mask
-            aria-label="Chat name"
-            value={draft}
-            className="min-w-0 flex-1 border-none bg-transparent p-0 outline-hidden"
-            onChange={(event) => setDraft(event.target.value)}
-            onFocus={(event) => event.target.select()}
-            onBlur={commitRename}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                commitRename()
-              } else if (event.key === 'Escape') {
-                event.stopPropagation()
-                setDraft(null)
-              }
-            }}
-          />
+          {status && <ChatStatusMark status={status} />}
         </SidebarMenuButton>
-      )}
+        {row.isDraft ? (
+          <SidebarMenuAction
+            showOnHover
+            tabIndex={-1}
+            aria-label="Delete draft"
+            className="top-1/2 -translate-y-1/2"
+            onClick={onDelete}
+          >
+            <HugeiconsIcon
+              icon={Delete02Icon}
+              strokeWidth={2}
+              className="size-3.5!"
+            />
+          </SidebarMenuAction>
+        ) : (
+          <AppMenuButton
+            variant="muted"
+            items={items}
+            contentProps={{ className: 'min-w-48' }}
+            render={
+              <SidebarMenuAction
+                showOnHover
+                tabIndex={-1}
+                aria-label="Chat actions"
+                className="top-1/2 -translate-y-1/2"
+              />
+            }
+          />
+        )}
+      </AppContextMenu>
     </SidebarMenuItem>
   )
 }
@@ -345,6 +316,8 @@ export const ChatList = () => {
   const activeId = tabId && chatTab.match(tabId)?.chatId
   const [search, setSearch] = useState('')
   const [deleting, setDeleting] = useState<ChatRow | null>(null)
+  const [renaming, setRenaming] = useState<ChatRow | null>(null)
+  const [isRenameOpen, setIsRenameOpen] = useState(false)
   const drafts = useSubscription(chatDraftsValue)
   const mentioning = chatsMentioning(search)
 
@@ -466,6 +439,10 @@ export const ChatList = () => {
                         ? highlightedControlId
                         : undefined
                     }
+                    onRename={() => {
+                      setRenaming(row)
+                      setIsRenameOpen(true)
+                    }}
                     onDelete={() =>
                       row.isDraft
                         ? chatActions.remove(connectionResource.id, row.id)
@@ -478,6 +455,11 @@ export const ChatList = () => {
           )}
         </SidebarMenu>
       </SidebarContent>
+      <RenameChatDialog
+        chat={renaming}
+        open={isRenameOpen}
+        onOpenChange={setIsRenameOpen}
+      />
       <AlertDialog
         open={!!deleting}
         onOpenChange={(open) => !open && setDeleting(null)}

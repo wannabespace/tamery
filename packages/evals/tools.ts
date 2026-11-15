@@ -226,7 +226,9 @@ const answer = (part: ToolPart): unknown => {
           : `EXPLAIN ${part.input.statement}`
       )
     }
-    case 'tool-create_share':
+    case 'tool-create_share': {
+      return { filters: 0, opened: true }
+    }
     case 'tool-open_query':
     case 'tool-open_table': {
       return { opened: true }
@@ -242,6 +244,17 @@ const answer = (part: ToolPart): unknown => {
     }
     case 'tool-query': {
       return read(getEngine(part.input.connectionId), part.input.statement)
+    }
+    case 'tool-ask_user': {
+      return {
+        answers: part.input.questions.map((question) => ({
+          answer: question.options.slice(0, 1).map(({ label }) => label),
+          question: question.question,
+        })),
+      }
+    }
+    case 'tool-web_search': {
+      return { answer: 'The search found nothing.', sources: [] }
     }
     default: {
       throw new Error('The user declined to run this statement.')

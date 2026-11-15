@@ -1,8 +1,8 @@
 import { generateFilters } from '@tamery/ai/features'
 import { AiFeature } from '@tamery/ai/usage'
+import { AI_KEY_HINT } from '@tamery/shared/ai-key'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
 import { usage } from '~/lib/usage'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
@@ -17,18 +17,22 @@ export const filters = orpc
   )
   .errors({
     TOO_MANY_REQUESTS: {
-      message:
-        'You have reached the free AI usage limit. Please subscribe to a Pro plan to continue using AI features.',
+      message: `You have reached the free AI usage limit. Subscribe to Pro, ${AI_KEY_HINT}, to keep using AI features.`,
     },
   })
   .handler(async ({ input, signal, context, errors }) => {
-    await usage.enforce(context, 'filters', errors.TOO_MANY_REQUESTS)
+    const { key, telemetry } = await usage.enforce(
+      context,
+      'filters',
+      errors.TOO_MANY_REQUESTS
+    )
 
     const result = await generateFilters({
       context: input.context,
+      key,
       prompt: input.prompt,
       signal,
-      telemetry: aiUsage.telemetry({
+      telemetry: telemetry({
         feature: AiFeature.Filters,
         userId: context.user.id,
       }),

@@ -5,8 +5,7 @@ import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
-import { credits } from '~/lib/credits'
+import { payForAi } from '~/lib/ai-key'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 export const updateQuery = orpc
@@ -34,9 +33,10 @@ export const updateQuery = orpc
     TOO_MANY_REQUESTS: { message: AI_BUDGET_SPENT_MESSAGE },
   })
   .handler(async ({ context, errors, input, signal }) => {
-    if (!(await credits.canUseAi(context.user.id))) {
-      throw errors.TOO_MANY_REQUESTS()
-    }
+    const { key, telemetry } = await payForAi(
+      context.user.id,
+      errors.TOO_MANY_REQUESTS
+    )
     return runUpdateQuery({
       connectionType: input.type,
       context: input.context,
@@ -45,7 +45,8 @@ export const updateQuery = orpc
       prompt: input.prompt,
       signal,
       query: input.query,
-      telemetry: aiUsage.telemetry({
+      key,
+      telemetry: telemetry({
         feature: AiFeature.UpdateQuery,
         userId: context.user.id,
       }),

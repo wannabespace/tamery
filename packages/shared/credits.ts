@@ -1,3 +1,5 @@
+import { AI_KEY_HINT } from './ai-key'
+
 /** The Pro subscription. */
 export const PRO_PRICE_USD = { monthly: 10, yearly: 100 } as const
 
@@ -21,5 +23,4 @@ export const topUpChargeCents = (credits: number) =>
   Math.round(credits * (1 + CREDIT_TOP_UP.fee) * 100)
 
 /** What any AI feature answers once the month's included budget and the credits are spent; the app matches it to offer Add credits. */
-export const AI_BUDGET_SPENT_MESSAGE =
-  "You've used this month's included AI budget and your credits. Add credits or turn on auto top-up to keep going."
+export const AI_BUDGET_SPENT_MESSAGE = `You've used this month's included AI budget and your credits. Add credits, turn on auto top-up, ${AI_KEY_HINT}, to keep going.`

@@ -6,6 +6,7 @@ import { FREE_SHARE_LIMIT } from './usage'
 export type Permissions = {
   ai: {
     chat: ['use']
+    credits: ['buy']
     filter: ['use', 'unlimited']
     query: ['complete', 'completeUnlimited', 'use']
   }
@@ -18,21 +19,25 @@ export type Permissions = {
 }
 
 export const getPermissions = ({
+  hasAiKey,
   subscription,
   user,
 }: {
+  hasAiKey: boolean
   subscription: { plan: 'pro' } | null
   user: { isAnonymous?: boolean | null }
 }): Rules<Permissions> => {
   const member = !user.isAnonymous
   const pro = member && !!subscription
+  const paidAi = pro || (member && hasAiKey)
 
   return {
     ai: {
-      chat: { use: pro },
-      filter: { unlimited: pro, use: member },
-      // Ghost-text autocomplete is free for members (weekly-limited server-side), unlimited for Pro; edit/fix/update stay Pro.
-      query: { complete: member, completeUnlimited: pro, use: pro },
+      chat: { use: paidAi },
+      credits: { buy: pro },
+      filter: { unlimited: paidAi, use: member },
+      // Ghost-text autocomplete is free for members (weekly-limited server-side), unlimited for Pro or an own key; edit/fix/update need one of them.
+      query: { complete: member, completeUnlimited: paidAi, use: paidAi },
     },
     connection: {
       create: member || ((connections) => connections?.count === 0),

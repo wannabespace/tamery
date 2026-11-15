@@ -87,7 +87,7 @@ const stageRows = async ({
     case 'insert_rows': {
       checkColumns(names, change.rows, table)
       const newRows = newRowsActions(store)
-      for (const values of change.rows.toReversed()) {
+      for (const values of change.rows) {
         newRows.add(values)
       }
       return { rows: change.rows.length }

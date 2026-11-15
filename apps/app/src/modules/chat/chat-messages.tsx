@@ -350,8 +350,8 @@ export const ChatMessages = ({
                           parts={message.parts}
                           actions={
                             message === last
-                              ? { decide, isLast: true }
-                              : { isLast: false }
+                              ? { decide, isLive: isWorking }
+                              : { isLive: false }
                           }
                         />
                         {isWorking && message === last ? (

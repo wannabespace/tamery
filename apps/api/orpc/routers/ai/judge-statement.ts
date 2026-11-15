@@ -2,6 +2,7 @@ import { judgeStatement as judge } from '@tamery/ai/features'
 import { AiFeature } from '@tamery/ai/usage'
 import { type } from 'arktype'
 
+import { aiKey } from '~/lib/ai-key'
 import { aiUsage } from '~/lib/ai-usage'
 import { chatPersist } from '~/lib/chat-persist'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
@@ -38,12 +39,18 @@ export const judgeStatement = orpc
       feature: AiFeature.ApprovalJudge,
       userId: context.user.id,
     }
+    const key = await aiKey.get(context.user.id)
     return judge({
       dialect: input.dialect,
-      onJevUsage: (usage) => aiUsage.recordPriced(scope, usage),
+      key,
+      onJevUsage: async (usage) => {
+        if (!key) {
+          await aiUsage.recordPriced(scope, usage)
+        }
+      },
       request,
       signal,
       statement: input.statement,
-      telemetry: aiUsage.telemetry(scope),
+      telemetry: key ? undefined : aiUsage.telemetry(scope),
     })
   })

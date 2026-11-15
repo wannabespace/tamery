@@ -1,5 +1,6 @@
 import type { AppMessagePart, AppUIMessage } from '@tamery/ai/message'
 import type { ToolUIPart } from 'ai'
+import { isToolUIPart } from 'ai'
 
 import type { ChatSession } from './use-chat-session'
 
@@ -8,10 +9,14 @@ export type ChatToolPart = Extract<AppUIMessage['parts'][number], ToolUIPart>
 export interface ToolPartActions {
   /** Set only while a pending change may still be decided: on the last turn, with nothing streaming. */
   decide?: ChatSession['decide']
-  /** On the last turn a pending call is still running; on an earlier one it never ran. */
-  isLast: boolean
+  /** While its turn still works a pending call is running; once the turn ended or was stopped, it never ran. */
+  isLive: boolean
 }
 
-// Only a change waits for the user; a read is still `input-available` while the window runs it.
+const USER_ANSWERED = new Set(['tool-ask_user', 'tool-execute'])
+
+// Only a change or a question waits for the user; a read is still `input-available` while the window runs it.
 export const awaitsUser = (part: AppMessagePart) =>
-  part.type === 'tool-execute' && part.state === 'input-available'
+  isToolUIPart(part) &&
+  USER_ANSWERED.has(part.type) &&
+  part.state === 'input-available'

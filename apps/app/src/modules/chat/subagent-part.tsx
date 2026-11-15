@@ -15,7 +15,7 @@ type SpawnPart = Extract<ChatToolPart, { type: 'tool-spawn_agent' }>
 /** On the live turn an unsettled call is a subagent starting; on an earlier one it never finished. */
 const partStatus = (
   part: SpawnPart,
-  isLast: boolean
+  isLive: boolean
 ): SubagentStatus | 'stopped' => {
   if (part.state === 'output-available') {
     return 'done'
@@ -23,15 +23,15 @@ const partStatus = (
   if (part.state === 'output-error') {
     return 'failed'
   }
-  return isLast ? 'running' : 'stopped'
+  return isLive ? 'running' : 'stopped'
 }
 
 /** The line a `spawn_agent` call leaves in its parent's answer: its state, its prompt when opened, and a way into its chat. */
 export const SubagentPart = ({
-  isLast,
+  isLive,
   part,
 }: {
-  isLast: boolean
+  isLive: boolean
   part: SpawnPart
 }) => {
   const { connectionResource } = useConnectionContext()
@@ -42,7 +42,7 @@ export const SubagentPart = ({
     live?.chatId ??
     (part.state === 'output-available' ? part.output.chatId : null)
 
-  const status = live?.status ?? partStatus(part, isLast)
+  const status = live?.status ?? partStatus(part, isLive)
 
   return (
     <ChatDisclosure

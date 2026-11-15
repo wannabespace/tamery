@@ -4,9 +4,8 @@ import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
+import { payForAi } from '~/lib/ai-key'
 import { chatPersist } from '~/lib/chat-persist'
-import { credits } from '~/lib/credits'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 export const attachStream = orpc
@@ -46,7 +45,11 @@ export const attachStream = orpc
       return
     }
 
-    if (!(await credits.canUseAi(context.user.id))) {
+    const payer = await payForAi(
+      context.user.id,
+      () => new Error('No key or AI budget')
+    ).catch(() => null)
+    if (!payer) {
       return
     }
 
@@ -56,9 +59,10 @@ export const attachStream = orpc
       userId: context.user.id,
     }
     const model = await pickChatModel({
+      key: payer.key,
       messages,
       model: input.model,
-      onJevUsage: (usage) => aiUsage.recordPriced(scope, usage),
+      onJevUsage: payer.recordJev(scope),
     })
 
     const compaction = await chatPersist.compaction(input.chatId)
@@ -74,6 +78,7 @@ export const attachStream = orpc
       effort: input.effort,
       fast: input.fast,
       isSubagent: !!owned.parentChatId,
+      key: payer.key,
       model,
       onFinish: (message) =>
         chatPersist.persistMessage({
@@ -82,7 +87,7 @@ export const attachStream = orpc
           userId: context.user.id,
         }),
       summary: compaction?.summary,
-      telemetry: aiUsage.telemetry(scope),
+      telemetry: payer.telemetry(scope),
     })
     if (restarted) {
       yield* restarted

@@ -7,6 +7,7 @@ import {
 } from '@tamery/ai/features'
 import type { AppUIMessage, ChatCompaction } from '@tamery/ai/message'
 import { messagesFromPartRows } from '@tamery/ai/message'
+import type { AiKey } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import {
@@ -21,7 +22,7 @@ import type { TelemetryOptions } from 'ai'
 import { isDeepEqualData, isToolUIPart } from 'ai'
 import { and, asc, desc, eq, gte, inArray, isNull } from 'drizzle-orm'
 
-import { aiUsage } from '~/lib/ai-usage'
+import type { AiPayer } from '~/lib/ai-key'
 import { inMemberWorkspace } from '~/lib/workspace'
 import { publisher as chatsMessagesPartsPublisher } from '~/orpc/routers/chats-messages-parts/events'
 import { publisher as chatsMessagesPublisher } from '~/orpc/routers/chats-messages/events'
@@ -47,6 +48,7 @@ export const chatPersist = {
   compact: async (data: {
     chatId: string
     history: AppUIMessage[]
+    key: AiKey | null
     previous: ChatCompaction | null
     telemetry?: TelemetryOptions
     userId: string
@@ -63,6 +65,7 @@ export const chatPersist = {
       return previous
     }
     const next = await compactMessages({
+      key: data.key,
       messages: older,
       previous: previous?.summary,
       telemetry: data.telemetry,
@@ -264,21 +267,22 @@ export const chatPersist = {
 
     return messagesFromPartRows(rows)
   },
+  /** Flags the turn's question, never its answer: the answer's row is still being written and its next persist would replace the flag. */
   markStopped: async (data: { chatId: string; userId: string }) => {
-    const lastMessage = await db.query.chatsMessages.findFirst({
-      columns: { id: true, metadata: true, role: true },
+    const lastAsked = await db.query.chatsMessages.findFirst({
+      columns: { id: true, metadata: true },
       orderBy: { createdAt: 'desc' },
-      where: { chatId: { eq: data.chatId } },
+      where: { chatId: { eq: data.chatId }, role: { eq: 'user' } },
     })
 
-    if (lastMessage?.role !== 'user') {
+    if (!lastAsked) {
       return
     }
 
     const [updated] = await db
       .update(chatsMessages)
-      .set({ metadata: { ...lastMessage.metadata, stopped: true } })
-      .where(eq(chatsMessages.id, lastMessage.id))
+      .set({ metadata: { ...lastAsked.metadata, stopped: true } })
+      .where(eq(chatsMessages.id, lastAsked.id))
       .returning()
 
     if (updated) {
@@ -449,12 +453,14 @@ export const chatPersist = {
     chatId: string
     history: AppUIMessage[]
     message: AppUIMessage
+    payer: AiPayer
     userId: string
   }) => {
     await silently(async () => {
       const suggestion = await generateNextPrompt({
+        key: data.payer.key,
         messages: [...data.history, data.message],
-        telemetry: aiUsage.telemetry({
+        telemetry: data.payer.telemetry({
           chatId: data.chatId,
           feature: AiFeature.ChatSuggestion,
           userId: data.userId,
@@ -496,12 +502,14 @@ export const chatPersist = {
   persistTitle: async (data: {
     chatId: string
     messages: AppUIMessage[]
+    payer: AiPayer
     userId: string
   }) => {
     await silently(async () => {
       const title = await generateChatTitle({
+        key: data.payer.key,
         messages: data.messages,
-        telemetry: aiUsage.telemetry({
+        telemetry: data.payer.telemetry({
           chatId: data.chatId,
           feature: AiFeature.ChatTitle,
           userId: data.userId,

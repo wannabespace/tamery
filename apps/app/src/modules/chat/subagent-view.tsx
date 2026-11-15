@@ -76,7 +76,7 @@ export const SubagentDrawer = ({
     >
       {current && (
         <DrawerContent className="sm:[--drawer-content-width:42rem]!">
-          <DrawerHeader>
+          <DrawerHeader showCloseButton>
             <DrawerTitle data-mask>{current.title}</DrawerTitle>
             <div className="flex items-center gap-1.5 text-xs">
               <DrawerDescription data-mask className="truncate">
