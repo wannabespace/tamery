@@ -31,6 +31,9 @@ const getActive = (pairing: BridgePairing | null) =>
 
 export const getActivePairing = () => getActive(bridgePairing.get())
 
+export const useActivePairing = () =>
+  useSubscription(bridgePairing, { selector: getActive })
+
 export const setBridgeEnabled = (enabled: boolean) => {
   bridgePairing.set((pairing) => pairing && { ...pairing, enabled })
   posthog.capture('bridge_toggled', { enabled })

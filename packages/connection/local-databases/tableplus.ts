@@ -3,10 +3,10 @@ import { homedir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
 
-import { getConnectionType } from '@tamery/connection/connection-parts'
-import { EMPTY_SSH_TUNNEL } from '@tamery/connection/ssh/params'
 import { type } from 'arktype'
 
+import { getConnectionType } from '../connection-parts'
+import { EMPTY_SSH_TUNNEL } from '../ssh/params'
 import { keychainPassword } from './keychain'
 import type { Finder } from './local-database'
 import { validEntries } from './local-database'

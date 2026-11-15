@@ -1,6 +1,7 @@
 import { log } from '@clack/prompts'
 import { os } from '@orpc/server'
 import type { RouterClient } from '@orpc/server'
+import { NOTHING_UNLOCKED } from '@tamery/connection/local-databases/local-database'
 import { createQueryRouter } from '@tamery/query-proxy'
 import { BRIDGE_PROTOCOL, bridgeKey } from '@tamery/shared/bridge'
 import { challenge } from '@tamery/shared/challenge'
@@ -22,6 +23,9 @@ import { printable } from './printable'
 const base = os.$context<{ authorization: string | null; origin: string }>()
 
 const UNNAMED_BROWSER = 'A browser'
+
+const loadLocalDatabases = () =>
+  import('@tamery/connection/local-databases/find')
 
 const authed = base
   .errors({
@@ -165,6 +169,32 @@ export const createRouter = ({
       unpair: authed.handler(({ context }) =>
         pairings.remove(context.browserId)
       ),
+    },
+    localDatabases: {
+      find: authed.handler(async () => {
+        const { localDatabases } = await loadLocalDatabases()
+        return localDatabases.find()
+      }),
+      // A found password is a secret the browser never had, unlike a query it runs: the person at this computer hands each one out.
+      unlock: authed
+        .input(type({ connectionString: 'string > 0' }))
+        .handler(async ({ context, input }) => {
+          const { localDatabases } = await loadLocalDatabases()
+          const unlocked = await localDatabases.unlock(input.connectionString)
+          // Only a string `find` returned unlocks a password, so the question never prints text the browser made up.
+          if (!unlocked.password) {
+            return unlocked
+          }
+          const label =
+            pairings.find(context.browserId)?.label ?? UNNAMED_BROWSER
+          const allowed = await approvals.ask(
+            `Allow ${paint.bold(label)} to use the password saved on this computer for ${paint.bold(printable(input.connectionString))}?`
+          )
+          await analytics.capture('bridge_local_password_answered', {
+            allowed,
+          })
+          return allowed ? unlocked : NOTHING_UNLOCKED
+        }),
     },
     query: createQueryRouter(authed.errors(queryErrors), {
       connectionString: (input, _context, dialect, errors) =>
