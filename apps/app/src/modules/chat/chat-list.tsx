@@ -375,7 +375,8 @@ export const ChatList = () => {
   ]
     .filter((row) => matchesSearch(search, row.title) || mentioning.has(row.id))
     .toSorted((a, b) => b.date.getTime() - a.date.getTime())
-  const grouped = Object.groupBy(rows, groupOf)
+  // Drafts live in this window and show at once, so before the chats load they would sit under the skeleton, and a sent chat's draft would show as a draft.
+  const grouped = Object.groupBy(isLoading ? [] : rows, groupOf)
   const shown = GROUPS.flatMap((group) => grouped[group] ?? [])
   const { highlightedControlId, highlightedId, listId, searchProps } =
     useNavigatorSearch({
