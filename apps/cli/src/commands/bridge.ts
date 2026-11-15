@@ -2,9 +2,11 @@ import os from 'node:os'
 import process from 'node:process'
 
 import { intro, log, outro } from '@clack/prompts'
+import { forwarding } from '@tamery/connection/forwarding'
 import { confineDuckdbFiles } from '@tamery/connection/queries/dialects/duckdb/instances'
 import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/client'
 import { resetTransactions } from '@tamery/connection/queries/transactions'
+import { tunnelForwarding } from '@tamery/connection/ssh/tunnel'
 import { BRIDGE_PAIR_PATH, BRIDGE_URL } from '@tamery/shared/bridge'
 import { hasErrnoCode } from '@tamery/shared/errno'
 import { PORTS } from '@tamery/shared/ports'
@@ -12,10 +14,10 @@ import { Result } from 'better-result'
 
 import { analytics } from '../analytics'
 import { approvals } from '../bridge/approvals'
+import { hostKeys } from '../bridge/host-keys'
 import { pairings } from '../bridge/pairings'
 import { createRouter } from '../bridge/router'
 import { serveBridge } from '../bridge/server'
-import { enableSshTunnels } from '../bridge/ssh'
 import { openBrowser } from '../browser'
 import { configFiles } from '../config-files'
 import { env } from '../env'
@@ -42,7 +44,9 @@ export const bridge = async (options: {
   intro(`${paint.brand('◆ Tamery bridge')} ${paint.dim(env.VERSION)}`)
   const account = await getAccount()
   const name = os.hostname().replace(/\.local$/u, '')
-  enableSshTunnels()
+  forwarding.use((connectionString) =>
+    tunnelForwarding(connectionString, hostKeys.confirm(connectionString))
+  )
   confineDuckdbFiles()
   confineSqliteFiles()
   const router = createRouter({ name, userId: account.id })

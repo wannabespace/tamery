@@ -5,6 +5,7 @@ import path from 'node:path'
 import { Result } from 'better-result'
 import type { ConnectConfig } from 'ssh2'
 
+import { localPath } from '../local-path'
 import { knownHosts } from './known-hosts'
 import type { SshTunnel } from './params'
 import { DEFAULT_SSH_PORT, SSH_AUTH_ERRORS, tunnelError } from './params'
@@ -15,8 +16,6 @@ export const AGENT_UNAVAILABLE =
 const MAX_INCLUDE_DEPTH = 16
 const INCLUDE = /^\s*include[\s=]+(?<patterns>.+)$/iu
 const PROXY_KEYWORDS = ['ProxyJump', 'ProxyCommand']
-
-const expandHome = (file: string) => file.replace(/^~(?=$|\/)/u, homedir())
 
 /** Inlines each `Include`, which ssh-config keeps as a plain directive. Unlike OpenSSH, an Include inside a Host block leaves the included file's last Host active for the lines after it. */
 const readConfigFile = async (file: string, depth = 0): Promise<string> => {
@@ -36,7 +35,7 @@ const readConfigFile = async (file: string, depth = 0): Promise<string> => {
           .split(/\s+/u)
           .map((pattern) =>
             Array.fromAsync(
-              glob(path.resolve(homedir(), '.ssh', expandHome(pattern)))
+              glob(path.resolve(homedir(), '.ssh', localPath.expand(pattern)))
             )
           )
       )
@@ -75,7 +74,7 @@ const getAuth = async (
       throw tunnelError(SSH_AUTH_ERRORS.noKeyFile)
     }
     const privateKey = await Result.tryPromise(() =>
-      readFile(expandHome(keyPath))
+      readFile(localPath.expand(keyPath))
     )
     if (privateKey.isErr()) {
       throw tunnelError(SSH_AUTH_ERRORS.keyFileMissing)
@@ -92,7 +91,7 @@ const getAuth = async (
   if (!agent) {
     throw tunnelError(AGENT_UNAVAILABLE)
   }
-  return { agent: expandHome(agent) }
+  return { agent: localPath.expand(agent) }
 }
 
 export const getSshConfig = async (tunnel: SshTunnel) => {

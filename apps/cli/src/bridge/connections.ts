@@ -174,8 +174,8 @@ export const connections = {
       : connectionString
   },
   /**
-   * `false` when the string asks for a file, SSH route or machine login the bridge's copy did not have and the person at its
-   * terminal declined it: a paired browser's script could otherwise point the bridge at any file or host on this computer.
+   * `false` when the string asks for a file, SSH route or machine login the bridge's copy did not have and `confirm` declined
+   * it.
    */
   save: async (
     {

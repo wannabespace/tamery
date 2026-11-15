@@ -1,5 +1,6 @@
 import { createORPCClient, ORPCError, safe } from '@orpc/client'
 import type { BridgeRouter } from '@tamery/cli/src/bridge/router'
+import type { bridgeHostKey } from '@tamery/shared/bridge'
 import { bridgeKey } from '@tamery/shared/bridge'
 import { formatBrowserName } from '@tamery/shared/device-label'
 import { SyncType } from '@tamery/shared/enums/sync-type'
@@ -18,6 +19,7 @@ import {
   isLoopbackUrl,
   parseBridgeUrl,
 } from './client'
+import { bridgeHostKeys } from './host-keys'
 import type { BridgePairing } from './pairing'
 import {
   bridgeAsks,
@@ -56,6 +58,28 @@ export class UnconfirmedConnectionError extends Error {
   }
 }
 
+const sendStoredSecrets = async (
+  client: BridgeRouter,
+  connectionId: string
+) => {
+  const connectionString = await getCompleteString(connectionId, false)
+  if (connectionString) {
+    await client.bridge.saveSecrets({ connectionId, connectionString })
+  }
+  return !!connectionString
+}
+
+const trustHostKey = async (
+  client: BridgeRouter,
+  hostKey: typeof bridgeHostKey.infer
+) => {
+  const trusted = await bridgeHostKeys.ask(hostKey)
+  if (trusted) {
+    await client.bridge.trustHostKey(hostKey)
+  }
+  return trusted
+}
+
 const getPairedClient = memoize((pairing: BridgePairing): BridgeRouter =>
   createORPCClient<BridgeRouter>(
     createBridgeLink(pairing.url, pairing.secret),
@@ -65,19 +89,14 @@ const getPairedClient = memoize((pairing: BridgePairing): BridgeRouter =>
           await ensureConnected(pairing)
           const call = () => safe(next())
           const first = await call()
-          const asked =
-            first.definedError?.code === 'NEEDS_SECRETS'
-              ? first.definedError.data
-              : null
-          const stored =
-            asked && (await getCompleteString(asked.connectionId, false))
-          if (asked && stored) {
-            await getPairedClient(pairing).bridge.saveSecrets({
-              connectionId: asked.connectionId,
-              connectionString: stored,
-            })
-          }
-          const { data, definedError, error } = stored ? await call() : first
+          const asked = first.definedError
+          const client = getPairedClient(pairing)
+          const answered =
+            (asked?.code === 'NEEDS_SECRETS' &&
+              (await sendStoredSecrets(client, asked.data.connectionId))) ||
+            (asked?.code === 'UNKNOWN_HOST_KEY' &&
+              (await trustHostKey(client, asked.data)))
+          const { data, definedError, error } = answered ? await call() : first
           if (!error) {
             return data
           }

@@ -1,5 +1,6 @@
 import {
   afterAll,
+  afterEach,
   beforeAll,
   describe,
   expect,
@@ -14,7 +15,10 @@ import process from 'node:process'
 
 import { createORPCClient, ORPCError } from '@orpc/client'
 import { RPCLink } from '@orpc/client/fetch'
+import { forwarding } from '@tamery/connection/forwarding'
 import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/client'
+import { HOST_KEY_REFUSALS } from '@tamery/connection/ssh/host-key'
+import { tunnelError } from '@tamery/connection/ssh/params'
 import { querySerializer } from '@tamery/query-proxy/serializer'
 import { bridgeKey } from '@tamery/shared/bridge'
 import { challenge } from '@tamery/shared/challenge'
@@ -52,6 +56,9 @@ const ids = {
 const databaseFile = path.join(home, 'test.db')
 const sqliteString = `sqlite://${databaseFile}`
 fs.writeFileSync(databaseFile, '')
+const appDataFile = path.join(home, 'Users', 'me', 'Library', 'Cookies.sqlite')
+fs.mkdirSync(path.dirname(appDataFile), { recursive: true })
+fs.writeFileSync(appDataFile, '')
 
 const modified = (connectionString: string, isPasswordExists = false) => ({
   connectionString,
@@ -152,6 +159,7 @@ const { createRouter } = await import('./router')
 const { serveBridge } = await import('./server')
 const { pairings } = await import('./pairings')
 const { approvals } = await import('./approvals')
+const { hostKeys } = await import('./host-keys')
 const { vault } = await import('../vault')
 const { configFiles } = await import('../config-files')
 
@@ -218,14 +226,6 @@ const pair = async () => {
   return pairing
 }
 
-/** Saves a string that asks for a file, tunnel or machine login, which the person at the terminal must allow. */
-const saveAllowed = async (
-  client: BridgeRouter,
-  input: Parameters<BridgeRouter['bridge']['saveSecrets']>[0]
-) => {
-  await Promise.all([client.bridge.saveSecrets(input), answer(true)])
-}
-
 const expectError = async (call: Promise<unknown>, code: string) => {
   const error = await call.then(
     () => null,
@@ -245,6 +245,11 @@ beforeAll(async () => {
 afterAll(async () => {
   await server.stop(true)
   fs.rmSync(home, { force: true, recursive: true })
+})
+
+// A test that stands in for the tunnel opener puts back none, so the next one never runs through its stand-in.
+afterEach(() => {
+  forwarding.use(() => Promise.resolve(null))
 })
 
 describe('requests', () => {
@@ -413,12 +418,12 @@ describe('connections', () => {
         query: 'select 1 as one',
       })
     await expectError(run(), 'UNCONFIRMED')
-    await saveAllowed(client, {
+    await client.bridge.saveSecrets({
       connectionId: ids.full,
       connectionString: `sqlite://${path.join(home, 'other.db')}`,
     })
     await expectError(run(), 'UNCONFIRMED')
-    await saveAllowed(client, {
+    await client.bridge.saveSecrets({
       connectionId: ids.full,
       connectionString: sqliteString,
     })
@@ -442,7 +447,7 @@ describe('connections', () => {
       }),
       'UNCONFIRMED'
     )
-    await saveAllowed(client, {
+    await client.bridge.saveSecrets({
       connectionId: ids.machineLogin,
       connectionString:
         'mongodb://elsewhere.example.com/app?authMechanism=MONGODB-AWS',
@@ -458,7 +463,7 @@ describe('connections', () => {
 
   test('a machine login routed through a proxy the bridge was not allowed is refused', async () => {
     const client = createClient(paired.secret)
-    await saveAllowed(client, {
+    await client.bridge.saveSecrets({
       connectionId: ids.proxied,
       connectionString: machineLoginString,
     })
@@ -494,7 +499,7 @@ describe('connections', () => {
     'a synced tunnel that %s than the one saved on the bridge is refused',
     async (_, saved) => {
       const client = createClient(paired.secret)
-      await saveAllowed(client, {
+      await client.bridge.saveSecrets({
         connectionId: ids.tunnel,
         connectionString: saved,
       })
@@ -508,21 +513,65 @@ describe('connections', () => {
     }
   )
 
-  test('a save that points the bridge at a file it did not have is declined at the terminal', async () => {
+  test('a query through an unknown SSH host key fails with the key, and runs once the browser trusts it', async () => {
     const client = createClient(paired.secret)
-    await Promise.all([
-      expectError(
-        client.bridge.saveSecrets({
-          connectionId: ids.metadataOnly,
-          connectionString: `sqlite://${path.join(home, 'Cookies')}`,
-        }),
-        'ACCESS_DECLINED'
-      ),
-      answer(false),
-    ])
-    expect((await vault.connection(ids.metadataOnly)) ?? '').not.toContain(
-      'Cookies'
+    const hostKey = {
+      fingerprint: 'SHA256:abc',
+      host: 'bastion.example.com',
+      keyType: 'ssh-ed25519',
+    }
+    let isTrusted = false
+    forwarding.use(async (connectionString) => {
+      isTrusted ||= await hostKeys.confirm(connectionString)(hostKey)
+      if (!isTrusted) {
+        throw tunnelError(HOST_KEY_REFUSALS.unknown)
+      }
+      return null
+    })
+    const saved = `${sqliteString}?ssh_host=bastion.example.com&ssh_user=deploy&ssh_auth=agent`
+    serverCopies[ids.socketless] = modified(saved)
+    await client.bridge.saveSecrets({
+      connectionId: ids.socketless,
+      connectionString: saved,
+    })
+    const run = () =>
+      client.query.sqlite.execute({
+        connectionId: ids.socketless,
+        query: 'select 1 as one',
+      })
+    await client.bridge.trustHostKey(hostKey)
+    const error = await expectError(run(), 'UNKNOWN_HOST_KEY')
+    expect(error).toMatchObject({ data: hostKey })
+    await client.bridge.trustHostKey(hostKey)
+    const { result } = await run()
+    expect(JSON.stringify(result)).toContain('one')
+  })
+
+  test.each([
+    ['a file in an app data folder', `sqlite://${appDataFile}`],
+    ['a cloud login to a server other than Atlas', machineLoginString],
+  ])('a paired browser cannot have the bridge open %s', async (_, saved) => {
+    const client = createClient(paired.secret)
+    serverCopies[ids.socketless] = modified(saved)
+    await client.bridge.saveSecrets({
+      connectionId: ids.socketless,
+      connectionString: saved,
+    })
+    const error = await expectError(
+      saved.startsWith('sqlite')
+        ? client.query.sqlite.execute({
+            connectionId: ids.socketless,
+            query: 'select 1',
+          })
+        : client.query.mongodb.execute({
+            connectionId: ids.socketless,
+            query: 'db.users.find()',
+          }),
+      'BAD_REQUEST'
     )
+    expect(error).toMatchObject({
+      message: expect.stringContaining('desktop app'),
+    })
   })
 
   test('secrets are saved only for a connection Tamery confirms', async () => {
@@ -567,7 +616,7 @@ describe('connections', () => {
     expect(error).toMatchObject({
       data: { connectionId: ids.metadataOnly, fields: 'all' },
     })
-    await saveAllowed(client, {
+    await client.bridge.saveSecrets({
       connectionId: ids.metadataOnly,
       connectionString: sqliteString,
     })
