@@ -53,9 +53,11 @@ const rollback = (
 export const saveConnectionString = async ({
   connectionString,
   connectionId,
+  foundDatabase,
   updatedAt,
   writeRow,
 }: ConnectionStringInput & {
+  foundDatabase?: string
   writeRow?: (isPasswordExists: boolean) => void
 }) => {
   const {
@@ -81,6 +83,7 @@ export const saveConnectionString = async ({
       // An empty password on a device that never had it means "not known here", not "none": clearing the flag would stop every device asking for it.
       writeRow(
         record.isPasswordPopulated ||
+          !!foundDatabase ||
           (!stored?.isPasswordPopulated &&
             !!connectionsCollection.get(connectionId)?.isPasswordExists)
       )
@@ -110,6 +113,17 @@ export const saveConnectionString = async ({
           id: `bridge-save-${connectionId}`,
         })
       }
+      if (foundDatabase) {
+        const kept = await Result.tryPromise(() =>
+          bridge.keepLocalPassword(connectionId, foundDatabase)
+        )
+        if (!kept.unwrapOr(false)) {
+          toast.error(
+            "The bridge couldn't keep this database's saved password. Enter it in the connection.",
+            { id: `bridge-password-${connectionId}` }
+          )
+        }
+      }
       if (resource && resource !== stored?.defaultResourceName) {
         rememberOpenedResource(connectionId, resource)
       }
@@ -133,6 +147,7 @@ const saveConnection = async (
   const saved = await saveConnectionString({
     connectionId,
     connectionString: connectionString.trim(),
+    foundDatabase,
     updatedAt,
     writeRow: (isPasswordExists) =>
       writeRow({
@@ -150,17 +165,6 @@ const saveConnection = async (
     const persisted = await saved.settled
     if (persisted.isErr()) {
       throw persisted.error.cause
-    }
-    if (foundDatabase) {
-      const kept = await Result.tryPromise(() =>
-        bridge.keepLocalPassword(connectionId, foundDatabase)
-      )
-      if (!kept.unwrapOr(false)) {
-        toast.error(
-          "The bridge didn't find this database's saved password anymore. Enter it in the connection.",
-          { id: `bridge-password-${connectionId}` }
-        )
-      }
     }
   }
   return saved

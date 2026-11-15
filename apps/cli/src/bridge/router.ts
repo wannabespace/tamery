@@ -9,6 +9,7 @@ import {
   bridgeKey,
 } from '@tamery/shared/bridge'
 import { challenge } from '@tamery/shared/challenge'
+import { SafeURL } from '@tamery/shared/safe-url'
 import { type } from 'arktype'
 import { Result } from 'better-result'
 
@@ -160,7 +161,7 @@ export const createRouter = ({
         const { localDatabases } = await loadLocalDatabases()
         return localDatabases.find()
       }),
-      // A found password is a secret the browser never had: it stays here, kept for the connection the browser saved from it.
+      // Never return the password: a found one is another app's secret the browser never had, kept here as the connection's local copy.
       keepPassword: authed
         .errors({ NOT_FOUND: queryErrors.NOT_FOUND })
         .input(
@@ -174,17 +175,19 @@ export const createRouter = ({
           const { password } = await localDatabases.unlock(
             input.connectionString
           )
-          if (password) {
-            await connections.keepLocalPassword(
-              {
-                connectionId: input.connectionId,
-                found: input.connectionString,
-              },
-              password,
-              errors
-            )
+          if (!password) {
+            return false
           }
-          return !!password
+          const found = new SafeURL(input.connectionString)
+          found.password = encodeURIComponent(password)
+          return connections.save(
+            {
+              connectionId: input.connectionId,
+              connectionString: found.toString(),
+            },
+            () => Promise.resolve(true),
+            errors
+          )
         }),
     },
     query: createQueryRouter(authed.errors(queryErrors), {

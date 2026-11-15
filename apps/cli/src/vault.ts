@@ -14,7 +14,6 @@ const KEYCHAIN_ITEM = { name: 'bridge-key', service: 'app.tamery.cli' }
 const vaultData = type({
   account: type({ email: 'string', id: 'string', token: 'string' }).or('null'),
   connections: { '[string]': 'string' },
-  localPasswords: [{ '[string]': 'string' }, '=', () => ({})],
 })
 
 const vaultFile = type('string.json.parse').to(vaultData)
@@ -63,7 +62,7 @@ const getKey = async () => {
   return key
 }
 
-const EMPTY: VaultData = { account: null, connections: {}, localPasswords: {} }
+const EMPTY: VaultData = { account: null, connections: {} }
 
 const readData = (key: string): VaultData =>
   fs.existsSync(configFiles.vault)
@@ -100,24 +99,12 @@ export const vault = {
     const { connections } = await read()
     return connections[id] ?? null
   },
-  /** One read for both, since each read decrypts the file and may ask the keychain for its key. */
-  connectionWithLocalPassword: async (id: string) => {
-    const { connections, localPasswords } = await read()
-    return {
-      local: connections[id] ?? null,
-      localPassword: localPasswords[id] ?? null,
-    }
-  },
   keyInFile: async () => {
     const { keyInFile } = await readKey()
     return keyInFile
   },
   removeConnection: (id: string) =>
-    change((data) => ({
-      ...data,
-      connections: omit(data.connections, [id]),
-      localPasswords: omit(data.localPasswords, [id]),
-    })),
+    change((data) => ({ ...data, connections: omit(data.connections, [id]) })),
   reset: async () => {
     configFiles.remove(configFiles.vault)
     configFiles.remove(configFiles.key)
@@ -125,11 +112,6 @@ export const vault = {
   },
   setAccount: (account: VaultData['account']) =>
     change((data) => ({ ...data, account })),
-  setLocalPassword: (id: string, connectionString: string) =>
-    change((data) => ({
-      ...data,
-      localPasswords: { ...data.localPasswords, [id]: connectionString },
-    })),
   setConnection: (id: string, connectionString: string) =>
     change((data) => ({
       ...data,

@@ -88,8 +88,8 @@ const serverCopies: Record<string, unknown> = {
   [ids.noPassword]: modified('postgresql://user:@db.internal:5432/app', true),
   [ids.socketless]: modified(`postgresql://${databaseFile}`),
   [ids.unresolved]: { status: 'no-connection-string' },
-  [ids.found]: modified('postgresql://me@localhost:5433/orders'),
-  [ids.foundElsewhere]: modified('postgresql://me@evil.example:5433/app'),
+  [ids.found]: modified('postgresql://me@localhost:5433/orders', true),
+  [ids.foundElsewhere]: modified('postgresql://me@evil.example:5433/app', true),
 }
 let apiDown = false
 let signedOut = false
@@ -148,7 +148,7 @@ const FOUND_WITHOUT_PASSWORD = {
   connectionString: 'postgresql://me@localhost:5434/other',
   hasPassword: false,
 }
-const FOUND_PASSWORD = 'found-secret'
+const FOUND_PASSWORD = 'found@secret/1'
 
 void mock.module('@tamery/connection/local-databases/find', () => ({
   localDatabases: {
@@ -774,17 +774,13 @@ describe('local databases', () => {
 
   test('a found password stays on the bridge and fills in only the server it was found on', async () => {
     const client = createClient(paired.secret)
-    const resolved: string[] = []
+    let resolved = ''
     forwarding.use((connectionString) => {
-      resolved.push(connectionString)
+      resolved = connectionString
       throw new Error('stopped before connecting')
     })
-    const runOn = async (connectionId: string) => {
-      await client.query.postgres
-        .execute({ connectionId, query: 'select 1' })
-        .catch(() => null)
-      return new SafeURL(resolved.at(-1) ?? '').password
-    }
+    const runOn = (connectionId: string) =>
+      client.query.postgres.execute({ connectionId, query: 'select 1' })
     expect(await client.localDatabases.find()).toEqual([
       FOUND,
       FOUND_WITHOUT_PASSWORD,
@@ -811,8 +807,11 @@ describe('local databases', () => {
       ).toBe(true)
     }
     expect(approvals.waiting()).toHaveLength(0)
-    expect(await runOn(ids.found)).toBe(FOUND_PASSWORD)
-    expect(await runOn(ids.foundElsewhere)).toBe('')
+    await runOn(ids.found).catch(() => null)
+    expect(new SafeURL(resolved).password).toBe(
+      encodeURIComponent(FOUND_PASSWORD)
+    )
+    await expectError(runOn(ids.foundElsewhere), 'NEEDS_SECRETS')
   })
 })
 

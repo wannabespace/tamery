@@ -17,7 +17,7 @@ import { useBridgeRoute } from '~/core/runtime/bridge/pairing'
 import { generateRandomName } from '~/utils/faker'
 
 import type { ConnectionForm, ConnectionFormValues } from './connection-form'
-import { getParts } from './connection-form'
+import { getFoundDatabase, getParts } from './connection-form'
 import type { FormMode } from './form-mode'
 
 export type OnSave = (
@@ -126,10 +126,7 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
         {
           color: values.color,
           connectionString,
-          ...(values.foundDatabase &&
-            !values.password && {
-              foundDatabase: values.foundDatabase.connectionString,
-            }),
+          foundDatabase: getFoundDatabase(values)?.connectionString,
           label: values.label.trim() || null,
           name: values.name.trim() || generateRandomName(),
           provider: values.provider,

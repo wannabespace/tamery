@@ -6,7 +6,7 @@ import { AnimatePresence } from 'motion/react'
 import { useLocalMachine } from '~/core/local-machine'
 
 import type { ConnectionForm } from '../lib/connection-form'
-import { getMissing } from '../lib/connection-form'
+import { getFoundDatabase, getMissing } from '../lib/connection-form'
 import { getEngineFields, getFieldNoun } from '../lib/engine-fields'
 import { Footnote } from './footnote'
 
@@ -38,7 +38,7 @@ export const PasteNotes = ({
     getEngineFields(values)
   )
   const foundDatabase = useSelector(form.store, ({ values }) =>
-    values.password ? null : values.foundDatabase
+    getFoundDatabase(values)
   )
   const machine = useLocalMachine()
   const withheld =
