@@ -18,7 +18,7 @@ To show the agent something, attach up to four images or PDFs of 5 MB each: clic
 
 While the agent works you can keep typing: **Enter** queues your message, and it goes out as soon as the answer ends. **⌘ Enter**, or the **Send now** button, stops the agent and sends your message at once. Queued messages show above the message box, where the arrow sends one at once and **×** takes one back. In an empty message box, **Up arrow** brings back your last message. After an answer, the empty box suggests a likely next question; press **Tab** to take it, then edit or send it.
 
-Hover over a message of yours to copy or edit it; an edited message is asked again, and everything after it is replaced by the new answer. Under an answer you can copy it, ask again, and mark it as good or bad (click the mark again to clear it); it also says which model wrote it and how long it took. Click an attached image to see it whole; clicking a PDF saves it.
+Hover over a message of yours to copy or edit it; an edited message is asked again, and everything after it is replaced by the new answer. Under an answer you can copy it, ask again, and mark it as good or bad (click the mark again to clear it); it also says which model wrote it and how long it took; hover over the time to see when it was asked. Click an attached image to see it whole; clicking a PDF saves it.
 
 ## What the agent does
 
@@ -58,7 +58,7 @@ The circle next to the model shows how full the chat's context is. Click it to s
 
 ### Subagents
 
-For work that splits into independent pieces, such as checking several tables or connections, the agent can start subagents: separate agents with the same tools, each given one task. Up to four run side by side, and each reports back to the agent that started it. A subagent cannot start subagents of its own, and its changes wait for your **Run** like any other.
+For work that splits into independent pieces, such as checking several tables or connections, the agent can start subagents: separate agents with the same tools, each given one task. Up to four run side by side, and each reports back to the agent that started it. The agent picks each subagent's model, a lighter one for a quick lookup or a stronger one for a hard analysis, or leaves it on yours; the model shows under the subagent's answers. A subagent cannot start subagents of its own, and its changes wait for your **Run** like any other.
 
 Each subagent shows as a line in the answer with whether it is working, needs your approval, is done or failed; open the line to read the task the agent gave it. The panel button beside it opens the subagent's chat in a panel over the right side of the chat, where you read its work and approve its changes; **Esc** closes it. While subagents are working or waiting for you, a **Subagents** button above the message box lists them.
 
@@ -103,14 +103,13 @@ The agent queries each connection on its own, then joins or compares the results
 
 Type **/** at the start of a message for commands. Picking one writes it in the message box, and **Enter** runs it:
 
-| Command             | What it does                      |
-| ------------------- | --------------------------------- |
-| **/new**            | Starts a new chat                 |
-| **/model**          | Opens the model and effort picker |
-| **/retry**          | Asks your last message again      |
-| **/copy**           | Copies the last answer            |
-| **/compact**        | Summarizes the chat so far        |
-| **/auto**, **/ask** | Switches how changes get approved |
+| Command      | What it does                      |
+| ------------ | --------------------------------- |
+| **/new**     | Starts a new chat                 |
+| **/model**   | Opens the model and effort picker |
+| **/retry**   | Asks your last message again      |
+| **/copy**    | Copies the last answer            |
+| **/compact** | Summarizes the chat so far        |
 
 On desktop, and in the web app with a [bridge](/cli/overview), the same menu lists your own agent skills and commands, read from `~/.claude/skills`, `~/.claude/commands`, `~/.agents/skills` and `~/.codex/skills`, each as **/skill:** and its name, so a skill never looks like one of the commands above. Picking one sends its instructions with your message; they never let a change skip **Run**. A file over 32 KB is left out.
 

@@ -3,10 +3,8 @@ import {
   BookOpen01Icon,
   ChatAdd01Icon,
   Copy01Icon,
-  FlashIcon,
   Layers01Icon,
   ReloadIcon,
-  SecurityCheckIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
@@ -17,8 +15,6 @@ import { DrillInButton } from './drill-in-button'
 import type { ChatCommand, PromptSuggestion } from './prompt-mentions'
 
 const COMMAND_ICONS = {
-  ask: SecurityCheckIcon,
-  auto: FlashIcon,
   compact: Layers01Icon,
   copy: Copy01Icon,
   model: AiBrain01Icon,

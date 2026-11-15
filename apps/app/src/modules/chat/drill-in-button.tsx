@@ -11,9 +11,10 @@ export const DrillInButton = ({
   onOpen: () => void
 }) => (
   <Button
-    className="ml-auto"
+    // The negative margin keeps the button inside the row's 16px line, so a row with it is as tall as one without.
+    className="-my-0.5 ml-auto"
     variant="ghost-muted"
-    size="icon-xs"
+    size="icon-2xs"
     aria-label={label}
     tabIndex={-1}
     onPointerDown={(event) => {

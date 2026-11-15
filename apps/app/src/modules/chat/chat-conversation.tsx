@@ -31,7 +31,7 @@ import { ChatPaused } from './chat-paused'
 import { ChatStarters } from './chat-starters'
 import { ContextMeter } from './context-meter'
 import type { ChatCommand } from './prompt-mentions'
-import { approvalModeValue, modelPickerOpenStore } from './stores'
+import { modelPickerOpenStore } from './stores'
 import type { ChatSession } from './use-chat-session'
 
 const COMPOSER_TRANSITION = { duration: 0.3, ease: [0.32, 0.72, 0, 1] } as const
@@ -60,8 +60,6 @@ export const ChatConversation = ({
     (message) => message.role === 'user'
   )
   const commands: Record<ChatCommand, () => void> = {
-    ask: () => approvalModeValue.set('ask'),
-    auto: () => approvalModeValue.set('auto'),
     compact: () => {
       toast.promise(orpc.ai.compact.call({ chatId: session.chatId }), {
         loading: 'Compacting the chat…',

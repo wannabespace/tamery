@@ -66,6 +66,7 @@ export const spawnSubagent = async ({
   const child = getChatInstance({
     chatId,
     connectionResourceId,
+    model: input.model,
     subagent: { parentChatId: parent.id, title: input.title },
   })
   subagentsStore.set((all) => [
@@ -78,7 +79,10 @@ export const spawnSubagent = async ({
       toolCallId,
     },
   ])
-  posthog.capture('ai_chat_subagent_spawned', { running: running.length + 1 })
+  posthog.capture('ai_chat_subagent_spawned', {
+    model: input.model ?? 'user',
+    running: running.length + 1,
+  })
 
   const report = Promise.withResolvers<ChatTools['spawn_agent']['output']>()
   const stopListening = onChatFinish(

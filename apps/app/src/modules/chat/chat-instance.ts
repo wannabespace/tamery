@@ -15,10 +15,10 @@ import {
   unreadChatsValue,
 } from './stores'
 
-const modelPick = () => {
-  const model = chatModelValue.get() ?? undefined
-  return { ...(model && chatModelOptionsValue.get()[model]), model }
-}
+const modelPick = (model = chatModelValue.get() ?? undefined) => ({
+  ...(model && chatModelOptionsValue.get()[model]),
+  model,
+})
 
 type FinishListener = Parameters<ChatOnFinishCallback<AppUIMessage>>[0]
 
@@ -37,6 +37,8 @@ export const getChatInstance = memoize(
   (data: {
     chatId: string
     connectionResourceId: string
+    /** The model the parent agent picked for its subagent, used on every turn instead of the user's pick. */
+    model?: string
     /** Sent with every turn: only the first creates the chat, as a subagent of `parentChatId`. */
     subagent?: { parentChatId: string; title: string }
   }) => {
@@ -55,7 +57,7 @@ export const getChatInstance = memoize(
       transport: {
         reconnectToStream: async ({ abortSignal }) => {
           const chunks = await orpc.ai.attachStream.call(
-            { chatId: data.chatId, ...modelPick() },
+            { chatId: data.chatId, ...modelPick(data.model) },
             { context: { silent: true }, signal: abortSignal }
           )
           const first = await chunks.next()
@@ -77,7 +79,7 @@ export const getChatInstance = memoize(
                 connectionResourceId: data.connectionResourceId,
                 messages: messages.slice(-1),
                 subagent: data.subagent,
-                ...modelPick(),
+                ...modelPick(data.model),
               },
               { context: { silent: true }, signal: abortSignal }
             )

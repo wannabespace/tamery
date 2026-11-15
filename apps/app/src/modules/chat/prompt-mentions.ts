@@ -42,8 +42,6 @@ const COMMANDS = [
   ['retry', 'Ask the last message again'],
   ['copy', 'Copy the last answer'],
   ['compact', 'Summarize the chat so far to free up context'],
-  ['auto', 'Additive changes run on their own'],
-  ['ask', 'Every change waits for Run'],
 ] as const
 
 export type ChatCommand = (typeof COMMANDS)[number][0]

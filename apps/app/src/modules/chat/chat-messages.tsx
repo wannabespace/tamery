@@ -25,9 +25,15 @@ import {
   MessageScrollerViewport,
 } from '@tamery/ui/components/message-scroller'
 import { Separator } from '@tamery/ui/components/separator'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@tamery/ui/components/tooltip'
 import { copy } from '@tamery/ui/lib/copy'
 import { cn } from '@tamery/ui/lib/utils'
 import { useQuery } from '@tanstack/react-query'
+import { format } from 'date-fns'
 import { useRef, useState } from 'react'
 
 import { orpc } from '~/lib/orpc'
@@ -265,12 +271,18 @@ const AnswerActions = ({
         onClick={() => rate('down')}
       />
       <span className="text-muted-foreground ml-1.5 text-xs">
-        {[
-          modelName,
-          startedAt && finishedAt && formatDuration(finishedAt - startedAt),
-        ]
-          .filter(Boolean)
-          .join(' · ')}
+        {modelName}
+        {modelName && startedAt && finishedAt && ' · '}
+        {startedAt && finishedAt && (
+          <Tooltip>
+            <TooltipTrigger render={<span />}>
+              {formatDuration(finishedAt - startedAt)}
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {format(startedAt, 'MMMM d, yyyy, HH:mm')}
+            </TooltipContent>
+          </Tooltip>
+        )}
       </span>
     </div>
   )
