@@ -106,14 +106,14 @@ export const agentDatabase = {
   prepareWrite: async ({ statement: sql, ...target }: Statement) => {
     const { connection, resource } = resolveTarget(target)
     const dialect = getDialect(connection.type)
-    if (getQueryLanguage(dialect).split(sql).length !== 1) {
+    const language = getQueryLanguage(dialect)
+    if (language.split(sql).length !== 1) {
       throw new Error(
         'Run one statement at a time, or wrap several in BEGIN … COMMIT to run them together (on Oracle, in one BEGIN … END; block; not on ClickHouse, which has no transactions).'
       )
     }
     const params = await getQueryParams(connection, resource)
     const estimator = estimateQuery(sql, dialect)
-    const language = getQueryLanguage(dialect)
     let kind: OperationKind = language.readsOnly(sql) ? 'read' : 'write'
     if (language.destructive(sql).length > 0) {
       kind = 'destructive'

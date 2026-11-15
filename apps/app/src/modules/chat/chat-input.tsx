@@ -1,6 +1,5 @@
 import {
   ArrowUp02Icon,
-  Mic01Icon,
   PlusSignIcon,
   StopIcon,
 } from '@hugeicons/core-free-icons'
@@ -14,7 +13,6 @@ import {
   InputGroupTextarea,
 } from '@tamery/ui/components/input-group'
 import { Kbd } from '@tamery/ui/components/kbd'
-import { Spinner } from '@tamery/ui/components/spinner'
 import {
   Tooltip,
   TooltipContent,
@@ -26,46 +24,14 @@ import { useEffect, useRef, useState } from 'react'
 import { useIsOnline } from '~/store'
 
 import { ApprovalModePicker } from './approval-mode-picker'
-import {
-  ATTACHMENT_ACCEPT,
-  AttachmentChip,
-  readAttachments,
-} from './attachments'
+import { AttachmentChip } from './attachment-chip'
+import { ATTACHMENT_ACCEPT, readAttachments } from './attachments'
 import { useDictation } from './dictation'
+import { DictationButton } from './dictation-button'
 import { ModelPicker } from './model-picker'
 import type { ChatCommand, PromptMention } from './prompt-mentions'
 import { usePromptMentions } from './prompt-mentions'
 import { PromptMenu } from './prompt-menu'
-
-const DictationButton = ({
-  dictation,
-}: {
-  dictation: ReturnType<typeof useDictation>
-}) => {
-  const label = dictation.isRecording ? 'Stop dictation' : 'Dictate'
-  if (dictation.isTranscribing) {
-    return <Spinner className="text-muted-foreground m-1.25 size-3.5" />
-  }
-
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <InputGroupButton
-            size="icon-round"
-            variant={dictation.isRecording ? 'destructive' : 'ghost-muted'}
-            aria-label={label}
-            aria-pressed={dictation.isRecording}
-            onClick={dictation.isRecording ? dictation.stop : dictation.start}
-          />
-        }
-      >
-        <HugeiconsIcon icon={Mic01Icon} strokeWidth={2} />
-      </TooltipTrigger>
-      <TooltipContent side="top">{label}</TooltipContent>
-    </Tooltip>
-  )
-}
 
 export const ChatInput = ({
   isActive,
@@ -106,6 +72,7 @@ export const ChatInput = ({
   }
 
   const canSend = (!!value.trim() || files.length > 0) && isOnline
+  const sendLabel = isStreaming ? 'Stop generating' : 'Send message'
   const submit = () => {
     if (!canSend || isStreaming) {
       return
@@ -225,9 +192,7 @@ export const ChatInput = ({
                     <InputGroupButton
                       size="icon-round"
                       variant="default"
-                      aria-label={
-                        isStreaming ? 'Stop generating' : 'Send message'
-                      }
+                      aria-label={sendLabel}
                       {...(isStreaming
                         ? { onClick: onStop }
                         : { disabled: !canSend, type: 'submit' })}
@@ -239,9 +204,7 @@ export const ChatInput = ({
                     strokeWidth={2}
                   />
                 </TooltipTrigger>
-                <TooltipContent side="top">
-                  {isStreaming ? 'Stop generating' : 'Send message'}
-                </TooltipContent>
+                <TooltipContent side="top">{sendLabel}</TooltipContent>
               </Tooltip>
             </div>
           </div>

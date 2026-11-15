@@ -1,3 +1,5 @@
+import { matchesSearch } from '@tamery/shared/utils'
+
 import { getCollections } from '~/core/collections'
 
 import type { AgentTarget } from './target'
@@ -16,9 +18,7 @@ export const searchSavedQueries = ({
     .queriesCollection.toArray.filter(
       (saved) =>
         saved.connectionResourceId === resource.id &&
-        terms.every((term) =>
-          `${saved.name}\n${saved.query}`.toLowerCase().includes(term)
-        )
+        terms.every((term) => matchesSearch(term, saved.name, saved.query))
     )
     .toSorted((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
   return {

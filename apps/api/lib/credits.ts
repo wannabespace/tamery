@@ -15,6 +15,8 @@ import { getSubscription } from '~/lib/subscription'
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000
 const AUTO_TOP_UP_LOCK_SECONDS = 10 * 60
 
+const autoTopUpLockKey = (userId: string) => `credits:auto-top-up:${userId}`
+
 /** Marks a payment intent as AI credits, so the webhook credits it and ignores every other payment. */
 export const CREDITS_PAYMENT_KIND = 'ai_credits'
 
@@ -45,8 +47,6 @@ const getAccount = async (userId: string) => {
   return account ?? null
 }
 
-type CreditAccount = typeof creditAccounts.$inferSelect
-
 const turnOffAutoTopUp = (userId: string) =>
   db
     .update(creditAccounts)
@@ -54,14 +54,16 @@ const turnOffAutoTopUp = (userId: string) =>
     .where(eq(creditAccounts.userId, userId))
 
 /** Charges the card the user paid with, off session; the webhook adds the credits once the payment succeeds. A payment that fails, or no card to charge, turns auto top-up off, so it never retries a declined card. */
-const topUpAutomatically = async (account: CreditAccount) => {
+const topUpAutomatically = async (
+  account: typeof creditAccounts.$inferSelect
+) => {
   if (
     !(stripe && account.autoTopUpEnabled) ||
     account.balance >= account.autoTopUpThreshold
   ) {
     return
   }
-  const locked = await redis.set(`credits:auto-top-up:${account.userId}`, '1', {
+  const locked = await redis.set(autoTopUpLockKey(account.userId), '1', {
     EX: AUTO_TOP_UP_LOCK_SECONDS,
     NX: true,
   })
@@ -143,7 +145,7 @@ export const credits = {
           target: creditAccounts.userId,
         })
     })
-    await redis.del(`credits:auto-top-up:${topUp.userId}`)
+    await redis.del(autoTopUpLockKey(topUp.userId))
   },
   get: async (userId: string) => {
     const [{ since, spent }, account, topUps] = await Promise.all([

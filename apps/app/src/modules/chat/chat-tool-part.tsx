@@ -7,16 +7,15 @@ import {
 import { ResponseCodeBlock } from '@tamery/ui/components/response'
 
 import { tableTypeIcon } from '~/core/catalog/table-type'
-import { useCollections } from '~/core/collections'
 
 import { ChangeReview } from './change-review'
 import { ChatDisclosure } from './chat-disclosure'
 import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
 import { NotePart } from './note-part'
+import { StatementPart } from './statement-part'
 import { SubagentPart } from './subagent-part'
 import { ToolResult } from './tool-result'
 import { getStatus } from './tool-status'
-import { WriteApproval } from './write-approval'
 
 /** A call's line names its input's `detail` field when the model has sent it. */
 const LABELS: Partial<
@@ -94,83 +93,13 @@ const getIcon = (part: ChatToolPart) => {
     case 'tool-search_schema': {
       return Search01Icon
     }
-    case 'tool-execute':
     case 'tool-propose_change': {
       return PencilEdit02Icon
-    }
-    case 'tool-query': {
-      return DatabaseIcon
     }
     default: {
       return Wrench01Icon
     }
   }
-}
-
-const StatementPart = ({
-  actions,
-  part,
-}: {
-  actions: ToolPartActions
-  part: Extract<ChatToolPart, { type: 'tool-execute' | 'tool-query' }>
-}) => {
-  const { connectionsCollection } = useCollections()
-  const { input } = part
-  const connection = input?.connectionId
-    ? connectionsCollection.get(input.connectionId)
-    : undefined
-  const verb = part.type === 'tool-execute' ? 'Change' : 'Query'
-  const awaitsApproval =
-    part.type === 'tool-execute' &&
-    part.state === 'input-available' &&
-    !!actions.decide
-
-  return (
-    <div className="flex flex-col gap-2">
-      <ChatDisclosure
-        icon={getIcon(part)}
-        label={
-          connection ? (
-            <>
-              {verb} on <span data-mask>{connection.name}</span>
-            </>
-          ) : (
-            verb
-          )
-        }
-        status={
-          awaitsApproval ? (
-            <span className="text-warning">Needs approval</span>
-          ) : (
-            getStatus(part, actions.isLast)
-          )
-        }
-      >
-        {input?.statement && (
-          <ResponseCodeBlock code={input.statement} language="sql" />
-        )}
-        {part.state === 'output-error' && (
-          <ResponseCodeBlock code={part.errorText} language="text" />
-        )}
-      </ChatDisclosure>
-      {awaitsApproval && actions.decide && (
-        <WriteApproval
-          connection={connection}
-          decideWrite={actions.decide.write}
-          judge={actions.decide.judge}
-          input={part.input}
-          toolCallId={part.toolCallId}
-        />
-      )}
-      {part.state === 'output-available' && connection && (
-        <ToolResult
-          connection={connection}
-          sets={part.output}
-          target={part.input}
-        />
-      )}
-    </div>
-  )
 }
 
 export const ToolPart = ({

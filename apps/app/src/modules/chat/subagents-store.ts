@@ -1,6 +1,8 @@
 import { memoize } from 'memoza'
 import { createStore } from 'seitu'
 
+import { posthog } from '~/lib/posthog'
+
 export type SubagentStatus = 'done' | 'failed' | 'running' | 'waiting'
 
 export interface Subagent {
@@ -15,7 +17,7 @@ export interface Subagent {
 /** Subagents started in this window; finished ones of earlier sessions come from their parent's transcript instead. */
 export const subagentsStore = createStore<Subagent[]>([])
 
-/** The subagent the chat panel shows instead of its parent, per resource; null shows the parent. */
+/** The subagent the chat tab shows instead of its parent, per resource; null shows the parent. */
 export const openSubagentStore = memoize((_resourceId: string) =>
   createStore<string | null>(null)
 )
@@ -29,5 +31,12 @@ export const setSubagentStatus = (chatId: string, status: SubagentStatus) =>
 export const resumeSubagent = (chatId: string) => {
   if (subagentsStore.get().some((agent) => agent.chatId === chatId)) {
     setSubagentStatus(chatId, 'running')
+  }
+}
+
+export const openSubagent = (resourceId: string, chatId: string | null) => {
+  openSubagentStore(resourceId).set(chatId)
+  if (chatId) {
+    posthog.capture('ai_chat_subagent_opened')
   }
 }

@@ -29,7 +29,7 @@ export type PromptMention =
     }
 
 /** In the order the menu lists them. */
-export const COMMANDS = [
+const COMMANDS = [
   ['new', 'Start a new chat'],
   ['model', 'Choose the model'],
   ['retry', 'Ask the last message again'],
@@ -319,19 +319,14 @@ export const usePromptMentions = ({
   }
 
   const collapse = () => {
-    const connectionId = expanded?.[0]?.connectionId
     setExpandedId(null)
-    const row = byConnection
-      .find((group) => group[0]?.connectionId === connectionId)
-      ?.at(0)
+    const row = expanded?.[0]
     if (row) {
       setHighlighted(`connection:${row.id}`)
     }
   }
 
   return {
-    active,
-    collapse,
     expand,
     /** The connection whose resources the menu lists instead of its own rows. */
     expanded: expanded?.[0]?.name ?? null,
@@ -350,14 +345,15 @@ export const usePromptMentions = ({
         active?.expandable
       ) {
         expand(active)
-      } else if (event.key === 'ArrowLeft' && expanded) {
+      } else if (
+        (event.key === 'ArrowLeft' || event.key === 'Escape') &&
+        expanded
+      ) {
         collapse()
       } else if (event.key === 'Enter' || event.key === 'Tab') {
         if (active) {
           pick(active)
         }
-      } else if (event.key === 'Escape' && expanded) {
-        collapse()
       } else if (event.key === 'Escape') {
         setDismissed(value)
       } else {

@@ -2,7 +2,6 @@ import { glob, readFile, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import path from 'node:path'
 
-import type { LocalSkill } from '@tamery/shared/local-skills'
 import { Result } from 'better-result'
 
 const SOURCES = [
@@ -11,6 +10,15 @@ const SOURCES = [
   { kind: 'skill', pattern: '.agents/skills/*/SKILL.md', source: 'Agents' },
   { kind: 'skill', pattern: '.codex/skills/*/SKILL.md', source: 'Codex' },
 ] as const
+
+/** An agent skill or command from the user's home folder, offered in the chat's `/` menu on desktop. */
+interface LocalSkill {
+  description: string | null
+  instructions: string
+  name: string
+  path: string
+  source: (typeof SOURCES)[number]['source']
+}
 
 // A skill is sent to the model with every message that uses it, so a huge file would eat the turn's budget.
 const MAX_SKILL_BYTES = 32 * 1024
@@ -68,7 +76,6 @@ const readSkill = async (
         frontmatterField(match.groups.head, 'description')) ||
       null,
     instructions: (match?.groups?.body ?? text).trim(),
-    kind,
     name,
     path: file,
     source,

@@ -1,15 +1,13 @@
 import { runInBackground } from '@tamery/shared/background'
-import type { TelemetryOptions } from 'ai'
 import { createRedisAdapter } from 'ai-resumable-stream/adapters/redis'
 import { createResumableUIMessageStream } from 'ai-resumable-stream/ai-sdk'
 import { createClient } from 'redis'
 import { v7 } from 'uuid'
 
 import { env } from '../env'
-import type { AgentBudget } from '../limits'
-import type { AppUIMessage } from '../message'
-import type { ChatEffort, ChatModelId } from '../models/list'
-import type { ChatConnection } from './chat-step'
+import { CHAT_LIMITS } from '../limits'
+import { resolveChatContext, resolveChatModel } from '../models/list'
+import type { ChatStepInput } from './chat-step'
 import { streamChatStep } from './chat-step'
 
 const redis = createClient({
@@ -39,18 +37,15 @@ const resumable = createResumableUIMessageStream({
   waitUntil: runInBackground,
 })
 
-interface ChatStreamInput {
+type ChatStreamInput = Pick<
+  ChatStepInput,
+  'connection' | 'effort' | 'fast' | 'isSubagent' | 'messages' | 'telemetry'
+> & {
   chatId: string
-  contextTokens: number
-  effort: ChatEffort
-  fast: boolean
-  isSubagent: boolean
-  connection: ChatConnection
-  limits: AgentBudget
-  messages: AppUIMessage[]
-  model: ChatModelId
-  onFinish: (message: AppUIMessage) => Promise<void>
-  telemetry?: TelemetryOptions
+  /** The client's picks, resolved against `chatModels`, so a stale one falls back instead of failing the turn. */
+  context?: number
+  model?: string
+  onFinish: ChatStepInput['onEnd']
 }
 
 export const chatStream = {
@@ -62,16 +57,17 @@ export const chatStream = {
 
     try {
       const abortController = new AbortController()
+      const model = resolveChatModel(data.model)
       const uiStream = await streamChatStep({
         abortSignal: abortController.signal,
         connection: data.connection,
-        contextTokens: data.contextTokens,
+        contextTokens: resolveChatContext(model, data.context),
         effort: data.effort,
         fast: data.fast,
         isSubagent: data.isSubagent,
-        limits: data.limits,
+        limits: CHAT_LIMITS.message,
         messages: data.messages,
-        model: data.model,
+        model,
         onEnd: data.onFinish,
         onError: (error) => {
           console.error(`chat stream ${streamId} failed`, error)

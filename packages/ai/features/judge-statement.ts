@@ -23,7 +23,7 @@ const jevResponse = type({
 
 const fallbackOutput = type({ autoRun: 'boolean' })
 
-export interface JevUsage {
+interface JevUsage {
   cost: number
   inputTokens: number
   model: string

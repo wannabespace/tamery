@@ -1,6 +1,7 @@
 import type { AppUIMessage } from '@tamery/ai/message'
 import { MCP_MAX_ROWS } from '@tamery/shared/mcp'
 import { toToolOutput } from '@tamery/shared/tool-output'
+import { toError } from '@tamery/shared/utils'
 import { isToolUIPart } from 'ai'
 
 import type { Engine } from './fixtures'
@@ -257,7 +258,7 @@ export const answerToolCalls = (message: AppUIMessage) =>
         .then(
           (value) => ({ output: value, state: 'output-available' as const }),
           (error: unknown) => ({
-            errorText: error instanceof Error ? error.message : String(error),
+            errorText: toError(error).message,
             state: 'output-error' as const,
           })
         )

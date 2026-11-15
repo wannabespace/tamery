@@ -1,3 +1,5 @@
+import { matchesSearch } from '@tamery/shared/utils'
+
 import { resourceColumnsQueryOptions } from '~/core/queries/tables/columns'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 
@@ -13,10 +15,8 @@ export const searchSchema = async ({
 }: AgentTarget & { query: string }) => {
   const { resource: connectionResource } = resolveResource(target)
   const terms = query.toLowerCase().split(/\s+/u).filter(Boolean)
-  const matches = (...texts: (string | null | undefined)[]) =>
-    terms.some((term) =>
-      texts.some((text) => text?.toLowerCase().includes(term))
-    )
+  const matches = (...texts: (string | null)[]) =>
+    terms.some((term) => matchesSearch(term, ...texts))
   const [{ schemas }, columns] = await Promise.all([
     fetchForAgent(resourceTablesAndSchemasQueryOptions({ connectionResource })),
     fetchForAgent(resourceColumnsQueryOptions({ connectionResource })),

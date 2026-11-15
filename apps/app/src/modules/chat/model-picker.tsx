@@ -6,6 +6,8 @@ import {
   Cancel01Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import type { ChatEffort } from '@tamery/ai/models'
+import { matchesSearch } from '@tamery/shared/utils'
 import { Button } from '@tamery/ui/components/button'
 import {
   Command,
@@ -29,7 +31,7 @@ import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { ActionItem, ListEmpty } from '~/modules/runner/components/popover-list'
 
-import type { ChatEffort, ChatModelOptions } from './stores'
+import type { ChatModelOptions } from './stores'
 import {
   chatModelOptionsValue,
   chatModelValue,
@@ -47,24 +49,12 @@ const EFFORT_LABELS: Record<ChatEffort, string> = {
 const RECENT_LIMIT = 4
 
 const matchesName = (value: string, search: string, keywords?: string[]) =>
-  [value, ...(keywords ?? [])]
-    .join(' ')
-    .toLowerCase()
-    .includes(search.trim().toLowerCase())
-    ? 1
-    : 0
+  matchesSearch(search, [value, ...(keywords ?? [])].join(' ')) ? 1 : 0
 
 const formatContext = (tokens: number) =>
   tokens >= 1_000_000
     ? `${Math.floor(tokens / 1_000_000)}M`
     : `${Math.round(tokens / 1000)}K`
-
-const setOpen = (next: boolean) => modelPickerOpenStore.set(next)
-
-const remember = (id: string) =>
-  recentChatModelsValue.set((recent) =>
-    [id, ...recent.filter((other) => other !== id)].slice(0, RECENT_LIMIT)
-  )
 
 const forget = (id: string) => {
   recentChatModelsValue.set((recent) => recent.filter((other) => other !== id))
@@ -73,7 +63,9 @@ const forget = (id: string) => {
 
 const choose = (id: string) => {
   chatModelValue.set(id)
-  remember(id)
+  recentChatModelsValue.set((recent) =>
+    [id, ...recent.filter((other) => other !== id)].slice(0, RECENT_LIMIT)
+  )
 }
 
 const setOption = (id: string, option: ChatModelOptions) => {
@@ -86,12 +78,6 @@ const setOption = (id: string, option: ChatModelOptions) => {
     option: Object.keys(option)[0],
   })
 }
-
-const modelId = (value: string) => value.replace(/^recent:/u, '')
-
-const caretAtEnd = (target: EventTarget) =>
-  !(target instanceof HTMLInputElement) ||
-  target.selectionStart === target.value.length
 
 export const ModelPicker = () => {
   const { data } = useQuery(
@@ -148,7 +134,7 @@ export const ModelPicker = () => {
 
   const select = (id: string) => {
     choose(id)
-    setOpen(false)
+    modelPickerOpenStore.set(false)
     setSearch('')
     posthog.capture('ai_chat_model_changed', { model: id })
   }
@@ -189,7 +175,7 @@ export const ModelPicker = () => {
           back()
           return
         }
-        setOpen(next)
+        modelPickerOpenStore.set(next)
         if (!next) {
           setSearch('')
           setConfiguringId(null)
@@ -218,12 +204,15 @@ export const ModelPicker = () => {
           value={highlighted}
           onValueChange={setHighlighted}
           onKeyDown={(event) => {
-            const id = modelId(highlighted)
+            const id = highlighted.replace(/^recent:/u, '')
+            const caretAtEnd =
+              !(event.target instanceof HTMLInputElement) ||
+              event.target.selectionStart === event.target.value.length
             if (
               event.key === 'ArrowRight' &&
               !configuring &&
               models.some((model) => model.id === id) &&
-              caretAtEnd(event.target)
+              caretAtEnd
             ) {
               event.preventDefault()
               configure(id)

@@ -1,7 +1,6 @@
 import { Copy01Icon } from '@hugeicons/core-free-icons'
 import type { AppUIMessage } from '@tamery/ai/message'
 import { textFromMessage } from '@tamery/ai/message'
-import { AttachmentGroup } from '@tamery/ui/components/attachment'
 import { Bubble, BubbleContent } from '@tamery/ui/components/bubble'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import {
@@ -22,23 +21,9 @@ import { copy } from '@tamery/ui/lib/copy'
 
 import { posthog } from '~/lib/posthog'
 
-import { AttachmentChip } from './attachments'
 import { MessagePart } from './chat-message-part'
 import type { ToolPartActions } from './chat-tool-types'
-
-const MessageFiles = ({ message }: { message: AppUIMessage }) => {
-  const files = message.parts.filter((part) => part.type === 'file')
-  if (files.length === 0) {
-    return null
-  }
-  return (
-    <AttachmentGroup className="max-w-full">
-      {files.map((file) => (
-        <AttachmentChip key={file.url} part={file} />
-      ))}
-    </AttachmentGroup>
-  )
-}
+import { MessageFiles } from './message-files'
 
 export const ChatMessages = ({
   decide,

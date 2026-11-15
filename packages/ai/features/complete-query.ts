@@ -4,7 +4,7 @@ import type { LanguageModelUsage } from 'ai'
 import { generateText } from 'ai'
 
 import { env } from '../env'
-import { FIM_MODEL, models } from '../models/list'
+import { FIM_MODEL, FIM_PRICED_ID, models } from '../models/list'
 import { usageTelemetry } from '../usage/record'
 import { MATCH_USER_STYLE, section } from './prompt'
 
@@ -124,7 +124,7 @@ const fimComplete = async (data: CompleteQueryInput) => {
   )
   const inputTokens = usage.promptTokens ?? 0
   const outputTokens = usage.completionTokens ?? 0
-  void data.onUsage(`mistral/${FIM_MODEL}`, {
+  void data.onUsage(FIM_PRICED_ID, {
     inputTokenDetails: {
       cacheReadTokens: 0,
       cacheWriteTokens: 0,

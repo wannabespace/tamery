@@ -43,7 +43,7 @@ export const navigatorStore = memoize((resourceId: string) =>
 
 export type NavigatorMode = 'tables' | 'definitions' | 'chats'
 
-const sectionOf = (tabId?: string): NavigatorMode => {
+const getNavigatorSection = (tabId?: string): NavigatorMode => {
   if (tabId && resolveTab(tabId)?.kind === chatTab) {
     return 'chats'
   }
@@ -54,6 +54,6 @@ const sectionOf = (tabId?: string): NavigatorMode => {
 
 export const getNavigatorStore = memoize(
   (_resourceId: string, activeTabId?: string) =>
-    createStore<NavigatorMode>(sectionOf(activeTabId)),
+    createStore<NavigatorMode>(getNavigatorSection(activeTabId)),
   { cacheKey: (resourceId) => resourceId }
 )
