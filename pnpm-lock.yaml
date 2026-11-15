@@ -677,6 +677,9 @@ catalogs:
     vite-plugin-electron:
       specifier: ^1.2.0
       version: 1.2.0
+    yaml:
+      specifier: ^2.9.1
+      version: 2.9.1
     zod:
       specifier: ^4.6.7
       version: 4.6.7
@@ -1272,6 +1275,9 @@ importers:
       ssh2:
         specifier: 'catalog:'
         version: 1.17.0
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
       zod:
         specifier: 'catalog:'
         version: 4.6.7

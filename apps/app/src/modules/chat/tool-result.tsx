@@ -2,6 +2,7 @@ import type { ChatTools } from '@tamery/ai/tools'
 import { Dialect, getDialect } from '@tamery/shared/enums/connection-type'
 import { DEFAULT_ROW_HEIGHT } from '@tamery/table/constants'
 import { Button } from '@tamery/ui/components/button'
+import { insetCardVariants } from '@tamery/ui/components/card.utils'
 import { cn } from '@tamery/ui/lib/utils'
 import { useRouter } from '@tanstack/react-router'
 import { Result } from 'better-result'
@@ -71,7 +72,12 @@ export const ToolResult = ({
   }
 
   return (
-    <div className="bg-background ring-foreground/4 flex flex-col overflow-hidden rounded-xl ring">
+    <div
+      className={cn(
+        insetCardVariants({ size: 'flush' }),
+        'flex flex-col overflow-hidden'
+      )}
+    >
       {rows.length > 0 && (
         <div
           className={cn(

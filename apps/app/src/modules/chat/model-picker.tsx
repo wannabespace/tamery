@@ -2,13 +2,11 @@ import {
   AiBrain01Icon,
   ArrowDown01Icon,
   ArrowLeft01Icon,
-  ArrowRight01Icon,
   Cancel01Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { ChatEffort } from '@tamery/ai/models'
 import { matchesSearch } from '@tamery/shared/utils'
-import { Button } from '@tamery/ui/components/button'
 import {
   Command,
   CommandGroup,
@@ -31,6 +29,7 @@ import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { ActionItem, ListEmpty } from '~/modules/runner/components/popover-list'
 
+import { DrillInButton } from './drill-in-button'
 import type { ChatModelOptions } from './stores'
 import {
   chatModelOptionsValue,
@@ -145,23 +144,13 @@ export const ModelPicker = () => {
       {model.id === current?.id && (
         <span className="text-muted-foreground text-xs">{summary(model)}</span>
       )}
-      <Button
-        variant="ghost-muted"
-        size="icon-xs"
-        aria-label="Effort, context and speed"
-        tabIndex={-1}
-        onPointerDown={(event) => {
-          event.preventDefault()
-          event.stopPropagation()
-        }}
-        onClick={(event) => {
-          event.stopPropagation()
+      <DrillInButton
+        label="Effort, context and speed"
+        onOpen={() => {
           setHighlighted(value)
           configure(model.id)
         }}
-      >
-        <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-      </Button>
+      />
     </>
   )
 

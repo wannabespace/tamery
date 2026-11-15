@@ -2,6 +2,7 @@ import type { StatementVerdict } from '@tamery/ai/features/judge-statement'
 import type { ChatTools } from '@tamery/ai/tools'
 import { getDialect } from '@tamery/shared/enums/connection-type'
 import { Button } from '@tamery/ui/components/button'
+import { insetCardVariants } from '@tamery/ui/components/card.utils'
 import { ResponseCodeBlock } from '@tamery/ui/components/response'
 import { Spinner } from '@tamery/ui/components/spinner'
 import {
@@ -9,6 +10,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
+import { cn } from '@tamery/ui/lib/utils'
 import { useIsMutating, useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
@@ -128,7 +130,7 @@ export const WriteApproval = ({
   })
 
   return (
-    <div className="bg-background ring-foreground/4 flex flex-col gap-2 rounded-xl p-2 ring">
+    <div className={cn(insetCardVariants(), 'flex flex-col gap-2')}>
       <ResponseCodeBlock code={input.statement} language="sql" />
       {typeof estimate.data === 'number' && (
         <div className="pl-1">

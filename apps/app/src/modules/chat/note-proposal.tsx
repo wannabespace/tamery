@@ -1,6 +1,8 @@
 import type { ChatTools } from '@tamery/ai/tools'
 import { Button } from '@tamery/ui/components/button'
+import { insetCardVariants } from '@tamery/ui/components/card.utils'
 import { Textarea } from '@tamery/ui/components/textarea'
+import { cn } from '@tamery/ui/lib/utils'
 import { useState } from 'react'
 
 import { resolveResource } from '~/core/agent/target'
@@ -22,7 +24,7 @@ export const NoteProposal = ({
   const kept = text.trim()
 
   return (
-    <div className="bg-background ring-foreground/4 flex flex-col gap-2 rounded-xl p-2 ring">
+    <div className={cn(insetCardVariants(), 'flex flex-col gap-2')}>
       <Textarea
         data-mask
         aria-label="Note"

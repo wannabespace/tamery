@@ -1,5 +1,7 @@
 import type { ChatTools } from '@tamery/ai/tools'
 import { Button } from '@tamery/ui/components/button'
+import { insetCardVariants } from '@tamery/ui/components/card.utils'
+import { cn } from '@tamery/ui/lib/utils'
 import { useRouter } from '@tanstack/react-router'
 
 import { resolveResource } from '~/core/agent/target'
@@ -33,7 +35,7 @@ export const ChangeReview = ({
   }
 
   return (
-    <div className="bg-background ring-foreground/4 flex items-center gap-1.5 rounded-xl p-2 ring">
+    <div className={cn(insetCardVariants(), 'flex items-center gap-1.5')}>
       <span className="text-muted-foreground mr-auto pl-1 text-xs">
         {output.where === 'table'
           ? 'Drafted in the table. Nothing runs until you save it there.'

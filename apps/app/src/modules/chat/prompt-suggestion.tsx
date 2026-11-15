@@ -1,6 +1,5 @@
 import {
   AiBrain01Icon,
-  ArrowRight01Icon,
   BookOpen01Icon,
   ChatAdd01Icon,
   Copy01Icon,
@@ -9,11 +8,11 @@ import {
   SecurityCheckIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Button } from '@tamery/ui/components/button'
 import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 
 import { tableTypeIcon } from '~/core/catalog/table-type'
 
+import { DrillInButton } from './drill-in-button'
 import type { ChatCommand, PromptSuggestion } from './prompt-mentions'
 
 const COMMAND_ICONS = {
@@ -84,22 +83,7 @@ export const SuggestionContent = ({
           </span>
         )}
         {suggestion.expandable && (
-          <Button
-            variant="ghost-muted"
-            size="icon-xs"
-            aria-label="Other resources"
-            tabIndex={-1}
-            onPointerDown={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-            }}
-            onClick={(event) => {
-              event.stopPropagation()
-              onExpand()
-            }}
-          >
-            <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-          </Button>
+          <DrillInButton label="Other resources" onOpen={onExpand} />
         )}
       </>
     )

@@ -40,6 +40,7 @@
     "socks": "catalog:",
     "ssh-config": "catalog:",
     "ssh2": "catalog:",
+    "yaml": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
