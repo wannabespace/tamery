@@ -7,20 +7,18 @@ import {
   ServerStack01Icon,
   Wrench01Icon,
 } from '@hugeicons/core-free-icons'
-import type { ChatTools } from '@tamery/ai/tools'
 import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 
 import { tableTypeIcon } from '~/core/catalog/table-type'
-import { useCollections } from '~/core/collections'
 
 import { ChangeReview } from './change-review'
 import { ChatDisclosure } from './chat-disclosure'
 import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
 import { NotePart } from './note-part'
 import { StatementCard } from './statement-card'
+import { ExplainPlan, StatementPart } from './statement-part'
 import { SubagentPart } from './subagent-part'
 import { getStatus, isDeclined, isRunning } from './tool-status'
-import { WriteApproval } from './write-approval'
 
 /** A call's line, in the past once it is done and in the present while it runs; it names its input's `detail` field once the model has sent it. */
 const LABELS: Partial<
@@ -194,7 +192,6 @@ const getIcon = (part: ChatToolPart) => {
     case 'tool-search_schema': {
       return Search01Icon
     }
-    case 'tool-execute':
     case 'tool-propose_change': {
       return PencilEdit02Icon
     }
@@ -214,78 +211,6 @@ const getIcon = (part: ChatToolPart) => {
       return Wrench01Icon
     }
   }
-}
-
-const usePartConnection = (connectionId: string | undefined) => {
-  const { connectionsCollection } = useCollections()
-  return connectionId ? connectionsCollection.get(connectionId) : undefined
-}
-
-const ExplainPlan = ({
-  input,
-  sets,
-}: {
-  input: ChatTools['explain']['input']
-  sets: ChatTools['explain']['output']
-}) => {
-  const connection = usePartConnection(input.connectionId)
-  return (
-    <StatementCard
-      connection={connection}
-      sets={sets}
-      statement={input.statement}
-      status={null}
-      target={connection && input}
-    />
-  )
-}
-
-const StatementPart = ({
-  actions,
-  part,
-}: {
-  actions: ToolPartActions
-  part: Extract<ChatToolPart, { type: 'tool-execute' | 'tool-query' }>
-}) => {
-  const { input } = part
-  const connection = usePartConnection(input?.connectionId)
-  const awaitsApproval =
-    part.type === 'tool-execute' &&
-    part.state === 'input-available' &&
-    !!actions.decide
-
-  if (part.state === 'input-streaming' && !connection) {
-    return null
-  }
-
-  return (
-    <StatementCard
-      connection={connection}
-      error={
-        part.state === 'output-error' && !isDeclined(part)
-          ? part.errorText
-          : undefined
-      }
-      sets={part.state === 'output-available' ? part.output : undefined}
-      statement={input?.statement}
-      status={
-        awaitsApproval && actions.decide ? (
-          <WriteApproval
-            connection={connection}
-            decideWrite={actions.decide.write}
-            judge={actions.decide.judge}
-            input={part.input}
-            toolCallId={part.toolCallId}
-          />
-        ) : (
-          getStatus(part, actions.isLast)
-        )
-      }
-      target={
-        connection && part.state !== 'input-streaming' ? part.input : undefined
-      }
-    />
-  )
 }
 
 const getDetail = (part: ChatToolPart) => {

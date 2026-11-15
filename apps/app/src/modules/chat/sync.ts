@@ -15,7 +15,7 @@ export interface Chat extends BaseTable {
   compaction?: ChatCompaction | null
   connectionResourceId: string
   /** Set on a subagent's chat; lists of chats leave those out. */
-  parentChatId?: string | null
+  parentChatId: string | null
   pinnedAt?: Date | null
   title: string | null
 }

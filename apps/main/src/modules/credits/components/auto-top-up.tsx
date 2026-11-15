@@ -6,47 +6,16 @@ import {
   SettingsGroup,
   SettingsRow,
 } from '@tamery/ui/components/custom/settings-group'
-import {
-  NumberField,
-  NumberFieldGroup,
-  NumberFieldInput,
-} from '@tamery/ui/components/number-field'
 import { Switch } from '@tamery/ui/components/switch'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { orpc } from '~/lib/orpc'
 
+import { DollarsField } from './dollars-field'
+
 type Settings = Awaited<
   ReturnType<typeof orpc.account.credits.get.call>
 >['autoTopUp']
-
-const DollarsField = ({
-  id,
-  min,
-  onCommit,
-  value,
-}: {
-  id: string
-  min: number
-  onCommit: (value: number) => void
-  value: number
-}) => (
-  <NumberField
-    id={id}
-    size="sm"
-    className="w-24"
-    defaultValue={value}
-    min={min}
-    max={CREDIT_TOP_UP.max}
-    step={1}
-    format={{ currency: 'USD', maximumFractionDigits: 0, style: 'currency' }}
-    onValueCommitted={(next) => next !== null && onCommit(next)}
-  >
-    <NumberFieldGroup>
-      <NumberFieldInput />
-    </NumberFieldGroup>
-  </NumberField>
-)
 
 /** Off until the user turns it on; a failed charge turns it off and says so here. */
 export const AutoTopUp = ({ settings }: { settings: Settings }) => {

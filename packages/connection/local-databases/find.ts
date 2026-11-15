@@ -2,6 +2,7 @@ import { omit } from '@tamery/shared/utils'
 
 import { connectionParts } from '../connection-parts'
 import { mergeParts } from '../guess/parts'
+import { connectionSecrets } from '../secrets'
 import { dataGrip } from './datagrip'
 import { dbeaver } from './dbeaver'
 import { docker } from './docker'
@@ -40,7 +41,7 @@ const NO_PARTS = {
   user: '',
 }
 
-/** The connection string never carries the password: only `unlock` hands it out. */
+/** The connection string never carries a secret: only `unlock` hands out the password, and other secrets the user types. */
 const localDatabase = (
   source: string,
   { name, parts, unlock = () => Promise.resolve(NOTHING_UNLOCKED) }: FoundEntry
@@ -49,11 +50,9 @@ const localDatabase = (
   return type && server.host
     ? [
         {
-          connectionString: connectionParts.format({
-            ...server,
-            password: '',
-            type,
-          }),
+          connectionString: connectionSecrets.strip(
+            connectionParts.format({ ...server, password: '', type })
+          ),
           name: name || server.database || server.host,
           source,
           type,

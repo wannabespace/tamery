@@ -2,11 +2,11 @@ import {
   AiBrain01Icon,
   ArrowDown01Icon,
   ArrowLeft01Icon,
-  ArrowRight01Icon,
   Cancel01Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Button } from '@tamery/ui/components/button'
+import type { ChatEffort } from '@tamery/ai/models'
+import { matchesSearch } from '@tamery/shared/utils'
 import {
   Command,
   CommandGroup,
@@ -29,7 +29,8 @@ import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { ActionItem, ListEmpty } from '~/modules/runner/components/popover-list'
 
-import type { ChatEffort, ChatModelOptions } from './stores'
+import { DrillInButton } from './drill-in-button'
+import type { ChatModelOptions } from './stores'
 import {
   chatModelOptionsValue,
   chatModelValue,
@@ -47,24 +48,12 @@ const EFFORT_LABELS: Record<ChatEffort, string> = {
 const RECENT_LIMIT = 4
 
 const matchesName = (value: string, search: string, keywords?: string[]) =>
-  [value, ...(keywords ?? [])]
-    .join(' ')
-    .toLowerCase()
-    .includes(search.trim().toLowerCase())
-    ? 1
-    : 0
+  matchesSearch(search, [value, ...(keywords ?? [])].join(' ')) ? 1 : 0
 
 const formatContext = (tokens: number) =>
   tokens >= 1_000_000
     ? `${Math.floor(tokens / 1_000_000)}M`
     : `${Math.round(tokens / 1000)}K`
-
-const setOpen = (next: boolean) => modelPickerOpenStore.set(next)
-
-const remember = (id: string) =>
-  recentChatModelsValue.set((recent) =>
-    [id, ...recent.filter((other) => other !== id)].slice(0, RECENT_LIMIT)
-  )
 
 const forget = (id: string) => {
   recentChatModelsValue.set((recent) => recent.filter((other) => other !== id))
@@ -74,7 +63,9 @@ const forget = (id: string) => {
 const choose = (id: string | null) => {
   chatModelValue.set(id)
   if (id) {
-    remember(id)
+    recentChatModelsValue.set((recent) =>
+      [id, ...recent.filter((other) => other !== id)].slice(0, RECENT_LIMIT)
+    )
   }
 }
 
@@ -88,12 +79,6 @@ const setOption = (id: string, option: ChatModelOptions) => {
     option: Object.keys(option)[0],
   })
 }
-
-const modelId = (value: string) => value.replace(/^recent:/u, '')
-
-const caretAtEnd = (target: EventTarget) =>
-  !(target instanceof HTMLInputElement) ||
-  target.selectionStart === target.value.length
 
 export const ModelPicker = () => {
   const { data } = useQuery(
@@ -148,7 +133,7 @@ export const ModelPicker = () => {
 
   const select = (id: string | null) => {
     choose(id)
-    setOpen(false)
+    modelPickerOpenStore.set(false)
     setSearch('')
     posthog.capture('ai_chat_model_changed', { model: id ?? 'auto' })
   }
@@ -159,23 +144,13 @@ export const ModelPicker = () => {
       {model.id === current?.id && (
         <span className="text-muted-foreground text-xs">{summary(model)}</span>
       )}
-      <Button
-        variant="ghost-muted"
-        size="icon-xs"
-        aria-label="Effort, context and speed"
-        tabIndex={-1}
-        onPointerDown={(event) => {
-          event.preventDefault()
-          event.stopPropagation()
-        }}
-        onClick={(event) => {
-          event.stopPropagation()
+      <DrillInButton
+        label="Effort, context and speed"
+        onOpen={() => {
           setHighlighted(value)
           configure(model.id)
         }}
-      >
-        <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-      </Button>
+      />
     </>
   )
 
@@ -189,7 +164,7 @@ export const ModelPicker = () => {
           back()
           return
         }
-        setOpen(next)
+        modelPickerOpenStore.set(next)
         if (!next) {
           setSearch('')
           setConfiguringId(null)
@@ -218,12 +193,15 @@ export const ModelPicker = () => {
           value={highlighted}
           onValueChange={setHighlighted}
           onKeyDown={(event) => {
-            const id = modelId(highlighted)
+            const id = highlighted.replace(/^recent:/u, '')
+            const caretAtEnd =
+              !(event.target instanceof HTMLInputElement) ||
+              event.target.selectionStart === event.target.value.length
             if (
               event.key === 'ArrowRight' &&
               !configuring &&
               models.some((model) => model.id === id) &&
-              caretAtEnd(event.target)
+              caretAtEnd
             ) {
               event.preventDefault()
               configure(id)

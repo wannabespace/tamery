@@ -7,7 +7,6 @@ import {
 } from '@hugeicons/core-free-icons'
 import type { AppUIMessage } from '@tamery/ai/message'
 import { textFromMessage } from '@tamery/ai/message'
-import { AttachmentGroup } from '@tamery/ui/components/attachment'
 import { Bubble, BubbleContent } from '@tamery/ui/components/bubble'
 import { Button } from '@tamery/ui/components/button'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
@@ -35,27 +34,13 @@ import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 
 import { AgentParts, hasContent, showsProgress } from './agent-steps'
-import { AttachmentChip } from './attachments'
 import type { ToolPartActions } from './chat-tool-types'
 import { Clamped } from './clamped'
 import { MentionText } from './mention-text'
+import { MessageFiles } from './message-files'
 import type { PromptMention } from './prompt-mentions'
 import { usePromptMentions } from './prompt-mentions'
 import { PromptMenu } from './prompt-menu'
-
-const MessageFiles = ({ message }: { message: AppUIMessage }) => {
-  const files = message.parts.filter((part) => part.type === 'file')
-  if (files.length === 0) {
-    return null
-  }
-  return (
-    <AttachmentGroup className="max-w-full">
-      {files.map((file) => (
-        <AttachmentChip key={file.url} orientation="vertical" part={file} />
-      ))}
-    </AttachmentGroup>
-  )
-}
 
 const ACTIONS_CLASS =
   'flex items-center gap-0.5 transition-opacity duration-150 focus-within:opacity-100 group-hover/message:opacity-100'

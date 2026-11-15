@@ -8,11 +8,12 @@ import { ChatConversation } from './chat-conversation'
 import { ChatSkeleton } from './chat-skeleton'
 import { startNewChat } from './open-chat'
 import { unreadChatsValue } from './stores'
-import { openSubagent, useSubagents } from './subagent-part'
-import { SubagentDrawer, SubagentStrip } from './subagent-views'
-import { openSubagentStore } from './subagents-store'
+import { SubagentStrip } from './subagent-strip'
+import { SubagentDrawer } from './subagent-view'
+import { openSubagent, openSubagentStore } from './subagents-store'
 import type { ChatParams } from './tab'
 import { useChatSession } from './use-chat-session'
+import { useSubagents } from './use-subagents'
 
 const TabChat = ({
   chatId,

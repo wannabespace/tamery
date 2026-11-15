@@ -32,25 +32,19 @@ export const recentChatModelsValue = createWebStorageValue({
   type: 'localStorage',
 })
 
-export type ChatEffort = 'low' | 'medium' | 'high' | 'xhigh'
+const chatModelOptions = type({
+  'context?': 'number',
+  'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
+  'fast?': 'boolean',
+})
 
-export interface ChatModelOptions {
-  context?: number
-  effort?: ChatEffort
-  fast?: boolean
-}
+export type ChatModelOptions = typeof chatModelOptions.infer
 
 /** Effort, context window and fast routing per model id; a missing option follows the model's default. */
 export const chatModelOptionsValue = createWebStorageValue({
-  defaultValue: {} as Record<string, ChatModelOptions>,
+  defaultValue: {},
   key: 'chat-model-options',
-  schema: type({
-    '[string]': {
-      'context?': 'number',
-      'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
-      'fast?': 'boolean',
-    },
-  }),
+  schema: type({ '[string]': chatModelOptions }),
   type: 'localStorage',
 })
 

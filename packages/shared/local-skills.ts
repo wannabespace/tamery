@@ -2,7 +2,9 @@ import { glob, readFile, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import path from 'node:path'
 
+import { type } from 'arktype'
 import { Result } from 'better-result'
+import { parse } from 'yaml'
 
 /** An agent skill or command from the user's home folder, offered in the chat's `/` menu by the desktop app and the bridge. */
 export interface LocalSkill {
@@ -26,33 +28,7 @@ const MAX_SKILL_BYTES = 32 * 1024
 
 const FRONTMATTER = /^---\r?\n(?<head>[\s\S]*?)\r?\n---\r?\n?(?<body>[\s\S]*)$/u
 
-const QUOTED = /^(?<quote>["'])(?<text>.*)\k<quote>$/u
-
-const unquote = (value: string) => {
-  const trimmed = value.trim()
-  return QUOTED.exec(trimmed)?.groups?.text ?? trimmed
-}
-
-/** Reads `key: value` and `key: >`/`|` block scalars from YAML frontmatter, enough for a skill's name and description. */
-const frontmatterField = (head: string, key: string) => {
-  const lines = head.split(/\r?\n/u)
-  const index = lines.findIndex((line) => line.startsWith(`${key}:`))
-  if (index === -1) {
-    return null
-  }
-  const inline = lines[index]?.slice(key.length + 1).trim() ?? ''
-  if (!/^[>|][+-]?$/u.test(inline)) {
-    return unquote(inline) || null
-  }
-  const block = []
-  for (const line of lines.slice(index + 1)) {
-    if (line.trim() && !/^\s/u.test(line)) {
-      break
-    }
-    block.push(line.trim())
-  }
-  return block.join(' ').trim() || null
-}
+const frontmatterType = type({ 'description?': 'string', 'name?': 'string' })
 
 const readSkill = async (
   file: string,
@@ -64,21 +40,21 @@ const readSkill = async (
   }
   const text = await readFile(file, 'utf-8')
   const match = FRONTMATTER.exec(text)
-  const fallbackName =
-    kind === 'skill'
-      ? path.basename(path.dirname(file))
-      : path.basename(file, '.md')
-  const name =
-    (match?.groups?.head && frontmatterField(match.groups.head, 'name')) ||
-    fallbackName
+  // A skill whose frontmatter does not parse still offers its body, named after its file.
+  const frontmatter = frontmatterType(
+    Result.try(() => parse(match?.groups?.head ?? '')).unwrapOr(null)
+  )
+  const { description, name } =
+    frontmatter instanceof type.errors ? {} : frontmatter
   return {
-    description:
-      (match?.groups?.head &&
-        frontmatterField(match.groups.head, 'description')) ||
-      null,
+    description: description?.trim() || null,
     instructions: (match?.groups?.body ?? text).trim(),
     kind,
-    name,
+    name:
+      name?.trim() ||
+      (kind === 'skill'
+        ? path.basename(path.dirname(file))
+        : path.basename(file, '.md')),
     path: file,
     source,
   }

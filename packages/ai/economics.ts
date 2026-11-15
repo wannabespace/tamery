@@ -22,7 +22,7 @@ import { filtersInstructions } from './features/filters'
 import { fixQueryInstructions } from './features/fix-query'
 import { updateQueryInstructions } from './features/update-query'
 import { AI_QUERY_LIMITS, DICTATION } from './limits'
-import { FIM_MODEL, MODEL_IDS } from './models/list'
+import { FIM_PRICED_ID, MODEL_IDS } from './models/list'
 import { getModelCost } from './models/price'
 
 const CHARS_PER_TOKEN = 3.5
@@ -58,15 +58,12 @@ export const priced = async (model: string, input: number, output: number) => {
   return cost
 }
 
-/** The FIM model is recorded under the provider prefix LiteLLM prices it by. */
-export const FIM_PRICED_ID = `mistral/${FIM_MODEL}`
-
 export const MODELS = [
   ...new Set([...Object.values(MODEL_IDS).flat(), FIM_PRICED_ID]),
 ]
 
 /** How one account uses the AI: sizes of what it sends and how often a month. */
-export interface Use {
+interface Use {
   chatUsd: number
   completionOutputTokens: number
   completions: number
@@ -156,7 +153,7 @@ export const completionCost = (use: Use) =>
     use.completionOutputTokens
   )
 
-export const diagnosisCost = (use: Use) =>
+const diagnosisCost = (use: Use) =>
   priced(
     MODEL_IDS.structured[0],
     tokens(
@@ -165,7 +162,7 @@ export const diagnosisCost = (use: Use) =>
     DIAGNOSIS_OUTPUT_TOKENS
   )
 
-export const dictationCost = (use: Use) =>
+const dictationCost = (use: Use) =>
   priced(
     MODEL_IDS.transcribe[0],
     use.dictationSeconds * AUDIO_TOKENS_PER_SECOND,
@@ -226,11 +223,11 @@ type Interval = keyof typeof PRO_PRICE_USD
 const monthsOf = (interval: Interval) =>
   interval === 'yearly' ? MONTHS_A_YEAR : 1
 
-export const grossRevenue = (interval: Interval) =>
+const grossRevenue = (interval: Interval) =>
   PRO_PRICE_USD[interval] / monthsOf(interval)
 
 /** A yearly charge pays Stripe's fixed fee once for twelve months. */
-export const netRevenue = (interval: Interval) =>
+const netRevenue = (interval: Interval) =>
   (PRO_PRICE_USD[interval] * (1 - STRIPE_CARD_RATE - STRIPE_BILLING_RATE) -
     STRIPE_FIXED_USD) /
   monthsOf(interval)

@@ -168,8 +168,11 @@ export const chatModel = memoize(
   { cacheKey: (id, fast) => `${id}:${fast}` }
 )
 
-/** Mistral's id for the editor's fill-in-the-middle completion; LiteLLM prices it as `mistral/codestral-latest`. */
+/** Mistral's id for the editor's fill-in-the-middle completion. */
 export const FIM_MODEL = 'codestral-latest'
+
+/** Its usage is recorded under the provider prefix LiteLLM prices it by. */
+export const FIM_PRICED_ID = `mistral/${FIM_MODEL}`
 
 /** Each fixed model and the one it retries on. */
 export const MODEL_IDS = {

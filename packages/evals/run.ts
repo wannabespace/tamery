@@ -5,6 +5,7 @@ import { streamChatStep } from '@tamery/ai/features/chat-step'
 import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
 import { usageTelemetry } from '@tamery/ai/usage/record'
+import { toError } from '@tamery/shared/utils'
 import { lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
 import { v7 } from 'uuid'
 
@@ -134,7 +135,7 @@ await Promise.all(
       const result = await runCase(evalCase).catch(
         (error: unknown): CaseResult => ({
           cacheRead: 0,
-          error: error instanceof Error ? error.message : String(error),
+          error: toError(error).message,
           id: evalCase.id,
           input: 0,
           output: 0,

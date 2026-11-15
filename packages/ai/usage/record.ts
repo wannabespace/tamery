@@ -51,47 +51,46 @@ export const usageTelemetry = (
 export const createAiUsage = (
   onRecord: (record: AiUsageRecord) => Promise<void>
 ) => {
-  const record = async (
-    scope: AiUsageScope,
-    modelId: string,
-    usage: LanguageModelUsage,
-    providerCost?: number
+  const persist = async (
+    build: () => AiUsageRecord | Promise<AiUsageRecord>
   ) => {
     try {
-      await onRecord({
-        ...scope,
-        cacheReadTokens: usage.inputTokenDetails.cacheReadTokens ?? 0,
-        cacheWriteTokens: usage.inputTokenDetails.cacheWriteTokens ?? 0,
-        cost: providerCost ?? (await getModelCost(modelId, usage)),
-        inputTokens: usage.inputTokens ?? 0,
-        model: modelId,
-        outputTokens: usage.outputTokens ?? 0,
-      })
+      await onRecord(await build())
     } catch (error) {
       console.error('ai usage record failed', error)
     }
   }
+  const record = (
+    scope: AiUsageScope,
+    modelId: string,
+    usage: LanguageModelUsage,
+    providerCost?: number
+  ) =>
+    persist(async () => ({
+      ...scope,
+      cacheReadTokens: usage.inputTokenDetails.cacheReadTokens ?? 0,
+      cacheWriteTokens: usage.inputTokenDetails.cacheWriteTokens ?? 0,
+      cost: providerCost ?? (await getModelCost(modelId, usage)),
+      inputTokens: usage.inputTokens ?? 0,
+      model: modelId,
+      outputTokens: usage.outputTokens ?? 0,
+    }))
   return {
     record,
     /** For a call the AI SDK does not see, priced by its own provider. */
-    recordPriced: async (
+    recordPriced: (
       scope: AiUsageScope,
       priced: Pick<
         AiUsageRecord,
         'cost' | 'inputTokens' | 'model' | 'outputTokens'
       >
-    ) => {
-      try {
-        await onRecord({
-          ...scope,
-          ...priced,
-          cacheReadTokens: 0,
-          cacheWriteTokens: 0,
-        })
-      } catch (error) {
-        console.error('ai usage record failed', error)
-      }
-    },
+    ) =>
+      persist(() => ({
+        ...scope,
+        ...priced,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+      })),
     telemetry: (scope: AiUsageScope) =>
       usageTelemetry((modelId, usage, providerCost) =>
         record(scope, modelId, usage, providerCost)

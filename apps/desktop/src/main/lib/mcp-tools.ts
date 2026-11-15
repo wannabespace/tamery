@@ -233,31 +233,27 @@ export const createMcpServer = (
       )
   )
 
-  server.registerTool(
-    'search_schema',
-    {
-      annotations: { readOnlyHint: true },
-      description: SEARCH_SCHEMA_DESCRIPTION,
-      inputSchema: { ...targetInput, query: z.string() },
-    },
-    (args, { signal }) =>
-      runLogged('search_schema', { ...args, detail: args.query }, () =>
-        askShared({ args, method: 'searchSchema' }, signal)
-      )
-  )
-
-  server.registerTool(
-    'search_saved_queries',
-    {
-      annotations: { readOnlyHint: true },
-      description: SEARCH_SAVED_QUERIES_DESCRIPTION,
-      inputSchema: { ...targetInput, query: z.string() },
-    },
-    (args, { signal }) =>
-      runLogged('search_saved_queries', { ...args, detail: args.query }, () =>
-        askShared({ args, method: 'searchSavedQueries' }, signal)
-      )
-  )
+  for (const [tool, description, method] of [
+    ['search_schema', SEARCH_SCHEMA_DESCRIPTION, 'searchSchema'],
+    [
+      'search_saved_queries',
+      SEARCH_SAVED_QUERIES_DESCRIPTION,
+      'searchSavedQueries',
+    ],
+  ] as const) {
+    server.registerTool(
+      tool,
+      {
+        annotations: { readOnlyHint: true },
+        description,
+        inputSchema: { ...targetInput, query: z.string() },
+      },
+      (args, { signal }) =>
+        runLogged(tool, { ...args, detail: args.query }, () =>
+          askShared({ args, method }, signal)
+        )
+    )
+  }
 
   server.registerTool(
     'column_values',

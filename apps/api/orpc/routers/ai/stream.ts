@@ -6,7 +6,7 @@ import {
 } from '@tamery/ai/features'
 import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
-import { DEFAULT_CHAT_EFFORT, resolveChatContext } from '@tamery/ai/models'
+import { resolveChatContext } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { runInBackground } from '@tamery/shared/background'
 import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
@@ -139,11 +139,10 @@ export const stream = orpc
     const str = await chatStream.claim({
       chatId: input.chatId,
       connection,
-      limits: CHAT_LIMITS.message,
       messages: afterCompaction(history, compaction),
       contextTokens,
-      effort: input.effort ?? DEFAULT_CHAT_EFFORT,
-      fast: input.fast ?? false,
+      effort: input.effort,
+      fast: input.fast,
       isSubagent,
       model,
       onFinish: async (message) => {

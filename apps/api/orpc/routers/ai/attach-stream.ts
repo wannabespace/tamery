@@ -1,6 +1,5 @@
 import { afterCompaction, chatStream, pickChatModel } from '@tamery/ai/features'
-import { CHAT_LIMITS } from '@tamery/ai/limits'
-import { DEFAULT_CHAT_EFFORT, resolveChatContext } from '@tamery/ai/models'
+import { resolveChatContext } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
@@ -70,11 +69,10 @@ export const attachStream = orpc
         connectionResourceId: owned.connectionResourceId,
         userId: context.user.id,
       }),
-      limits: CHAT_LIMITS.message,
       messages: afterCompaction(messages, compaction),
       contextTokens: resolveChatContext(model, input.context),
-      effort: input.effort ?? DEFAULT_CHAT_EFFORT,
-      fast: input.fast ?? false,
+      effort: input.effort,
+      fast: input.fast,
       isSubagent: !!owned.parentChatId,
       model,
       onFinish: (message) =>

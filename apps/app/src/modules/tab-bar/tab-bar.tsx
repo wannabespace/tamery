@@ -103,15 +103,14 @@ export const TabBar = ({ className }: { className?: string }) => {
   }, [tablesAndSchemas])
 
   const { chatsCollection } = useCollections()
-  const { data: chats } = useLiveQuery(
-    (q) =>
+  const { data: chats } = useLiveQuery({
+    query: (q) =>
       q
         .from({ chats: chatsCollection })
         .where(({ chats: chat }) =>
           eq(chat.connectionResourceId, connectionResource.id)
         ),
-    [chatsCollection, connectionResource.id]
-  )
+  })
   const labels = tabLabels(
     tabs,
     new Map(
