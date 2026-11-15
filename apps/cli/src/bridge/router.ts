@@ -2,6 +2,7 @@ import { log } from '@clack/prompts'
 import { os } from '@orpc/server'
 import type { RouterClient } from '@orpc/server'
 import { forwarding } from '@tamery/connection/forwarding'
+import { connectionSecrets } from '@tamery/connection/secrets'
 import { createQueryRouter } from '@tamery/query-proxy'
 import {
   BRIDGE_PROTOCOL,
@@ -159,7 +160,13 @@ export const createRouter = ({
     localDatabases: {
       find: authed.handler(async () => {
         const { localDatabases } = await loadLocalDatabases()
-        return localDatabases.find()
+        const found = await localDatabases.find()
+        return found.map((database) => ({
+          ...database,
+          hasPassword:
+            database.hasPassword &&
+            confinement.allowsFoundPassword(database.connectionString),
+        }))
       }),
       // Never return the password: a found one is another app's secret the browser never had, kept here as the connection's local copy.
       keepPassword: authed
@@ -168,22 +175,25 @@ export const createRouter = ({
           type({
             connectionId: 'string.uuid.v7',
             connectionString: 'string > 0',
+            found: 'string > 0',
           })
         )
         .handler(async ({ errors, input }) => {
           const { localDatabases } = await loadLocalDatabases()
-          const { password } = await localDatabases.unlock(
-            input.connectionString
-          )
-          if (!password) {
+          const { password } = await localDatabases.unlock(input.found)
+          if (
+            !password ||
+            !confinement.allowsFoundPassword(input.found) ||
+            !connectionSecrets.isSameServer(input.found, input.connectionString)
+          ) {
             return false
           }
-          const found = new SafeURL(input.connectionString)
-          found.password = encodeURIComponent(password)
+          const kept = new SafeURL(input.connectionString)
+          kept.password = encodeURIComponent(password)
           return connections.save(
             {
               connectionId: input.connectionId,
-              connectionString: found.toString(),
+              connectionString: kept.toString(),
             },
             () => Promise.resolve(true),
             errors

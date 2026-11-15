@@ -21,8 +21,8 @@ import { bridge } from '~/core/runtime/bridge/bridge'
 export interface ConnectionDetails {
   color?: string | null
   connectionString: string
-  /** Its password stays on the bridge, which found the database: `bridge.keepLocalPassword`. */
-  foundDatabase?: string
+  /** A string `find` returned on the bridge, which keeps its password: `bridge.keepFoundPassword`. */
+  foundConnectionString?: string
   label?: string | null
   name: string
   provider: Provider | null
@@ -53,11 +53,11 @@ const rollback = (
 export const saveConnectionString = async ({
   connectionString,
   connectionId,
-  foundDatabase,
+  foundConnectionString,
   updatedAt,
   writeRow,
 }: ConnectionStringInput & {
-  foundDatabase?: string
+  foundConnectionString?: string
   writeRow?: (isPasswordExists: boolean) => void
 }) => {
   const {
@@ -83,7 +83,7 @@ export const saveConnectionString = async ({
       // An empty password on a device that never had it means "not known here", not "none": clearing the flag would stop every device asking for it.
       writeRow(
         record.isPasswordPopulated ||
-          !!foundDatabase ||
+          !!foundConnectionString ||
           (!stored?.isPasswordPopulated &&
             !!connectionsCollection.get(connectionId)?.isPasswordExists)
       )
@@ -105,24 +105,19 @@ export const saveConnectionString = async ({
     if (persisted.isOk()) {
       // After the server holds the row, which the bridge checks first, and before the connection opens: a file, tunnel or
       // machine login runs on the bridge only once its terminal allowed it. A failure only toasts, never fails the save.
-      const sent = await Result.tryPromise(() =>
-        bridge.saveSecrets(connectionId)
-      )
+      const sent = await Result.tryPromise(async () => {
+        await (foundConnectionString
+          ? bridge.keepFoundPassword({
+              connectionId,
+              connectionString,
+              found: foundConnectionString,
+            })
+          : bridge.saveSecrets(connectionId))
+      })
       if (sent.isErr()) {
         toast.error(toError(sent.error.cause).message, {
           id: `bridge-save-${connectionId}`,
         })
-      }
-      if (foundDatabase) {
-        const kept = await Result.tryPromise(() =>
-          bridge.keepLocalPassword(connectionId, foundDatabase)
-        )
-        if (!kept.unwrapOr(false)) {
-          toast.error(
-            "The bridge couldn't keep this database's saved password. Enter it in the connection.",
-            { id: `bridge-password-${connectionId}` }
-          )
-        }
       }
       if (resource && resource !== stored?.defaultResourceName) {
         rememberOpenedResource(connectionId, resource)
@@ -138,7 +133,7 @@ export const saveConnectionString = async ({
 
 const saveConnection = async (
   connectionId: string,
-  { connectionString, foundDatabase, ...details }: ConnectionDetails,
+  { connectionString, foundConnectionString, ...details }: ConnectionDetails,
   writeRow: (
     row: Omit<Connection, 'createdAt' | 'id' | 'syncType' | 'workspaceId'>
   ) => void
@@ -147,7 +142,7 @@ const saveConnection = async (
   const saved = await saveConnectionString({
     connectionId,
     connectionString: connectionString.trim(),
-    foundDatabase,
+    foundConnectionString,
     updatedAt,
     writeRow: (isPasswordExists) =>
       writeRow({

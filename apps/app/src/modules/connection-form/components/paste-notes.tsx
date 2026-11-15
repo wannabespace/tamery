@@ -52,19 +52,26 @@ export const PasteNotes = ({
           `Add the ${FIELD_LIST.format(missing.map((field) => getFieldNoun(engineFields, field)))}${withheld}.`,
         ]
       : []),
-    ...(foundDatabase && machine
-      ? [
-          `Uses the password saved in ${foundDatabase.source} on ${machine.name}, which stays there.`,
-        ]
-      : []),
     ...fixes.map((fix) => FIX_NOTES[fix]),
   ].join(' ')
+  const found =
+    foundDatabase && machine
+      ? { machineName: machine.name, source: foundDatabase.source }
+      : null
 
   return (
     <AnimatePresence initial={false}>
-      {note && (
-        <MotionCollapse key={note}>
-          <Footnote>{note}</Footnote>
+      {(note || found) && (
+        <MotionCollapse key={`${note}${found?.source}`}>
+          <Footnote>
+            {note}
+            {found && (
+              <>
+                {note && ' '}Uses the password saved in {found.source} on{' '}
+                <span data-mask>{found.machineName}</span>, which stays there.
+              </>
+            )}
+          </Footnote>
         </MotionCollapse>
       )}
     </AnimatePresence>

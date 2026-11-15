@@ -148,15 +148,22 @@ const FOUND_WITHOUT_PASSWORD = {
   connectionString: 'postgresql://me@localhost:5434/other',
   hasPassword: false,
 }
+const FOUND_REMOTE = {
+  ...FOUND,
+  connectionString: 'postgresql://me@db.vpn.example:5432/app',
+}
 const FOUND_PASSWORD = 'found@secret/1'
 
 void mock.module('@tamery/connection/local-databases/find', () => ({
   localDatabases: {
-    find: () => Promise.resolve([FOUND, FOUND_WITHOUT_PASSWORD]),
+    find: () => Promise.resolve([FOUND, FOUND_WITHOUT_PASSWORD, FOUND_REMOTE]),
     unlock: (connectionString: string) =>
       Promise.resolve({
-        password:
-          connectionString === FOUND.connectionString ? FOUND_PASSWORD : '',
+        password: [FOUND, FOUND_REMOTE].some(
+          (found) => found.connectionString === connectionString
+        )
+          ? FOUND_PASSWORD
+          : '',
         withheld: false,
       }),
   },
@@ -767,6 +774,7 @@ describe('local databases', () => {
       client.localDatabases.keepPassword({
         connectionId: ids.found,
         connectionString: FOUND.connectionString,
+        found: FOUND.connectionString,
       }),
       'UNAUTHORIZED'
     )
@@ -784,25 +792,35 @@ describe('local databases', () => {
     expect(await client.localDatabases.find()).toEqual([
       FOUND,
       FOUND_WITHOUT_PASSWORD,
+      { ...FOUND_REMOTE, hasPassword: false },
     ])
-    for (const connectionString of [
+    for (const refused of [
       FOUND_WITHOUT_PASSWORD.connectionString,
       'postgresql://admin@evil.example/app',
-    ]) {
+      FOUND_REMOTE.connectionString,
+    ].map((found) => ({ connectionString: found, found }))) {
       expect(
         // oxlint-disable-next-line eslint/no-await-in-loop -- each keep must finish before the next
         await client.localDatabases.keepPassword({
           connectionId: ids.found,
-          connectionString,
+          ...refused,
         })
       ).toBe(false)
     }
+    expect(
+      await client.localDatabases.keepPassword({
+        connectionId: ids.found,
+        connectionString: 'postgresql://me@evil.example:5433/orders',
+        found: FOUND.connectionString,
+      })
+    ).toBe(false)
     for (const connectionId of [ids.found, ids.foundElsewhere]) {
       expect(
         // oxlint-disable-next-line eslint/no-await-in-loop -- each keep must finish before the next
         await client.localDatabases.keepPassword({
           connectionId,
-          connectionString: FOUND.connectionString,
+          connectionString: 'postgresql://me@localhost:5433/orders',
+          found: FOUND.connectionString,
         })
       ).toBe(true)
     }

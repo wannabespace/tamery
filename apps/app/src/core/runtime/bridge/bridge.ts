@@ -130,19 +130,22 @@ const getPairedClient = memoize((pairing: BridgePairing): BridgeRouter =>
 
 export const bridge = {
   client: getPairedClient,
-  /** `false` when the bridge no longer has the password, as after a restart since it found the database. */
-  keepLocalPassword: async (connectionId: string, connectionString: string) => {
+  /** Throws when the bridge no longer has `found`'s password, as after a restart since it found the database. */
+  keepFoundPassword: async (input: {
+    connectionId: string
+    connectionString: string
+    found: string
+  }) => {
     const pairing = getActivePairing()
     const kept =
       !!pairing &&
-      (await getPairedClient(pairing).localDatabases.keepPassword({
-        connectionId,
-        connectionString,
-      }))
-    if (kept) {
-      posthog.capture('bridge_local_password_kept')
+      (await getPairedClient(pairing).localDatabases.keepPassword(input))
+    if (!kept) {
+      throw new Error(
+        "The bridge couldn't keep this database's saved password. Enter it in the connection."
+      )
     }
-    return kept
+    posthog.capture('bridge_local_password_kept')
   },
   pair: async ({
     browserNonce,
