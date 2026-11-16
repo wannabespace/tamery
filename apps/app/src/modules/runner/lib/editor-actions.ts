@@ -1,4 +1,4 @@
-import type { HotkeyChord, LetterKey } from '@tanstack/react-hotkeys'
+import type { HotkeyChord } from '@tanstack/react-hotkeys'
 import { parseHotkey } from '@tanstack/react-hotkeys'
 import type { editor } from 'monaco-editor'
 import { KeyCode, KeyMod } from 'monaco-editor'
@@ -47,12 +47,6 @@ const EDITOR_ACTIONS = [
 type EditorActionName = (typeof EDITOR_ACTIONS)[number]['name']
 
 const MONACO_KEYS: Record<string, KeyCode> = {
-  ...Object.fromEntries(
-    ([...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'] as LetterKey[]).map((letter) => [
-      letter,
-      KeyCode[`Key${letter}`],
-    ])
-  ),
   '.': KeyCode.Period,
   Enter: KeyCode.Enter,
   Escape: KeyCode.Escape,
@@ -63,7 +57,9 @@ const MONACO_KEYS: Record<string, KeyCode> = {
 const monacoKeybinding = (hotkey: HotkeyChord) => {
   // Parsed as macOS so Mod lands on meta, which is what Monaco's CtrlCmd means on every platform.
   const { alt, code, ctrl, key, meta, shift } = parseHotkey(hotkey, 'mac')
-  const keyCode = MONACO_KEYS[key ?? code]
+  const name = key ?? code
+  const keyCode =
+    MONACO_KEYS[name] ?? KeyCode[`Key${name}` as keyof typeof KeyCode]
   if (ctrl || keyCode === undefined) {
     throw new Error(`Monaco cannot bind ${hotkey}: extend MONACO_KEYS`)
   }
