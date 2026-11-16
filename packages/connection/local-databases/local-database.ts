@@ -15,6 +15,8 @@ export const NOTHING_UNLOCKED: Unlocked = { password: '', withheld: false }
 
 export interface LocalDatabase {
   connectionString: string
+  /** Read with the entry itself; a Keychain password counts only once `unlock` reads it, since reading prompts. */
+  hasPassword: boolean
   name: string
   source: string
   type: ConnectionType

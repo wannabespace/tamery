@@ -5,6 +5,7 @@ import type { ConnectionGuess } from '@tamery/connection/guess'
 import { guessConnection } from '@tamery/connection/guess'
 import type { GuessedParts } from '@tamery/connection/guess/types'
 import { isLocalHost } from '@tamery/connection/hosts'
+import { connectionSecrets } from '@tamery/connection/secrets'
 import type { SshTunnel } from '@tamery/connection/ssh/params'
 import { EMPTY_SSH_TUNNEL } from '@tamery/connection/ssh/params'
 import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
@@ -12,6 +13,7 @@ import { SyncType } from '@tamery/shared/enums/sync-type'
 import { pick } from '@tamery/shared/utils'
 import { useAppForm } from '@tamery/ui/components/tanstack-form'
 import { type } from 'arktype'
+import { Result } from 'better-result'
 import { useState } from 'react'
 
 import type { Connection } from '~/core/connection/sync'
@@ -27,6 +29,8 @@ export interface ConnectionFormValues extends Omit<
   'ssh' | 'type'
 > {
   color: string | null
+  /** A database the bridge found with its password, which stays on the bridge: the form leaves the password empty. */
+  foundDatabase: { connectionString: string; source: string } | null
   label: string
   name: string
   ssh: SshTunnel
@@ -38,6 +42,7 @@ export interface ConnectionFormValues extends Omit<
 const DEFAULT_VALUES: ConnectionFormValues = {
   color: null,
   database: '',
+  foundDatabase: null,
   host: '',
   https: null,
   label: '',
@@ -158,11 +163,27 @@ export const getParts = (values: ConnectionFormValues): ConnectionParts => {
   }
 }
 
+/** `null` once the form has a password or names another server than the one the bridge found the password for. */
+export const getFoundDatabase = (values: ConnectionFormValues) => {
+  const { foundDatabase } = values
+  const sameServer =
+    !!foundDatabase &&
+    !values.password &&
+    Result.try(() =>
+      connectionSecrets.isSameServer(
+        connectionParts.format(getParts(values)),
+        foundDatabase.connectionString
+      )
+    ).unwrapOr(false)
+  return sameServer ? foundDatabase : null
+}
+
 export const getMissing = (values: ConnectionFormValues) =>
   getEngineFields(values).rows.flatMap(({ name, optional }) =>
     optional ||
     values[name].trim() ||
-    (name === 'password' && isLocalHost(values.host.trim()))
+    (name === 'password' &&
+      (isLocalHost(values.host.trim()) || !!getFoundDatabase(values)))
       ? []
       : [name]
   )

@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { connectionParts } from '@tamery/connection/connection-parts'
-import { getHostHint } from '@tamery/connection/hosts'
+import { getHostHint, isLocalHost } from '@tamery/connection/hosts'
 import { localPath } from '@tamery/connection/local-path'
 import { readConnectionString } from '@tamery/connection/parse-connection-string'
 import { describeConnectionString, FILE_PARAMS } from '@tamery/connection/utils'
@@ -89,6 +89,11 @@ const reachesAtlasOverVerifiedTls = (connectionString: string) => {
  * or hand this computer's cloud login to a server that could replay it.
  */
 export const confinement = {
+  /** Another app's saved password serves only a database on this computer, never a server that app reaches (a production one in DBeaver). */
+  allowsFoundPassword: (connectionString: string) => {
+    const { host, ssh } = connectionParts.parse(connectionString)
+    return !ssh && isLocalHost(host)
+  },
   getRefusal: (connectionString: string) => {
     const { host, ssh, type } = connectionParts.parse(connectionString)
     const { searchParams } = readConnectionString(connectionString)

@@ -3,8 +3,10 @@ import { MotionCollapse } from '@tamery/ui/components/collapse.motion'
 import { useSelector } from '@tanstack/react-form'
 import { AnimatePresence } from 'motion/react'
 
+import { useLocalMachine } from '~/core/local-machine'
+
 import type { ConnectionForm } from '../lib/connection-form'
-import { getMissing } from '../lib/connection-form'
+import { getFoundDatabase, getMissing } from '../lib/connection-form'
 import { getEngineFields, getFieldNoun } from '../lib/engine-fields'
 import { Footnote } from './footnote'
 
@@ -35,6 +37,10 @@ export const PasteNotes = ({
   const engineFields = useSelector(form.store, ({ values }) =>
     getEngineFields(values)
   )
+  const foundDatabase = useSelector(form.store, ({ values }) =>
+    getFoundDatabase(values)
+  )
+  const machine = useLocalMachine()
   const withheld =
     passwordWithheldBy && missing.includes('password')
       ? ` (${passwordWithheldBy} keeps it in the Keychain)`
@@ -48,12 +54,24 @@ export const PasteNotes = ({
       : []),
     ...fixes.map((fix) => FIX_NOTES[fix]),
   ].join(' ')
+  const found =
+    foundDatabase && machine
+      ? { machineName: machine.name, source: foundDatabase.source }
+      : null
 
   return (
     <AnimatePresence initial={false}>
-      {note && (
-        <MotionCollapse key={note}>
-          <Footnote>{note}</Footnote>
+      {(note || found) && (
+        <MotionCollapse key={`${note}${found?.source}`}>
+          <Footnote>
+            {note}
+            {found && (
+              <>
+                {note && ' '}Uses the password saved in {found.source} on{' '}
+                <span data-mask>{found.machineName}</span>, which stays there.
+              </>
+            )}
+          </Footnote>
         </MotionCollapse>
       )}
     </AnimatePresence>

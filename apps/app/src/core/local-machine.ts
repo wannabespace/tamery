@@ -16,10 +16,6 @@ export const localMachine = {
     window.electron
       ? window.electron.localDatabases.find()
       : ((await pairedClient()?.localDatabases.find()) ?? []),
-  unlockDatabase: (connectionString: string) =>
-    window.electron
-      ? window.electron.localDatabases.unlock(connectionString)
-      : pairedClient()?.localDatabases.unlock({ connectionString }),
 }
 
 // A bridge's key stays under `['bridge']`: `clearBridgePairing` drops that prefix, or another pairing would show this computer's databases.

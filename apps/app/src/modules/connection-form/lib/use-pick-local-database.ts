@@ -3,8 +3,6 @@ import { useSelector } from '@tanstack/react-form'
 import { Result } from 'better-result'
 import { useRef, useState } from 'react'
 
-import { localMachine } from '~/core/local-machine'
-
 import type { ConnectionForm } from './connection-form'
 import type { PasteVia } from './use-paste-connection'
 
@@ -23,6 +21,7 @@ export const usePickLocalDatabase = ({
 
   const pick = async ({
     connectionString,
+    hasPassword,
     name,
     source,
     type,
@@ -33,12 +32,20 @@ export const usePickLocalDatabase = ({
     read(connectionString, 'found')
     form.setFieldValue('name', name)
     form.setFieldValue('type', type)
+    if (!window.electron) {
+      form.setFieldValue(
+        'foundDatabase',
+        hasPassword ? { connectionString, source } : null
+      )
+      return
+    }
     if (unlocking.current === connectionString) {
       return
     }
     unlocking.current = connectionString
-    const unlock = await Result.tryPromise(
-      async () => await localMachine.unlockDatabase(connectionString)
+    const { localDatabases } = window.electron
+    const unlock = await Result.tryPromise(() =>
+      localDatabases.unlock(connectionString)
     )
     const unlocked = unlock.unwrapOr(null)
     if (unlocking.current !== connectionString) {
