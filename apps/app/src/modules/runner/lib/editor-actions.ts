@@ -1,5 +1,5 @@
-import type { HotkeyChord } from '@tanstack/react-hotkeys'
-import { LETTER_KEYS, parseHotkey } from '@tanstack/react-hotkeys'
+import type { HotkeyChord, LetterKey } from '@tanstack/react-hotkeys'
+import { parseHotkey } from '@tanstack/react-hotkeys'
 import type { editor } from 'monaco-editor'
 import { KeyCode, KeyMod } from 'monaco-editor'
 import type { RefObject } from 'react'
@@ -48,7 +48,10 @@ type EditorActionName = (typeof EDITOR_ACTIONS)[number]['name']
 
 const MONACO_KEYS: Record<string, KeyCode> = {
   ...Object.fromEntries(
-    [...LETTER_KEYS].map((letter) => [letter, KeyCode[`Key${letter}`]])
+    ([...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'] as LetterKey[]).map((letter) => [
+      letter,
+      KeyCode[`Key${letter}`],
+    ])
   ),
   '.': KeyCode.Period,
   Enter: KeyCode.Enter,

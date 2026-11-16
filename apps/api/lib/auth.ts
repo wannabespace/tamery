@@ -142,10 +142,8 @@ export const sendNewSignInEmail = async ({
   // Versionless browser + city: a browser update or a new Wi-Fi is not a new device. A Redis failure counts as new so the warning still goes out.
   const isNewDevice = await redis
     .sAdd(knownDevicesKey, `${formatBrowserName(userAgent ?? '')}|${location}`)
-    .then(
-      (added) => added > 0,
-      () => true
-    )
+    .then((added) => added > 0)
+    .catch(() => true)
   await redis.expire(knownDevicesKey, KNOWN_DEVICES_TTL).catch(console.error)
 
   if (newUser || !isNewDevice) {

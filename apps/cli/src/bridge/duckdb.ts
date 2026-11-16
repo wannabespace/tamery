@@ -54,10 +54,10 @@ const download = async (driverPackage: DriverPackage, folder: string) => {
 }
 
 const isInstalled = (folder: string) =>
-  fs.access(path.join(folder, 'node_modules', '@duckdb/node-api')).then(
-    () => true,
-    () => false
-  )
+  fs
+    .access(path.join(folder, 'node_modules', '@duckdb/node-api'))
+    .then(() => true)
+    .catch(() => false)
 
 /** Built into a folder of its own and renamed into place whole, so a download cut short never looks installed. */
 const install = async (packages: DriverPackage[], folder: string) => {

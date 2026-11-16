@@ -227,10 +227,7 @@ const pair = async () => {
 }
 
 const expectError = async (call: Promise<unknown>, code: string) => {
-  const error = await call.then(
-    () => null,
-    (error_: unknown) => error_
-  )
+  const error = await call.then(() => null).catch((error_: unknown) => error_)
   expect(error).toMatchObject({ code, defined: true })
   return error
 }
