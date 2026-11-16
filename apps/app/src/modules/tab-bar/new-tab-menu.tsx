@@ -59,8 +59,13 @@ export const NewTabMenu = ({
       params: { resourceId: connectionResource.id, tabId },
       to: '/connection/$resourceId/$tabId',
     })
+  const newQuery = () => goToTab(newQueryAction.open(connectionResource.id))
 
   useShortcut('newTab', () => setOpen(true))
+  useShortcut('newQuery', (event) => {
+    event.preventDefault()
+    newQuery()
+  })
   useShortcut('aiChat', (event) => {
     event.preventDefault()
     startNewChat(connectionResource.id)
@@ -85,11 +90,12 @@ export const NewTabMenu = ({
         align="end"
         className="max-h-[70vh] min-w-48 overflow-auto"
       >
-        <DropdownMenuItem
-          onClick={() => goToTab(newQueryAction.open(connectionResource.id))}
-        >
+        <DropdownMenuItem onClick={newQuery}>
           <HugeiconsIcon icon={newQueryAction.icon} strokeWidth={2} />
           {newQueryAction.label}
+          <DropdownMenuShortcut>
+            <ShortcutKbd shortcut="newQuery" />
+          </DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => startNewChat(connectionResource.id)}>
           <HugeiconsIcon icon={AiChat02Icon} strokeWidth={2} />

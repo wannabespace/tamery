@@ -20,6 +20,7 @@ export const SHORTCUT_GROUPS: { shortcuts: ShortcutId[]; title: string }[] = [
   {
     shortcuts: [
       'newTab',
+      'newQuery',
       'closeTab',
       'switchTabs',
       'toggleNavigator',

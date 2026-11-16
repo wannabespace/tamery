@@ -145,6 +145,11 @@ export const SHORTCUTS = {
     hotkeys: ['Mod+N'],
     title: 'New connection',
   },
+  newQuery: {
+    description: 'Open a new query tab.',
+    hotkeys: ['Mod+E'],
+    title: 'New query',
+  },
   newTab: {
     description: 'Open a new query, a schema page or any table.',
     desktopOnly: true,
