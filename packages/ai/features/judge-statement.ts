@@ -8,7 +8,7 @@ import type { JevUsage } from './jev'
 import { askJev } from './jev'
 import { section } from './prompt'
 
-// Tuned for `JEV_MODEL`: Jev's probabilities shift between releases, so pinning a newer version means re-checking this.
+// Tuned for `JEV_MODEL`: Jev's probabilities shift between releases, so pinning a newer version means re-checking this against the `probability` the app sends with `ai_chat_write_judged`, `_approved` and `_declined`.
 const AUTO_RUN_THRESHOLD = 0.9
 
 const QUESTION =

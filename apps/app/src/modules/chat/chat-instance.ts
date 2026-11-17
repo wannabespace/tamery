@@ -8,6 +8,7 @@ import { v7 } from 'uuid'
 
 import { orpc } from '~/lib/orpc'
 
+import { autoApprove } from './auto-approval'
 import { chatToolRuns } from './chat-tools'
 import {
   chatModelOptionsValue,
@@ -51,8 +52,17 @@ export const getChatInstance = memoize(
         }
         finishListeners.get(data.chatId)?.(event)
       },
-      onToolCall: ({ toolCall }) =>
-        chatToolRuns.answer(chat, toolCall, data.connectionResourceId),
+      onToolCall: ({ toolCall }) => {
+        chatToolRuns.answer(chat, toolCall, data.connectionResourceId)
+        if (!toolCall.dynamic && toolCall.toolName === 'execute') {
+          void autoApprove({
+            chat,
+            input: toolCall.input,
+            toolCallId: toolCall.toolCallId,
+            transcript: chat.messages,
+          })
+        }
+      },
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
       transport: {
         reconnectToStream: async ({ abortSignal }) => {

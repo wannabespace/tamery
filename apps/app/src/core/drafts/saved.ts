@@ -15,10 +15,10 @@ const value = createWebStorageValue({
   defaultValue: [],
   key: 'saved-drafts',
   schema: type('string[]'),
-  type: 'sessionStorage',
+  type: 'localStorage',
 })
 
-/** The tables whose drafts the user saved, by where they waited. Session storage outlives the reload that drops the drafts themselves, so a chat's draft card tells a saved draft from a lost one. */
+/** The tables whose drafts the user saved, by where they waited. Kept on the device, past the reload that drops the drafts themselves, so a chat's draft card tells a saved draft from a lost one; a new proposal on the table clears its mark. */
 export const savedDrafts = {
   forget: (resourceId: string, where: DraftPlace, ref: TableRef) => {
     const forgotten = key(resourceId, where, ref)

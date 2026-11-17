@@ -84,8 +84,8 @@ export const StatementPart = ({
         awaitsApproval && actions.decide ? (
           <WriteApproval
             connection={connection}
+            auto={actions.decide.auto}
             decideWrite={actions.decide.write}
-            judge={actions.decide.judge}
             input={part.input}
             toolCallId={part.toolCallId}
           />

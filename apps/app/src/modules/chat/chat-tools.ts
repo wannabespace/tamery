@@ -253,6 +253,9 @@ export const chatToolRuns = {
       void chat.addToolOutput({ output, tool: 'ask_user', toolCallId })
     }
   },
+  isDecided: (toolCallId: string) => decided.has(toolCallId),
+  /** Aborted when the user stops the chat: a run, or an auto-run judged before the stop. */
+  signal: getSignal,
   stop: (chatId: string) => runs.get(chatId)?.abort(),
   write: async ({
     approved,

@@ -1,4 +1,3 @@
-import type { StatementVerdict } from '@tamery/ai/features/judge-statement'
 import type { ChatTools } from '@tamery/ai/tools'
 import { getDialect } from '@tamery/shared/enums/connection-type'
 import { Button } from '@tamery/ui/components/button'
@@ -19,51 +18,47 @@ import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 import { plural } from '~/utils/plural'
 
+import type { AutoApproval } from './auto-approval'
+import {
+  autoApprovalsStore,
+  estimateKey,
+  getJudgedProbability,
+} from './auto-approval'
 import type { ToolPartActions } from './chat-tool-types'
 import { approvalModeValue } from './stores'
 
-const judgedOutcome = (verdict: StatementVerdict | null) => {
-  if (!verdict) {
-    return 'none'
-  }
-  return verdict.autoRun ? 'run' : 'ask'
-}
-
-const autoNote = (state: {
-  changesExisting: boolean
-  checking: boolean
-  judged: boolean
-  runs: boolean
-  unjudged: boolean
-}) => {
-  if (state.checking) {
+const autoNote = (
+  approval: AutoApproval | null,
+  { changesExisting, isAuto }: { changesExisting: boolean; isAuto: boolean }
+) => {
+  if (approval === 'checking') {
     return 'Auto is checking'
   }
-  if (state.runs) {
+  if (approval === 'run') {
     return 'Auto is running it'
   }
-  if (state.unjudged) {
+  if (!isAuto) {
+    return null
+  }
+  if (approval === 'unjudged') {
     return "Auto couldn't check it, so it waits"
   }
-  if (state.judged) {
+  if (approval === 'ask') {
     return 'Not sure it is what you asked, so it waits'
   }
-  if (state.changesExisting) {
-    return 'Edits existing data, so it waits'
-  }
-  return null
+  return changesExisting ? 'Edits existing data, so it waits' : null
 }
 
 export const WriteApproval = ({
+  auto,
   connection,
   decideWrite,
   input,
-  judge,
   toolCallId,
 }: {
+  auto: NonNullable<ToolPartActions['decide']>['auto']
   connection: Connection | undefined
   decideWrite: NonNullable<ToolPartActions['decide']>['write']
-  judge: NonNullable<ToolPartActions['decide']>['judge']
   input: ChatTools['execute']['input']
   toolCallId: string
 }) => {
@@ -75,61 +70,42 @@ export const WriteApproval = ({
   })
   const destructive = write?.kind === 'destructive'
   const isAuto = useSubscription(approvalModeValue) === 'auto'
+  const approval = useSubscription(autoApprovalsStore, {
+    selector: (approvals) => approvals[toolCallId] ?? null,
+  })
   const decision = {
     destructive,
     dialect: connection ? getDialect(connection.type) : null,
   }
-  const estimateKey = ['agent-estimate', toolCallId]
   const estimate = useQuery({
     enabled: !!write,
     queryFn: ({ signal }) => write?.estimate(signal) ?? null,
-    queryKey: estimateKey,
+    queryKey: estimateKey(toolCallId),
     retry: false,
     staleTime: Infinity,
   })
   const runKey = ['agent-write', toolCallId]
-  const isRunning = useIsMutating({ mutationKey: runKey }) > 0
+  const isRunning =
+    useIsMutating({ mutationKey: runKey }) > 0 || approval === 'run'
   const run = useMutation({
     meta: { event: 'ai_chat_write_run' },
     mutationKey: runKey,
     mutationFn: async () => {
-      await queryClient.cancelQueries({ queryKey: estimateKey })
+      await queryClient.cancelQueries({ queryKey: estimateKey(toolCallId) })
       return decideWrite({ approved: true, input, toolCallId })
     },
   })
-  const verdict = useQuery({
-    enabled: isAuto && !!write?.additive,
-    queryFn: async ({ signal }) => {
-      const result = await judge({
-        dialect: connection?.type ?? 'unknown',
-        signal,
-        statement: input.statement,
-      }).catch(() => null)
-      posthog.capture('ai_chat_write_judged', {
-        ...decision,
-        judge: result?.judge ?? null,
-        outcome: judgedOutcome(result),
-      })
-      return result
-    },
-    queryKey: ['agent-write-judge', toolCallId],
-    retry: false,
-    staleTime: Infinity,
-  })
-  const autoRuns = !!verdict.data?.autoRun
 
+  // A call no window judged yet: Auto switched on while it waits, or the window reloaded since.
   useEffect(() => {
-    if (autoRuns && run.isIdle && !isRunning) {
-      run.mutate()
+    if (isAuto && write?.additive) {
+      void auto({ input, toolCallId })
     }
-  }, [autoRuns, run, isRunning])
+  }, [auto, input, isAuto, toolCallId, write?.additive])
 
-  const note = autoNote({
-    changesExisting: isAuto && !!write && !write.additive,
-    checking: verdict.isFetching,
-    judged: isAuto && verdict.isFetched,
-    runs: autoRuns,
-    unjudged: isAuto && verdict.isFetched && !verdict.data,
+  const note = autoNote(approval, {
+    changesExisting: !!write && !write.additive,
+    isAuto,
   })
 
   const hint = [
@@ -142,7 +118,7 @@ export const WriteApproval = ({
   return (
     <>
       {hint && (
-        <span className={cn('truncate', verdict.isFetching && 'shimmer')}>
+        <span className={cn('truncate', approval === 'checking' && 'shimmer')}>
           {hint}
         </span>
       )}
@@ -151,7 +127,10 @@ export const WriteApproval = ({
         variant="ghost-muted"
         disabled={isRunning}
         onClick={() => {
-          posthog.capture('ai_chat_write_declined', decision)
+          posthog.capture('ai_chat_write_declined', {
+            ...decision,
+            probability: getJudgedProbability(toolCallId),
+          })
           void decideWrite({ approved: false, input, toolCallId })
         }}
       >
@@ -165,7 +144,10 @@ export const WriteApproval = ({
               variant={destructive ? 'destructive' : 'default'}
               disabled={isRunning}
               onClick={() => {
-                posthog.capture('ai_chat_write_approved', decision)
+                posthog.capture('ai_chat_write_approved', {
+                  ...decision,
+                  probability: getJudgedProbability(toolCallId),
+                })
                 run.mutate()
               }}
             />

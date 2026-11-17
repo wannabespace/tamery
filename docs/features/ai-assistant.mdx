@@ -42,7 +42,7 @@ When a query is slow, the agent reads its plan and can draft the index that woul
 
 For anything a draft can't hold, the agent writes a statement instead. In **Ask** mode, the default, a statement that changes data or schema never runs on its own. The chat shows it with **Run** and **Decline**, and the agent continues once you choose. Statements that belong together come as one transaction, so you approve them once. The card waits for you when you reload or switch chats. On PostgreSQL and MySQL the card also says how many rows the database expects it to change, unless the table has no statistics yet to estimate from. **Run** turns red when the statement changes or removes existing data or schema.
 
-In **Auto** mode, picked under the message box, a statement that only adds, new rows or new tables and indexes, runs on its own when a check against your last message is sure it does only what you asked. Anything that changes or removes existing data, and anything the check is unsure of, still waits for **Run**, and the card says why it waits. **Run** and **Decline** work while the check runs.
+In **Auto** mode, picked under the message box, a statement that only adds, new rows or new tables and indexes, runs on its own when a check against your last message is sure it does only what you asked, also while you work in another tab or a subagent's panel is closed. Anything that changes or removes existing data, and anything the check is unsure of, still waits for **Run**, and the card says why it waits. **Run** and **Decline** work while the check runs.
 
 ### Models
 

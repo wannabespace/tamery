@@ -18,6 +18,7 @@ import { useCollections } from '~/core/collections'
 import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 
+import { autoApprove } from './auto-approval'
 import { getChatInstance } from './chat-instance'
 import { awaitsUser } from './chat-tool-types'
 import { chatToolRuns } from './chat-tools'
@@ -207,19 +208,11 @@ export const useChatSession = ({
           chat: instance,
           transcript: displayMessages,
         }),
-      judge: ({
-        dialect,
-        signal,
-        statement,
-      }: {
-        dialect: string
-        signal: AbortSignal
-        statement: string
+      auto: (data: {
+        input: ChatTools['execute']['input']
+        toolCallId: string
       }) =>
-        orpc.ai.judgeStatement.call(
-          { chatId, dialect, statement },
-          { context: { silent: true }, signal }
-        ),
+        autoApprove({ ...data, chat: instance, transcript: displayMessages }),
       write: ({
         approved,
         input,
