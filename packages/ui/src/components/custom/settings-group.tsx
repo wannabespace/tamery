@@ -12,22 +12,25 @@ import { cn } from '@tamery/ui/lib/utils'
 import type { ReactNode } from 'react'
 
 export const SettingsGroup = ({
+  action,
   children,
   title,
 }: {
+  action?: ReactNode
   children: ReactNode
   title?: ReactNode
 }) => (
   <section className="flex flex-col gap-2">
     {title && (
-      <h2
+      <div
         className={cn(
           smallItemInsetClassName,
-          'text-muted-foreground text-xs font-medium'
+          'flex items-center justify-between gap-3'
         )}
       >
-        {title}
-      </h2>
+        <h2 className="text-muted-foreground text-xs font-medium">{title}</h2>
+        {action}
+      </div>
     )}
     <div className={cn(cardClass, 'flex flex-col overflow-hidden')}>
       {children}

@@ -50,7 +50,6 @@
           "account/plans",
           "account/ai-credits",
           "account/ai-key",
-          "account/ai-usage",
           "account/settings"
         ]
       }

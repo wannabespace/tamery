@@ -26,6 +26,7 @@ import { useSubscription } from '~/hooks/use-subscription'
 import { orpc } from '~/lib/orpc'
 
 import { AddCreditsDialog } from '../../components/add-credits-dialog'
+import { AiUsage, aiUsageQueryOptions } from '../../components/ai-usage'
 import { AutoTopUp } from '../../components/auto-top-up'
 import { formatDollars } from '../../format'
 
@@ -66,6 +67,7 @@ const RouteComponent = () => {
             </Button>
           </EmptyContent>
         </Empty>
+        <AiUsage />
       </AccountPage>
     )
   }
@@ -115,6 +117,7 @@ const RouteComponent = () => {
           ))}
         </SettingsGroup>
       )}
+      <AiUsage />
     </AccountPage>
   )
 }
@@ -122,10 +125,16 @@ const RouteComponent = () => {
 export const Route = createFileRoute('/account/credits')({
   component: RouteComponent,
   loader: async ({ context }) => {
-    await context.queryClient.query({
-      ...orpc.account.credits.get.queryOptions(),
-      staleTime: 'static',
-    })
+    await Promise.all([
+      context.queryClient.query({
+        ...orpc.account.credits.get.queryOptions(),
+        staleTime: 'static',
+      }),
+      context.queryClient.query({
+        ...aiUsageQueryOptions(),
+        staleTime: 'static',
+      }),
+    ])
   },
   validateSearch: type({ 'credits?': '"success" | "cancel"' }),
 })

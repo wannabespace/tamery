@@ -26,7 +26,6 @@ import { Route as LayoutPrivacyPolicyRouteImport } from './modules/legal/routes/
 import { Route as LayoutReleasesRouteImport } from './modules/releases/routes/_layout/releases'
 import { Route as LayoutTermsOfServiceRouteImport } from './modules/legal/routes/_layout/terms-of-service'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
-import { Route as AccountAiUsageRouteImport } from './modules/ai-usage/routes/account/ai-usage'
 import { Route as AccountAuthenticationRouteImport } from './modules/settings/routes/account/authentication'
 import { Route as AccountBillingRouteImport } from './modules/billing/routes/account/billing'
 import { Route as AccountCreditsRouteImport } from './modules/credits/routes/account/credits'
@@ -122,11 +121,6 @@ const AccountIndexRoute = AccountIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AccountRoute,
 } as any)
-const AccountAiUsageRoute = AccountAiUsageRouteImport.update({
-  id: '/ai-usage',
-  path: '/ai-usage',
-  getParentRoute: () => AccountRoute,
-} as any)
 const AccountAuthenticationRoute = AccountAuthenticationRouteImport.update({
   id: '/authentication',
   path: '/authentication',
@@ -195,7 +189,6 @@ export interface FileRoutesByFullPath {
   '/privacy-policy': typeof LayoutPrivacyPolicyRoute
   '/releases': typeof LayoutReleasesRoute
   '/terms-of-service': typeof LayoutTermsOfServiceRoute
-  '/account/ai-usage': typeof AccountAiUsageRoute
   '/account/authentication': typeof AccountAuthenticationRoute
   '/account/billing': typeof AccountBillingRoute
   '/account/credits': typeof AccountCreditsRoute
@@ -222,7 +215,6 @@ export interface FileRoutesByTo {
   '/privacy-policy': typeof LayoutPrivacyPolicyRoute
   '/releases': typeof LayoutReleasesRoute
   '/terms-of-service': typeof LayoutTermsOfServiceRoute
-  '/account/ai-usage': typeof AccountAiUsageRoute
   '/account/authentication': typeof AccountAuthenticationRoute
   '/account/billing': typeof AccountBillingRoute
   '/account/credits': typeof AccountCreditsRoute
@@ -252,7 +244,6 @@ export interface FileRoutesById {
   '/_layout/privacy-policy': typeof LayoutPrivacyPolicyRoute
   '/_layout/releases': typeof LayoutReleasesRoute
   '/_layout/terms-of-service': typeof LayoutTermsOfServiceRoute
-  '/account/ai-usage': typeof AccountAiUsageRoute
   '/account/authentication': typeof AccountAuthenticationRoute
   '/account/billing': typeof AccountBillingRoute
   '/account/credits': typeof AccountCreditsRoute
@@ -283,7 +274,6 @@ export interface FileRouteTypes {
     | '/privacy-policy'
     | '/releases'
     | '/terms-of-service'
-    | '/account/ai-usage'
     | '/account/authentication'
     | '/account/billing'
     | '/account/credits'
@@ -310,7 +300,6 @@ export interface FileRouteTypes {
     | '/privacy-policy'
     | '/releases'
     | '/terms-of-service'
-    | '/account/ai-usage'
     | '/account/authentication'
     | '/account/billing'
     | '/account/credits'
@@ -339,7 +328,6 @@ export interface FileRouteTypes {
     | '/_layout/privacy-policy'
     | '/_layout/releases'
     | '/_layout/terms-of-service'
-    | '/account/ai-usage'
     | '/account/authentication'
     | '/account/billing'
     | '/account/credits'
@@ -488,13 +476,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountIndexRouteImport
       parentRoute: typeof AccountRoute
     }
-    '/account/ai-usage': {
-      id: '/account/ai-usage'
-      path: '/ai-usage'
-      fullPath: '/account/ai-usage'
-      preLoaderRoute: typeof AccountAiUsageRouteImport
-      parentRoute: typeof AccountRoute
-    }
     '/account/authentication': {
       id: '/account/authentication'
       path: '/authentication'
@@ -610,7 +591,6 @@ const LayoutRouteWithChildren =
   LayoutRoute._addFileChildren(LayoutRouteChildren)
 
 interface AccountRouteChildren {
-  AccountAiUsageRoute: typeof AccountAiUsageRoute
   AccountAuthenticationRoute: typeof AccountAuthenticationRoute
   AccountBillingRoute: typeof AccountBillingRoute
   AccountCreditsRoute: typeof AccountCreditsRoute
@@ -619,7 +599,6 @@ interface AccountRouteChildren {
 }
 
 const AccountRouteChildren: AccountRouteChildren = {
-  AccountAiUsageRoute: AccountAiUsageRoute,
   AccountAuthenticationRoute: AccountAuthenticationRoute,
   AccountBillingRoute: AccountBillingRoute,
   AccountCreditsRoute: AccountCreditsRoute,

@@ -24,7 +24,6 @@ import {
 import { ThemeButton } from '~/components/theme-button'
 import { authClient, useReloadSession } from '~/lib/auth'
 import { posthog } from '~/lib/posthog'
-import { AiUsageLink } from '~/modules/ai-usage/ai-usage-link'
 import { BillingLink } from '~/modules/billing/billing-link'
 import { CreditsLink } from '~/modules/credits/credits-link'
 import { AuthenticationLink } from '~/modules/settings/authentication-link'
@@ -100,7 +99,6 @@ const AccountLayout = () => {
             </SidebarLink>
             <BillingLink />
             <CreditsLink />
-            <AiUsageLink />
             <AuthenticationLink />
             <SettingsLink />
             <SupportButton />
