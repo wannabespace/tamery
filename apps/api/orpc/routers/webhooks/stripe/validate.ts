@@ -3,31 +3,23 @@ import type Stripe from 'stripe'
 import { env } from '~/env'
 import { stripe } from '~/lib/stripe'
 
+/** `null` when the request is not signed by Stripe; throws when webhooks are not configured. */
 export const validateRequest = async (
   request: Request
-): Promise<Stripe.Event> => {
+): Promise<Stripe.Event | null> => {
+  const webhookSecret = env.STRIPE_WEBHOOK_SECRET
+
+  if (!stripe || !webhookSecret) {
+    throw new Error('Stripe webhooks are not configured')
+  }
+
   const signature = request.headers.get('stripe-signature')
 
-  if (!signature || !stripe) {
-    throw new Error('No signature found in request')
+  if (!signature) {
+    return null
   }
 
-  let event: Stripe.Event
-
-  const webhookSecret = env.STRIPE_WEBHOOK_SECRET
-  if (!webhookSecret) {
-    throw new Error('STRIPE_WEBHOOK_SECRET is not configured')
-  }
-
-  try {
-    event = await stripe.webhooks.constructEventAsync(
-      await request.text(),
-      signature,
-      webhookSecret
-    )
-  } catch {
-    throw new Error('Failed to validate request')
-  }
-
-  return event
+  return stripe.webhooks
+    .constructEventAsync(await request.text(), signature, webhookSecret)
+    .catch(() => null)
 }

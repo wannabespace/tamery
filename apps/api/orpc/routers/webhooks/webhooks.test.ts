@@ -110,10 +110,7 @@ test('Stripe: a signed event reaches its handler through the HTTP API', async ()
 test('Stripe: an event signed with another secret is refused', async () => {
   const response = await postStripe('whsec_other')
 
-  expect(response.ok).toBe(false)
-  expect(await response.json()).toMatchObject({
-    json: { message: 'Failed to validate request' },
-  })
+  expect(response.status).toBe(401)
 })
 
 const todesktopBuild = JSON.stringify({
