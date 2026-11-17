@@ -101,8 +101,9 @@ resource "google_monitoring_alert_policy" "metric" {
   }
 }
 
+# A check every few minutes keeps proxy's instance-billed instance up around the clock, so it never scales to zero.
 resource "google_monitoring_uptime_check_config" "site" {
-  for_each = local.hosts
+  for_each = { for service, host in local.hosts : service => host if service != "proxy" }
 
   display_name = each.value
   timeout      = "10s"
@@ -113,14 +114,6 @@ resource "google_monitoring_uptime_check_config" "site" {
     port         = 443
     use_ssl      = true
     validate_ssl = true
-
-    # The proxy's / redirects to the website.
-    accepted_response_status_codes {
-      status_class = "STATUS_CLASS_2XX"
-    }
-    accepted_response_status_codes {
-      status_class = "STATUS_CLASS_3XX"
-    }
   }
 
   monitored_resource {
