@@ -58,6 +58,12 @@ const handler = new RPCHandler(router, {
         })
       }
     },
+    // Webhook senders post their own JSON, which oRPC's decoder rejects as not its envelope; the webhook procedures
+    // verify signatures against the raw `context.request` body instead.
+    ({ next, ...options }) =>
+      options.path[0] === 'webhooks'
+        ? next({ ...options, decodeInput: () => Promise.resolve() })
+        : next(),
   ],
 })
 
