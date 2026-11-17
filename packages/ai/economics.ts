@@ -1,7 +1,8 @@
 /**
  * What a month of Free, Pro and a trial costs in AI, estimated from the prompts, input caps and models the API
- * really uses and LiteLLM's prices (`getModelCost`) plus OpenRouter's fee on the credits we buy, against what Pro
- * and AI credit top-ups bring in after Stripe.
+ * really uses and LiteLLM's prices (`getModelCost`), against what Pro and AI credit top-ups bring in after Stripe.
+ * It counts no OpenRouter fee: the models run on Tamery's own provider keys (BYOK), free up to $25,000 of list price
+ * a month; a call that falls back to OpenRouter's keys costs 5.5% more.
  * `economics.test.ts` holds the budget; `bun run economics` prints the table. Tokens are estimates at
  * 3.5 characters each (schemas and SQL), with no prompt caching.
  */
@@ -211,8 +212,6 @@ export const trialCost = async (use: Use) => {
   )
 }
 
-/** OpenRouter's fee on the credits we buy, on top of every model's list price. */
-const OPENROUTER_FEE = 0.055
 const STRIPE_CARD_RATE = 0.029
 const STRIPE_BILLING_RATE = 0.007
 const STRIPE_FIXED_USD = 0.3
@@ -233,17 +232,12 @@ const netRevenue = (interval: Interval) =>
   monthsOf(interval)
 
 export const margin = (interval: Interval, aiUsd: number) =>
-  (netRevenue(interval) - aiUsd * (1 + OPENROUTER_FEE)) / grossRevenue(interval)
+  (netRevenue(interval) - aiUsd) / grossRevenue(interval)
 
 /** What a top-up of `credits` dollars keeps once they are spent, as a share of the charge. */
 export const topUpMargin = (credits: number) => {
   const charge = topUpChargeCents(credits) / 100
-  return (
-    (charge * (1 - STRIPE_CARD_RATE) -
-      STRIPE_FIXED_USD -
-      credits * (1 + OPENROUTER_FEE)) /
-    charge
-  )
+  return (charge * (1 - STRIPE_CARD_RATE) - STRIPE_FIXED_USD - credits) / charge
 }
 
 const usd = (n: number) => `$${n < 0.01 ? n.toFixed(4) : n.toFixed(2)}`

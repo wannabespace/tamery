@@ -11,7 +11,7 @@ export const CREDIT_TOP_UP = {
   amounts: [10, 25, 50, 100],
   autoTopUpAmount: 20,
   autoTopUpThreshold: 5,
-  fee: 0.1,
+  fee: 0.05,
   max: 1000,
   min: 10,
 } as const
