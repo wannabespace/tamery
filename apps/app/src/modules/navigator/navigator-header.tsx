@@ -49,16 +49,19 @@ export const NavigatorHeader = () => {
   const names = useObjectNames()
   const sections = [
     {
+      description: 'Browse and open your data',
       label: `${uppercaseFirst(names.table)}s`,
       shortcut: 'navigatorTables',
       value: 'tables',
     },
     {
+      description: 'Indexes, constraints and the rest',
       label: 'Schema',
       shortcut: 'navigatorSchema',
       value: 'definitions',
     },
     {
+      description: 'Ask AI about this database',
       label: 'Chats',
       shortcut: 'navigatorChats',
       value: 'chats',
@@ -88,18 +91,23 @@ export const NavigatorHeader = () => {
               icon={ArrowDown01Icon}
               strokeWidth={2}
               data-icon="inline-end"
-              className="text-muted-foreground size-3.5 transition-transform group-aria-expanded/button:rotate-180"
+              className="text-muted-foreground size-4 transition-transform group-aria-expanded/button:rotate-180"
             />
           </TooltipTrigger>
           <TooltipContent side="bottom">Switch section</TooltipContent>
         </Tooltip>
         <DropdownMenuContent className="min-w-48">
-          {sections.map(({ label, shortcut, value }) => (
+          {sections.map(({ description, label, shortcut, value }) => (
             <DropdownMenuItem
               key={value}
               onClick={() => showNavigatorSection(connectionResource.id, value)}
             >
-              {label}
+              <span className="flex flex-col">
+                {label}
+                <span className="text-muted-foreground text-xs">
+                  {description}
+                </span>
+              </span>
               <DropdownMenuShortcut>
                 <ShortcutKbd shortcut={shortcut} />
               </DropdownMenuShortcut>

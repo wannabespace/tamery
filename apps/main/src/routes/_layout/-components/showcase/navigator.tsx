@@ -140,7 +140,7 @@ export const Navigator = ({
           icon={ArrowDown01Icon}
           strokeWidth={2}
           data-icon="inline-end"
-          className="text-muted-foreground size-3.5"
+          className="text-muted-foreground size-4"
         />
       </Button>
     </div>
