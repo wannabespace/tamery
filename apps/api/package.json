@@ -9,7 +9,8 @@
     "rotate:user-key-secret": "bun run ./scripts/rotate/user-key-secret.ts",
     "check-types": "bun check",
     "test:start": "cross-env NODE_ENV=test bun --env-file=.env.test drizzle-kit migrate && cross-env NODE_ENV=test bun --env-file=.env.test run ./index.ts",
-    "better-auth:generate": "cross-env NODE_ENV=development pnpx auth generate --output ../../packages/db/schema/auth.ts"
+    "better-auth:generate": "cross-env NODE_ENV=development pnpx auth generate --output ../../packages/db/schema/auth.ts",
+    "test": "bun test --isolate"
   },
   "dependencies": {
     "@better-auth/core": "catalog:",

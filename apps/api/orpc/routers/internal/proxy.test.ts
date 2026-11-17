@@ -1,4 +1,5 @@
 import { beforeEach, expect, mock, test } from 'bun:test'
+import process from 'node:process'
 
 import { call, os } from '@orpc/server'
 import { SyncType } from '@tamery/shared/enums/sync-type'
@@ -32,6 +33,11 @@ mock.module('@tamery/db', () => ({
     },
   },
 }))
+Object.assign(process.env, {
+  DATABASE_URL: 'postgres://test@127.0.0.1:1/test',
+  ENCRYPTION_SECRET: 'test',
+  USER_KEY_SECRET: 'test',
+})
 mock.module('~/env', () => ({ env: { PROXY_SHARED_SECRET: 'secret' } }))
 const orpc = os.$context<Context>()
 mock.module('~/orpc', () => ({
