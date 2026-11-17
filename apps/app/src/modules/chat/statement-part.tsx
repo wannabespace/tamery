@@ -4,7 +4,7 @@ import { useCollections } from '~/core/collections'
 
 import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
 import { StatementCard } from './statement-card'
-import { getStatus, isDeclined } from './tool-status'
+import { getStatus, isAnsweredByApp } from './tool-status'
 import { WriteApproval } from './write-approval'
 
 const usePartConnection = (connectionId: string | undefined) => {
@@ -74,7 +74,7 @@ export const StatementPart = ({
     <StatementCard
       connection={connection}
       error={
-        part.state === 'output-error' && !isDeclined(part)
+        part.state === 'output-error' && !isAnsweredByApp(part)
           ? part.errorText
           : undefined
       }

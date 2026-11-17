@@ -28,6 +28,13 @@ mock.module('~/core/agent/database', () => ({
   },
 }))
 mock.module('~/lib/posthog', () => ({ posthog: { capture: () => {} } }))
+mock.module('~/core/collections', () => ({
+  getCollections: () => ({
+    connectionsResourcesCollection: {
+      get: () => ({ connectionId: 'connection' }),
+    },
+  }),
+}))
 
 const { chatToolRuns } = await import('./chat-tools')
 
@@ -151,4 +158,42 @@ test('a row asking for a DROP TABLE never runs a write without Run', async () =>
     toolCallId: 'drop',
     type: 'tool-execute',
   })
+})
+
+test('a change aimed at another connection fails before Run can reach it', async () => {
+  write.mockClear()
+  const transcript: AppUIMessage[] = []
+  const { chat } = createChat([
+    step({
+      input: {
+        connectionId: 'prod',
+        resource: null,
+        statement: 'delete from orders',
+      },
+      toolCallId: 'foreign',
+      toolName: 'execute',
+      type: 'tool-input-available',
+    }),
+  ])
+
+  await chat.sendMessage({ text: 'Clear the orders in prod' })
+  await Bun.sleep(10)
+  await chatToolRuns.write({
+    approved: true,
+    chat,
+    input: {
+      connectionId: 'prod',
+      resource: null,
+      statement: 'delete from orders',
+    },
+    toolCallId: 'foreign',
+    transcript,
+  })
+
+  expect(write).not.toHaveBeenCalled()
+  expect(
+    chat.messages
+      .flatMap(({ parts }) => parts)
+      .find((part) => 'toolCallId' in part && part.toolCallId === 'foreign')
+  ).toMatchObject({ state: 'output-error' })
 })

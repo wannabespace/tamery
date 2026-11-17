@@ -7,6 +7,7 @@ import { isToolUIPart } from 'ai'
 import { Result } from 'better-result'
 
 import { agentDatabase } from '~/core/agent/database'
+import { getCollections } from '~/core/collections'
 import { posthog } from '~/lib/posthog'
 
 import { resumeSubagent } from './subagents-store'
@@ -21,6 +22,8 @@ type ToolCall = Exclude<
 >
 
 export const DECLINED = 'The user declined to run this statement.'
+export const READ_ONLY =
+  "This chat only reads that connection: change data or schema only in the chat's own connection. Tell the user and suggest they open a chat in that connection to make the change; its card offers them one."
 
 const runs = new Map<string, AbortController>()
 const decided = new Set<string>()
@@ -53,6 +56,10 @@ const getSignal = (chatId: string) => {
   runs.set(chatId, controller)
   return controller.signal
 }
+
+const isOwnConnection = (connectionId: string, connectionResourceId: string) =>
+  getCollections().connectionsResourcesCollection.get(connectionResourceId)
+    ?.connectionId === connectionId
 
 const addReadOutput = async (
   chat: AppChat,
@@ -202,12 +209,27 @@ const read = async (
 }
 
 export const chatToolRuns = {
-  /** Answers the model's tool calls in the window. Everything but an `execute` or an `ask_user` runs on its own: those wait for the user on their card, whatever the transcript or the data it read says. */
+  /** Answers the model's tool calls in the window. Everything but an `execute` or an `ask_user` runs on its own: those wait for the user on their card, whatever the transcript or the data it read says. A change aimed at another connection than the chat's fails here, and is claimed so its card can never run it, not even in Auto. */
   answer: (
     chat: AppChat,
     toolCall: AnyToolCall,
     connectionResourceId: string
   ) => {
+    if (
+      !toolCall.dynamic &&
+      (toolCall.toolName === 'execute' ||
+        toolCall.toolName === 'propose_change') &&
+      !isOwnConnection(toolCall.input.connectionId, connectionResourceId)
+    ) {
+      decided.add(toolCall.toolCallId)
+      void chat.addToolOutput({
+        errorText: READ_ONLY,
+        state: 'output-error',
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+      })
+      return
+    }
     if (
       !toolCall.dynamic &&
       toolCall.toolName !== 'execute' &&

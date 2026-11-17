@@ -97,7 +97,7 @@ Type **@** in the message box to mention:
 | Mention | What the agent gets |
 | --- | --- |
 | A table of this connection | Its columns, keys, and indexes, so it can write SQL right away |
-| Another connection | Access to it in this chat, for example to compare data across two databases |
+| Another connection | Read access to it in this chat, for example to compare data across two databases |
 | An earlier chat of this connection | Its title; the agent reads what was said there when it needs to |
 
 Each connection is one row, standing for the database you opened in it most recently; **Enter** mentions that one. When a connection has more databases, **Right arrow** (or the arrow at the row's end) lists them, and **Left arrow** or **Esc** goes back. Typing a database's name finds it directly.
@@ -107,6 +107,8 @@ Chats show up only once you type part of a title, at most three, below the conne
 In a sent message, click a mentioned database or chat to open it, or a mentioned table to see its first rows.
 
 The agent queries each connection on its own, then joins or compares the results with SQL in the chat itself, so matching rows across databases is exact rather than done by eye. The joined table shows as a **Combined results** card.
+
+The agent changes only the connection the chat belongs to and only reads the others, so mentioning your production database in a chat on your development one can't change production, not even in **Auto** mode. A change the agent aims at another connection shows as **Read-only**, and **Open chat** next to it starts a chat in that connection, where the agent can make it.
 
 Type **/** at the start of a message for commands. Picking one writes it in the message box, and **Enter** runs it:
 

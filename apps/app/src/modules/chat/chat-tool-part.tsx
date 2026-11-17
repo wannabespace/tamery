@@ -21,7 +21,7 @@ import { NotePart } from './note-part'
 import { StatementCard } from './statement-card'
 import { ExplainPlan, StatementPart } from './statement-part'
 import { SubagentPart } from './subagent-part'
-import { getStatus, isDeclined, isRunning } from './tool-status'
+import { getStatus, isAnsweredByApp, isRunning } from './tool-status'
 import { WebSources } from './web-sources'
 
 /** A call's line, in the past once it is done and in the present while it runs; it names its input's `detail` field once the model has sent it. */
@@ -253,7 +253,7 @@ const getDetail = (part: ChatToolPart) => {
   if (part.type === 'tool-web_search' && part.state === 'output-available') {
     return <WebSources sources={part.output.sources} />
   }
-  if (part.state === 'output-error' && !isDeclined(part)) {
+  if (part.state === 'output-error' && !isAnsweredByApp(part)) {
     return (
       <p data-mask className="text-destructive text-xs whitespace-pre-wrap">
         {part.errorText}
