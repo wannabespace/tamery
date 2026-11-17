@@ -115,9 +115,20 @@ export const useChatSession = ({
     stop,
   } = useChat({ chat: instance })
   const isStreaming = status === 'submitted' || status === 'streaming'
-  const displayMessages = mergeMessages(
+  const transcript = mergeMessages(
     messagesFromPartRows(transcriptRows),
     messages
+  )
+  // An edited message replaces what followed it, but the synced rows go only once the server re-asks it.
+  const [replacedIds, setReplacedIds] = useState<string[]>([])
+  if (
+    replacedIds.length > 0 &&
+    !transcript.some(({ id }) => replacedIds.includes(id))
+  ) {
+    setReplacedIds([])
+  }
+  const displayMessages = transcript.filter(
+    ({ id }) => !replacedIds.includes(id)
   )
   const lastMessage = displayMessages.at(-1)
   const isAwaitingAnswer =
@@ -137,6 +148,11 @@ export const useChatSession = ({
     isAwaitingAnswer ||
     isContinuing ||
     isAnswering(lastMessage, messages, stoppedId)
+  // A queued message would answer for the user and skip what the agent waits on, a change or a question they have not seen yet.
+  const isWaitingOnUser =
+    lastMessage?.role === 'assistant' &&
+    lastMessage.id !== stoppedId &&
+    lastMessage.parts.some(awaitsUser)
   const queueStore = chatQueueStore(chatId)
   const queue = useSubscription(queueStore)
 
@@ -168,7 +184,7 @@ export const useChatSession = ({
   // A table mention is described before the message goes out, and the status only turns busy after, so without this the next render would send a second queued message too.
   const isFlushing = useRef(false)
   useEffect(() => {
-    if (!isWorking && next && !isFlushing.current) {
+    if (!(isWorking || isWaitingOnUser) && next && !isFlushing.current) {
       isFlushing.current = true
       queueStore.set((current) => current.filter(({ id }) => id !== next.id))
       void deliver(next.text, next.mentions, next.files).finally(() => {
@@ -227,16 +243,54 @@ export const useChatSession = ({
       text: string,
       mentions: PromptMention[]
     ) => {
-      const original = displayMessages.find(({ id }) => id === messageId)
+      const index = displayMessages.findIndex(({ id }) => id === messageId)
+      const original = displayMessages[index]
       if (!original) {
         return
       }
       posthog.capture('ai_chat_message_edited')
-      const parts = [
-        { text, type: 'text' as const },
-        ...original.parts.filter((part) => part.type !== 'text'),
-      ]
-      const added = await Promise.all(mentions.map(mentionPart))
+      setReplacedIds(displayMessages.slice(index + 1).map(({ id }) => id))
+      const kept = original.parts.filter((part) => part.type !== 'text')
+      const parts = [{ text, type: 'text' as const }, ...kept]
+      // Describing a table queries the database, so only a mention the original lacks is described.
+      const fresh = mentions.filter(
+        (mention) =>
+          !kept.some((part) => {
+            switch (mention.kind) {
+              case 'chat': {
+                return (
+                  part.type === 'data-chat' &&
+                  part.data.chatId === mention.chat.chatId
+                )
+              }
+              case 'connection': {
+                return (
+                  part.type === 'data-connection' &&
+                  part.data.connectionId === mention.connection.connectionId &&
+                  part.data.resource === mention.connection.resource
+                )
+              }
+              case 'skill': {
+                return (
+                  part.type === 'data-skill' &&
+                  part.data.name === mention.skill.name
+                )
+              }
+              case 'table': {
+                return (
+                  part.type === 'data-table' &&
+                  part.data.connectionId === mention.table.connectionId &&
+                  part.data.schema === mention.table.schema &&
+                  part.data.table === mention.table.table
+                )
+              }
+              default: {
+                return mention satisfies never
+              }
+            }
+          })
+      )
+      const added = await Promise.all(fresh.map(mentionPart))
       // `sendMessage` finds `messageId` only among live turns, and a chat reopened from the collections holds none.
       if (!instance.messages.some(({ id }) => id === messageId)) {
         instance.messages = displayMessages

@@ -142,6 +142,19 @@ export const AskUserPart = ({
   if (part.state === 'input-streaming') {
     return <ChatDisclosure icon={HelpCircleIcon} label="Asking you" live />
   }
+  if (part.state === 'output-error') {
+    return (
+      <ChatDisclosure
+        icon={HelpCircleIcon}
+        label="Couldn't ask you"
+        status={<span className="text-destructive">Failed</span>}
+      >
+        <p className="text-destructive text-xs whitespace-pre-wrap">
+          {part.errorText}
+        </p>
+      </ChatDisclosure>
+    )
+  }
   if (part.state !== 'output-available') {
     return (
       <ChatDisclosure
@@ -149,11 +162,16 @@ export const AskUserPart = ({
         label="Asked you"
         status={<span className="text-muted-foreground">Not answered</span>}
       >
-        {part.state === 'output-error' && (
-          <p className="text-destructive text-xs whitespace-pre-wrap">
-            {part.errorText}
-          </p>
-        )}
+        <dl className="flex flex-col gap-2 text-xs">
+          {part.input.questions.map((question, index) => (
+            <div key={index}>
+              <dt>{question.question}</dt>
+              <dd className="text-muted-foreground">
+                {question.options.map(({ label }) => label).join(' · ')}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </ChatDisclosure>
     )
   }

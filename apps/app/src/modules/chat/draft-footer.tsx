@@ -1,9 +1,11 @@
 import type { ChatTools } from '@tamery/ai/tools'
 import { Button } from '@tamery/ui/components/button'
 import { useRouter } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { diagramDraftsStore } from '~/core/drafts/diagram'
+import { savedDrafts } from '~/core/drafts/saved'
 import { tableSessionStore } from '~/core/table/session'
 import { openTab } from '~/core/tabs/actions'
 import { tableTabId } from '~/core/tabs/ids'
@@ -21,6 +23,31 @@ const pendingNote = (
     ? 'Nothing changes until you save the draft in the table'
     : 'Nothing changes until you apply the draft in the visualizer'
 }
+
+const settledNote = ({
+  isSaved,
+  kind,
+  wasStaged,
+  where,
+}: {
+  isSaved: boolean
+  kind: ChatTools['propose_change']['input']['change']['kind']
+  wasStaged: boolean
+  where: ChatTools['propose_change']['output']['where']
+}) => {
+  if (isSaved) {
+    if (kind === 'delete_rows') {
+      return 'Deleted'
+    }
+    return where === 'table' ? 'Saved' : 'Applied'
+  }
+  return wasStaged
+    ? 'Discarded'
+    : "No longer drafted; drafts don't outlive a reload"
+}
+
+/** Drafts this window has held since it loaded; one that is gone without a save was discarded, unless it went with a reload. */
+const stagedThisSession = new Set<string>()
 
 /** Where a drafted change waits, while the table or the visualizer still holds it: saving, discarding or a reload empties those drafts. */
 export const DraftFooter = ({
@@ -51,6 +78,15 @@ export const DraftFooter = ({
   })
   const isTable = output.where === 'table'
   const isStaged = isTable ? rowsStaged : schemaStaged
+  const draftKey = savedDrafts.key(resourceId, output.where, { schema, table })
+  const isSaved = useSubscription(savedDrafts.value, {
+    selector: (keys) => keys.includes(draftKey),
+  })
+  useEffect(() => {
+    if (isStaged) {
+      stagedThisSession.add(draftKey)
+    }
+  }, [isStaged, draftKey])
 
   const review = () => {
     const tabId = isTable ? tableTabId(schema, table) : VISUALIZER_TAB_ID
@@ -67,7 +103,12 @@ export const DraftFooter = ({
       <span className="text-muted-foreground mr-auto pl-1 text-xs">
         {isStaged
           ? pendingNote(input.change.kind, output.where)
-          : 'Saved or discarded'}
+          : settledNote({
+              isSaved,
+              kind: input.change.kind,
+              wasStaged: stagedThisSession.has(draftKey),
+              where: output.where,
+            })}
       </span>
       <Button
         size="xs"

@@ -81,8 +81,8 @@ const LABELS: Partial<
   },
   'tool-propose_change': {
     detail: 'table',
-    done: 'Drafted a change in',
-    live: 'Drafting a change in',
+    done: 'Proposed a change to',
+    live: 'Proposing a change to',
     object: 'a table',
   },
   'tool-propose_note': {

@@ -37,11 +37,17 @@ const summarize = (sets: ResultSets) => {
       ? `${set.rows.length}+ rows`
       : plural(set.rows.length, 'row')
   }
-  const affected = sets.reduce(
-    (sum, { affectedRows }) => sum + (affectedRows ?? 0),
-    0
+  const counts = sets.flatMap(({ affectedRows }) =>
+    affectedRows === null ? [] : [affectedRows]
   )
-  return `${plural(affected, 'row')} affected`
+  // A schema change counts no rows, and "0 rows affected" would read as if it did nothing.
+  if (counts.length === 0) {
+    return 'Done'
+  }
+  return `${plural(
+    counts.reduce((sum, count) => sum + count, 0),
+    'row'
+  )} affected`
 }
 
 export const ResultGrid = ({

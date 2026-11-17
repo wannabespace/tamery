@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { useConnectionContext } from '~/core/connection/route'
 import type { DiagramDraft, diagramDrafts } from '~/core/drafts/diagram'
+import { savedDrafts } from '~/core/drafts/saved'
 import {
   connectionResourceToQueryParams,
   transaction,
@@ -80,6 +81,7 @@ export const useApplyDrafts = ({
       } catch (error) {
         onApplied(committed)
         edit.settle(committed)
+        savedDrafts.mark(connectionResource.id, 'visualizer', committed)
         throw error
       }
       return ordered
@@ -93,6 +95,7 @@ export const useApplyDrafts = ({
     onSuccess: (applied) => {
       onApplied(applied)
       edit.settle(applied)
+      savedDrafts.mark(connectionResource.id, 'visualizer', applied)
       setReviewOpen(false)
       toast.success(`Applied ${plural(applied.length, 'change')}`)
     },

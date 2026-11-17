@@ -4,6 +4,7 @@ import { sameList } from '@tamery/shared/utils'
 
 import { suggestedName } from '~/core/catalog/engine-name'
 import { diagramDrafts, diagramDraftsStore } from '~/core/drafts/diagram'
+import { savedDrafts } from '~/core/drafts/saved'
 import {
   draftsActions,
   newRowsActions,
@@ -154,14 +155,17 @@ const stageSchema = ({ change, schema, table, ...target }: ProposedChange) => {
 
 /** Stages a change in the table's or the visualizer's drafts; nothing runs until the user applies it in that review. */
 export const proposeChange = async (proposed: ProposedChange) => {
+  const { resource } = resolveResource(proposed)
   if (ROW_KINDS.has(proposed.change.kind)) {
     const { rows } = await stageRows(proposed)
+    savedDrafts.forget(resource.id, 'table', proposed)
     return {
       review: `Drafted ${rows} row change(s) in "${proposed.table}". The user reviews and saves them in that table; nothing has run yet.`,
       where: 'table' as const,
     }
   }
   stageSchema(proposed)
+  savedDrafts.forget(resource.id, 'visualizer', proposed)
   return {
     review:
       'Drafted the schema change in the visualizer. The user reviews its SQL and applies it there; nothing has run yet.',

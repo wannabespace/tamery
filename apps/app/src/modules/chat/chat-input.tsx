@@ -32,7 +32,7 @@ import { AttachmentChip } from './attachment-chip'
 import { ATTACHMENT_ACCEPT, readAttachments } from './attachments'
 import { useDictation } from './dictation'
 import { DictationButton } from './dictation-button'
-import { splitMentions } from './mention-text'
+import { MentionHighlight } from './mention-highlight'
 import { ModelPicker } from './model-picker'
 import type { ChatCommand, PromptMention } from './prompt-mentions'
 import { commandOf, usePromptMentions } from './prompt-mentions'
@@ -164,27 +164,11 @@ export const ChatInput = ({
           </InputGroupAddon>
         )}
         <div className="relative flex w-full">
-          <div
+          <MentionHighlight
             ref={highlightRef}
-            aria-hidden
-            className="pointer-events-none absolute inset-0 overflow-hidden border border-transparent px-3 pt-2.5 pb-2 text-base wrap-break-word whitespace-pre-wrap text-transparent md:text-sm"
-          >
-            {splitMentions(
-              value,
-              menu.sentMentions().map(({ label }) => label)
-            ).map((part, index) =>
-              part.isMention ? (
-                <mark
-                  key={index}
-                  className="bg-muted ring-muted rounded-sm text-transparent ring-2"
-                >
-                  {part.text}
-                </mark>
-              ) : (
-                part.text
-              )
-            )}
-          </div>
+            labels={menu.sentMentions().map(({ label }) => label)}
+            value={value}
+          />
           <InputGroupTextarea
             ref={textareaRef}
             data-mask

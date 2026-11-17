@@ -42,6 +42,7 @@ import { posthog } from '~/lib/posthog'
 import { AgentParts, hasContent, showsProgress } from './agent-steps'
 import type { ToolPartActions } from './chat-tool-types'
 import { Clamped } from './clamped'
+import { MentionHighlight } from './mention-highlight'
 import { MentionText } from './mention-text'
 import { MessageFiles } from './message-files'
 import type { PromptMention } from './prompt-mentions'
@@ -69,6 +70,7 @@ const EditMessage = ({
 }) => {
   const [value, setValue] = useState(initial)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const highlightRef = useRef<HTMLDivElement>(null)
   const menu = usePromptMentions({
     commands: false,
     setValue,
@@ -90,39 +92,51 @@ const EditMessage = ({
     >
       <PromptMenu menu={menu} />
       <InputGroup variant="composer">
-        <InputGroupTextarea
-          ref={textareaRef}
-          autoFocus
-          data-mask
-          aria-label="Edit message"
-          className="field-sizing-content max-h-64 min-h-14 px-3 pt-2.5"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          onSelect={(event) => menu.onSelect(event)}
-          onFocus={(event) =>
-            event.target.setSelectionRange(
-              event.target.value.length,
-              event.target.value.length
-            )
-          }
-          onKeyDown={(event) => {
-            if (menu.onKeyDown(event)) {
-              return
+        <div className="relative flex w-full">
+          <MentionHighlight
+            ref={highlightRef}
+            labels={menu.sentMentions().map(({ label }) => label)}
+            value={value}
+          />
+          <InputGroupTextarea
+            ref={textareaRef}
+            autoFocus
+            data-mask
+            aria-label="Edit message"
+            className="relative field-sizing-content max-h-64 min-h-14 px-3 pt-2.5"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            onScroll={(event) => {
+              if (highlightRef.current) {
+                highlightRef.current.scrollTop = event.currentTarget.scrollTop
+              }
+            }}
+            onSelect={(event) => menu.onSelect(event)}
+            onFocus={(event) =>
+              event.target.setSelectionRange(
+                event.target.value.length,
+                event.target.value.length
+              )
             }
-            if (event.key === 'Escape') {
-              event.preventDefault()
-              event.stopPropagation()
-              onCancel()
-            } else if (
-              event.key === 'Enter' &&
-              !event.shiftKey &&
-              !event.nativeEvent.isComposing
-            ) {
-              event.preventDefault()
-              save()
-            }
-          }}
-        />
+            onKeyDown={(event) => {
+              if (menu.onKeyDown(event)) {
+                return
+              }
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                event.stopPropagation()
+                onCancel()
+              } else if (
+                event.key === 'Enter' &&
+                !event.shiftKey &&
+                !event.nativeEvent.isComposing
+              ) {
+                event.preventDefault()
+                save()
+              }
+            }}
+          />
+        </div>
         <InputGroupAddon align="block-end">
           <div className="ml-auto flex items-center gap-1">
             <Button variant="ghost" size="xs" onClick={onCancel}>
@@ -147,6 +161,11 @@ const UserMessage = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false)
   const text = textFromMessage(message)
+  // An edit goes out only after its new mentions are described, so the bubble shows the new text until the message carries it.
+  const [sentText, setSentText] = useState<string | null>(null)
+  if (sentText !== null && sentText === text) {
+    setSentText(null)
+  }
 
   return (
     <Message align="end">
@@ -158,6 +177,7 @@ const UserMessage = ({
             onCancel={() => setIsEditing(false)}
             onSave={(next, mentions) => {
               setIsEditing(false)
+              setSentText(next)
               onEdit(next, mentions)
             }}
           />
@@ -168,7 +188,9 @@ const UserMessage = ({
                 <BubbleContent data-mask>
                   <Clamped>
                     <p className="whitespace-pre-wrap">
-                      <MentionText message={message} text={text} />
+                      {sentText ?? (
+                        <MentionText message={message} text={text} />
+                      )}
                     </p>
                   </Clamped>
                 </BubbleContent>

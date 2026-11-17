@@ -30,10 +30,11 @@ const judgedOutcome = (verdict: StatementVerdict | null) => {
 }
 
 const autoNote = (state: {
-  asked: boolean
   changesExisting: boolean
   checking: boolean
+  judged: boolean
   runs: boolean
+  unjudged: boolean
 }) => {
   if (state.checking) {
     return 'Auto is checking'
@@ -41,8 +42,11 @@ const autoNote = (state: {
   if (state.runs) {
     return 'Auto is running it'
   }
-  if (state.asked) {
-    return 'Auto wants your review'
+  if (state.unjudged) {
+    return "Auto couldn't check it, so it waits"
+  }
+  if (state.judged) {
+    return 'Not sure it is what you asked, so it waits'
   }
   if (state.changesExisting) {
     return 'Edits existing data, so it waits'
@@ -121,10 +125,11 @@ export const WriteApproval = ({
   }, [autoRuns, run, isRunning])
 
   const note = autoNote({
-    asked: isAuto && verdict.isFetched,
     changesExisting: isAuto && !!write && !write.additive,
     checking: verdict.isFetching,
+    judged: isAuto && verdict.isFetched,
     runs: autoRuns,
+    unjudged: isAuto && verdict.isFetched && !verdict.data,
   })
 
   const hint = [

@@ -29,6 +29,7 @@ import { toast } from 'sonner'
 
 import { useObjectNames } from '~/core/catalog/names'
 import { useConnectionContext } from '~/core/connection/route'
+import { savedDrafts } from '~/core/drafts/saved'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import { deleteRowsQuery } from '~/core/queries/rows/delete'
@@ -145,6 +146,7 @@ export const DeleteRowsDialog = ({
           table,
         }),
       })
+      savedDrafts.mark(connectionResource.id, 'table', [{ schema, table }])
       const deleted = new Set(rows.map(primaryKeysKey))
       sessionStore.set((state) => ({
         ...state,

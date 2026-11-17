@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { useConnectionContext } from '~/core/connection/route'
+import { savedDrafts } from '~/core/drafts/saved'
 import { insertQuery } from '~/core/queries/rows/insert'
 import { resourceRowsQueryKey } from '~/core/queries/rows/list'
 import { setQuery } from '~/core/queries/rows/set'
@@ -146,6 +147,7 @@ export const useSaveStaged = ({
           }),
       ])
       status.settle(submitted)
+      savedDrafts.mark(connectionResource.id, 'table', [{ schema, table }])
       history.reset()
       const rows = new Set(
         submitted.drafts.map((draft) => primaryKeysKey(draft.primaryKeys))
