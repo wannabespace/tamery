@@ -5,8 +5,7 @@ import { FREE_WEEKLY_LIMITS, usageResetsAt } from '@tamery/shared/usage'
 
 import type { permix } from '~/orpc'
 
-import { payForAi } from './ai-key'
-import { aiUsage } from './ai-usage'
+import { credits } from './credits'
 import { redis } from './redis'
 
 const unlimitedPermission = {
@@ -29,7 +28,7 @@ const getQuota = (feature: MeteredFeature, used: number) => ({
 })
 
 export const usage = {
-  /** Free is held to its weekly limit; unlimited, the user's own key pays, else Pro's AI budget and credits. */
+  /** Free is held to its weekly limit; Pro, unlimited, to the AI budget and credits. */
   enforce: async (
     context: UsageContext,
     feature: Exclude<MeteredFeature, 'mcp'>,
@@ -39,11 +38,9 @@ export const usage = {
     if (quota && quota.used >= quota.max) {
       throw limitReached()
     }
-    return quota
-      ? { key: null, telemetry: aiUsage.telemetry }
-      : payForAi(context.user.id, () =>
-          limitReached({ message: AI_BUDGET_SPENT_MESSAGE })
-        )
+    if (!(quota || (await credits.canUseAi(context.user.id)))) {
+      throw limitReached({ message: AI_BUDGET_SPENT_MESSAGE })
+    }
   },
   get: async ({ permissions, user }: UsageContext, feature: MeteredFeature) =>
     permissions.check(unlimitedPermission[feature])

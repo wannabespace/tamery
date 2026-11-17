@@ -18,7 +18,7 @@ export const HOBBY_PLAN: PricingPlan = {
     'Unlimited synced connections',
     `${FREE_WEEKLY_LIMITS.filters} AI filters a week`,
     'AI connection diagnosis',
-    'Every AI feature with your own Anthropic, OpenAI, Google or OpenRouter key',
+    'AI chat with your own Anthropic, OpenAI, Google or OpenRouter key',
     `${FREE_WEEKLY_LIMITS.mcp} MCP agent queries a week`,
     `${FREE_SHARE_LIMIT} shared table links`,
   ],

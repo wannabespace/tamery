@@ -57,7 +57,7 @@ const RouteComponent = () => {
             <EmptyDescription>
               Pro includes AI chat every month, and credits keep it going past
               that. Or add your own AI provider key in Settings → AI in the app
-              and your provider bills you.
+              and your provider bills you for the chat.
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>

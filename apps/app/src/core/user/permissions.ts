@@ -53,7 +53,7 @@ export const checkOrUpgrade = (...args: Parameters<typeof permix.check>) => {
     setIsSubscriptionDialogOpen(
       true,
       typeof path === 'string' ? (UPGRADE_HINTS[path] ?? null) : null,
-      { offerAiKey: typeof path === 'string' && path.startsWith('ai.') }
+      { offerAiKey: path === 'ai.chat.use' }
     )
   }
 

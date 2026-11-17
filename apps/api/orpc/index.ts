@@ -1,5 +1,4 @@
 import { ORPCError, os } from '@orpc/server'
-import { AI_KEY_HINT } from '@tamery/shared/ai-key'
 import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
 import { decrypt } from '@tamery/shared/crypto-node'
 import type { Permissions } from '@tamery/shared/permissions'
@@ -184,9 +183,10 @@ export const permix = createPermix<Permissions>({
     }
 
     throw new ORPCError('FORBIDDEN', {
-      message: path?.startsWith('ai.')
-        ? `To use this feature, subscribe to a Pro plan ${AI_KEY_HINT}.`
-        : 'To use this feature, a subscription is required. Please subscribe to a Pro plan to continue.',
+      message:
+        path === 'ai.chat.use'
+          ? 'To use the AI chat, subscribe to a Pro plan or add your own AI provider key in Settings → AI.'
+          : 'To use this feature, a subscription is required. Please subscribe to a Pro plan to continue.',
     })
   },
 }).contextKey('permissions')

@@ -59,7 +59,7 @@ const SavedKey = ({
             </span>
           </span>
         }
-        description={`Every AI feature runs on your ${AI_KEY_PROVIDERS[provider]} account and is billed by ${AI_KEY_PROVIDERS[provider]}, with no Tamery limits or credits.`}
+        description={`The AI chat runs on your ${AI_KEY_PROVIDERS[provider]} account and is billed by ${AI_KEY_PROVIDERS[provider]}, with no Tamery budget or credits.`}
       >
         <Button
           variant="outline"
@@ -94,7 +94,7 @@ const KeyForm = () => {
       <SettingsGroup title="Use your own key">
         <SettingsRow
           title="Provider"
-          description="AI features run on its models, billed by the provider instead of Tamery, on any plan."
+          description="The AI chat runs on its models, billed by the provider instead of Tamery, on any plan."
         >
           <Select
             items={providers}

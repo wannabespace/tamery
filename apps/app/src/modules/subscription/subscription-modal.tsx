@@ -57,7 +57,7 @@ export const SubscriptionModal = () => {
           <DialogDescription>
             {upgradeHint ??
               (offerAiKey
-                ? 'Upgrade to unlock this and everything else, or add your own Anthropic, OpenAI, Google or OpenRouter key to use AI on the Free plan, billed by your provider.'
+                ? 'Upgrade to unlock this and everything else, or add your own Anthropic, OpenAI, Google or OpenRouter key to use the AI chat on the Free plan, billed by your provider.'
                 : 'Upgrade to unlock this and everything else. Tamery is independent, and your support is what keeps it going.')}
           </DialogDescription>
         </DialogHeader>

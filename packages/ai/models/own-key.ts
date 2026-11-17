@@ -16,10 +16,9 @@ export interface AiKey {
   provider: AiKeyProvider
 }
 
-type FixedModels = Record<
-  Exclude<keyof typeof models, 'transcribe'>,
-  LanguageModel
-> & { transcribe: LanguageModel | null }
+type FixedModels = Record<'fast' | 'search' | 'summary', LanguageModel> & {
+  transcribe: LanguageModel | null
+}
 
 interface ProviderModels {
   /** Takes a chat model's OpenRouter id; `fast` only reaches OpenRouter. */
@@ -38,9 +37,7 @@ const anthropicModels = (apiKey: string): ProviderModels => {
     chat: (id) => anthropic(bareId(id).replaceAll('.', '-')),
     models: {
       fast: anthropic('claude-haiku-5-5'),
-      query: anthropic('claude-opus-5-5'),
       search: anthropic('claude-haiku-5-5'),
-      structured: anthropic('claude-sonnet-5-5'),
       summary: anthropic('claude-sonnet-5-5'),
       transcribe: null,
     },
@@ -54,9 +51,7 @@ const googleModels = (apiKey: string): ProviderModels => {
     chat: (id) => google(bareId(id)),
     models: {
       fast: google('gemini-3.8-flash'),
-      query: google('gemini-pro-latest'),
       search: google('gemini-3.8-flash'),
-      structured: google('gemini-pro-latest'),
       summary: google('gemini-3.8-flash'),
       transcribe: google('gemini-3.8-flash'),
     },
@@ -70,9 +65,7 @@ const openaiModels = (apiKey: string): ProviderModels => {
     chat: (id) => openai(bareId(id)),
     models: {
       fast: openai('gpt-6.1-terra'),
-      query: openai('gpt-6.1-sol'),
       search: openai('gpt-6.1-terra'),
-      structured: openai('gpt-6.1-sol'),
       summary: openai('gpt-6.1-terra'),
       transcribe: null,
     },
@@ -107,7 +100,7 @@ export const chatModelsFor = (key?: AiKey | null) =>
       )
     : chatModels
 
-/** Each fixed feature's model on the user's key, `null` where its provider has none; Tamery's otherwise. */
+/** The chat's helper models (titles, suggestions, compaction, web search, dictation) on the user's key; Tamery's otherwise. */
 export const modelsFor = (key?: AiKey | null): FixedModels =>
   key ? providerModels[key.provider](key.key).models : models
 

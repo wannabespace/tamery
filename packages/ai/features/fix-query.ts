@@ -1,8 +1,7 @@
 import type { TelemetryOptions } from 'ai'
 import { generateText } from 'ai'
 
-import type { AiKey } from '../models/own-key'
-import { modelsFor } from '../models/own-key'
+import { models } from '../models/list'
 import { EDITOR_CONTEXT, section, queryOutputRules } from './prompt'
 
 export const fixQueryInstructions = (data: {
@@ -28,13 +27,12 @@ export const fixQuery = async (data: {
   error: string
   signal?: AbortSignal
   query: string
-  key?: AiKey | null
   telemetry?: TelemetryOptions
 }) => {
   const { text } = await generateText({
     abortSignal: data.signal,
     instructions: fixQueryInstructions(data),
-    model: modelsFor(data.key).query,
+    model: models.query,
     prompt: [
       section('WHOLE EDITOR', data.editor),
       section('QUERY', data.query),

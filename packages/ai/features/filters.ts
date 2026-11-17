@@ -3,8 +3,7 @@ import type { TelemetryOptions } from 'ai'
 import { generateText, Output } from 'ai'
 import { type } from 'arktype'
 
-import type { AiKey } from '../models/own-key'
-import { modelsFor } from '../models/own-key'
+import { models } from '../models/list'
 
 export const filtersInstructions = (tableContext: string) =>
   [
@@ -55,13 +54,12 @@ export const generateFilters = async (data: {
   context: string
   prompt: string
   signal?: AbortSignal
-  key?: AiKey | null
   telemetry?: TelemetryOptions
 }) => {
   const { output } = await generateText({
     abortSignal: data.signal,
     instructions: filtersInstructions(data.context),
-    model: modelsFor(data.key).structured,
+    model: models.structured,
     output: Output.object({ schema: filtersOutputSchema }),
     prompt: data.prompt,
     telemetry: data.telemetry,

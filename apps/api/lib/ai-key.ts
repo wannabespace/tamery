@@ -28,7 +28,7 @@ export const aiKey = {
 
 export type AiPayer = Awaited<ReturnType<typeof payForAi>>
 
-/** Who pays for an AI call: the user's own key, else Tamery's budget for Pro. A call on the key records no usage, so it never counts toward the budget or spends credits. */
+/** Who pays for a chat call: the user's own key, else Tamery's budget for Pro. A call on the key records no usage, so it never counts toward the budget or spends credits. */
 export const payForAi = async (userId: string, refused: () => Error) => {
   const key = await aiKey.get(userId)
   if (!(key || (await credits.canUseAi(userId)))) {

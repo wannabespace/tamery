@@ -3,8 +3,7 @@ import type { TelemetryOptions } from 'ai'
 import { generateText, Output } from 'ai'
 import { type } from 'arktype'
 
-import type { AiKey } from '../models/own-key'
-import { modelsFor } from '../models/own-key'
+import { models } from '../models/list'
 import { section } from './prompt'
 
 const diagnosisOutput = type({
@@ -38,13 +37,12 @@ export const diagnoseConnection = async (data: {
   error: string
   settings: Record<string, unknown>
   signal?: AbortSignal
-  key?: AiKey | null
   telemetry?: TelemetryOptions
 }) => {
   const { output } = await generateText({
     abortSignal: data.signal,
     instructions: DIAGNOSE_INSTRUCTIONS,
-    model: modelsFor(data.key).structured,
+    model: models.structured,
     output: Output.object({ schema: diagnosisOutput }),
     prompt: [
       section('SETTINGS', JSON.stringify(data.settings, null, 2)),

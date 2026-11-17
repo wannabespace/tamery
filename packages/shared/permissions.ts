@@ -29,15 +29,14 @@ export const getPermissions = ({
 }): Rules<Permissions> => {
   const member = !user.isAnonymous
   const pro = member && !!subscription
-  const paidAi = pro || (member && hasAiKey)
 
   return {
     ai: {
-      chat: { use: paidAi },
+      chat: { use: pro || (member && hasAiKey) },
       credits: { buy: pro },
-      filter: { unlimited: paidAi, use: member },
-      // Ghost-text autocomplete is free for members (weekly-limited server-side), unlimited for Pro or an own key; edit/fix/update need one of them.
-      query: { complete: member, completeUnlimited: paidAi, use: paidAi },
+      filter: { unlimited: pro, use: member },
+      // Ghost-text autocomplete is free for members (weekly-limited server-side), unlimited for Pro; edit/fix/update stay Pro.
+      query: { complete: member, completeUnlimited: pro, use: pro },
     },
     connection: {
       create: member || ((connections) => connections?.count === 0),

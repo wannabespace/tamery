@@ -5,7 +5,7 @@ import { baseTable } from '../base-table'
 import { encryptedText } from '../utils'
 import { users } from './auth'
 
-/** A user's own model provider key: while it is set, every AI call goes to that provider on their bill. */
+/** A user's own model provider key: while it is set, the AI chat runs on that provider on their bill. */
 export const aiKeys = d.snakeCase.table('ai_keys', {
   ...baseTable,
   key: encryptedText().notNull(),
