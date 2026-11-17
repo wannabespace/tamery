@@ -36,7 +36,7 @@ const Words = ({ at, text }: { at: number; text: string }) => (
 export const AskIllustration = () => (
   <ProductCrop stage className="min-w-0">
     <div inert className="bg-body/50 flex h-8 items-stretch">
-      <span className="bg-background font-row flex items-center gap-1.5 border-r pr-8 pl-3 text-sm">
+      <span className="bg-background font-row flex items-center gap-1.5 border-r px-3 text-sm">
         <HugeiconsIcon
           icon={AiChat02Icon}
           strokeWidth={2}

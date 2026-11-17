@@ -44,7 +44,7 @@ export const TabBar = ({
           <span
             key={id ?? name}
             className={cn(
-              'text-muted-foreground font-row flex h-full shrink-0 items-center gap-1.5 border-r border-b pr-8 pl-3 text-sm whitespace-nowrap transition-colors duration-200',
+              'text-muted-foreground font-row flex h-full shrink-0 items-center gap-1.5 border-r border-b px-3 text-sm whitespace-nowrap transition-colors duration-200',
               id === tab && 'bg-background text-foreground border-b-transparent'
             )}
           >

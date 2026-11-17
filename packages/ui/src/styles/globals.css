@@ -429,6 +429,14 @@
   mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
 }
 
+@utility row-action-fade {
+  mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - 1.75rem),
+    transparent calc(100% - 0.75rem)
+  );
+}
+
 @utility row-actions-fade {
   mask-image: linear-gradient(
     to right,

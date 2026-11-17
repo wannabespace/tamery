@@ -158,7 +158,7 @@ export const Tab = ({
     })
 
   const tabClasses = cn(
-    `group text-muted-foreground hover:bg-background/50 font-row relative flex h-full w-full cursor-default items-center gap-1.5 border-r border-b pr-8 pl-3 text-sm whitespace-nowrap transition-colors duration-40`,
+    `group text-muted-foreground hover:bg-background/50 font-row relative flex h-full w-full cursor-default items-center gap-1.5 border-r border-b px-3 text-sm whitespace-nowrap transition-colors duration-40`,
     isActive &&
       `bg-background text-foreground hover:bg-background border-b-transparent`,
     isPreview && 'italic'
@@ -243,7 +243,9 @@ export const Tab = ({
           {...pressNavProps(goToTab)}
         >
           {icon}
-          <span className="truncate">{label}</span>
+          <span className="group-hover:row-action-fade group-has-data-popup-open:row-action-fade min-w-0 flex-1 truncate">
+            {label}
+          </span>
           <Tooltip
             shortcut={
               isActive && window.electron && <ShortcutKbd shortcut="closeTab" />
