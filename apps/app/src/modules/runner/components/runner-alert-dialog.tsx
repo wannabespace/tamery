@@ -27,12 +27,12 @@ export const RunnerAlertDialog = ({
     confirm: (keywords: string[], onConfirmed: () => void) => void
   } | null>
   /** The runner turns its own ⌘↩ and ⇧⌘↩ off while this is open, or one press would confirm and ask again. */
-  onOpenChange: (open: boolean) => void
+  onOpenChange?: (open: boolean) => void
 }) => {
   const [open, setOpen] = useState(false)
   const changeOpen = (next: boolean) => {
     setOpen(next)
-    onOpenChange(next)
+    onOpenChange?.(next)
   }
   const [keywords, setKeywords] = useState<string[]>([])
   const callbackRef = useRef<() => void>(null)

@@ -236,9 +236,6 @@ const answer = (part: ToolPart): unknown => {
     case 'tool-export_result': {
       return { exported: 0 }
     }
-    case 'tool-propose_change': {
-      return { review: 'The user has not reviewed it yet.', where: 'table' }
-    }
     case 'tool-propose_note': {
       return { note: part.input.note, saved: true }
     }

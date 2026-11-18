@@ -18,36 +18,11 @@ import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 import { plural } from '~/utils/plural'
 
-import type { AutoApproval } from './auto-approval'
-import {
-  autoApprovalsStore,
-  estimateKey,
-  getJudgedProbability,
-} from './auto-approval'
+import { autoApprovalsStore, estimateKey } from './auto-approval'
 import type { ToolPartActions } from './chat-tool-types'
 import { approvalModeValue } from './stores'
 
-const autoNote = (
-  approval: AutoApproval | null,
-  { changesExisting, isAuto }: { changesExisting: boolean; isAuto: boolean }
-) => {
-  if (approval === 'checking') {
-    return 'Auto is checking'
-  }
-  if (approval === 'run') {
-    return 'Auto is running it'
-  }
-  if (!isAuto) {
-    return null
-  }
-  if (approval === 'unjudged') {
-    return "Auto couldn't check it, so it waits"
-  }
-  if (approval === 'ask') {
-    return 'Not sure it is what you asked, so it waits'
-  }
-  return changesExisting ? 'Edits existing data, so it waits' : null
-}
+const AUTO_NOTES = { checking: 'Auto is checking', run: 'Auto is running it' }
 
 export const WriteApproval = ({
   auto,
@@ -98,15 +73,12 @@ export const WriteApproval = ({
 
   // A call no window judged yet: Auto switched on while it waits, or the window reloaded since.
   useEffect(() => {
-    if (isAuto && write?.additive) {
+    if (isAuto) {
       void auto({ input, toolCallId })
     }
-  }, [auto, input, isAuto, toolCallId, write?.additive])
+  }, [auto, input, isAuto, toolCallId])
 
-  const note = autoNote(approval, {
-    changesExisting: !!write && !write.additive,
-    isAuto,
-  })
+  const note = approval && AUTO_NOTES[approval]
 
   const hint = [
     note,
@@ -127,10 +99,7 @@ export const WriteApproval = ({
         variant="ghost-muted"
         disabled={isRunning}
         onClick={() => {
-          posthog.capture('ai_chat_write_declined', {
-            ...decision,
-            probability: getJudgedProbability(toolCallId),
-          })
+          posthog.capture('ai_chat_write_declined', decision)
           void decideWrite({ approved: false, input, toolCallId })
         }}
       >
@@ -144,10 +113,7 @@ export const WriteApproval = ({
               variant={destructive ? 'destructive' : 'default'}
               disabled={isRunning}
               onClick={() => {
-                posthog.capture('ai_chat_write_approved', {
-                  ...decision,
-                  probability: getJudgedProbability(toolCallId),
-                })
+                posthog.capture('ai_chat_write_approved', decision)
                 run.mutate()
               }}
             />

@@ -1,7 +1,3 @@
-import {
-  PROPOSE_CHANGE_DESCRIPTION,
-  agentChangeType,
-} from '@tamery/shared/agent-change'
 import type { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { FILTER_OPERATORS } from '@tamery/shared/filters'
 import {
@@ -47,6 +43,10 @@ const asDatabaseData = ({ output }: { output: unknown }) => ({
   type: 'text' as const,
   value: `${UNTRUSTED_DATA_NOTE}\n${JSON.stringify(output)}`,
 })
+
+/** The answer to an `execute` call Auto mode did not run; its card offers Run. */
+export const SKIPPED =
+  'Auto mode did not run this change: it was not sure the change is what the user asked for. The user can run it from its card.'
 
 export const resultSetsType = type({
   affectedRows: 'number | null',
@@ -167,16 +167,6 @@ export const chatTools = {
     }),
     outputSchema: opened,
   }),
-  propose_change: tool({
-    description: PROPOSE_CHANGE_DESCRIPTION,
-    inputSchema: type({
-      '...': target,
-      change: agentChangeType,
-      schema: type.string.describe('Schema from list_tables'),
-      table: 'string',
-    }),
-    outputSchema: type({ review: 'string', where: "'table' | 'visualizer'" }),
-  }),
   propose_note: tool({
     description:
       'Save a note about the database: a fact its schema does not say, learned from the data or the user, e.g. "amounts are in cents" or "status 3 means refunded". It is about the whole database (schema and table null), a table (column null) or one column. It is saved at once and every later AI prompt about the database reads it; the user can edit or delete it in Settings. Never note what the schema already says or what is already noted.',
@@ -271,6 +261,13 @@ export type ChatDataParts = {
   chat: { chatId: string; title: string }
   connection: typeof target.infer & { name: string; type: ConnectionType }
   skill: { instructions: string; name: string; source: string }
+  /** A statement the user ran themselves: from the composer, or a change Auto skipped (`toolCallId`). */
+  sql: typeof target.infer & {
+    error: string | null
+    output: typeof resultSetsType.infer | null
+    statement: string
+    toolCallId: string | null
+  }
   table: typeof target.infer & {
     definition: unknown
     schema: string

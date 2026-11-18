@@ -14,10 +14,10 @@ import { queryClient } from '~/lib/query-client'
 import { chatToolRuns } from './chat-tools'
 import { approvalModeValue } from './stores'
 
-/** `checking` while the judge reads the change, then `run`, `ask` when it is unsure, or `unjudged` when it could not answer. */
-export type AutoApproval = 'ask' | 'checking' | 'run' | 'unjudged'
+/** `checking` while the judge reads the change, then `run` while it runs; a change Auto would not run is answered as skipped instead. */
+export type AutoApproval = 'checking' | 'run'
 
-/** What Auto decided, by tool call; its card shows it. */
+/** What Auto is doing, by tool call; its card shows it. */
 export const autoApprovalsStore = createStore<Record<string, AutoApproval>>({})
 
 /** The card's row estimate, cancelled before a run: the pool holds one connection. */
@@ -38,7 +38,10 @@ const setApproval = (toolCallId: string, approval: AutoApproval) =>
     [toolCallId]: approval,
   }))
 
-/** Auto mode for one change: the judge reads an additive change against the user's request and runs it when sure. It runs where the window answers the call, so a chat out of view or a subagent's closed panel still runs it, and again from a card for a call no window judged yet (after a reload, or Auto switched on). Once per call. */
+const forget = (toolCallId: string) =>
+  autoApprovalsStore.set((approvals) => omit(approvals, [toolCallId]))
+
+/** Auto mode for one change: the judge reads it against the user's request and it runs when the judge is sure enough, more so for a change to existing data; otherwise it is skipped, so the agent goes on and the user can run it from its card. It runs where the window answers the call, so a chat out of view or a subagent's closed panel still runs it, and again from a card for a call no window judged yet (after a reload, or Auto switched on). Once per call. */
 export const autoApprove = async ({
   chat,
   input,
@@ -59,39 +62,10 @@ export const autoApprove = async ({
   }
   setApproval(toolCallId, 'checking')
   const signal = chatToolRuns.signal(chat.id)
-  const write = await Result.tryPromise(() => agentDatabase.prepareWrite(input))
-  if (write.isErr() || !write.value.additive) {
-    autoApprovalsStore.set((approvals) => omit(approvals, [toolCallId]))
-    return
-  }
-  const { connection, kind } = write.value
-  const verdict = await orpc.ai.judgeStatement
-    .call(
-      { chatId: chat.id, dialect: connection.type, statement: input.statement },
-      { context: { silent: true }, signal }
-    )
-    .catch(() => null)
-  let approval: AutoApproval = 'unjudged'
-  if (verdict) {
-    approval = verdict.autoRun ? 'run' : 'ask'
-  }
-  if (typeof verdict?.probability === 'number') {
-    probabilities.set(toolCallId, verdict.probability)
-  }
-  posthog.capture('ai_chat_write_judged', {
-    destructive: kind === 'destructive',
-    dialect: getDialect(connection.type),
-    judge: verdict?.judge ?? null,
-    outcome: approval === 'unjudged' ? 'none' : approval,
-    probability: verdict?.probability ?? null,
-  })
-  if (approval === 'run' && signal.aborted) {
-    approval = 'ask'
-  }
-  setApproval(toolCallId, approval)
-  if (approval === 'run') {
+  const run = async () => {
+    setApproval(toolCallId, 'run')
     await queryClient.cancelQueries({ queryKey: estimateKey(toolCallId) })
-    // A failed run answers the call with its error, which its card shows.
+    // A failed run answers the call with its error, which its card shows and the agent can fix.
     await silently(() =>
       chatToolRuns.write({
         approved: true,
@@ -102,4 +76,46 @@ export const autoApprove = async ({
       })
     )
   }
+  const write = await Result.tryPromise(() => agentDatabase.prepareWrite(input))
+  if (write.isErr()) {
+    await run()
+    return
+  }
+  const { additive, connection, kind } = write.value
+  const verdict = await orpc.ai.judgeStatement
+    .call(
+      {
+        additive,
+        chatId: chat.id,
+        dialect: connection.type,
+        statement: input.statement,
+      },
+      { context: { silent: true }, signal }
+    )
+    .catch(() => null)
+  if (typeof verdict?.probability === 'number') {
+    probabilities.set(toolCallId, verdict.probability)
+  }
+  let outcome = verdict ? 'skip' : 'none'
+  if (verdict?.autoRun) {
+    outcome = 'run'
+  }
+  posthog.capture('ai_chat_write_judged', {
+    additive,
+    destructive: kind === 'destructive',
+    dialect: getDialect(connection.type),
+    judge: verdict?.judge ?? null,
+    outcome,
+    probability: verdict?.probability ?? null,
+  })
+  if (signal.aborted) {
+    forget(toolCallId)
+    return
+  }
+  if (verdict?.autoRun) {
+    await run()
+    return
+  }
+  forget(toolCallId)
+  chatToolRuns.skip({ chat, toolCallId, transcript })
 }

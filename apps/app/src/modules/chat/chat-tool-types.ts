@@ -11,6 +11,11 @@ export interface ToolPartActions {
   decide?: ChatSession['decide']
   /** While its turn still works a pending call is running; once the turn ended or was stopped, it never ran. */
   isLive: boolean
+  /** Changes Auto skipped: those the user ran since, and running one; unset where the chat cannot take a message. */
+  skipped?: {
+    ran: ReadonlySet<string>
+    run: ChatSession['runSkipped']
+  }
 }
 
 const USER_ANSWERED = new Set(['tool-ask_user', 'tool-execute'])

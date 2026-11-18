@@ -1,3 +1,4 @@
+import { SKIPPED } from '@tamery/ai/tools'
 import { Button } from '@tamery/ui/components/button'
 
 import { useCollections } from '~/core/collections'
@@ -15,9 +16,12 @@ const isReadOnly = (
 ): part is Extract<ChatToolPart, { state: 'output-error' }> =>
   part.state === 'output-error' && part.errorText === READ_ONLY
 
+export const isSkipped = (part: ChatToolPart) =>
+  part.state === 'output-error' && part.errorText === SKIPPED
+
 /** Its error was written for the model, and the card's status says it instead. */
 export const isAnsweredByApp = (part: ChatToolPart) =>
-  isDeclined(part) || isReadOnly(part)
+  isDeclined(part) || isReadOnly(part) || isSkipped(part)
 
 /** While its turn still works an unsettled call is running; once the turn ended or was stopped, it never ran. */
 export const isRunning = (part: ChatToolPart, isLive: boolean) =>
@@ -59,11 +63,7 @@ const ReadOnly = ({
 }
 
 export const getStatus = (part: ChatToolPart, isLive: boolean) => {
-  if (
-    isReadOnly(part) &&
-    (part.type === 'tool-execute' || part.type === 'tool-propose_change') &&
-    part.input
-  ) {
+  if (isReadOnly(part) && part.type === 'tool-execute' && part.input) {
     return (
       <ReadOnly
         connectionId={part.input.connectionId}
@@ -73,6 +73,9 @@ export const getStatus = (part: ChatToolPart, isLive: boolean) => {
   }
   if (isDeclined(part)) {
     return <span className="text-muted-foreground">Declined</span>
+  }
+  if (isSkipped(part)) {
+    return <span className="text-muted-foreground">Skipped</span>
   }
   if (part.state === 'output-error') {
     return <span className="text-destructive">Failed</span>

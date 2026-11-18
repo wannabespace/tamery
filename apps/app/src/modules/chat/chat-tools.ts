@@ -1,6 +1,7 @@
 import type { Chat } from '@ai-sdk/react'
 import type { AppUIMessage } from '@tamery/ai/message'
 import type { ChatTools } from '@tamery/ai/tools'
+import { SKIPPED } from '@tamery/ai/tools'
 import { toError } from '@tamery/shared/utils'
 import type { ChatOnToolCallCallback } from 'ai'
 import { isToolUIPart } from 'ai'
@@ -135,10 +136,6 @@ const addReadOutput = async (
       const output = await agentDatabase.searchSchema(toolCall.input)
       return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
     }
-    case 'propose_change': {
-      const output = await agentDatabase.proposeChange(toolCall.input)
-      return chat.addToolOutput({ output, tool: toolCall.toolName, toolCallId })
-    }
     case 'propose_note': {
       const [{ resolveResource }, { schemaNotes }] = await Promise.all([
         import('~/core/agent/target'),
@@ -217,8 +214,7 @@ export const chatToolRuns = {
   ) => {
     if (
       !toolCall.dynamic &&
-      (toolCall.toolName === 'execute' ||
-        toolCall.toolName === 'propose_change') &&
+      toolCall.toolName === 'execute' &&
       !isOwnConnection(toolCall.input.connectionId, connectionResourceId)
     ) {
       decided.add(toolCall.toolCallId)
@@ -254,6 +250,27 @@ export const chatToolRuns = {
     }
   },
   isDecided: (toolCallId: string) => decided.has(toolCallId),
+  /** Answers a change Auto would not run, so the agent goes on without it; its card offers Run to the user. */
+  skip: ({
+    chat,
+    toolCallId,
+    transcript,
+  }: {
+    chat: AppChat
+    toolCallId: string
+    transcript: AppUIMessage[]
+  }) => {
+    if (!claimDecision(chat, toolCallId, transcript)) {
+      return
+    }
+    resumeSubagent(chat.id)
+    void chat.addToolOutput({
+      errorText: SKIPPED,
+      state: 'output-error',
+      tool: 'execute',
+      toolCallId,
+    })
+  },
   /** Aborted when the user stops the chat: a run, or an auto-run judged before the stop. */
   signal: getSignal,
   stop: (chatId: string) => runs.get(chatId)?.abort(),

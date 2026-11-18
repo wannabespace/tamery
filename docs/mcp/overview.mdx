@@ -57,7 +57,6 @@ With **Read and write**, you get a notification after each change instead.
 | `column_values` | Show a column's most common values with their counts, and its range for numbers and dates. |
 | `query` | Run one read-only statement, like `SELECT` or `EXPLAIN`, and return up to 200 rows and about 60 KB. A value longer than 2 KB comes back cut short, marked as cut. Nothing it does is kept. |
 | `explain` | Show a statement's query plan on PostgreSQL, MySQL, SQLite, ClickHouse or DuckDB. With `analyze`, a read also runs to report real timings, then rolls back. |
-| `propose_change` | Draft row edits, inserts, deletes, schema changes or a new index in Tamery for you to review and apply. Nothing runs until you do. |
 | `execute` | Change data or schema, within the connection's access. Several statements need a `BEGIN … COMMIT` block. |
 
 `query`, `explain` and `execute` take what to run as `statement`: SQL in the connection's own dialect, or on a MongoDB connection a mongosh call such as `db.orders.find({ status: 'paid' })`, one call at a time.

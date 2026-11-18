@@ -1,10 +1,11 @@
-import type { ChatTools } from '@tamery/ai/tools'
+import type { ChatDataParts, ChatTools } from '@tamery/ai/tools'
+import { Button } from '@tamery/ui/components/button'
 
 import { useCollections } from '~/core/collections'
 
 import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
-import { StatementCard } from './statement-card'
-import { getStatus, isAnsweredByApp } from './tool-status'
+import { StatementCard, summarize } from './statement-card'
+import { getStatus, isAnsweredByApp, isSkipped } from './tool-status'
 import { WriteApproval } from './write-approval'
 
 const usePartConnection = (connectionId: string | undefined) => {
@@ -49,6 +50,52 @@ export const ExplainPlan = ({
   )
 }
 
+/** A statement the user ran themselves, from the composer or a skipped change's card. */
+export const SqlRunCard = ({ data }: { data: ChatDataParts['sql'] }) => {
+  const connection = usePartConnection(data.connectionId)
+  const target = usePartTarget(data)
+  return (
+    <StatementCard
+      connection={connection}
+      error={data.error ?? undefined}
+      statement={data.statement}
+      sets={data.output ?? undefined}
+      status={
+        <span className={data.error ? 'text-destructive' : undefined}>
+          {data.output ? `You ran · ${summarize(data.output)}` : 'Failed'}
+        </span>
+      }
+      target={connection && target}
+    />
+  )
+}
+
+const SkippedRun = ({
+  skipped,
+  statement,
+  toolCallId,
+}: {
+  skipped: NonNullable<ToolPartActions['skipped']>
+  statement: string
+  toolCallId: string
+}) =>
+  skipped.ran.has(toolCallId) ? (
+    <span className="text-muted-foreground">You ran it</span>
+  ) : (
+    <>
+      <span className="text-muted-foreground truncate">
+        Skipped: Auto was not sure it is what you asked
+      </span>
+      <Button
+        size="xs"
+        variant="default"
+        onClick={() => skipped.run(statement, toolCallId)}
+      >
+        Run
+      </Button>
+    </>
+  )
+
 export const StatementPart = ({
   actions,
   part,
@@ -70,6 +117,27 @@ export const StatementPart = ({
     return null
   }
 
+  let status = getStatus(part, actions.isLive)
+  if (awaitsApproval && actions.decide) {
+    status = (
+      <WriteApproval
+        connection={connection}
+        auto={actions.decide.auto}
+        decideWrite={actions.decide.write}
+        input={part.input}
+        toolCallId={part.toolCallId}
+      />
+    )
+  } else if (isSkipped(part) && input?.statement && actions.skipped) {
+    status = (
+      <SkippedRun
+        skipped={actions.skipped}
+        statement={input.statement}
+        toolCallId={part.toolCallId}
+      />
+    )
+  }
+
   return (
     <StatementCard
       connection={connection}
@@ -80,19 +148,7 @@ export const StatementPart = ({
       }
       sets={part.state === 'output-available' ? part.output : undefined}
       statement={input?.statement}
-      status={
-        awaitsApproval && actions.decide ? (
-          <WriteApproval
-            connection={connection}
-            auto={actions.decide.auto}
-            decideWrite={actions.decide.write}
-            input={part.input}
-            toolCallId={part.toolCallId}
-          />
-        ) : (
-          getStatus(part, actions.isLive)
-        )
-      }
+      status={status}
       target={connection && target}
     />
   )

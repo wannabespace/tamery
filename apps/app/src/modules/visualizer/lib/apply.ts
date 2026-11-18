@@ -2,8 +2,6 @@ import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { useConnectionContext } from '~/core/connection/route'
-import type { DiagramDraft, diagramDrafts } from '~/core/drafts/diagram'
-import { savedDrafts } from '~/core/drafts/saved'
 import {
   connectionResourceToQueryParams,
   transaction,
@@ -13,8 +11,10 @@ import { queryClient } from '~/lib/query-client'
 import { plural } from '~/utils/plural'
 
 import { getGates } from './context'
+import type { diagramDrafts } from './drafts'
 import { draftQuery } from './queries'
 import { inApplyOrder, isDrop } from './statements'
+import type { DiagramDraft } from './statements'
 
 export const applyConsequence = (
   drafts: DiagramDraft[],
@@ -81,7 +81,6 @@ export const useApplyDrafts = ({
       } catch (error) {
         onApplied(committed)
         edit.settle(committed)
-        savedDrafts.mark(connectionResource.id, 'visualizer', committed)
         throw error
       }
       return ordered
@@ -95,7 +94,6 @@ export const useApplyDrafts = ({
     onSuccess: (applied) => {
       onApplied(applied)
       edit.settle(applied)
-      savedDrafts.mark(connectionResource.id, 'visualizer', applied)
       setReviewOpen(false)
       toast.success(`Applied ${plural(applied.length, 'change')}`)
     },

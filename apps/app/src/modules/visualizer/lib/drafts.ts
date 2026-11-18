@@ -2,40 +2,9 @@ import { memoize } from 'memoza'
 import { nanoid } from 'nanoid'
 import { createStore } from 'seitu'
 
-import type { ReferentialAction } from '~/core/queries/constraints/shape'
-import type {
-  AlterColumnTarget,
-  ColumnDefinition,
-  NewColumn,
-} from '~/core/queries/tables/shape'
+import type { ColumnDefinition, NewColumn } from '~/core/queries/tables/shape'
 
-export interface TableRef {
-  schema: string
-  table: string
-}
-
-export type DiagramDraft = { id: string } & TableRef &
-  (
-    | { columns: NewColumn[]; kind: 'createTable' }
-    | { kind: 'renameTable'; newName: string }
-    | { cascade: boolean; kind: 'dropTable' }
-    | { column: NewColumn; kind: 'addColumn' }
-    | { column: string; kind: 'renameColumn'; newName: string }
-    | ({ kind: 'alterColumn' } & Omit<AlterColumnTarget, keyof TableRef>)
-    | { column: string; kind: 'dropColumn' }
-    | {
-        columns: string[]
-        foreignColumns: string[]
-        foreignSchema: string
-        foreignTable: string
-        kind: 'addForeignKey'
-        name: string
-        onDelete: ReferentialAction
-        onUpdate: ReferentialAction
-      }
-    | { kind: 'dropForeignKey'; name: string }
-    | { columns: string[]; kind: 'createIndex'; name: string; unique: boolean }
-  )
+import type { DiagramDraft, TableRef } from './statements'
 
 type Unsaved<T> = T extends unknown ? Omit<T, 'id'> : never
 
@@ -168,10 +137,6 @@ export const diagramDrafts = (store: DiagramDraftsStore) => {
       })
     },
     clear: () => store.set({ drafts: [] }),
-    createIndex: (
-      ref: TableRef,
-      index: { columns: string[]; name: string; unique: boolean }
-    ) => add({ ...draftOn(ref), ...index, kind: 'createIndex' }),
     createTable: (ref: TableRef, columns: NewColumn[]) =>
       add({ ...draftOn(ref), columns, kind: 'createTable' }),
     dropColumn: (ref: TableRef, column: string) =>

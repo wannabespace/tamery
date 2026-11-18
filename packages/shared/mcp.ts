@@ -1,4 +1,3 @@
-import type { AgentChange } from './agent-change'
 import type { ConnectionType } from './enums/connection-type'
 
 export const MCP_MAX_ROWS = 200
@@ -19,7 +18,7 @@ export const SEARCH_SAVED_QUERIES_DESCRIPTION =
   "Find the user's saved queries on a connection by name and SQL text: every word of query must match. Reuse or adapt one the user already trusts before writing SQL from scratch."
 
 export const EXPLAIN_DESCRIPTION =
-  "Show how the database would run one SQL statement: its query plan in the connection's own dialect (PostgreSQL, MySQL, SQLite, ClickHouse, DuckDB). analyze also runs it and reports real timings, so it is only for reads, inside a transaction that is rolled back. Use it when a query is slow, then recommend an index with propose_change."
+  "Show how the database would run one SQL statement: its query plan in the connection's own dialect (PostgreSQL, MySQL, SQLite, ClickHouse, DuckDB). analyze also runs it and reports real timings, so it is only for reads, inside a transaction that is rolled back. Use it when a query is slow, to find the index that would help."
 
 export const COLUMN_VALUES_DESCRIPTION =
   'The most common values of one column with how often each occurs (up to 50), its distinct and null counts, and min and max for numbers and dates. Call it before filtering on a value the user named, to match its exact spelling and case.'
@@ -66,10 +65,6 @@ export interface McpSource {
     args: McpTarget & { statement: string; approve: boolean },
     onAbort: OnAbort
   ) => Promise<unknown>
-  proposeChange: (
-    args: McpTarget & { change: AgentChange; schema: string; table: string },
-    onAbort: OnAbort
-  ) => Promise<unknown>
   query: (
     args: McpTarget & { statement: string },
     onAbort: OnAbort
@@ -105,7 +100,6 @@ export type McpTool =
   | 'column_values'
   | 'query'
   | 'explain'
-  | 'propose_change'
   | 'execute'
 
 export interface McpCall {

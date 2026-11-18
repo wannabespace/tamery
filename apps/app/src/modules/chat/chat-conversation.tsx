@@ -112,6 +112,7 @@ export const ChatConversation = ({
           onRegenerate={
             canReply && !session.isWorking ? () => session.retry() : undefined
           }
+          runSkipped={session.runSkipped}
         />
       )}
       <div className={cn(CHAT_COLUMN, 'flex shrink-0 flex-col')}>

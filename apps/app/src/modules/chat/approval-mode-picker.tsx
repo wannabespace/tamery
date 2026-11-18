@@ -24,7 +24,7 @@ const APPROVAL_MODES = {
     label: 'Ask',
   },
   auto: {
-    description: 'Adds rows and objects on its own; edits ask',
+    description: 'Safe changes run on their own, risky ones wait for you',
     icon: FlashIcon,
     label: 'Auto',
   },

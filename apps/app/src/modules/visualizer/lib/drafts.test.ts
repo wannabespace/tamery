@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { diagramDrafts, diagramDraftsStore } from '~/core/drafts/diagram'
-
+import { diagramDrafts, diagramDraftsStore } from './drafts'
 import { inApplyOrder } from './statements'
 
 const orders = { schema: 's', table: 'orders' }

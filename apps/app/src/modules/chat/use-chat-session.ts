@@ -1,6 +1,7 @@
 import { useChat } from '@ai-sdk/react'
 import type { AppUIMessage } from '@tamery/ai/message'
 import {
+  isSqlRun,
   mergeMessages,
   messagesFromPartRows,
   textFromMessage,
@@ -24,6 +25,8 @@ import { awaitsUser } from './chat-tool-types'
 import { chatToolRuns } from './chat-tools'
 import type { PromptMention } from './prompt-mentions'
 import { mentionPart, messageParts } from './prompt-mentions'
+import { runSql, sqlOf } from './sql-run'
+import type { QueuedMessage } from './stores'
 import { chatQueueStore } from './stores'
 
 /** A read the window is still answering keeps the turn open; a change waiting on the user does not, nor a read left behind by Stop or a reload, which no one will answer. */
@@ -41,6 +44,9 @@ const isAnswering = (
       (part.state === 'input-streaming' ||
         (part.state === 'input-available' && !awaitsUser(part)))
   )
+
+const awaitsAnswer = (message: AppUIMessage | undefined) =>
+  message?.role === 'user' && !isSqlRun(message)
 
 const pausedBy = ({
   lastAsked,
@@ -133,7 +139,7 @@ export const useChatSession = ({
   )
   const lastMessage = displayMessages.at(-1)
   const isAwaitingAnswer =
-    !!chat && status === 'ready' && lastMessage?.role === 'user'
+    !!chat && status === 'ready' && awaitsAnswer(lastMessage)
   const firstMessage = displayMessages.at(0)
   const lastAsked = displayMessages.findLast(
     (message) => message.role === 'user'
@@ -163,17 +169,31 @@ export const useChatSession = ({
     await stop()
   }
 
-  const deliver = async (
-    text: string,
-    mentions: PromptMention[],
-    files: FileUIPart[]
-  ) => {
+  const deliver = async ({
+    files,
+    mentions,
+    text,
+    toolCallId,
+  }: Omit<QueuedMessage, 'id'>) => {
+    const statement = sqlOf(text)
     await sendMessage({
       id: v7(),
-      parts: await messageParts(text, mentions, files),
+      parts: statement
+        ? [
+            await runSql({
+              connectionResourceId,
+              signal: chatToolRuns.signal(chatId),
+              statement,
+              toolCallId,
+            }),
+          ]
+        : await messageParts(text, mentions, files),
       role: 'user',
     })
   }
+
+  const enqueue = (message: Omit<QueuedMessage, 'id'>) =>
+    queueStore.set((current) => [...current, { ...message, id: v7() }])
 
   useEffect(() => {
     if (isAwaitingAnswer) {
@@ -188,7 +208,7 @@ export const useChatSession = ({
     if (!(isWorking || isWaitingOnUser) && next && !isFlushing.current) {
       isFlushing.current = true
       queueStore.set((current) => current.filter(({ id }) => id !== next.id))
-      void deliver(next.text, next.mentions, next.files).finally(() => {
+      void deliver(next).finally(() => {
         isFlushing.current = false
       })
     }
@@ -335,6 +355,7 @@ export const useChatSession = ({
     ) => {
       posthog.capture('ai_chat_message_sent', {
         attachments: files.length,
+        sql: !!sqlOf(text),
         chat_mentions: mentions.filter(({ kind }) => kind === 'chat').length,
         interrupted: isWorking && now,
         queued: isWorking && !now,
@@ -345,16 +366,27 @@ export const useChatSession = ({
         table_mentions: mentions.filter(({ kind }) => kind === 'table').length,
       })
       if (isWorking && !now) {
-        queueStore.set((current) => [
-          ...current,
-          { files, id: v7(), mentions, text },
-        ])
+        enqueue({ files, mentions, text })
         return
       }
       if (isWorking) {
         await halt()
       }
-      await deliver(text, mentions, files)
+      await deliver({ files, mentions, text })
+    },
+    /** Runs a change Auto skipped as the user's own statement, after the turn if the agent still works. */
+    runSkipped: (statement: string, toolCallId: string) => {
+      const message = {
+        files: [],
+        mentions: [],
+        text: `!${statement}`,
+        toolCallId,
+      }
+      if (isWorking || isWaitingOnUser) {
+        enqueue(message)
+        return
+      }
+      void deliver(message)
     },
     stop: () => {
       posthog.capture('ai_chat_stopped')

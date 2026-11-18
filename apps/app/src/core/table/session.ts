@@ -25,8 +25,6 @@ export interface NewRow {
 }
 
 export interface TableSessionState {
-  /** Rows an agent proposed to delete; the table's delete dialog opens on them, since deletes are confirmed there rather than staged. */
-  deletions: PrimaryKeys[]
   drafts: Record<string, Draft>
   flash: { at: number; keys: ReadonlySet<string> } | null
   lastClickedIndex: number | null
@@ -37,7 +35,6 @@ export interface TableSessionState {
 }
 
 const defaultSessionState: TableSessionState = {
-  deletions: [],
   drafts: {},
   flash: null,
   lastClickedIndex: null,

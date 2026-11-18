@@ -361,13 +361,29 @@ describe('additiveOnly', () => {
     expect(additiveOnly('CREATE OR REPLACE VIEW v AS SELECT 1', pg)).toBe(false)
   })
 
+  it('allows a committed transaction of additive statements', () => {
+    expect(
+      additiveOnly(
+        'BEGIN;\nCREATE TABLE log (id int);\nINSERT INTO log VALUES (1);\nCOMMIT;',
+        pg
+      )
+    ).toBe(true)
+  })
+
   it('refuses writes that are not plainly additive', () => {
     expect(additiveOnly('GRANT SELECT ON t TO bob', pg)).toBe(false)
     expect(additiveOnly("COMMENT ON TABLE t IS 'x'", pg)).toBe(false)
     expect(additiveOnly('CALL refresh()', pg)).toBe(false)
-    expect(additiveOnly('BEGIN; INSERT INTO t VALUES (1); COMMIT', pg)).toBe(
+    expect(
+      additiveOnly(
+        'BEGIN; INSERT INTO t VALUES (1); UPDATE t SET a = 2; COMMIT',
+        pg
+      )
+    ).toBe(false)
+    expect(additiveOnly('BEGIN; INSERT INTO t VALUES (1); ROLLBACK', pg)).toBe(
       false
     )
+    expect(additiveOnly('BEGIN; COMMIT', pg)).toBe(false)
     expect(additiveOnly('', pg)).toBe(false)
   })
 })

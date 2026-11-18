@@ -5,6 +5,7 @@ import type { AppUIMessage } from '../message'
 import { textFromMessage } from '../message'
 import type { AiKey } from '../models/own-key'
 import { modelsFor } from '../models/own-key'
+import { SKIPPED } from '../tools'
 import { section } from './prompt'
 
 const SUGGESTION_MAX_LENGTH = 60
@@ -28,7 +29,16 @@ export const generateNextPrompt = async (data: {
   const answered = data.messages.at(-1)
   const question = asked ? textFromMessage(asked) : ''
   const answer = answered?.role === 'assistant' ? textFromMessage(answered) : ''
-  if (!(question && answer)) {
+  // What comes next is a button on a change or a question, and the model suggests pressing it however it is told not to.
+  const leavesWaiting = answered?.parts.some(
+    (part) =>
+      ((part.type === 'tool-execute' || part.type === 'tool-ask_user') &&
+        part.state === 'input-available') ||
+      (part.type === 'tool-execute' &&
+        part.state === 'output-error' &&
+        part.errorText === SKIPPED)
+  )
+  if (!(question && answer) || leavesWaiting) {
     return null
   }
 

@@ -29,7 +29,6 @@ import { toast } from 'sonner'
 
 import { useObjectNames } from '~/core/catalog/names'
 import { useConnectionContext } from '~/core/connection/route'
-import { savedDrafts } from '~/core/drafts/saved'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import { deleteRowsQuery } from '~/core/queries/rows/delete'
@@ -76,17 +75,6 @@ export const DeleteRowsDialog = ({
   const store = useTablePageStore()
   const sessionStore = useTableSessionStore()
   const { columns } = useTableColumnsContext()
-
-  const deletions = useSubscription(sessionStore, {
-    selector: (state) => state.deletions,
-  })
-  const proposed = deletions.map(primaryKeysKey).join('\n')
-  const [shownProposal, setShownProposal] = useState('')
-  if (proposed && proposed !== shownProposal) {
-    setShownProposal(proposed)
-    setRows(deletions)
-    setOpen(true)
-  }
 
   useImperativeHandle(deleteRowsDialogRef, () => ({
     open: (next) => {
@@ -146,7 +134,6 @@ export const DeleteRowsDialog = ({
           table,
         }),
       })
-      savedDrafts.mark(connectionResource.id, 'table', [{ schema, table }])
       const deleted = new Set(rows.map(primaryKeysKey))
       sessionStore.set((state) => ({
         ...state,
@@ -158,15 +145,7 @@ export const DeleteRowsDialog = ({
   })
 
   return (
-    <AlertDialog
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next)
-        if (!next) {
-          sessionStore.set((state) => ({ ...state, deletions: [] }))
-        }
-      }}
-    >
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete {noun}?</AlertDialogTitle>

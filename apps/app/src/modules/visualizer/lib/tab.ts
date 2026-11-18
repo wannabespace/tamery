@@ -3,7 +3,7 @@ import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 
 import type { SchemaItem, TabKind } from '~/core/tabs/types'
 
-export const VISUALIZER_TAB_ID = 'visualizer'
+const VISUALIZER_TAB_ID = 'visualizer'
 
 export const visualizerSchemaItem: SchemaItem = {
   available: isSqlDialect,

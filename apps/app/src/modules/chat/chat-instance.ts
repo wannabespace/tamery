@@ -1,6 +1,7 @@
 import { Chat } from '@ai-sdk/react'
 import { asyncIteratorToStream } from '@orpc/client'
 import type { AppUIMessage } from '@tamery/ai/message'
+import { isSqlRun } from '@tamery/ai/message'
 import type { ChatOnFinishCallback } from 'ai'
 import { lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
 import { memoize } from 'memoza'
@@ -47,7 +48,8 @@ export const getChatInstance = memoize(
       generateId: v7,
       id: data.chatId,
       onFinish: (event) => {
-        if (!data.subagent && !event.isAbort) {
+        const isAnswer = !isSqlRun(event.messages.at(-1) ?? { parts: [] })
+        if (!data.subagent && !event.isAbort && isAnswer) {
           unreadChatsValue.set((ids) => [...new Set([...ids, data.chatId])])
         }
         finishListeners.get(data.chatId)?.(event)

@@ -48,6 +48,7 @@ import { MessageFiles } from './message-files'
 import type { PromptMention } from './prompt-mentions'
 import { usePromptMentions } from './prompt-mentions'
 import { PromptMenu } from './prompt-menu'
+import { SqlRunCard } from './statement-part'
 
 const ACTIONS_CLASS =
   'flex items-center gap-0.5 transition-opacity duration-150 focus-within:opacity-100 group-hover/message:opacity-100'
@@ -310,6 +311,24 @@ const AnswerActions = ({
   )
 }
 
+const sqlRuns = (message: AppUIMessage) =>
+  message.parts.flatMap((part) => (part.type === 'data-sql' ? [part.data] : []))
+
+const UserTurn = ({
+  message,
+  onEdit,
+}: {
+  message: AppUIMessage
+  onEdit?: (text: string, mentions: PromptMention[]) => void
+}) => {
+  const [run] = sqlRuns(message)
+  return run ? (
+    <SqlRunCard data={run} />
+  ) : (
+    <UserMessage message={message} onEdit={onEdit} />
+  )
+}
+
 const CompactedDivider = () => (
   <div className="text-muted-foreground flex items-center gap-3 text-xs">
     <Separator className="flex-1" />
@@ -326,6 +345,7 @@ export const ChatMessages = ({
   messages,
   onEdit,
   onRegenerate,
+  runSkipped,
 }: {
   /** The last message the model now reads only as a summary. */
   compactedThroughId?: string
@@ -337,8 +357,20 @@ export const ChatMessages = ({
   /** Unset while the chat cannot take a new message, such as a subagent's. */
   onEdit?: (messageId: string, text: string, mentions: PromptMention[]) => void
   onRegenerate?: () => void
+  runSkipped: NonNullable<ToolPartActions['skipped']>['run']
 }) => {
   const last = messages.at(-1)
+  // A change runs as the user's message, so only where `onEdit` says the chat takes one.
+  const skipped = onEdit && {
+    ran: new Set(
+      messages.flatMap((message) =>
+        sqlRuns(message).flatMap(({ toolCallId }) =>
+          toolCallId ? [toolCallId] : []
+        )
+      )
+    ),
+    run: runSkipped,
+  }
   return (
     <MessageScrollerProvider autoScroll>
       <MessageScroller>
@@ -355,7 +387,7 @@ export const ChatMessages = ({
               !hasContent(message.parts) ? null : (
                 <MessageScrollerItem key={message.id} messageId={message.id}>
                   {message.role === 'user' ? (
-                    <UserMessage
+                    <UserTurn
                       message={message}
                       onEdit={
                         onEdit && !isWorking
@@ -372,8 +404,8 @@ export const ChatMessages = ({
                           parts={message.parts}
                           actions={
                             message === last
-                              ? { decide, isLive: isWorking }
-                              : { isLive: false }
+                              ? { decide, isLive: isWorking, skipped }
+                              : { isLive: false, skipped }
                           }
                         />
                         {isWorking && message === last ? (

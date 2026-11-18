@@ -95,6 +95,8 @@ export interface QueuedMessage {
   id: string
   mentions: PromptMention[]
   text: string
+  /** Set when it runs a change Auto skipped. */
+  toolCallId?: string
 }
 
 /** Messages sent while the agent was still working, oldest first; each goes out once the turn ends. */

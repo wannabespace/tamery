@@ -3,7 +3,6 @@ import {
   DatabaseIcon,
   GlobalSearchIcon,
   HierarchyIcon,
-  PencilEdit02Icon,
   PlayIcon,
   Search01Icon,
   ServerStack01Icon,
@@ -14,7 +13,6 @@ import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { tableTypeIcon } from '~/core/catalog/table-type'
 
 import { AskUserPart } from './ask-user-part'
-import { ChangeReview } from './change-review'
 import { ChatDisclosure } from './chat-disclosure'
 import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
 import { NotePart } from './note-part'
@@ -77,12 +75,6 @@ const LABELS: Partial<
     detail: 'table',
     done: 'Opened',
     live: 'Opening',
-    object: 'a table',
-  },
-  'tool-propose_change': {
-    detail: 'table',
-    done: 'Proposed a change to',
-    live: 'Proposing a change to',
     object: 'a table',
   },
   'tool-propose_note': {
@@ -222,9 +214,6 @@ const getIcon = (part: ChatToolPart) => {
     case 'tool-read_chat': {
       return AiChat02Icon
     }
-    case 'tool-propose_change': {
-      return PencilEdit02Icon
-    }
     case 'tool-query': {
       return DatabaseIcon
     }
@@ -292,12 +281,6 @@ export const ToolPart = ({
   }
   if (part.type === 'tool-spawn_agent') {
     return <SubagentPart isLive={actions.isLive} part={part} />
-  }
-  if (
-    part.type === 'tool-propose_change' &&
-    part.state === 'output-available'
-  ) {
-    return <ChangeReview input={part.input} output={part.output} />
   }
 
   const running = isRunning(part, actions.isLive)

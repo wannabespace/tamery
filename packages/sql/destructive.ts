@@ -1,6 +1,10 @@
 import type { DialectSpec } from './dialect'
 import type { Statement } from './statements'
-import { splitStatements, statementsFromTokens } from './statements'
+import {
+  splitStatements,
+  statementsFromTokens,
+  unwrapTransaction,
+} from './statements'
 import { identifierName, isKeyword, isPunctuation, tokenize } from './tokenizer'
 
 const RUNNING_EXPLAIN_OPTIONS = new Set(['ANALYSE', 'ANALYZE'])
@@ -108,8 +112,18 @@ export const invalidatesCatalog = (text: string, dialect: DialectSpec) =>
 
 const ADDITIVE_COMMANDS = new Set(['CREATE', 'INSERT'])
 
-/** Writes that leave existing data as it was, so deleting or dropping what they made undoes them: only INSERT and CREATE, and neither as an upsert or OR REPLACE. */
-export const additiveOnly = (text: string, dialect: DialectSpec) => {
+/** Writes that leave existing data as it was, so deleting or dropping what they made undoes them: only INSERT and CREATE, and neither as an upsert or OR REPLACE, alone or in a committed transaction of them. */
+export const additiveOnly = (text: string, dialect: DialectSpec): boolean => {
+  const transaction = unwrapTransaction(text, dialect)
+  if (transaction) {
+    return (
+      transaction.commit &&
+      transaction.statements.length > 0 &&
+      transaction.statements.every((statement) =>
+        additiveOnly(statement, dialect)
+      )
+    )
+  }
   const statements = splitStatements(text, dialect)
   return (
     statements.length > 0 &&

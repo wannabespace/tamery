@@ -5,6 +5,7 @@ import {
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { AttachmentGroup } from '@tamery/ui/components/attachment'
+import { Badge } from '@tamery/ui/components/badge'
 import { EnterIcon } from '@tamery/ui/components/custom/shortcuts'
 import {
   InputGroup,
@@ -19,12 +20,14 @@ import {
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
 import type { FileUIPart } from 'ai'
-import type { ReactNode } from 'react'
+import type { ComponentRef, KeyboardEvent, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
-import { useConnectionContext } from '~/core/connection/route'
+import { useConnectionContext, useTabContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
+import { getQueryLanguage } from '~/core/runtime/language'
 import { posthog } from '~/lib/posthog'
+import { RunnerAlertDialog } from '~/modules/runner/components/runner-alert-dialog'
 import { useIsOnline } from '~/store'
 
 import { ApprovalModePicker } from './approval-mode-picker'
@@ -37,7 +40,59 @@ import { ModelPicker } from './model-picker'
 import type { ChatCommand, PromptMention } from './prompt-mentions'
 import { commandOf, usePromptMentions } from './prompt-mentions'
 import { PromptMenu } from './prompt-menu'
+import { sqlOf } from './sql-run'
 import { chatDraftsValue, setChatDraft } from './stores'
+
+const draftOf = (chatId: string) => {
+  const text = chatDraftsValue.get()[chatId]?.text ?? ''
+  const statement = sqlOf(text)
+  return { isSql: statement !== null, value: statement ?? text }
+}
+
+const sendLabelOf = ({
+  isSql,
+  isWorking,
+  sendsNow,
+  showStop,
+}: {
+  isSql: boolean
+  isWorking: boolean
+  sendsNow: boolean
+  showStop: boolean
+}) => {
+  if (showStop) {
+    return 'Stop generating'
+  }
+  if (sendsNow) {
+    return 'Send now'
+  }
+  if (isWorking) {
+    return 'Queue message'
+  }
+  return isSql ? 'Run SQL' : 'Send message'
+}
+
+const placeholderOf = ({
+  isRecording,
+  isSql,
+  suggestion,
+}: {
+  isRecording: boolean
+  isSql: boolean
+  suggestion: string | undefined
+}) => {
+  if (isRecording) {
+    return 'Listening…'
+  }
+  if (isSql) {
+    return 'SQL to run, ⌫ to go back to chat'
+  }
+  return suggestion ?? 'Ask, @ to mention, / for commands, ! to run SQL'
+}
+
+const leavesSql = (event: KeyboardEvent<HTMLTextAreaElement>) =>
+  event.key === 'Escape' ||
+  (event.key === 'Backspace' && event.currentTarget.selectionEnd === 0)
 
 export const ChatInput = ({
   canInterrupt = true,
@@ -76,14 +131,19 @@ export const ChatInput = ({
 }) => {
   const isOnline = useIsOnline()
   const { connectionResource } = useConnectionContext()
-  const [value, setValue] = useState(
-    () => chatDraftsValue.get()[chatId]?.text ?? ''
-  )
+  const { dialect } = useTabContext()
+  const [isSql, setIsSql] = useState(() => draftOf(chatId).isSql)
+  const [value, setValue] = useState(() => draftOf(chatId).value)
   const [files, setFiles] = useState<FileUIPart[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const highlightRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const menu = usePromptMentions({ setValue, textareaRef, value })
+  const confirmRef = useRef<ComponentRef<typeof RunnerAlertDialog>>(null)
+  const menu = usePromptMentions({
+    setValue,
+    textareaRef,
+    value: isSql ? '' : value,
+  })
   const dictation = useDictation((text) => {
     setValue((current) =>
       current.trim() ? `${current.trimEnd()} ${text}` : text
@@ -92,8 +152,12 @@ export const ChatInput = ({
   })
 
   useEffect(() => {
-    setChatDraft(chatId, connectionResource.id, value)
-  }, [chatId, connectionResource.id, value])
+    setChatDraft(
+      chatId,
+      connectionResource.id,
+      isSql && value.trim() ? `!${value}` : value
+    )
+  }, [chatId, connectionResource.id, isSql, value])
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -110,19 +174,12 @@ export const ChatInput = ({
 
   const isDictating = dictation.isRecording || dictation.isTranscribing
   const canSend =
-    (!!value.trim() || files.length > 0) && isOnline && !isDictating
+    (!!value.trim() || (!isSql && files.length > 0)) && isOnline && !isDictating
   const showStop = isWorking && !canSend
   const sendsNow = isWorking && canInterrupt
-  let sendLabel = 'Send message'
-  if (showStop) {
-    sendLabel = 'Stop generating'
-  } else if (sendsNow) {
-    sendLabel = 'Send now'
-  } else if (isWorking) {
-    sendLabel = 'Queue message'
-  }
+  const sendLabel = sendLabelOf({ isSql, isWorking, sendsNow, showStop })
   const submit = (now = false) => {
-    const command = commandOf(value)
+    const command = isSql ? null : commandOf(value)
     if (command) {
       onCommand(command)
       menu.reset()
@@ -132,10 +189,23 @@ export const ChatInput = ({
     if (!canSend) {
       return
     }
-    onSend(value.trim(), menu.sentMentions(), files, now)
-    menu.reset()
-    setValue('')
-    setFiles([])
+    const send = () => {
+      if (isSql) {
+        onSend(`!${value.trim()}`, [], [], now)
+        setIsSql(false)
+      } else {
+        onSend(value.trim(), menu.sentMentions(), files, now)
+        setFiles([])
+      }
+      menu.reset()
+      setValue('')
+    }
+    const keywords = isSql ? getQueryLanguage(dialect).destructive(value) : []
+    if (keywords.length > 0) {
+      confirmRef.current?.confirm(keywords, send)
+      return
+    }
+    send()
   }
 
   return (
@@ -148,7 +218,13 @@ export const ChatInput = ({
     >
       <PromptMenu menu={menu} />
       <InputGroup variant="composer">
-        {files.length > 0 && (
+        {isSql && (
+          <InputGroupAddon align="block-start">
+            <Badge>SQL</Badge>
+            Runs on this database, the agent sees the result
+          </InputGroupAddon>
+        )}
+        {!isSql && files.length > 0 && (
           <InputGroupAddon align="block-start">
             <AttachmentGroup className="flex-1">
               {files.map((file, index) => (
@@ -173,15 +249,23 @@ export const ChatInput = ({
             ref={textareaRef}
             data-mask
             aria-label="Message"
-            placeholder={
-              dictation.isRecording
-                ? 'Listening…'
-                : (suggestion ?? 'Ask, @ to mention, / for commands')
-            }
+            placeholder={placeholderOf({
+              isRecording: dictation.isRecording,
+              isSql,
+              suggestion,
+            })}
             rows={2}
             className="relative field-sizing-content max-h-64 min-h-14 px-3 pt-2.5"
             value={value}
-            onChange={(event) => setValue(event.target.value)}
+            onChange={(event) => {
+              const next = event.target.value
+              if (!isSql && !value && next.startsWith('!')) {
+                setIsSql(true)
+                setValue(next.slice(1))
+                return
+              }
+              setValue(next)
+            }}
             onScroll={(event) => {
               if (highlightRef.current) {
                 highlightRef.current.scrollTop = event.currentTarget.scrollTop
@@ -212,10 +296,14 @@ export const ChatInput = ({
               if (event.key === 'Escape' && dictation.isRecording) {
                 event.preventDefault()
                 dictation.cancel()
+              } else if (isSql && leavesSql(event)) {
+                event.preventDefault()
+                setIsSql(false)
               } else if (
                 event.key === 'Tab' &&
                 !event.shiftKey &&
                 !value &&
+                !isSql &&
                 suggestion
               ) {
                 event.preventDefault()
@@ -238,23 +326,29 @@ export const ChatInput = ({
         </div>
         <InputGroupAddon align="block-end">
           <div className="flex min-w-0 flex-1 items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <InputGroupButton
-                    size="icon-round"
-                    variant="secondary"
-                    aria-label="Attach files"
-                    onClick={() => fileInputRef.current?.click()}
-                  />
-                }
-              >
-                <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
-              </TooltipTrigger>
-              <TooltipContent side="top">Attach images or PDFs</TooltipContent>
-            </Tooltip>
-            <ModelPicker />
-            <ApprovalModePicker />
+            {!isSql && (
+              <>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <InputGroupButton
+                        size="icon-round"
+                        variant="secondary"
+                        aria-label="Attach files"
+                        onClick={() => fileInputRef.current?.click()}
+                      />
+                    }
+                  >
+                    <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    Attach images or PDFs
+                  </TooltipContent>
+                </Tooltip>
+                <ModelPicker />
+                <ApprovalModePicker />
+              </>
+            )}
             <div className="ml-auto flex items-center gap-1">
               {meter}
               <DictationButton dictation={dictation} />
@@ -299,6 +393,7 @@ export const ChatInput = ({
           </div>
         </InputGroupAddon>
       </InputGroup>
+      <RunnerAlertDialog ref={confirmRef} />
       <input
         ref={fileInputRef}
         type="file"

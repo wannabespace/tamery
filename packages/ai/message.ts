@@ -40,6 +40,10 @@ export const textFromMessage = (message: Pick<AppUIMessage, 'parts'>) =>
     .join('\n')
     .trim()
 
+/** A statement the user ran themselves from the composer: kept for the agent to read, never answered. */
+export const isSqlRun = (message: Pick<AppUIMessage, 'parts'>) =>
+  message.parts.some((part) => part.type === 'data-sql')
+
 interface MessagePartRow {
   order: number
   part: AppMessagePart

@@ -6,7 +6,6 @@ import { ChatDisclosure } from './chat-disclosure'
 import { MessagePart } from './chat-message-part'
 import { getLiveLabel } from './chat-tool-part'
 import type { ToolPartActions } from './chat-tool-types'
-import { isAnsweredByApp } from './tool-status'
 
 type Segment =
   | { kind: 'part'; part: AppMessagePart }
@@ -27,9 +26,6 @@ const isLegwork = (part: AppMessagePart) => {
     case 'tool-query':
     case 'tool-spawn_agent': {
       return false
-    }
-    case 'tool-propose_change': {
-      return part.state !== 'output-available' && !isAnsweredByApp(part)
     }
     default: {
       return true

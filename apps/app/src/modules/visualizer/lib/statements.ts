@@ -1,12 +1,12 @@
 import type { Dialect } from '@tamery/shared/enums/connection-type'
 import type { CompiledQuery, Kysely } from 'kysely'
 
-import type { DiagramDraft } from '~/core/drafts/diagram'
+import type { ReferentialAction } from '~/core/queries/constraints/shape'
 import {
   addConstraint,
   dropConstraintStatement,
 } from '~/core/queries/constraints/shape'
-import { indexPreviewStatement } from '~/core/queries/indexes/shape'
+import type { AlterColumnTarget, NewColumn } from '~/core/queries/tables/shape'
 import {
   addColumnStatement,
   createTableStatement,
@@ -17,6 +17,33 @@ import {
 } from '~/core/queries/tables/shape'
 import { alterColumnStatement } from '~/core/queries/tables/shape/alter-column'
 
+export interface TableRef {
+  schema: string
+  table: string
+}
+
+export type DiagramDraft = { id: string } & TableRef &
+  (
+    | { columns: NewColumn[]; kind: 'createTable' }
+    | { kind: 'renameTable'; newName: string }
+    | { cascade: boolean; kind: 'dropTable' }
+    | { column: NewColumn; kind: 'addColumn' }
+    | { column: string; kind: 'renameColumn'; newName: string }
+    | ({ kind: 'alterColumn' } & Omit<AlterColumnTarget, keyof TableRef>)
+    | { column: string; kind: 'dropColumn' }
+    | {
+        columns: string[]
+        foreignColumns: string[]
+        foreignSchema: string
+        foreignTable: string
+        kind: 'addForeignKey'
+        name: string
+        onDelete: ReferentialAction
+        onUpdate: ReferentialAction
+      }
+    | { kind: 'dropForeignKey'; name: string }
+  )
+
 // Drafts name tables and columns by their original names, so a rename has to
 // run after every statement that still names the object.
 const APPLY_ORDER: DiagramDraft['kind'][] = [
@@ -25,7 +52,6 @@ const APPLY_ORDER: DiagramDraft['kind'][] = [
   'addColumn',
   'alterColumn',
   'addForeignKey',
-  'createIndex',
   'dropColumn',
   'renameColumn',
   'renameTable',
@@ -83,9 +109,6 @@ export const draftStatement = (
         cascade: false,
         kind: 'foreignKey',
       })
-    }
-    case 'createIndex': {
-      return indexPreviewStatement(dialect, draft).compile(db)
     }
     default: {
       return draft satisfies never

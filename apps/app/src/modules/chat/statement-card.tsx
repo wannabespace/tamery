@@ -30,7 +30,7 @@ const MAX_VISIBLE_ROWS = 8
 
 type ResultSets = ChatTools['query']['output']
 
-const summarize = (sets: ResultSets) => {
+export const summarize = (sets: ResultSets) => {
   const set = sets.findLast(({ columns }) => columns.length > 0)
   if (set) {
     return set.truncated
