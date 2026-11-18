@@ -43,11 +43,12 @@ import { queryClient } from '~/lib/query-client'
 
 import {
   OptionsField,
-  resetFields,
   SchemaField,
+  SearchSelectField,
   SelectField,
   SwitchField,
   TextField,
+  resetFields,
 } from '../components/fields'
 import type { SectionInspectorProps } from '../components/inspector'
 import {
@@ -367,7 +368,7 @@ const IndexInspector = ({
       >
         <form.AppField name="table">
           {() => (
-            <SelectField
+            <SearchSelectField
               label="Table"
               disabled={locked.readOnly || !!item}
               options={

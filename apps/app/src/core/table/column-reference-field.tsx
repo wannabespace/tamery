@@ -15,6 +15,9 @@ import { useConnectionContext } from '~/core/connection/route'
 import type { ReferenceTarget } from './use-reference-targets'
 import { useReferenceTargets } from './use-reference-targets'
 
+// Rendering every key of a large database in one popup freezes the window; typing reaches the rest.
+const MAX_KEYS = 100
+
 export const ReferenceField = ({
   column,
   onValueChange,
@@ -39,6 +42,7 @@ export const ReferenceField = ({
       <FieldLabel htmlFor="column-dialog-reference">References</FieldLabel>
       <Combobox
         items={labels}
+        limit={MAX_KEYS}
         value={value?.label ?? null}
         onValueChange={(label: string | null) =>
           onValueChange((label && targets.get(label)) || null)

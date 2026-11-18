@@ -10,11 +10,12 @@ import { getCapabilities } from '~/core/catalog/capabilities'
 import { queryClient } from '~/lib/query-client'
 
 import {
-  resetFields,
   SchemaField,
+  SearchSelectField,
   SelectField,
   SqlField,
   TextField,
+  resetFields,
 } from '../../components/fields'
 import type {
   InspectorWarning,
@@ -161,7 +162,7 @@ export const PolicyInspector = ({
         </form.AppField>
         <form.AppField name="table">
           {() => (
-            <SelectField
+            <SearchSelectField
               label="Table"
               description={
                 rlsTables

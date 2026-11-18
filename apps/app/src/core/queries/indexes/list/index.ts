@@ -2,6 +2,7 @@ import { queryOptions } from '@tanstack/react-query'
 import { type } from 'arktype'
 
 import type { ConnectionResource } from '~/core/connection/sync'
+import { bitFlag, nullableString } from '~/core/queries/shared/catalog-fields'
 import {
   connectionResourceToQueryParams,
   createQuery,
@@ -17,15 +18,15 @@ import { postgresIndexes } from './postgres'
 import { sqliteIndexes } from './sqlite'
 
 export const indexesType = type({
-  column: 'string | null',
-  'custom_expression?': 'string | null',
+  column: nullableString,
+  'custom_expression?': nullableString,
   'granularity?': 'number',
-  'index_definition?': 'string | null',
+  'index_definition?': nullableString,
   'index_type?': 'string',
-  'is_constraint?': 'boolean | 1 | 0',
-  'is_custom?': 'boolean | 1 | 0',
-  is_primary: 'boolean | 1 | 0',
-  is_unique: 'boolean | 1 | 0',
+  'is_constraint?': bitFlag,
+  'is_custom?': bitFlag,
+  is_primary: bitFlag,
+  is_unique: bitFlag,
   name: 'string',
   schema: 'string',
   table: 'string',

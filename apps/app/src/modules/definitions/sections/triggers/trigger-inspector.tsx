@@ -22,10 +22,11 @@ import {
   Labelled,
   OptionSelect,
   OptionsField,
-  resetFields,
   SchemaField,
+  SearchSelectField,
   SelectField,
   TextField,
+  resetFields,
 } from '../../components/fields'
 import type { SectionInspectorProps } from '../../components/inspector'
 import {
@@ -161,7 +162,7 @@ export const TriggerInspector = ({
         </form.AppField>
         <form.AppField name="table">
           {() => (
-            <SelectField
+            <SearchSelectField
               label={instead ? 'View' : 'Table'}
               description={
                 instead

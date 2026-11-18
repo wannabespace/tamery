@@ -7,6 +7,7 @@ import { sql } from 'kysely'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import type { ConnectionResource } from '~/core/connection/sync'
+import { bitFlag, nullableString } from '~/core/queries/shared/catalog-fields'
 import { mssqlModuleBody } from '~/core/queries/shared/definition'
 import {
   connectionResourceToQueryParams,
@@ -17,13 +18,13 @@ import { sqliteTriggerParts } from '../shape'
 import { oracleTriggers } from './oracle'
 
 export const triggersType = type({
-  'body?': 'string | null',
-  'custom?': 'boolean | 1 | 0',
-  'enabled?': 'boolean | 1 | 0',
+  'body?': nullableString,
+  'custom?': bitFlag,
+  'enabled?': bitFlag,
   'enabled_mode?': 'string',
   event: 'string',
-  'function_name?': 'string | null',
-  'function_schema?': 'string | null',
+  'function_name?': nullableString,
+  'function_schema?': nullableString,
   name: 'string',
   'oid?': 'number',
   'orientation?': 'string',

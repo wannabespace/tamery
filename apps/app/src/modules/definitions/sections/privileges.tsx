@@ -18,11 +18,12 @@ import {
 import { queryClient } from '~/lib/query-client'
 
 import {
-  resetFields,
   SchemaField,
+  SearchSelectField,
   SelectField,
   SwitchField,
   TextField,
+  resetFields,
 } from '../components/fields'
 import type { SectionInspectorProps } from '../components/inspector'
 import { Inspector, InspectorSection } from '../components/inspector'
@@ -132,7 +133,7 @@ const PrivilegeInspector = ({
         </form.AppField>
         <form.AppField name="table">
           {() => (
-            <SelectField
+            <SearchSelectField
               label="Table"
               disabled={readOnly}
               getLabel={tableLabel}

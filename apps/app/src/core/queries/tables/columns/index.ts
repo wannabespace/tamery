@@ -4,6 +4,12 @@ import { memoize } from 'memoza'
 
 import type { ConnectionResource } from '~/core/connection/sync'
 import {
+  bitFlag,
+  nullableFlag,
+  nullableNumber,
+  nullableString,
+} from '~/core/queries/shared/catalog-fields'
+import {
   connectionResourceToQueryParams,
   createQuery,
 } from '~/core/runtime/query'
@@ -21,20 +27,20 @@ import { sqliteColumns } from './sqlite'
 export const columnType = type({
   // MySQL: the clauses a MODIFY COLUMN drops unless it repeats them.
   'attributes?': 'string',
-  'collation?': 'string | null',
-  comment: 'string | null',
-  'declaredType?': 'string | null',
-  default: 'string | null',
-  'editable?': 'boolean | 1 | 0',
+  'collation?': nullableString,
+  comment: nullableString,
+  'declaredType?': nullableString,
+  default: nullableString,
+  'editable?': bitFlag,
   'enumName?': 'string',
   id: 'string',
   'isArray?': 'boolean',
-  'isGenerated?': 'boolean | number | null',
-  'isIdentity?': 'boolean | number | null',
-  'maxLength?': 'number | null',
-  nullable: 'boolean | 1 | 0',
-  'precision?': 'number | null',
-  'scale?': 'number | null',
+  'isGenerated?': nullableFlag,
+  'isIdentity?': nullableFlag,
+  'maxLength?': nullableNumber,
+  nullable: bitFlag,
+  'precision?': nullableNumber,
+  'scale?': nullableNumber,
   schema: 'string',
   table: 'string',
   type: 'string',

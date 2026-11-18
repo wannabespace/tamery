@@ -4,9 +4,11 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  defaultFilter,
 } from '@tamery/ui/components/command'
 import { FieldDescription } from '@tamery/ui/components/field'
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 
 import type { ConnectionResource } from '~/core/connection/sync'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
@@ -16,6 +18,9 @@ interface CopyTable {
   schema: string
   table: string
 }
+
+// Rendering every table of a large database at once freezes the window; typing reaches the rest.
+const MAX_TABLES = 100
 
 /** `null` is the whole database, which copies more than its tables. */
 export type TableSelection = Map<string, CopyTable> | null
@@ -32,6 +37,7 @@ export const TablesField = ({
   const { data } = useQuery(
     resourceTablesAndSchemasQueryOptions({ connectionResource: resource })
   )
+  const [search, setSearch] = useState('')
   const tables = new Map(
     data?.schemas.flatMap((schema) =>
       schema.tables
@@ -43,11 +49,23 @@ export const TablesField = ({
     )
   )
 
+  const matching = [...tables].filter(
+    ([key, entry]) =>
+      !search.trim() ||
+      defaultFilter(key, search, [entry.schema, entry.table]) > 0
+  )
+  const hidden = matching.length - MAX_TABLES
+
   return (
     <>
       <div className="bg-popover ring-foreground/4 overflow-hidden rounded-xl ring">
-        <Command variant="flat" label="Tables">
-          <CommandInput variant="flat" placeholder="Search tables" />
+        <Command variant="flat" label="Tables" shouldFilter={false}>
+          <CommandInput
+            variant="flat"
+            placeholder="Search tables"
+            value={search}
+            onValueChange={setSearch}
+          />
           <CommandList>
             <CommandGroup>
               <CommandItem
@@ -60,7 +78,7 @@ export const TablesField = ({
               >
                 Everything
               </CommandItem>
-              {[...tables].map(([key, entry]) => (
+              {matching.slice(0, MAX_TABLES).map(([key, entry]) => (
                 <CommandItem
                   key={key}
                   value={key}
@@ -86,6 +104,11 @@ export const TablesField = ({
                   </span>
                 </CommandItem>
               ))}
+              {hidden > 0 && (
+                <div className="text-muted-foreground px-2 py-1.5 text-xs">
+                  Search to see {plural(hidden, 'more table')}
+                </div>
+              )}
             </CommandGroup>
           </CommandList>
         </Command>
