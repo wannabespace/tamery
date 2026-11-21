@@ -1,10 +1,9 @@
-import { ORPCError } from '@orpc/client'
 import { os } from '@orpc/server'
 import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
 import { isDevelopmentOrigin, ORIGINS } from '@tamery/shared/origins'
+import { type } from 'arktype'
 
-import { createApiClient } from '~/api-client'
-import { nodeEnv } from '~/env'
+import { env, nodeEnv } from '~/env'
 
 import type { Context } from './context'
 
@@ -14,19 +13,23 @@ export const isWebOrigin = (origin: string) =>
   origin === ORIGINS.web ||
   (nodeEnv === 'development' && isDevelopmentOrigin(origin))
 
-// Not `/auth/get-session`: better-auth rate-limits it per IP, and every viewer's check leaves from proxy's NAT address.
-const getViewer = async (headers: Headers) => {
-  try {
-    return await createApiClient({
-      authorization: headers.get('authorization'),
-      cookie: headers.get('cookie'),
-    }).account.viewer()
-  } catch (error) {
-    if (error instanceof ORPCError && error.code === 'UNAUTHORIZED') {
-      return null
-    }
-    throw error
+const sessionResponse = type({ session: { userId: 'string' } })
+
+const getSession = async (headers: Headers) => {
+  const res = await fetch(`${env.API_URL}/auth/get-session`, {
+    headers: {
+      authorization: headers.get('authorization') ?? '',
+      cookie: headers.get('cookie') ?? '',
+      'x-proxy-token': env.PROXY_SHARED_SECRET,
+    },
+  })
+
+  if (!res.ok) {
+    return null
   }
+
+  const data = await res.json()
+  return data ? sessionResponse.assert(data).session : null
 }
 
 export const authMiddleware = orpc
@@ -41,17 +44,17 @@ export const authMiddleware = orpc
       throw errors.UNAUTHORIZED()
     }
 
-    const viewer = await getViewer(context.headers)
+    const session = await getSession(context.headers)
 
-    if (!viewer) {
+    if (!session) {
       throw errors.UNAUTHORIZED()
     }
 
-    context.addLogData({ userId: viewer.id })
+    context.addLogData({ userId: session.userId })
 
     return next({
       context: {
-        session: { userId: viewer.id },
+        session,
       },
     })
   })

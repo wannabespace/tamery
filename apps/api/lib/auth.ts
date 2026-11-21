@@ -50,6 +50,7 @@ import { env, nodeEnv } from '~/env'
 import { locateIp } from '~/lib/geo-ip'
 import { posthog } from '~/lib/posthog'
 import { resend, sendEmail } from '~/lib/resend'
+import { safeEqual } from '~/lib/safe-equal'
 
 import { redis, redisMemoize } from './redis'
 import {
@@ -660,6 +661,18 @@ export const auth = betterAuth({
     emailHarmony(),
     anonymous(),
   ],
+  rateLimit: {
+    customRules: {
+      // proxy checks every viewer's session from its own NAT address, which would put them all in one bucket.
+      '/get-session': (request, rule) =>
+        safeEqual(
+          request.headers.get('x-proxy-token') ?? '',
+          env.PROXY_SHARED_SECRET
+        )
+          ? false
+          : rule,
+    },
+  },
   secret: env.BETTER_AUTH_SECRET,
   socialProviders: {
     github: {
