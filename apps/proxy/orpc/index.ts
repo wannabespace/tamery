@@ -20,6 +20,7 @@ const getSession = async (headers: Headers) => {
     headers: {
       authorization: headers.get('authorization') ?? '',
       cookie: headers.get('cookie') ?? '',
+      'x-proxy-token': env.PROXY_SHARED_SECRET,
     },
   })
 
