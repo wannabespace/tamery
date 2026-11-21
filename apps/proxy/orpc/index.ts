@@ -1,9 +1,10 @@
+import { ORPCError } from '@orpc/client'
 import { os } from '@orpc/server'
 import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
 import { isDevelopmentOrigin, ORIGINS } from '@tamery/shared/origins'
-import { type } from 'arktype'
 
-import { env, nodeEnv } from '~/env'
+import { createApiClient } from '~/api-client'
+import { nodeEnv } from '~/env'
 
 import type { Context } from './context'
 
@@ -13,22 +14,19 @@ export const isWebOrigin = (origin: string) =>
   origin === ORIGINS.web ||
   (nodeEnv === 'development' && isDevelopmentOrigin(origin))
 
-const sessionResponse = type({ session: { userId: 'string' } })
-
-const getSession = async (headers: Headers) => {
-  const res = await fetch(`${env.API_URL}/auth/get-session`, {
-    headers: {
-      authorization: headers.get('authorization') ?? '',
-      cookie: headers.get('cookie') ?? '',
-    },
-  })
-
-  if (!res.ok) {
-    return null
+// Not `/auth/get-session`: better-auth rate-limits it per IP, and every viewer's check leaves from proxy's NAT address.
+const getViewer = async (headers: Headers) => {
+  try {
+    return await createApiClient({
+      authorization: headers.get('authorization'),
+      cookie: headers.get('cookie'),
+    }).account.viewer()
+  } catch (error) {
+    if (error instanceof ORPCError && error.code === 'UNAUTHORIZED') {
+      return null
+    }
+    throw error
   }
-
-  const data = await res.json()
-  return data ? sessionResponse.assert(data).session : null
 }
 
 export const authMiddleware = orpc
@@ -43,17 +41,17 @@ export const authMiddleware = orpc
       throw errors.UNAUTHORIZED()
     }
 
-    const session = await getSession(context.headers)
+    const viewer = await getViewer(context.headers)
 
-    if (!session) {
+    if (!viewer) {
       throw errors.UNAUTHORIZED()
     }
 
-    context.addLogData({ userId: session.userId })
+    context.addLogData({ userId: viewer.id })
 
     return next({
       context: {
-        session,
+        session: { userId: viewer.id },
       },
     })
   })
