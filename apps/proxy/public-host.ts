@@ -34,7 +34,7 @@ for (const [network, prefix, family] of [
 }
 
 export const PRIVATE_HOST_MESSAGE =
-  'The cloud proxy reaches only public hosts. Run `tamery bridge` or open this connection in the desktop app.'
+  'The cloud proxy reaches only public hosts. Run `tamery machine` or open this connection in the desktop app.'
 
 const SRV_SCHEME = 'mongodb+srv'
 
@@ -92,13 +92,13 @@ export const assertReachable = async (connectionString: string) => {
   if (FILE_PARAMS.some((param) => searchParams.has(param))) {
     throw new ORPCError('FORBIDDEN', {
       message:
-        'The cloud proxy cannot read certificate files. Run `tamery bridge` or open this connection in the desktop app.',
+        'The cloud proxy cannot read certificate files. Run `tamery machine` or open this connection in the desktop app.',
     })
   }
   if (describeConnectionString(connectionString).usesMachineCredentials) {
     throw new ORPCError('FORBIDDEN', {
       message:
-        'The cloud proxy cannot sign in with AWS, OIDC or Kerberos credentials. Run `tamery bridge` or open this connection in the desktop app.',
+        'The cloud proxy cannot sign in with AWS, OIDC or Kerberos credentials. Run `tamery machine` or open this connection in the desktop app.',
     })
   }
   // An SRV name has no address of its own: the servers it lists are checked by `guardedConnect` as the driver dials them.

@@ -1,12 +1,11 @@
 ---
 title: 'Tamery CLI'
 sidebarTitle: 'Overview'
-description: "Run the web app's queries on your own computer with tamery bridge: localhost, private networks, SQLite and DuckDB files, and connections whose password stays with you."
-keywords:
-  ['command line', 'terminal', 'tamery proxy', 'local proxy', 'headless']
+description: "Run the web app's queries on your own computer with tamery machine: localhost, private networks, SQLite and DuckDB files, and connections whose password stays with you."
+keywords: ['command line', 'terminal', 'local proxy', 'headless']
 ---
 
-`tamery bridge` lets the web app run your queries on the computer where the bridge runs. Use it for a database on localhost or a private network, a SQLite or DuckDB file, or a connection whose password Tamery's server doesn't have. The desktop app doesn't need it: it already runs queries on your computer.
+`tamery machine` lets the web app run your queries on the computer where the machine runs. Use it for a database on localhost or a private network, a SQLite or DuckDB file, or a connection whose password Tamery's server doesn't have. The desktop app doesn't need it: it already runs queries on your computer.
 
 ## Install
 
@@ -32,67 +31,67 @@ npm i -g tamery
 
 The CLI runs on macOS (Apple silicon and Intel), Linux (x64 and arm64), and Windows (x64 and arm64). It needs neither Node.js nor any other runtime. On Alpine and other musl-based Linux, install `libstdc++` first, for example `apk add libstdc++`.
 
-## Run the bridge
+## Run the machine
 
-1. Start the bridge:
+1. Start the machine:
 
    ```bash
-   tamery bridge
+   tamery machine
    ```
 
-   The first time, it opens the browser so you can sign in with the account you use in the web app. Then it opens **Settings → Bridge** in the web app.
+   The first time, it opens the browser so you can sign in with the account you use in the web app. Then it opens **Settings → Machine** in the web app.
 
-2. Check that the **Bridge URL** is the one `tamery bridge` printed, usually `http://127.0.0.1:26380`, and click **Connect**.
+2. Check that the **Machine URL** is the one `tamery machine` printed, usually `http://127.0.0.1:26380`, and click **Connect**.
 
-3. **Settings → Bridge** and the terminal running `tamery bridge` both show a code. If they match, select **Yes** in the terminal and press **Enter**. This lets the browser run your connections on that computer, including ones that use its files, SSH keys or credentials. **No** is selected first, and no answer within 2 minutes counts as no.
+3. **Settings → Machine** and the terminal running `tamery machine` both show a code. If they match, select **Yes** in the terminal and press **Enter**. This lets the browser run your connections on that computer, including ones that use its files, SSH keys or credentials. **No** is selected first, and no answer within 2 minutes counts as no.
 
-Keep the bridge running. The web app now sends every query through it, and a computer icon at the top of the window shows its state: a green dot while it answers, red within 10 seconds of it stopping. Hover it for the reason.
+Keep the machine running. The web app now sends every query through it, and a computer icon at the top of the window shows its state: a green dot while it answers, red within 10 seconds of it stopping. Hover it for the reason.
 
-If the bridge stops, queries fail until you start it again. They never move to Tamery's cloud proxy on their own. To use the cloud proxy instead, for example while that computer is off, turn off **Run queries on** in **Settings → Bridge**. Turning it back on needs no new approval.
+If the machine stops, queries fail until you start it again. They never move to Tamery's cloud proxy on their own. To use the cloud proxy instead, for example while that computer is off, turn off **Run queries on** in **Settings → Machine**. Turning it back on needs no new approval.
 
-The bridge accepts only browsers signed in to the same account as the bridge.
+The machine accepts only browsers signed in to the same account as the machine.
 
 ## Paired browsers
 
-An allowed browser stays allowed when the bridge restarts. To add another browser, click **Connect** there and allow it the same way.
+An allowed browser stays allowed when the machine restarts. To add another browser, click **Connect** there and allow it the same way.
 
-A browser uses one bridge at a time. To switch to another bridge, click **Unpair** in **Settings → Bridge** first, or open the link the other bridge prints. **Unpair** and signing out also make the bridge forget this browser. To disconnect every browser at once, run [`tamery bridge unpair-all`](/cli/commands#tamery-bridge-unpair-all).
+A browser uses one machine at a time. To switch to another machine, click **Unpair** in **Settings → Machine** first, or open the link the other machine prints. **Unpair** and signing out also make the machine forget this browser. To disconnect every browser at once, run [`tamery machine unpair-all`](/cli/commands#tamery-machine-unpair-all).
 
 ## Without a browser or terminal
 
-On a server without a browser, open the sign-in link that `tamery bridge` prints on your own computer. Then enter the bridge's address as the **Bridge URL**. To reach it from another computer, see [Reach a bridge on another computer](/cli/remote).
+On a server without a browser, open the sign-in link that `tamery machine` prints on your own computer. Then enter the machine's address as the **Machine URL**. To reach it from another computer, see [Reach a machine on another computer](/cli/remote).
 
-When the bridge runs without a terminal to ask in, such as a service or a container, answer with [`tamery bridge approve`](/cli/commands#tamery-bridge-approve).
+When the machine runs without a terminal to ask in, such as a service or a container, answer with [`tamery machine approve`](/cli/commands#tamery-machine-approve).
 
 ## Which connections it runs
 
-The bridge runs only the connections saved in your account.
+The machine runs only the connections saved in your account.
 
-| Sync type | On the bridge |
+| Sync type | On the machine |
 | --- | --- |
 | **Full** | Runs right away. |
 | **No password** | Asks once for the password and the other secrets that don't sync. |
 | **Metadata only** | Asks once for the server details. |
 
-Some connections use this computer's files or credentials: a SQLite or DuckDB file, a certificate file (such as `sslkey` or `tlsCAFile`), an SSH tunnel, or a MongoDB login with the computer's AWS, OIDC or Kerberos credentials. The bridge runs them only once you allow them:
+Some connections use this computer's files or credentials: a SQLite or DuckDB file, a certificate file (such as `sslkey` or `tlsCAFile`), an SSH tunnel, or a MongoDB login with the computer's AWS, OIDC or Kerberos credentials. The machine runs them only once you allow them:
 
 - **Saved in this browser:** already allowed.
-- **Saved by someone else:** click **Allow** on **Allow this connection on the bridge**.
-- **Edited since you allowed it,** in anything but the database name and secrets: allow it again. A teammate can't point the bridge at your files or credentials.
+- **Saved by someone else:** click **Allow** on **Allow this connection on the machine**.
+- **Edited since you allowed it,** in anything but the database name and secrets: allow it again. A teammate can't point the machine at your files or credentials.
 
-To try a new connection while paired, save it first. Only saved connections run on the bridge.
+To try a new connection while paired, save it first. Only saved connections run on the machine.
 
-SQLite and DuckDB paths, `~/` included, point to files on the bridge's computer. The bridge doesn't open files in app data folders, such as `~/Library`, `AppData` or a folder in your home folder whose name starts with a dot, where browsers and other apps keep cookies and keys. It opens only regular files, never a device, pipe or folder, also for certificate and SSH key paths. A MongoDB login with the computer's AWS, OIDC or Kerberos credentials runs on the bridge only for MongoDB Atlas, over TLS that checks the certificate against the system's authorities. Open other connections like these in the desktop app. The first DuckDB file downloads DuckDB for the bridge, once. A DuckDB query through the bridge reads only its own file, never other files or URLs. SSH tunnels open there too, with its SSH keys, agent and `~/.ssh/config`. When an SSH host isn't in that computer's `known_hosts`, the web app shows its key fingerprint and asks whether to trust it. **Trust and Connect** adds it to `~/.ssh/known_hosts` on the bridge's computer, and **Cancel** doesn't connect.
+SQLite and DuckDB paths, `~/` included, point to files on the machine's computer. The machine doesn't open files in app data folders, such as `~/Library`, `AppData` or a folder in your home folder whose name starts with a dot, where browsers and other apps keep cookies and keys. It opens only regular files, never a device, pipe or folder, also for certificate and SSH key paths. A MongoDB login with the computer's AWS, OIDC or Kerberos credentials runs on the machine only for MongoDB Atlas, over TLS that checks the certificate against the system's authorities. Open other connections like these in the desktop app. The first DuckDB file downloads DuckDB for the machine, once. A DuckDB query through the machine reads only its own file, never other files or URLs. SSH tunnels open there too, with its SSH keys, agent and `~/.ssh/config`. When an SSH host isn't in that computer's `known_hosts`, the web app shows its key fingerprint and asks whether to trust it. **Trust and Connect** adds it to `~/.ssh/known_hosts` on the machine's computer, and **Cancel** doesn't connect.
 
-The bridge reaches databases and files with the rights of the system user that runs it. On a shared server, run it as a user with no more access than it needs.
+The machine reaches databases and files with the rights of the system user that runs it. On a shared server, run it as a user with no more access than it needs.
 
 A query that runs longer than about 4 minutes fails.
 
-In the web app, **New connection** lists the databases the bridge finds on that computer, as the desktop app does for its own: running Docker containers, and connections saved in DBeaver, TablePlus, DataGrip, pgAdmin, `pg_service.conf`, `.pgpass` or `my.cnf`. Picking one fills the form. A password saved with it for a database on that computer never reaches the browser: the bridge keeps it for the connection you save, and your other devices ask for it. For a database elsewhere, such as a server behind a VPN, or a password kept in the macOS Keychain, type the password.
+In the web app, **New connection** lists the databases the machine finds on that computer, as the desktop app does for its own: running Docker containers, and connections saved in DBeaver, TablePlus, DataGrip, pgAdmin, `pg_service.conf`, `.pgpass` or `my.cnf`. Picking one fills the form. A password saved with it for a database on that computer never reaches the browser: the machine keeps it for the connection you save, and your other devices ask for it. For a database elsewhere, such as a server behind a VPN, or a password kept in the macOS Keychain, type the password.
 
 ## Manage connections
 
-`tamery connection` creates, updates and deletes the connections in your account from the terminal. Changes show up in the app like changes made there. A connection you create with the CLI runs on the bridge on that computer without any more questions. A **Metadata only** one is the exception in the web app: each browser asks for its server details once, as for any **Metadata only** connection. [CLI commands](/cli/commands#tamery-connection-create) lists the flags.
+`tamery connection` creates, updates and deletes the connections in your account from the terminal. Changes show up in the app like changes made there. A connection you create with the CLI runs on the machine on that computer without any more questions. A **Metadata only** one is the exception in the web app: each browser asks for its server details once, as for any **Metadata only** connection. [CLI commands](/cli/commands#tamery-connection-create) lists the flags.
 
 In a script, without a terminal, `tamery connection` and `tamery query` never start signing in: they fail with **Not signed in** instead, so run `tamery login` on that computer first.
 
@@ -100,15 +99,15 @@ In a script, without a terminal, `tamery connection` and `tamery query` never st
 
 ## Where secrets are stored
 
-If this browser already has the secrets the bridge needs, it sends them on its own. Otherwise the web app opens the connection form on the missing fields. What you enter is saved in this browser and sent to the bridge once.
+If this browser already has the secrets the machine needs, it sends them on its own. Otherwise the web app opens the connection form on the missing fields. What you enter is saved in this browser and sent to the machine once.
 
-The bridge encrypts secrets with a key in the system keychain: the macOS Keychain, Windows Credential Manager, or the Secret Service on Linux. A Linux server often has no keychain. There the key goes into `~/.config/tamery/bridge.key`, readable only by your user, and the bridge warns on every start that file permissions are all that protect it. A computer you sign in to over SSH keeps the key in that file too, since a keychain prompt there would open on its own screen, where you can't answer it. Set `TAMERY_CONFIG_DIR` to keep these files somewhere other than `~/.config/tamery`.
+The machine encrypts secrets with a key in the system keychain: the macOS Keychain, Windows Credential Manager, or the Secret Service on Linux. A Linux server often has no keychain. There the key goes into `~/.config/tamery/machine.key`, readable only by your user, and the machine warns on every start that file permissions are all that protect it. A computer you sign in to over SSH keeps the key in that file too, since a keychain prompt there would open on its own screen, where you can't answer it. Set `TAMERY_CONFIG_DIR` to keep these files somewhere other than `~/.config/tamery`.
 
-If Tamery's servers can't be reached, connections the bridge ran since it started keep working, and so do connections whose details you entered or allowed on it. After a restart, other connections wait for the servers.
+If Tamery's servers can't be reached, connections the machine ran since it started keep working, and so do connections whose details you entered or allowed on it. After a restart, other connections wait for the servers.
 
 ## Usage data
 
-The CLI sends usage events to Tamery once you sign in, linked to your account, like the app does: signing in and out, starting the bridge and answering its questions, updates, and the `tamery connection` and `tamery query` commands. They carry the engine, the sync type, counts and whether a command worked, never names, connection strings, SQL or data. To turn them off, set `DO_NOT_TRACK=1`.
+The CLI sends usage events to Tamery once you sign in, linked to your account, like the app does: signing in and out, starting the machine and answering its questions, updates, and the `tamery connection` and `tamery query` commands. They carry the engine, the sync type, counts and whether a command worked, never names, connection strings, SQL or data. To turn them off, set `DO_NOT_TRACK=1`.
 
 ## Browser support
 
@@ -116,7 +115,7 @@ The CLI sends usage events to Tamery once you sign in, linked to your account, l
 | --- | --- |
 | Chrome, Edge, Brave, Arc | Supported. The first **Connect** asks for permission to access devices on your local network. Allow it. |
 | Firefox | Supported, with the same local network prompt. |
-| Safari | Can't reach `http://127.0.0.1`. Use the desktop app, or give the bridge an [HTTPS address](/cli/remote). |
+| Safari | Can't reach `http://127.0.0.1`. Use the desktop app, or give the machine an [HTTPS address](/cli/remote). |
 
 If you blocked the prompt, allow local network access for the web app in the browser's site settings and reload.
 
@@ -126,9 +125,9 @@ If you blocked the prompt, allow local network access for the web app in the bro
 tamery update
 ```
 
-Then restart the bridge. `tamery update` installs the latest version the same way you installed the CLI. [CLI commands](/cli/commands#tamery-update) covers what it does when something is in the way.
+Then restart the machine. `tamery update` installs the latest version the same way you installed the CLI. [CLI commands](/cli/commands#tamery-update) covers what it does when something is in the way.
 
-When it starts, `tamery bridge` checks for a newer version and tells you to run `tamery update` when there is one. **Settings → Bridge** shows the update too. When the web app needs a newer bridge, it stops sending queries to it and shows the update there.
+When it starts, `tamery machine` checks for a newer version and tells you to run `tamery update` when there is one. **Settings → Machine** shows the update too. When the web app needs a newer machine, it stops sending queries to it and shows the update there.
 
 <Cards>
   <Card href="/cli/commands" />

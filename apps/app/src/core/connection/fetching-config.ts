@@ -3,10 +3,10 @@ import { SyncType } from '@tamery/shared/enums/sync-type'
 
 import type { ConnectionString } from '~/core/connection/connection-strings'
 import type { Connection } from '~/core/connection/sync'
-import type { BridgeRoute } from '~/core/runtime/bridge/pairing'
+import type { MachineRoute } from '~/core/runtime/machine/pairing'
 
 type FetchingType =
-  | 'bridge'
+  | 'machine'
   | 'cloud-proxy'
   | 'local'
   | 'resolving-password'
@@ -26,13 +26,13 @@ type FetchingConnection = Pick<
 > | null
 
 interface FetchingOptions {
-  bridge: BridgeRoute | null
+  machine: MachineRoute | null
   /** `null` while the row loads leaves the password unresolved. */
   connectionString: Pick<
     ConnectionString,
     'isInternal' | 'isPasswordPopulated' | 'missingSecrets' | 'usesSsh'
   > | null
-  /** A string under test: the bridge runs saved connections only, never a string it is sent. */
+  /** A string under test: the machine runs saved connections only, never a string it is sent. */
   draft?: boolean
 }
 
@@ -41,11 +41,11 @@ const REASONS = {
     'Only the name and color of this connection sync. Add its server details on this device to use it here.',
   passwordMissing: 'Enter the password to query this connection.',
   notInWeb:
-    'You cannot reach this connection from the web app. Run `tamery bridge` or open this connection in the desktop app.',
+    'You cannot reach this connection from the web app. Run `tamery machine` or open this connection in the desktop app.',
   secretsMissing:
     'Enter the SSH or SSL credentials this device has not saved yet to query this connection.',
   secretsNotStoredInWeb:
-    'This connection was saved without its credentials, so the web app cannot reach it. Run `tamery bridge` or open this connection in the desktop app.',
+    'This connection was saved without its credentials, so the web app cannot reach it. Run `tamery machine` or open this connection in the desktop app.',
 }
 
 const allowed = (type: FetchingType): FetchingConfig => ({
@@ -104,11 +104,11 @@ export const fetchingConfig = (
     return blocked('waiting-for-details', REASONS.connectionStringNotStored)
   }
 
-  if (options.bridge) {
-    const { asks, name } = options.bridge
+  if (options.machine) {
+    const { asks, name } = options.machine
     if (options.draft) {
       return blocked(
-        'bridge',
+        'machine',
         `Saved connections run on ${name}, so save it to try it.`
       )
     }
@@ -123,7 +123,7 @@ export const fetchingConfig = (
           : REASONS.secretsMissing
       )
     }
-    return allowed('bridge')
+    return allowed('machine')
   }
 
   if (usesSsh && !isElectron) {

@@ -7,7 +7,7 @@ import {
   UserGroupIcon,
 } from '@hugeicons/core-free-icons'
 
-import { BridgeSettings } from '~/modules/bridge/bridge-settings'
+import { MachineSettings } from '~/modules/machine/machine-settings'
 import { McpSettings } from '~/modules/mcp/mcp-settings'
 
 import { AppearanceSettings } from './appearance'
@@ -52,9 +52,9 @@ export const settingsSections = [
         slug: 'mcp',
       }
     : {
-        component: BridgeSettings,
+        component: MachineSettings,
         icon: ComputerTerminal01Icon,
-        label: 'Bridge',
-        slug: 'bridge',
+        label: 'Machine',
+        slug: 'machine',
       },
 ]

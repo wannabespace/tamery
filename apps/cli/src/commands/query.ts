@@ -15,12 +15,12 @@ import { Result } from 'better-result'
 
 import { analytics } from '../analytics'
 import { api } from '../api'
-import { connections } from '../bridge/connections'
-import type { QueryErrors } from '../bridge/errors'
-import { queryErrors } from '../bridge/errors'
-import { printable } from '../bridge/printable'
-import { enableSshTunnels } from '../bridge/ssh'
-import { askInTerminal } from '../bridge/terminal-question'
+import { connections } from '../machine/connections'
+import type { QueryErrors } from '../machine/errors'
+import { queryErrors } from '../machine/errors'
+import { printable } from '../machine/printable'
+import { enableSshTunnels } from '../machine/ssh'
+import { askInTerminal } from '../machine/terminal-question'
 import { paint } from '../paint'
 import { getAccount } from '../sign-in'
 import { findConnection, readConnectionString } from './connection'
@@ -43,8 +43,8 @@ const getServerConnectionString = async (id: string) => {
 }
 
 /**
- * The bridge's own checks: a string a teammate edited to open a file or sign in with this computer's credentials runs only
- * once someone at this terminal allows it, and secrets that never synced are asked for here and kept like the bridge's.
+ * The machine's own checks: a string a teammate edited to open a file or sign in with this computer's credentials runs only
+ * once someone at this terminal allows it, and secrets that never synced are asked for here and kept like the machine's.
  */
 const resolveConnectionString = async (
   { id, name }: { id: string; name: string },

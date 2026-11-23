@@ -10,7 +10,7 @@ export const localPath = {
   expand: (file: string) => file.replace(/^~(?=$|\/)/u, os.homedir()),
   /**
    * The file a SQLite or DuckDB string opens, every symlink and `..` resolved on disk, or `null` when there is none. The
-   * bridge's confinement checks this very path, so both drivers open it and nothing else: resolving `..` by text instead
+   * machine's confinement checks this very path, so both drivers open it and nothing else: resolving `..` by text instead
    * would open another file than the one checked.
    */
   getDatabaseFile: (connectionString: string) =>

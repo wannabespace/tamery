@@ -5,7 +5,7 @@ import { PRO_PLAN } from '~/utils/pricing'
 export const FAQ_QUESTIONS = [
   {
     answer:
-      'PostgreSQL, TimescaleDB, MySQL, MariaDB, Microsoft SQL Server, Oracle, ClickHouse, MongoDB, SQLite, including SQLite on Turso and Cloudflare D1, and DuckDB, including MotherDuck, in the desktop app, the web app and the CLI. Local SQLite and DuckDB files open in the desktop app, or on the web through tamery bridge, and MotherDuck works everywhere.',
+      'PostgreSQL, TimescaleDB, MySQL, MariaDB, Microsoft SQL Server, Oracle, ClickHouse, MongoDB, SQLite, including SQLite on Turso and Cloudflare D1, and DuckDB, including MotherDuck, in the desktop app, the web app and the CLI. Local SQLite and DuckDB files open in the desktop app, or on the web through tamery machine, and MotherDuck works everywhere.',
     question: 'Which databases does Tamery support?',
   },
   {
@@ -15,7 +15,7 @@ export const FAQ_QUESTIONS = [
   },
   {
     answer:
-      'Yes. The desktop app runs a local proxy, so localhost and private-network databases work without setup. In the browser, run tamery bridge from the CLI.',
+      'Yes. The desktop app runs a local proxy, so localhost and private-network databases work without setup. In the browser, run tamery machine from the CLI.',
     question: 'Can I connect to localhost and private databases?',
   },
   {

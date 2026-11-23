@@ -102,15 +102,15 @@ export const fullSignOut = async () => {
     { cleanCollections },
     { clearDb },
     { subscriptionsCache },
-    { bridge },
+    { machine },
   ] = await Promise.all([
     import('~/core/collections'),
     import('./sync'),
     import('~/core/user/use-subscription'),
-    import('~/core/runtime/bridge/bridge'),
+    import('~/core/runtime/machine/machine'),
   ])
 
-  await bridge.unpair()
+  await machine.unpair()
 
   // Before the session is revoked: a sync loop still running reconnects into a 401.
   await cleanCollections()

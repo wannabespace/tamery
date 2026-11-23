@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import type { ConnectionDetails } from '~/core/connection/save'
 import { testConnectionQuery } from '~/core/queries/connection/test'
-import { useBridgeRoute } from '~/core/runtime/bridge/pairing'
+import { useMachineRoute } from '~/core/runtime/machine/pairing'
 import { generateRandomName } from '~/utils/faker'
 
 import type { ConnectionForm, ConnectionFormValues } from './connection-form'
@@ -30,7 +30,7 @@ export type OnSave = (
 ) => Promise<unknown>
 
 export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
-  const bridge = useBridgeRoute(null)
+  const machine = useMachineRoute(null)
   const test = useMutation({
     meta: { event: 'connection_tested' },
     mutationFn: (params: { connectionString: string; dialect: Dialect }) =>
@@ -63,7 +63,7 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
         syncType: values.syncType,
       },
       {
-        bridge,
+        machine,
         connectionString: editing
           ? described
           : { ...described, missingSecrets: [] },

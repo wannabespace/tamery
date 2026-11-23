@@ -9,7 +9,7 @@ import { Result } from 'better-result'
 
 import { configFiles } from './config-files'
 
-const KEYCHAIN_ITEM = { name: 'bridge-key', service: 'app.tamery.cli' }
+const KEYCHAIN_ITEM = { name: 'machine-key', service: 'app.tamery.cli' }
 
 const vaultData = type({
   account: type({ email: 'string', id: 'string', token: 'string' }).or('null'),
@@ -38,7 +38,7 @@ const readKey = async () => {
     return { key: null, keyInFile: true }
   }
   throw new Error(
-    'The keychain refused the bridge key. Unlock it and run the command again.'
+    'The keychain refused the machine key. Unlock it and run the command again.'
   )
 }
 
@@ -50,7 +50,7 @@ const getKey = async () => {
   // A new key would leave every secret in the file unreadable for good.
   if (fs.existsSync(configFiles.vault)) {
     throw new Error(
-      'The bridge key is gone from the keychain, so the saved secrets cannot be read. Run `tamery logout` to start over.'
+      'The machine key is gone from the keychain, so the saved secrets cannot be read. Run `tamery logout` to start over.'
     )
   }
   const key = randomBytes(32).toString('base64')
@@ -76,7 +76,7 @@ const readData = (key: string): VaultData =>
 
 /**
  * Key and file are read on every call, never kept: `tamery login` and `tamery logout` replace both from another process
- * while a bridge runs, and a copy held here would write the old account back under a key that is gone.
+ * while a machine runs, and a copy held here would write the old account back under a key that is gone.
  */
 const read = async () =>
   fs.existsSync(configFiles.vault) ? readData(await getKey()) : EMPTY

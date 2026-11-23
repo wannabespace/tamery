@@ -5,16 +5,16 @@ import { SyncType } from '@tamery/shared/enums/sync-type'
 import { sql } from 'kysely'
 import { clearMemoizeCache, getCacheStore } from 'memoza'
 
-import type { BridgeRoute } from '../bridge/pairing'
+import type { MachineRoute } from '../machine/pairing'
 
-const bridgeCall = () =>
+const machineCall = () =>
   mock((_input: object) => Promise.resolve({ duration: 0, result: [] }))
-const bridge = {
+const machine = {
   beginTransaction: mock(() => Promise.resolve({ txId: 'tx' })),
-  execute: bridgeCall(),
-  executeTransaction: bridgeCall(),
+  execute: machineCall(),
+  executeTransaction: machineCall(),
 }
-const cloud = { execute: bridgeCall(), executeTransaction: bridgeCall() }
+const cloud = { execute: machineCall(), executeTransaction: machineCall() }
 const pairing = {
   browserId: 'browser',
   enabled: true,
@@ -22,7 +22,7 @@ const pairing = {
   secret: 'secret',
   url: 'http://127.0.0.1:26380',
 }
-const state: { route: BridgeRoute | null } = { route: null }
+const state: { route: MachineRoute | null } = { route: null }
 
 mock.module('~/core/collections', () => ({
   getCollections: () => ({
@@ -40,28 +40,28 @@ mock.module('~/core/collections', () => ({
 mock.module('~/lib/orpc', () => ({
   orpcProxy: { query: { postgres: cloud } },
 }))
-mock.module('~/core/runtime/bridge/bridge', () => ({
-  bridge: { client: () => ({ query: { postgres: bridge } }) },
+mock.module('~/core/runtime/machine/machine', () => ({
+  machine: { client: () => ({ query: { postgres: machine } }) },
 }))
-mock.module('~/core/runtime/bridge/pairing', () => ({
-  getBridgeRoute: () => state.route,
+mock.module('~/core/runtime/machine/pairing', () => ({
+  getMachineRoute: () => state.route,
 }))
 Object.assign(globalThis, { window: {} })
 
 const { createDialectProvider } = await import('./driver')
 const { dialects } = await import('./index')
 
-const paired: BridgeRoute = { asks: null, name: pairing.name, pairing }
+const paired: MachineRoute = { asks: null, name: pairing.name, pairing }
 const select = { query: 'SELECT 1', values: [] }
 
 beforeEach(() => {
   state.route = null
-  for (const call of [...Object.values(bridge), ...Object.values(cloud)]) {
+  for (const call of [...Object.values(machine), ...Object.values(cloud)]) {
     call.mockClear()
   }
 })
 
-test('a paired browser sends the bridge ids, never a connection string', async () => {
+test('a paired browser sends the machine ids, never a connection string', async () => {
   state.route = paired
   const connectionString = 'postgres://user@localhost/shop'
   await createDialectProvider(Dialect.Postgres, {
@@ -73,7 +73,7 @@ test('a paired browser sends the bridge ids, never a connection string', async (
     connectionString,
   }).execute(select)
 
-  expect(bridge.execute.mock.calls.map(([input]) => input)).toEqual([
+  expect(machine.execute.mock.calls.map(([input]) => input)).toEqual([
     { connectionId: 'connection', resourceName: 'shop', ...select },
     { connectionId: 'connection', resourceName: null, ...select },
   ])
@@ -87,11 +87,11 @@ test('a paired browser sends a string under test nowhere', () => {
       connectionString: 'postgres://user:password@db.example.com/shop',
     }).execute(select)
   ).toThrow('Saved connections run on valerii-mbp')
-  expect(bridge.execute).not.toHaveBeenCalled()
+  expect(machine.execute).not.toHaveBeenCalled()
   expect(cloud.execute).not.toHaveBeenCalled()
 })
 
-test('a connection the bridge asked secrets for waits for them instead of falling back to the cloud', () => {
+test('a connection the machine asked secrets for waits for them instead of falling back to the cloud', () => {
   state.route = { ...paired, asks: ['password'] }
   expect(() =>
     createDialectProvider(Dialect.Postgres, {
@@ -99,11 +99,11 @@ test('a connection the bridge asked secrets for waits for them instead of fallin
       resourceId: 'resource',
     }).execute(select)
   ).toThrow('Enter the password')
-  expect(bridge.execute).not.toHaveBeenCalled()
+  expect(machine.execute).not.toHaveBeenCalled()
   expect(cloud.execute).not.toHaveBeenCalled()
 })
 
-test('a transaction stays on the bridge that opened it', async () => {
+test('a transaction stays on the machine that opened it', async () => {
   state.route = paired
   const provider = createDialectProvider(Dialect.Postgres, {
     connectionString: 'postgres://user@localhost/shop',
@@ -112,7 +112,7 @@ test('a transaction stays on the bridge that opened it', async () => {
   const { txId } = await provider.beginTransaction({})
   state.route = null
   await provider.executeTransaction({ txId, ...select })
-  expect(bridge.executeTransaction).toHaveBeenCalledTimes(1)
+  expect(machine.executeTransaction).toHaveBeenCalledTimes(1)
   expect(cloud.executeTransaction).not.toHaveBeenCalled()
 })
 
@@ -142,24 +142,24 @@ test('dialect caches reuse equal inputs with fresh log callbacks', async () => {
 const sshString =
   'postgres://user:password@db.internal/db?ssh_host=bastion&ssh_auth=key&ssh_key=secret'
 
-test('an SSH connection runs on the bridge by id, its string never sent', async () => {
+test('an SSH connection runs on the machine by id, its string never sent', async () => {
   state.route = paired
   await createDialectProvider(Dialect.Postgres, {
     connectionString: sshString,
     resourceId: 'resource',
   }).execute(select)
-  expect(bridge.execute).toHaveBeenCalledTimes(1)
-  expect(JSON.stringify(bridge.execute.mock.calls)).not.toContain('ssh_key')
+  expect(machine.execute).toHaveBeenCalledTimes(1)
+  expect(JSON.stringify(machine.execute.mock.calls)).not.toContain('ssh_key')
   expect(cloud.execute).not.toHaveBeenCalled()
 })
 
-test('without a bridge, the web app never sends an SSH connection string anywhere', () => {
+test('without a machine, the web app never sends an SSH connection string anywhere', () => {
   expect(() =>
     createDialectProvider(Dialect.Postgres, {
       connectionString: sshString,
       resourceId: 'resource',
     }).execute(select)
   ).toThrow('SSH tunnels run in the Tamery desktop app or through')
-  expect(bridge.execute).not.toHaveBeenCalled()
+  expect(machine.execute).not.toHaveBeenCalled()
   expect(cloud.execute).not.toHaveBeenCalled()
 })

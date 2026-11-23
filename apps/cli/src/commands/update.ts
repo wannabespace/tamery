@@ -4,7 +4,7 @@ import path from 'node:path'
 import process from 'node:process'
 
 import { log } from '@clack/prompts'
-import { BRIDGE_INSTALL_COMMANDS } from '@tamery/shared/bridge'
+import { MACHINE_INSTALL_COMMANDS } from '@tamery/shared/machine'
 import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
@@ -61,7 +61,7 @@ const run = async (command: string, version: string) => {
 /**
  * Windows can't delete a running .exe, and a package manager replaces the package folder it sits in, but it can be
  * renamed on its own drive: beside the global `node_modules`, outside that folder. One name, so the last update's copy
- * is deleted here, unless a bridge started before that update still runs it.
+ * is deleted here, unless a machine started before that update still runs it.
  */
 const moveRunningBinaryAside = () => {
   if (!isWindows || fromScript) {
@@ -78,7 +78,7 @@ const moveRunningBinaryAside = () => {
   })
   if (moved.isErr()) {
     throw new Error(
-      `Could not move ${process.execPath} aside to replace it: ${toError(moved.error.cause).message} Stop any running tamery bridge and try again.`
+      `Could not move ${process.execPath} aside to replace it: ${toError(moved.error.cause).message} Stop any running tamery machine and try again.`
     )
   }
   return aside
@@ -112,7 +112,7 @@ export const update = async () => {
     return
   }
 
-  const install = BRIDGE_INSTALL_COMMANDS[installer]
+  const install = MACHINE_INSTALL_COMMANDS[installer]
   // Pinned, here and through TAMERY_VERSION, so neither the package manager's own idea of latest nor the user's TAMERY_VERSION picks another version.
   const command = fromScript ? install : `${install}@${latest}`
   log.step(`Updating ${env.VERSION} to ${latest}: ${paint.dim(command)}`)
@@ -127,13 +127,13 @@ export const update = async () => {
       aside && !putBack(aside) ? ` The previous tamery is at ${aside}.` : ''
     await report('failed')
     throw new Error(
-      `Update failed: ${reason}${lost} Fix that and run ${paint.accent('tamery update')} again${isWindows ? ', after stopping any running tamery bridge' : ''}.`
+      `Update failed: ${reason}${lost} Fix that and run ${paint.accent('tamery update')} again${isWindows ? ', after stopping any running tamery machine' : ''}.`
     )
   }
 
   await report('updated')
   log.success(
-    `Updated to ${latest}. Restart ${paint.accent('tamery bridge')} if it is running.`
+    `Updated to ${latest}. Restart ${paint.accent('tamery machine')} if it is running.`
   )
   const runsElsewhere =
     fromScript &&

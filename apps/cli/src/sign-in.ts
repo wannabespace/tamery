@@ -6,9 +6,9 @@ import { Result } from 'better-result'
 
 import { analytics } from './analytics'
 import { account, api } from './api'
-import { pairings } from './bridge/pairings'
 import { openBrowser } from './browser'
 import { env } from './env'
+import { pairings } from './machine/pairings'
 import { paint } from './paint'
 import { vault } from './vault'
 

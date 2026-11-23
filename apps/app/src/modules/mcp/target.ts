@@ -3,7 +3,7 @@ import type { McpTarget } from '@tamery/shared/mcp'
 import { getCollections } from '~/core/collections'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import type { Connection } from '~/core/connection/sync'
-import { getBridgeRoute } from '~/core/runtime/bridge/pairing'
+import { getMachineRoute } from '~/core/runtime/machine/pairing'
 import { queryClient } from '~/lib/query-client'
 
 const AGENT_STALE_TIME = 5000
@@ -43,7 +43,7 @@ export const resolveTarget = ({
 
   const connectionString = connectionStringsCollection.get(connectionId) ?? null
   const { canSend, reason } = fetchingConfig(connection, {
-    bridge: getBridgeRoute(connectionId),
+    machine: getMachineRoute(connectionId),
     connectionString,
   })
   if (!canSend) {

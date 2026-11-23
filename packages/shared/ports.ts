@@ -1,5 +1,5 @@
 export const PORTS = {
-  BRIDGE: 26_380,
+  MACHINE: 26_380,
   MCP: 26_381,
 } as const
 

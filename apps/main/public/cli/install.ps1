@@ -70,5 +70,5 @@
   }
 
   Write-Host ''
-  Write-Host 'Run: tamery bridge'
+  Write-Host 'Run: tamery machine'
 }

@@ -29,7 +29,7 @@ export interface ConnectionFormValues extends Omit<
   'ssh' | 'type'
 > {
   color: string | null
-  /** A database the bridge found with its password, which stays on the bridge: the form leaves the password empty. */
+  /** A database the machine found with its password, which stays on the machine: the form leaves the password empty. */
   foundDatabase: { connectionString: string; source: string } | null
   label: string
   name: string
@@ -163,7 +163,7 @@ export const getParts = (values: ConnectionFormValues): ConnectionParts => {
   }
 }
 
-/** `null` once the form has a password or names another server than the one the bridge found the password for. */
+/** `null` once the form has a password or names another server than the one the machine found the password for. */
 export const getFoundDatabase = (values: ConnectionFormValues) => {
   const { foundDatabase } = values
   const sameServer =

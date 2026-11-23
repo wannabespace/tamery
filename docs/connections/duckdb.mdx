@@ -21,7 +21,7 @@ Tamery opens the file only while it runs a query. Another program that has the f
 
 In a query you can read files and URLs straight away, like `SELECT * FROM read_csv('~/Downloads/orders.csv')`. Read-only queries an agent runs through [MCP](/mcp/overview) can't: they see only the database file itself.
 
-In the web app, run [`tamery bridge`](/cli/overview) on the computer that holds the file. The bridge downloads DuckDB the first time it opens a DuckDB file, 20 to 30 MB, and keeps it for later. Through the bridge, queries see only the file itself, so `read_csv` and other files on that computer stay out of reach.
+In the web app, run [`tamery machine`](/cli/overview) on the computer that holds the file. The machine downloads DuckDB the first time it opens a DuckDB file, 20 to 30 MB, and keeps it for later. Through the machine, queries see only the file itself, so `read_csv` and other files on that computer stay out of reach.
 
 ## MotherDuck
 

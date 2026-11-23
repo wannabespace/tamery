@@ -1,14 +1,14 @@
 import { isMac } from '@tamery/ui/lib/os'
 
-import { bridge } from '~/core/runtime/bridge/bridge'
+import { machine } from '~/core/runtime/machine/machine'
 import {
   getActivePairing,
   useActivePairing,
-} from '~/core/runtime/bridge/pairing'
+} from '~/core/runtime/machine/pairing'
 
 const pairedClient = () => {
   const pairing = getActivePairing()
-  return pairing ? bridge.client(pairing) : null
+  return pairing ? machine.client(pairing) : null
 }
 
 export const localMachine = {
@@ -18,7 +18,7 @@ export const localMachine = {
       : ((await pairedClient()?.localDatabases.find()) ?? []),
 }
 
-// A bridge's key stays under `['bridge']`: `clearBridgePairing` drops that prefix, or another pairing would show this computer's databases.
+// A machine's key stays under `['machine']`: `clearMachinePairing` drops that prefix, or another pairing would show this computer's databases.
 export const useLocalMachine = () => {
   const pairing = useActivePairing()
   if (window.electron) {
@@ -30,7 +30,7 @@ export const useLocalMachine = () => {
   return pairing
     ? {
         name: pairing.name,
-        queryKey: ['bridge', 'localDatabases', pairing.browserId],
+        queryKey: ['machine', 'localDatabases', pairing.browserId],
       }
     : null
 }

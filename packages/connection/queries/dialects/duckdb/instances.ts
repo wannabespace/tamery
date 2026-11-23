@@ -35,7 +35,7 @@ const waitForClose = (entry: OpenFile) =>
 
 let isConfined = false
 
-/** The bridge opens only the file its connection names: a confined instance reads no other file or URL, writes included. */
+/** The machine opens only the file its connection names: a confined instance reads no other file or URL, writes included. */
 export const confineDuckdbFiles = () => {
   isConfined = true
 }

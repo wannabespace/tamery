@@ -18,11 +18,11 @@ const writeTemporary = (file: string, data: string) => {
 }
 
 /**
- * One file per browser and per request, each written once and read on every call: the bridge and the commands run in
+ * One file per browser and per request, each written once and read on every call: the machine and the commands run in
  * separate processes, and a whole-file rewrite by one would drop what the other wrote meanwhile.
  */
 export const configFiles = {
-  browsers: path.join(CONFIG_DIR, 'bridge-browsers'),
+  browsers: path.join(CONFIG_DIR, 'machine-browsers'),
   dir: CONFIG_DIR,
   /** `false` when the file already exists: the first writer wins, across processes too. */
   create: (file: string, data: string) => {
@@ -37,9 +37,9 @@ export const configFiles = {
     }
     throw linked.error.cause
   },
-  /** DuckDB's driver, one folder per version, installed on the bridge's first DuckDB file. */
+  /** DuckDB's driver, one folder per version, installed on the machine's first DuckDB file. */
   duckdb: path.join(CONFIG_DIR, 'duckdb'),
-  key: path.join(CONFIG_DIR, 'bridge.key'),
+  key: path.join(CONFIG_DIR, 'machine.key'),
   /** Skips a file removed while it was listed. */
   readAll: <T>(dir: string, file: { assert: (text: string) => T }) =>
     fs.existsSync(dir)
@@ -56,8 +56,8 @@ export const configFiles = {
           })
       : [],
   remove: (file: string) => fs.rmSync(file, { force: true, recursive: true }),
-  requests: path.join(CONFIG_DIR, 'bridge-requests'),
-  vault: path.join(CONFIG_DIR, 'bridge-secrets.json'),
+  requests: path.join(CONFIG_DIR, 'machine-requests'),
+  vault: path.join(CONFIG_DIR, 'machine-secrets.json'),
   /** Written beside the target and renamed over it, so a crash never leaves a half-written vault. */
   write: (file: string, data: string) => {
     fs.renameSync(writeTemporary(file, data), file)
