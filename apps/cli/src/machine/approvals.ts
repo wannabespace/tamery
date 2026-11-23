@@ -25,10 +25,11 @@ const getFiles = (id: string) => ({
 })
 
 export const approvals = {
-  ask: async (question: string) => {
+  ask: async ({ code, label }: { code: string; label: string }) => {
     if (approvals.isFull()) {
       return false
     }
+    const question = `Allow ${paint.bold(label)} to run queries on this computer, with its files, SSH keys and credentials? Only if Tamery shows ${paint.bold(code)}.`
     const id = randomUUID()
     const files = getFiles(id)
     configFiles.write(files.request, JSON.stringify({ question }))

@@ -3,6 +3,7 @@ import { SyncType } from '@tamery/shared/enums/sync-type'
 
 import type { ConnectionString } from '~/core/connection/connection-strings'
 import type { Connection } from '~/core/connection/sync'
+import { getNotPairedMessage } from '~/core/runtime/machine/not-paired'
 import type { MachineRoute } from '~/core/runtime/machine/pairing'
 
 type FetchingType =
@@ -113,10 +114,7 @@ export const fetchingConfig = (
       )
     }
     if (!pairing) {
-      return blocked(
-        'machine',
-        `This connection runs on ${name}. Connect this browser to it in Settings → Machines.`
-      )
+      return blocked('machine', getNotPairedMessage(name))
     }
     if (asks === 'all') {
       return blocked('waiting-for-details', REASONS.connectionStringNotStored)

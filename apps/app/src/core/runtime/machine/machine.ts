@@ -13,20 +13,16 @@ import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 
-import {
-  createMachineLink,
-  getMachineClient,
-  isLoopbackUrl,
-  parseMachineUrl,
-} from './client'
+import { createMachineLink, getMachineClient, parseMachineUrl } from './client'
 import { machineHostKeys } from './host-keys'
 import type { MachinePairing } from './pairing'
 import {
   clearMachinePairing,
   getMachineRoute,
+  getThisMachineId,
   machineAsks,
   machinePairings,
-  thisMachineId,
+  thisMachineQuery,
 } from './pairing'
 import { ensureConnected, forget, statusQueryOptions, toStatus } from './status'
 
@@ -72,9 +68,10 @@ const sendStoredSecrets = async (
 
 const trustHostKey = async (
   client: MachineRouter,
+  machineId: string,
   hostKey: typeof machineHostKey.infer
 ) => {
-  const trusted = await machineHostKeys.ask(hostKey)
+  const trusted = await machineHostKeys.ask(machineId, hostKey)
   if (trusted) {
     await client.machine.trustHostKey(hostKey)
   }
@@ -96,7 +93,7 @@ const getPairedClient = memoize((pairing: MachinePairing): MachineRouter =>
             (asked?.code === 'NEEDS_SECRETS' &&
               (await sendStoredSecrets(client, asked.data.connectionId))) ||
             (asked?.code === 'UNKNOWN_HOST_KEY' &&
-              (await trustHostKey(client, asked.data)))
+              (await trustHostKey(client, pairing.machineId, asked.data)))
           const { data, definedError, error } = answered ? await call() : first
           if (!error) {
             return data
@@ -143,18 +140,21 @@ const findMachineUrl = async (urls: string[], machineId: string | null) => {
         browserId: null,
         nonce: machineKey.nonce(),
       })
-      if (machineId !== null && info.id !== machineId) {
-        throw new Error(`Another machine answers at ${origin}.`)
-      }
-      return origin
+      return { isOther: machineId !== null && info.id !== machineId, origin }
     })
   )
-  const reached = answers.find((answer) => answer.status === 'fulfilled')
+  const reached = answers.find(
+    (answer) => answer.status === 'fulfilled' && !answer.value.isOther
+  )
   if (reached?.status === 'fulfilled') {
-    return reached.value
+    return reached.value.origin
   }
-  const [first] = answers
-  throw first?.status === 'rejected' ? first.reason : new Error('No answer.')
+  // A machine that did not answer says more than another one answering on its loopback port.
+  const failed = answers.find((answer) => answer.status === 'rejected')
+  if (failed?.status === 'rejected') {
+    throw failed.reason
+  }
+  throw new Error(`Another machine answers at ${origins.join(', ')}.`)
 }
 
 const unpair = async (pairing: MachinePairing) => {
@@ -186,13 +186,11 @@ export const machine = {
     browserNonce,
     machineId,
     urls,
-    via,
   }: {
     browserNonce: string
     /** `null` for a URL typed or opened from a link, which pairs with whichever machine answers there. */
     machineId: string | null
     urls: string[]
-    via: 'link' | 'list' | 'manual'
   }) => {
     const user = await getSessionUser()
     if (!user) {
@@ -229,7 +227,6 @@ export const machine = {
       toStatus(info)
     )
     machinePairings.set((all) => ({ ...all, [info.id]: pairing }))
-    posthog.capture('machine_paired', { remote: !isLoopbackUrl(origin), via })
     return pairing
   },
   /** `false` when this browser lacks part of the string too, or the connection runs on no machine it is paired with. */
@@ -252,13 +249,13 @@ export const machine = {
   unpair,
   unpairAll: () =>
     Promise.all(Object.values(machinePairings.get()).map(unpair)),
-  /** On sign-out: this desktop's machine leaves the account with it, and forgets the browsers it allowed. */
+  /** On sign-out or a guest's upgrade: this desktop's machine leaves the account with it, and forgets the browsers it allowed. */
   forgetThisComputer: async () => {
-    const id = thisMachineId.get()
+    const id = getThisMachineId()
     if (id !== null) {
       await silently(() => orpc.machines.remove.call({ id }))
-      thisMachineId.set(null)
     }
     await window.electron?.machine.forget()
+    queryClient.removeQueries({ queryKey: thisMachineQuery.queryKey })
   },
 }

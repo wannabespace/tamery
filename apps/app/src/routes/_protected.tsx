@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 
 import { EventsProvider } from '~/components/events-provider'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
+import { useDropQueriesOnMachineChange } from '~/core/runtime/machine/pairing'
 import {
   loadPermissions,
   permix,
@@ -31,6 +32,7 @@ const ProtectedLayout = () => {
   useConnectionStringsSync()
   useLastOpenedResourcesSync()
   useConnectionLinks()
+  useDropQueriesOnMachineChange()
 
   useShortcut('settings', () => {
     if (!router.matchRoute({ to: '/settings' }, { fuzzy: true })) {
@@ -56,7 +58,7 @@ const ProtectedLayout = () => {
         <ActionsCenter />
         {window.electron && <McpHost />}
         {window.electron && <CopyDatabaseDialog />}
-        {!window.electron && <HostKeyDialog />}
+        <HostKeyDialog />
         <SubscriptionModal />
         <WorkspaceInvitationDialog />
         <div className="flex h-full flex-col">
@@ -79,17 +81,23 @@ const ProtectedLayout = () => {
 export const Route = createFileRoute('/_protected')({
   component: ProtectedLayout,
   beforeLoad: async () => {
-    const { getCollections, whenOfflineReady } =
-      await import('~/core/collections')
+    const [{ getCollections, whenOfflineReady }, { thisMachineQuery }] =
+      await Promise.all([
+        import('~/core/collections'),
+        import('~/core/runtime/machine/pairing'),
+      ])
     const c = getCollections()
 
     await Promise.all([
       whenOfflineReady(),
+      c.connectionMachinesCollection.stateWhenReady(),
       c.connectionStringsCollection.stateWhenReady(),
       c.connectionsCollection.stateWhenReady(),
+      c.machinesCollection.stateWhenReady(),
       c.connectionsResourcesCollection.stateWhenReady(),
       c.workspacesCollection.stateWhenReady(),
       permix.isReady() || loadPermissions(),
+      window.electron && queryClient.ensureQueryData(thisMachineQuery),
     ])
 
     return { collections: c }

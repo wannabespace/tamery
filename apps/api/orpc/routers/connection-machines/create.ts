@@ -42,13 +42,26 @@ export const create = orpc
       throw errors.NOT_FOUND()
     }
 
-    const [inserted] = await db
+    const [row] = await db
       .insert(connectionMachines)
       .values({ ...input, userId: context.user.id })
-      .onConflictDoNothing()
+      .onConflictDoUpdate({
+        set: { machineId: input.machineId, updatedAt: new Date() },
+        target: [connectionMachines.userId, connectionMachines.connectionId],
+      })
       .returning()
 
-    if (inserted) {
-      publisher.publish(context.user.id, { type: 'insert', value: inserted })
+    if (!row) {
+      throw new Error('Failed to set the connection machine')
     }
+
+    publisher.publish(context.user.id, {
+      type:
+        row.createdAt.getTime() === row.updatedAt.getTime()
+          ? 'insert'
+          : 'update',
+      value: row,
+    })
+
+    return row
   })

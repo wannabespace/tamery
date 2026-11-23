@@ -1,13 +1,19 @@
 import type { machineNeedsSecrets } from '@tamery/shared/machine'
 import { omit } from '@tamery/shared/utils'
 import { useLiveQuery } from '@tanstack/react-db'
+import { queryOptions, useQuery } from '@tanstack/react-query'
 import { type } from 'arktype'
+import { useEffect } from 'react'
 import { createStore } from 'seitu'
 import { useSubscription } from 'seitu/react'
 import { createWebStorageValue } from 'seitu/web'
 import { v7 } from 'uuid'
 
-import { getCollections, useCollections } from '~/core/collections'
+import {
+  getCollections,
+  mutateOffline,
+  useCollections,
+} from '~/core/collections'
 import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 
@@ -33,13 +39,26 @@ export const machinePairings = createWebStorageValue({
   type: 'localStorage',
 })
 
-/** This desktop's own machine, kept once it ran: a connection on it runs here, never over HTTP to itself. */
-export const thisMachineId = createWebStorageValue({
-  defaultValue: null,
-  key: 'this-machine-id',
-  schema: type('string | null'),
-  type: 'localStorage',
+/** While starting, the status settles within a second or two. */
+const STARTING_POLL_MS = 1000
+
+/**
+ * Desktop only: main's state of this computer's own machine. Kept for the session, never collected: its id routes a
+ * connection on it here, never over HTTP to itself.
+ */
+export const thisMachineQuery = queryOptions({
+  gcTime: Infinity,
+  queryFn: async () => (await window.electron?.machine.status()) ?? null,
+  queryKey: ['this-machine'],
+  refetchInterval: ({ state: { data } }) =>
+    data?.status === 'starting' ? STARTING_POLL_MS : false,
 })
+
+export const getThisMachineId = () =>
+  queryClient.getQueryData(thisMachineQuery.queryKey)?.id ?? null
+
+export const useThisMachineId = () =>
+  useQuery({ ...thisMachineQuery, enabled: !!window.electron }).data?.id ?? null
 
 /** Per connection, what its machine last answered `NEEDS_SECRETS` with while this browser lacked it too. */
 export const machineAsks = createStore<
@@ -80,7 +99,7 @@ export const getMachineRouteById = (
   machineId: string | null,
   connectionId: string | null = null
 ): MachineRoute | null =>
-  machineId === null || machineId === thisMachineId.get()
+  machineId === null || machineId === getThisMachineId()
     ? null
     : toRoute({
         asks: (connectionId && machineAsks.get()[connectionId]) || null,
@@ -115,7 +134,7 @@ export const useMachineRouteById = (
   const asks = useSubscription(machineAsks, {
     selector: (all) => (connectionId && all[connectionId]) || null,
   })
-  const ownId = useSubscription(thisMachineId)
+  const ownId = useThisMachineId()
   return machineId === null || machineId === ownId
     ? null
     : toRoute({
@@ -139,6 +158,26 @@ export const useConnectionMachineId = (connectionId: string | null) => {
 export const useMachineRoute = (connectionId: string | null) =>
   useMachineRouteById(useConnectionMachineId(connectionId), connectionId)
 
+/** Query keys name the connection, not the computer, so a connection that moves must not keep what the previous one answered. */
+export const useDropQueriesOnMachineChange = () => {
+  const { connectionMachinesCollection, connectionStringsCollection } =
+    useCollections()
+  useEffect(() => {
+    const subscription = connectionMachinesCollection.subscribeChanges(
+      (changes) => {
+        for (const change of changes) {
+          if (change.previousValue?.machineId !== change.value.machineId) {
+            connectionStringsCollection.utils.dropQueries(
+              change.value.connectionId
+            )
+          }
+        }
+      }
+    )
+    return () => subscription.unsubscribe()
+  }, [connectionMachinesCollection, connectionStringsCollection])
+}
+
 /** Drops this browser's pairing with one machine and every `['machine', browserId]` query it made. */
 export const clearMachinePairing = (pairing: MachinePairing) => {
   machinePairings.set((all) => omit(all, [pairing.machineId]))
@@ -147,7 +186,7 @@ export const clearMachinePairing = (pairing: MachinePairing) => {
   })
 }
 
-/** Inside `mutateOffline`, after the connection's own row: the server checks the connection exists. */
+/** Its own `mutateOffline`, after the connection's: the server checks the connection exists, and a refusal must not undo it. */
 export const writeConnectionMachine = (
   connectionId: string,
   machineId: string | null
@@ -160,23 +199,25 @@ export const writeConnectionMachine = (
     return
   }
   const now = new Date()
-  if (machineId === null) {
-    if (row) {
-      connectionMachinesCollection.delete(row.id)
+  mutateOffline(() => {
+    if (machineId === null) {
+      if (row) {
+        connectionMachinesCollection.delete(row.id)
+      }
+    } else if (row) {
+      connectionMachinesCollection.update(row.id, (draft) => {
+        draft.machineId = machineId
+        draft.updatedAt = now
+      })
+    } else {
+      connectionMachinesCollection.insert({
+        connectionId,
+        createdAt: now,
+        id: v7(),
+        machineId,
+        updatedAt: now,
+      })
     }
-  } else if (row) {
-    connectionMachinesCollection.update(row.id, (draft) => {
-      draft.machineId = machineId
-      draft.updatedAt = now
-    })
-  } else {
-    connectionMachinesCollection.insert({
-      connectionId,
-      createdAt: now,
-      id: v7(),
-      machineId,
-      updatedAt: now,
-    })
-  }
+  })
   posthog.capture('connection_machine_set', { on_machine: machineId !== null })
 }

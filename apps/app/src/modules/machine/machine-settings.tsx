@@ -4,8 +4,8 @@ import { useSubscription } from 'seitu/react'
 import { parseMachineUrl } from '~/core/runtime/machine/client'
 import {
   machinePairings,
-  thisMachineId,
   useMachines,
+  useThisMachineId,
 } from '~/core/runtime/machine/pairing'
 import { pairingLink } from '~/lib/pairing-link'
 
@@ -16,15 +16,16 @@ import { PairForm } from './pair-form'
 import { ThisComputer } from './this-computer'
 
 export const MachineSettings = () => {
-  const ownId = useSubscription(thisMachineId)
+  const ownId = useThisMachineId()
   const machines = useMachines().filter(({ id }) => id !== ownId)
   const pairings = useSubscription(machinePairings)
   const listed: ListedMachine[] = [
-    ...machines,
+    ...machines.map((item) => ({ ...item, isListed: true })),
     ...Object.values(pairings)
       .filter((pairing) => !machines.some(({ id }) => id === pairing.machineId))
       .map((pairing) => ({
         id: pairing.machineId,
+        isListed: false,
         name: pairing.name,
         seenAt: null,
         urls: [pairing.url],

@@ -6,6 +6,7 @@ import {
   MACHINE_QUERY_KEY,
   machinePairings,
   useMachineRouteById,
+  useMachines,
 } from '~/core/runtime/machine/pairing'
 
 /** The computer whose databases a connection running on `machineId` can reach: this desktop when `null`, else a paired machine. */
@@ -31,8 +32,15 @@ export const useLocalMachine = (machineId: string | null) => {
   return null
 }
 
-/** Every computer this app can list databases on: this desktop, as `null`, and each machine it is paired with. */
+/**
+ * Every computer this app can list databases on: this desktop, as `null`, and each machine it is paired with that the
+ * account lists, since a connection runs only on a listed one.
+ */
 export const useLocalMachineIds = () => {
   const pairings = useSubscription(machinePairings)
-  return [...(window.electron ? [null] : []), ...Object.keys(pairings)]
+  const listed = useMachines()
+  return [
+    ...(window.electron ? [null] : []),
+    ...listed.flatMap(({ id }) => (pairings[id] ? [id] : [])),
+  ]
 }

@@ -93,9 +93,6 @@ export const saveConnectionString = async ({
             !!connectionsCollection.get(connectionId)?.isPasswordExists)
       )
     }
-    if (machineId !== undefined) {
-      writeConnectionMachine(connectionId, machineId)
-    }
     if (!existingResource) {
       const now = new Date()
       connectionsResourcesCollection.insert({
@@ -107,6 +104,9 @@ export const saveConnectionString = async ({
       })
     }
   })
+  if (machineId !== undefined) {
+    writeConnectionMachine(connectionId, machineId)
+  }
 
   const settle = async () => {
     const persisted = await Result.tryPromise(() => tx.isPersisted.promise)

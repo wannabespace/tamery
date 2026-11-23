@@ -45,11 +45,11 @@ The CLI runs on macOS (Apple silicon and Intel), Linux (x64 and arm64), and Wind
 
 3. **Settings → Machines** and the terminal running `tamery machine` both show a code. If they match, select **Yes** in the terminal and press **Enter**. This lets the browser run your connections on that computer, including ones that use its files, SSH keys or credentials. **No** is selected first, and no answer within 2 minutes counts as no.
 
-To connect to a machine your account doesn't list, such as one you reach through a tunnel, enter its address under **Connect by URL**, or open the link the machine prints.
+To connect through an address the machine doesn't list, such as a tunnel, enter it under **Connect by URL**, or open the link the machine prints. Connections run only on machines your account lists, so the machine must be signed in to the same account.
 
 ## Choose where a connection runs
 
-Each connection has a **Runs on** field in its form: **Tamery Cloud** in the web app, **This computer** in the desktop app, or one of your machines. Picking a database a machine found sets it to that machine. The choice is yours alone: in a shared workspace, every member picks where the connection runs for them, so nobody's queries go through your computer.
+Each connection has a **Runs on** choice, in its form and in its **⋯** menu on the connections page: **Tamery Cloud** in the web app, **This computer** in the desktop app, or one of your machines. Picking a database a machine found sets it to that machine. The choice is yours alone: in a shared workspace, every member picks where the connection runs for them, from the menu if they can't edit it, so nobody's queries go through your computer.
 
 While a connection that runs on a machine is open, a computer icon at the top of the window shows the machine's state: a green dot while it answers, red within 10 seconds of it stopping. Hover it for the reason.
 
@@ -63,7 +63,7 @@ The machine accepts only browsers signed in to the same account as the machine.
 
 **Settings → Machines** lists every machine signed in to your account, whether it's running, and which ones this browser is connected to. A browser can be connected to several machines at once. An allowed browser stays allowed when the machine restarts.
 
-**Disconnect** makes the machine forget this browser, and so does signing out. The trash button removes a machine from your account and disconnects it; a machine that still runs shows up again. To disconnect every browser at once, run [`tamery machine unpair-all`](/cli/commands#tamery-machine-unpair-all). [`tamery logout`](/cli/commands#tamery-logout) removes the machine from your account.
+**Disconnect** makes the machine forget this browser, and so does signing out. The trash button removes a machine from your account and disconnects it; a machine that still runs shows up again. Connections set to run on a removed machine keep that choice and wait for it, until you pick another place under **Runs on**. To disconnect every browser at once, run [`tamery machine unpair-all`](/cli/commands#tamery-machine-unpair-all). [`tamery logout`](/cli/commands#tamery-logout) removes the machine from your account.
 
 ## The desktop app as a machine
 
@@ -111,7 +111,7 @@ In the web app, **New connection** lists the databases the machine finds on that
 
 ## Manage connections
 
-`tamery connection` creates, updates and deletes the connections in your account from the terminal. Changes show up in the app like changes made there. A connection you create with the CLI runs on the machine on that computer without any more questions. A **Metadata only** one is the exception in the web app: each browser asks for its server details once, as for any **Metadata only** connection. [CLI commands](/cli/commands#tamery-connection-create) lists the flags.
+`tamery connection` creates, updates and deletes the connections in your account from the terminal. Changes show up in the app like changes made there. A connection you create with the CLI keeps its details on that computer, so once its **Runs on** names that computer's machine, it runs there without any more questions. A **Metadata only** one is the exception in the web app: each browser asks for its server details once, as for any **Metadata only** connection. [CLI commands](/cli/commands#tamery-connection-create) lists the flags.
 
 In a script, without a terminal, `tamery connection` and `tamery query` never start signing in: they fail with **Not signed in** instead, so run `tamery login` on that computer first.
 

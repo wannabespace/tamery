@@ -5,57 +5,45 @@ import {
 } from '@tamery/ui/components/custom/settings-group'
 import { Input } from '@tamery/ui/components/input'
 import { Switch } from '@tamery/ui/components/switch'
-import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 
-import { thisMachineId } from '~/core/runtime/machine/pairing'
+import { thisMachineQuery } from '~/core/runtime/machine/pairing'
 import { bearerToken, getSessionUser } from '~/lib/auth'
-import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 
-/** While starting, the status settles within a second or two. */
-const STARTING_POLL_MS = 1000
+type Status = Awaited<
+  ReturnType<NonNullable<Window['electron']>['machine']['status']>
+>
 
-const statusQuery = queryOptions({
-  queryFn: async () => {
-    const status = await window.electron?.machine.status()
-    if (status?.status === 'on') {
-      thisMachineId.set(status.id)
-    }
-    return status ?? null
-  },
-  queryKey: ['this-machine'],
-  refetchInterval: ({ state: { data } }) =>
-    data?.status === 'starting' ? STARTING_POLL_MS : false,
-})
+const setStatus = (status: Status) =>
+  queryClient.setQueryData(thisMachineQuery.queryKey, status)
 
 /** Desktop only: this computer as a machine your other devices run connections on. */
 export const ThisComputer = () => {
-  const { data: status } = useQuery(statusQuery)
+  const { data: status } = useQuery(thisMachineQuery)
   const [publicUrl, setPublicUrl] = useState<string | null>(null)
   const share = useMutation({
-    mutationFn: async (enabled: boolean) => {
-      const machine = window.electron?.machine
-      if (!machine) {
-        return null
-      }
-      if (!enabled) {
-        return machine.disable()
-      }
+    meta: { event: 'machine_shared' },
+    mutationFn: async () => {
       const [user, token] = [await getSessionUser(), bearerToken.get()]
       if (!user || !token) {
         throw new Error('Sign in to let other devices use this computer.')
       }
-      return machine.enable({
+      return window.electron?.machine.enable({
         account: { email: user.email, id: user.id, token },
         publicUrl: (publicUrl ?? status?.publicUrl)?.trim() || null,
       })
     },
-    onSuccess: (next, enabled) => {
-      queryClient.setQueryData(statusQuery.queryKey, next)
-      posthog.capture('machine_shared', { enabled })
-    },
+    onSuccess: (next) => next && setStatus(next),
   })
+  const unshare = useMutation({
+    meta: { event: 'machine_unshared' },
+    mutationFn: () =>
+      window.electron?.machine.disable() ?? Promise.resolve(null),
+    onSuccess: (next) => next && setStatus(next),
+  })
+  const error = share.error ?? unshare.error
 
   if (!status) {
     return null
@@ -81,8 +69,10 @@ export const ThisComputer = () => {
             id="machine-shared"
             size="sm"
             checked={status.enabled}
-            disabled={share.isPending}
-            onCheckedChange={(enabled) => share.mutate(enabled)}
+            disabled={share.isPending || unshare.isPending}
+            onCheckedChange={(enabled) =>
+              enabled ? share.mutate() : unshare.mutate()
+            }
           />
         </SettingsRow>
         <SettingsRow
@@ -103,17 +93,16 @@ export const ThisComputer = () => {
                 publicUrl !== null &&
                 publicUrl !== status.publicUrl
               ) {
-                share.mutate(true)
+                share.mutate()
               }
             }}
           />
         </SettingsRow>
       </SettingsGroup>
-      {(share.error || status.status === 'failed') && (
+      {(error || status.status === 'failed') && (
         <Alert variant="destructive">
           <AlertDescription className="wrap-break-word">
-            {share.error?.message ??
-              (status.status === 'failed' && status.message)}
+            {error?.message ?? (status.status === 'failed' && status.message)}
           </AlertDescription>
         </Alert>
       )}

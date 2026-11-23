@@ -13,8 +13,9 @@ interface HostKeyQuestion {
 const store = createStore<HostKeyQuestion[]>([])
 
 export const machineHostKeys = {
-  ask: (hostKey: MachineHostKey) => {
-    const id = `${hostKey.host} ${hostKey.fingerprint}`
+  /** Per machine: each trusts the key in its own known_hosts, so one answer never covers another computer. */
+  ask: (machineId: string, hostKey: MachineHostKey) => {
+    const id = `${machineId} ${hostKey.host} ${hostKey.fingerprint}`
     const asked = store.get().find((question) => question.id === id)
     if (asked) {
       return asked.answered

@@ -47,7 +47,7 @@ const getTransport = (dialect: Dialect, options: DialectOptions) => {
     draft: !connectionId,
   })
 
-  if (machineRoute && !machineRoute.pairing && connectionId) {
+  if (machineRoute && !machineRoute.pairing) {
     throw new MachineNotPairedError(machineRoute)
   }
 

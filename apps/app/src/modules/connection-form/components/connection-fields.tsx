@@ -5,7 +5,7 @@ import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { FieldGroup } from '@tamery/ui/components/field'
 
-import { useMachineRoute } from '~/core/runtime/machine/pairing'
+import { useMachineRouteById } from '~/core/runtime/machine/pairing'
 import { posthog } from '~/lib/posthog'
 
 import type {
@@ -24,10 +24,10 @@ export const ConnectionFields = ({
 }: {
   form: ConnectionForm
   locked: (field: string) => boolean
-  values: Pick<ConnectionFormValues, 'host' | 'provider' | 'type'>
+  values: Pick<ConnectionFormValues, 'host' | 'machineId' | 'provider' | 'type'>
 }) => {
   const fileType = getFileType(values)
-  const machine = useMachineRoute(null)
+  const machine = useMachineRouteById(values.machineId)
 
   return (
     <>

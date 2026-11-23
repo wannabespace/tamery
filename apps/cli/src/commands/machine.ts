@@ -11,6 +11,7 @@ import { analytics } from '../analytics'
 import { openBrowser } from '../browser'
 import { configFiles } from '../config-files'
 import { env } from '../env'
+import { approvals } from '../machine/approvals'
 import { pairings } from '../machine/pairings'
 import { runMachine } from '../machine/run'
 import { paint } from '../paint'
@@ -36,8 +37,15 @@ export const machine = async (options: {
   intro(`${paint.brand('◆ Tamery machine')} ${paint.dim(env.VERSION)}`)
   const account = await getAccount()
   const name = os.hostname().replace(/\.local$/u, '')
+  approvals.clear()
   const started = await Result.tryPromise(() =>
-    runMachine({ name, port: options.port, publicUrl, userId: account.id })
+    runMachine({
+      approver: approvals,
+      name,
+      port: options.port,
+      publicUrl,
+      userId: account.id,
+    })
   )
   if (started.isErr()) {
     const { cause } = started.error
@@ -53,7 +61,7 @@ export const machine = async (options: {
   const reachedAt = publicUrl?.origin ?? url
   if (registerError) {
     log.warn(
-      `Could not list this machine in your account: ${registerError} Browsers can still connect with its URL.`
+      `Could not list this machine in your account: ${registerError} No connection runs on it until it is listed; it tries again every 5 minutes.`
     )
   }
   log.info(

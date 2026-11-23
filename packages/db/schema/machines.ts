@@ -31,10 +31,7 @@ export const connectionMachines = d.snakeCase.table(
       .uuid()
       .references(() => connections.id, { onDelete: 'cascade' })
       .notNull(),
-    machineId: d
-      .uuid()
-      .references(() => machines.id, { onDelete: 'cascade' })
-      .notNull(),
+    machineId: d.uuid().notNull(),
     userId: d
       .uuid()
       .references(() => users.id, { onDelete: 'cascade' })

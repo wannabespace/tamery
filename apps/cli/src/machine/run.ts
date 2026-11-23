@@ -7,9 +7,9 @@ import { silently, toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
 import { api } from '../api'
-import { approvals } from './approvals'
 import { hostKeys } from './host-keys'
 import { machineIdentity } from './identity'
+import type { Approver } from './router'
 import { createRouter } from './router'
 import { serveMachine } from './server'
 
@@ -19,11 +19,13 @@ const MAX_NAME_LENGTH = 100
 
 /** A machine once its account is known: `tamery machine` and the desktop app's machine process both run this. */
 export const runMachine = async ({
+  approver,
   name,
   port,
   publicUrl,
   userId,
 }: {
+  approver: Approver
   name: string
   port: number
   publicUrl: URL | null
@@ -35,11 +37,10 @@ export const runMachine = async ({
   confineDuckdbFiles()
   confineSqliteFiles()
   const id = machineIdentity.get()
-  approvals.clear()
   const server = await serveMachine({
     port,
     publicUrl,
-    router: createRouter({ id, name, userId }),
+    router: createRouter({ approver, id, name, userId }),
   })
   const url = `http://127.0.0.1:${server.port}`
   const register = () =>
@@ -52,7 +53,7 @@ export const runMachine = async ({
   const heartbeat = setInterval(() => silently(register), REGISTER_INTERVAL_MS)
   return {
     id,
-    /** `null` once the account lists it; browsers can still connect with its URL otherwise. */
+    /** `null` once the account lists it; until it does, no connection runs on it. */
     registerError: registered.isErr()
       ? toError(registered.error.cause).message
       : null,

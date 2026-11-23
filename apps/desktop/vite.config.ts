@@ -33,7 +33,7 @@ const rolldownOptions: NonNullable<
   },
 }
 
-export default defineConfig({
+export default defineConfig(({ command, mode }) => ({
   build: {
     rolldownOptions,
   },
@@ -47,11 +47,18 @@ export default defineConfig({
             rolldownOptions,
           },
           define: Object.fromEntries(
-            Object.entries(machineEnv).map(([name, value]) => [
-              `import.meta.env.${name}`,
-              // Unset at build time (dev without portless), the process reads it when it runs, as `bun` does.
-              value ? JSON.stringify(value) : `process.env.${name}`,
-            ])
+            Object.entries(machineEnv).map(([name, value]) => {
+              if (value) {
+                return [`import.meta.env.${name}`, JSON.stringify(value)]
+              }
+              if (command === 'build' && mode === 'production') {
+                throw new Error(
+                  `Set VITE_PUBLIC_${name}: a production build inlines the machine's service URLs.`
+                )
+              }
+              // Unset in dev without portless, the process reads it when it runs, as `bun` does.
+              return [`import.meta.env.${name}`, `process.env.${name}`]
+            })
           ),
         },
       },
@@ -69,4 +76,4 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-})
+}))

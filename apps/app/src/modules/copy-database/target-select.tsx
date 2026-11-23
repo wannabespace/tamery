@@ -16,12 +16,15 @@ import { and, eq, inArray, not, useLiveQuery } from '@tanstack/react-db'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { useCollections } from '~/core/collections'
-import { canQueryConnection } from '~/core/connection/fetching'
 import { ResourceLabel } from '~/core/connection/resource-label'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
 
 import type { CopyEnd } from './copy-end-label'
-import { ConnectionNameLabel, CopyEndLabel } from './copy-end-label'
+import {
+  canCopyHere,
+  ConnectionNameLabel,
+  CopyEndLabel,
+} from './copy-end-label'
 
 const COPYABLE_TYPES = Object.values(ConnectionType).filter((type) =>
   getCapabilities(getDialect(type)).flags.includes('copyDatabase')
@@ -57,9 +60,7 @@ export const TargetSelect = ({
         .orderBy(({ c }) => c.name)
         .orderBy(({ r }) => r.name),
   })
-  const targets = candidates.filter(({ connection }) =>
-    canQueryConnection(connection)
-  )
+  const targets = candidates.filter(canCopyHere)
   const groups = Map.groupBy(targets, ({ connection }) => connection.id)
 
   return (

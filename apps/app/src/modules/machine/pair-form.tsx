@@ -13,6 +13,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { getCollections } from '~/core/collections'
 import { FetchingReason } from '~/core/connection/fetching-reason'
 import { parseMachineUrl } from '~/core/runtime/machine/client'
 import { machine } from '~/core/runtime/machine/machine'
@@ -22,14 +23,15 @@ export const PairForm = ({ link }: { link: string | null }) => {
   const target = url.trim() || MACHINE_URL
   const origin = parseMachineUrl(target)
   const { error, isPending, mutate, variables } = useMutation({
+    meta: { event: 'machine_paired' },
     mutationFn: (browserNonce: string) =>
-      machine.pair({
-        browserNonce,
-        machineId: null,
-        urls: [target],
-        via: link === null ? 'manual' : 'link',
-      }),
-    onSuccess: (pairing) => toast.success(`Connected to ${pairing.name}`),
+      machine.pair({ browserNonce, machineId: null, urls: [target] }),
+    onSuccess: (pairing) =>
+      getCollections().machinesCollection.has(pairing.machineId)
+        ? toast.success('Machine connected')
+        : toast.warning(
+            'Connected, but your account doesn’t list this machine, so no connection runs on it. Check that it is signed in to this account.'
+          ),
   })
 
   return (
@@ -72,15 +74,13 @@ export const PairForm = ({ link }: { link: string | null }) => {
           description={
             isPending ? (
               <>
-                Allow this browser in the terminal running{' '}
-                <InlineCode>tamery machine</InlineCode> only if it shows{' '}
+                Allow this browser on that computer only if it shows{' '}
                 <InlineCode>{challenge.getUserCode(variables)}</InlineCode>.
               </>
             ) : (
               <>
                 Connect asks the terminal running{' '}
-                <InlineCode>tamery machine</InlineCode>, or{' '}
-                <InlineCode>tamery machine approve</InlineCode>.
+                <InlineCode>tamery machine</InlineCode>, or the desktop app.
               </>
             )
           }

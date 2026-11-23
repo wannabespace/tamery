@@ -6,17 +6,17 @@ import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
 
 import { Link } from '~/components/link'
 import { FetchingReason } from '~/core/connection/fetching-reason'
-import type { MachineNotPairedError } from '~/core/runtime/machine/not-paired'
+import type { MachineRoute } from '~/core/runtime/machine/pairing'
 import { useMachines } from '~/core/runtime/machine/pairing'
 
 import { useConnectMachine } from './use-connect-machine'
 
 export const MachineNotPaired = ({
-  error: { route },
   retry,
+  route,
 }: {
-  error: MachineNotPairedError
-  retry: () => void
+  retry?: () => void
+  route: MachineRoute
 }) => {
   const listed = useMachines().find(({ id }) => id === route.machineId)
   const connect = useConnectMachine({
@@ -34,16 +34,15 @@ export const MachineNotPaired = ({
   } else if (connect.code) {
     description = (
       <>
-        Allow this browser in the terminal running{' '}
-        <InlineCode>tamery machine</InlineCode> only if it shows{' '}
+        Allow this browser on {name} only if it shows{' '}
         <InlineCode>{connect.code}</InlineCode>.
       </>
     )
   } else if (!listed) {
     description = (
       <>
-        {name} is no longer in your account. Edit the connection to run it
-        elsewhere.
+        {name} is no longer in your account. Pick where it runs from the
+        connection’s menu, under Runs on.
       </>
     )
   }

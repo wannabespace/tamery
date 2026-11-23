@@ -5,45 +5,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tamery/ui/components/select'
-import { useSubscription } from 'seitu/react'
 
-import {
-  machinePairings,
-  thisMachineId,
-  useMachines,
-} from '~/core/runtime/machine/pairing'
+import { useRunsOnOptions } from '~/modules/machine/runs-on-options'
 
 import type { ConnectionForm } from '../lib/connection-form'
 
-const HERE = window.electron
-  ? { description: 'The desktop app on this computer.', label: 'This computer' }
-  : {
-      description: 'Tamery’s servers, for public hosts.',
-      label: 'Tamery Cloud',
-    }
-
-const getMachineDescription = (isThisComputer: boolean, isPaired: boolean) => {
-  if (isThisComputer) {
-    return 'This computer, and your other devices through it.'
-  }
-  return isPaired ? 'Connected to this app.' : 'Not connected to this app yet.'
-}
-
 export const RunsOnField = ({ form }: { form: ConnectionForm }) => {
-  const machines = useMachines()
-  const pairings = useSubscription(machinePairings)
-  const ownId = useSubscription(thisMachineId)
-  if (machines.length === 0) {
+  const items = useRunsOnOptions()
+  if (items.length === 0) {
     return null
   }
-  const items = [
-    { description: HERE.description, label: HERE.label, value: null },
-    ...machines.map(({ id, name }) => ({
-      description: getMachineDescription(id === ownId, !!pairings[id]),
-      label: name,
-      value: id,
-    })),
-  ]
 
   return (
     <form.AppField name="machineId">

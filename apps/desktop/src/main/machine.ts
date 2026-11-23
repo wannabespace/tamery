@@ -1,24 +1,21 @@
 import '@tamery/shared/arktype-config'
+import { randomUUID } from 'node:crypto'
 import process from 'node:process'
 
-import { approvals } from '@tamery/cli/src/machine/approvals'
+import { localAccount } from '@tamery/cli/src/local-account'
+import type { Approver } from '@tamery/cli/src/machine/router'
 import { runMachine } from '@tamery/cli/src/machine/run'
+import type { VaultAccount } from '@tamery/cli/src/vault'
 import { vault } from '@tamery/cli/src/vault'
 import { hasErrnoCode } from '@tamery/shared/errno'
 import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
-/** `null` keeps the account this computer's machine already signed in with. */
-export interface MachineAccount {
-  email: string
-  id: string
-  token: string
-}
-
 export type MachineProcessRequest =
   | {
       type: 'start'
-      account: MachineAccount | null
+      /** `null` keeps the account this computer's machine already signed in with. */
+      account: VaultAccount | null
       /** The vault's key, which main keeps through `safeStorage` so the vault never asks the keychain itself. */
       key: string
       name: string
@@ -29,26 +26,33 @@ export type MachineProcessRequest =
   | { type: 'answer'; id: string; allowed: boolean }
 
 export type MachineProcessReply =
-  | { type: 'started'; id: string; registerError: string | null; url: string }
+  | { type: 'started'; registerError: string | null; url: string }
   | { type: 'failed'; message: string }
-  | { type: 'approval'; id: string; question: string }
+  | { type: 'approval'; id: string; label: string; code: string }
 
-/** As often as `tamery machine approve` looks: the process has no terminal, so a request waits for an answer file. */
-const APPROVALS_POLL_MS = 500
+const ANSWER_TIMEOUT_MS = 2 * 60 * 1000
+const MAX_WAITING = 3
 
 const reply = (message: MachineProcessReply) =>
   process.parentPort.postMessage(message)
 
-const relayApprovals = () => {
-  const asked = new Set<string>()
-  setInterval(() => {
-    for (const request of approvals.waiting()) {
-      if (!asked.has(request.id)) {
-        asked.add(request.id)
-        reply({ id: request.id, question: request.question, type: 'approval' })
-      }
+const waiting = new Map<string, (allowed: boolean) => void>()
+
+const approver: Approver = {
+  ask: async (request) => {
+    const id = randomUUID()
+    const answer = Promise.withResolvers<boolean>()
+    waiting.set(id, answer.resolve)
+    const timeout = setTimeout(() => answer.resolve(false), ANSWER_TIMEOUT_MS)
+    reply({ ...request, id, type: 'approval' })
+    try {
+      return await answer.promise
+    } finally {
+      clearTimeout(timeout)
+      waiting.delete(id)
     }
-  }, APPROVALS_POLL_MS)
+  },
+  isFull: () => waiting.size >= MAX_WAITING,
 }
 
 const start = async ({
@@ -60,7 +64,7 @@ const start = async ({
 }: Extract<MachineProcessRequest, { type: 'start' }>) => {
   vault.useKey(key)
   if (account) {
-    await vault.setAccount(account)
+    await localAccount.set(account)
   }
   const signedIn = await vault.account()
   if (!signedIn) {
@@ -72,6 +76,7 @@ const start = async ({
   }
   const started = await Result.tryPromise(() =>
     runMachine({
+      approver,
       name,
       port,
       publicUrl: publicUrl === null ? null : new URL(publicUrl),
@@ -88,9 +93,8 @@ const start = async ({
     })
     return
   }
-  const { id, registerError, url } = started.value
-  reply({ id, registerError, type: 'started', url })
-  relayApprovals()
+  const { registerError, url } = started.value
+  reply({ registerError, type: 'started', url })
 }
 
 process.parentPort.on(
@@ -99,7 +103,7 @@ process.parentPort.on(
     if (data.type === 'start') {
       void start(data)
     } else {
-      approvals.decide(data.id, data.allowed)
+      waiting.get(data.id)?.(data.allowed)
     }
   }
 )

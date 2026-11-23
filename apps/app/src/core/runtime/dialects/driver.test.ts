@@ -45,10 +45,12 @@ mock.module('~/core/runtime/machine/machine', () => ({
 }))
 mock.module('~/core/runtime/machine/pairing', () => ({
   getConnectionMachineId: () => state.route?.machineId ?? null,
-  getMachineRoute: () => state.route,
+  getMachineRoute: (connectionId: string | null) =>
+    connectionId === null ? null : state.route,
 }))
 Object.assign(globalThis, { window: {} })
 
+const { fetchingConfig } = await import('~/core/connection/fetching-config')
 const { createDialectProvider } = await import('./driver')
 const { dialects } = await import('./index')
 
@@ -86,15 +88,14 @@ test('a paired browser sends the machine ids, never a connection string', async 
   expect(cloud.execute).not.toHaveBeenCalled()
 })
 
-test('a paired browser sends a string under test nowhere', () => {
-  state.route = paired
-  expect(() =>
-    createDialectProvider(Dialect.Postgres, {
-      connectionString: 'postgres://user:password@db.example.com/shop',
-    }).execute(select)
-  ).toThrow('Saved connections run on valerii-mbp')
-  expect(machine.execute).not.toHaveBeenCalled()
-  expect(cloud.execute).not.toHaveBeenCalled()
+test('the form tests no string on a machine, which runs saved connections only', () => {
+  expect(
+    fetchingConfig(null, {
+      connectionString: null,
+      draft: true,
+      machine: paired,
+    }).reason
+  ).toStartWith('Saved connections run on valerii-mbp')
 })
 
 test('a connection the machine asked secrets for waits for them instead of falling back to the cloud', () => {

@@ -20,7 +20,6 @@ import { env } from '../env'
 import { installer } from '../installer'
 import { paint } from '../paint'
 import { updates } from '../update-check'
-import { approvals } from './approvals'
 import { confinement } from './confinement'
 import { connections } from './connections'
 import { queryErrors } from './errors'
@@ -31,6 +30,12 @@ import { printable } from './printable'
 const base = os.$context<{ authorization: string | null; origin: string }>()
 
 const UNNAMED_BROWSER = 'A browser'
+
+/** Asks the person at the machine whether a browser may pair: the terminal for `tamery machine`, a dialog on desktop. */
+export interface Approver {
+  ask: (request: { code: string; label: string }) => Promise<boolean>
+  isFull: () => boolean
+}
 
 const loadLocalDatabases = () =>
   import('@tamery/connection/local-databases/find')
@@ -48,10 +53,12 @@ const authed = base
   })
 
 export const createRouter = ({
+  approver,
   id,
   name,
   userId,
 }: {
+  approver: Approver
   id: string
   name: string
   userId: string
@@ -84,7 +91,7 @@ export const createRouter = ({
         .errors({
           DECLINED: {
             message:
-              'The machine did not allow this browser: it was declined, or nobody answered within 2 minutes. Click Connect again and allow it in the terminal running `tamery machine`, or with `tamery machine approve`.',
+              'The machine did not allow this browser: it was declined, or nobody answered within 2 minutes. Click Connect again and allow it on that computer.',
           },
           NOT_ATTESTED: {
             message:
@@ -108,7 +115,7 @@ export const createRouter = ({
             throw errors.OTHER_ACCOUNT()
           }
           // Before any call to Tamery, so a flood of requests costs the API nothing once the terminal has enough to answer.
-          if (approvals.isFull()) {
+          if (approver.isFull()) {
             throw errors.DECLINED()
           }
           const isUsersBrowser = await Result.tryPromise(async () => {
@@ -131,9 +138,10 @@ export const createRouter = ({
             throw errors.OTHER_ACCOUNT()
           }
           const label = input.label || UNNAMED_BROWSER
-          const allowed = await approvals.ask(
-            `Allow ${paint.bold(label)} to run queries on this computer, with its files, SSH keys and credentials? Only if Tamery shows ${paint.bold(challenge.getUserCode(input.browserNonce))}.`
-          )
+          const allowed = await approver.ask({
+            code: challenge.getUserCode(input.browserNonce),
+            label,
+          })
           await analytics.capture('machine_pair_answered', { allowed })
           if (!allowed) {
             log.info(`Did not allow ${paint.bold(label)}.`)

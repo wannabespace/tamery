@@ -13,7 +13,7 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { formatDistanceStrict } from 'date-fns'
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { mutateOffline, useCollections } from '~/core/collections'
 import { FetchingReason } from '~/core/connection/fetching-reason'
@@ -29,11 +29,13 @@ import { useConnectMachine } from './use-connect-machine'
 
 /** A machine that registered within this long reads as running to a browser not paired with it. */
 const RUNNING_WITHIN_MS = 10 * 60 * 1000
+const CLOCK_MS = 60 * 1000
 
 export interface ListedMachine {
   id: string
+  /** `false` for a pairing whose machine the account does not list, such as one reached only by its URL: no connection runs on it. */
+  isListed: boolean
   name: string
-  /** `null` for a pairing whose machine the account does not list, such as one reached only by its URL. */
   seenAt: Date | null
   urls: string[]
 }
@@ -45,13 +47,15 @@ const UnpairedStatus = ({
   code: string | null
   seenAt: Date | null
 }) => {
-  // oxlint-disable-next-line react/hook-use-state -- the clock "Last seen" reads from, frozen at mount so render stays pure
-  const [now] = useState(Date.now)
+  const [now, setNow] = useState(Date.now)
+  useEffect(() => {
+    const clock = setInterval(() => setNow(Date.now()), CLOCK_MS)
+    return () => clearInterval(clock)
+  }, [])
   if (code) {
     return (
       <>
-        Allow this browser in the terminal running{' '}
-        <InlineCode>tamery machine</InlineCode> only if it shows{' '}
+        Allow this browser on that computer only if it shows{' '}
         <InlineCode>{code}</InlineCode>.
       </>
     )
@@ -85,6 +89,9 @@ export const MachineRow = ({
   )
   if (connect.error) {
     description = <FetchingReason reason={connect.error.message} />
+  } else if (pairing && !listed.isListed) {
+    description =
+      'Not listed in your account, so no connection runs on it. Check that it is online and signed in to this account.'
   } else if (pairing) {
     description =
       status?.state === 'connected' ? (
@@ -94,9 +101,7 @@ export const MachineRow = ({
         </span>
       ) : (
         <FetchingReason
-          reason={
-            status ? getMachineStatusMessage(status, listed.name) : 'Checking…'
-          }
+          reason={status ? getMachineStatusMessage(status) : 'Checking…'}
         />
       )
   }
@@ -105,7 +110,7 @@ export const MachineRow = ({
     if (pairing) {
       await machine.unpair(pairing)
     }
-    if (listed.seenAt) {
+    if (listed.isListed) {
       mutateOffline(() => machinesCollection.delete(listed.id))
     }
     posthog.capture('machine_removed')

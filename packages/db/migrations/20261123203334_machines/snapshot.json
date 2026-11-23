@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "47ec370d-2e2a-4980-b303-cc82a2f7da96",
+  "id": "b6c1c501-abdf-4b22-87cb-e709c03e98a9",
   "prevIds": [
     "2cd9269c-de7e-4d0b-8625-efdecc7b1fea"
   ],
@@ -3381,23 +3381,6 @@
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "connection_machines_connection_id_connections_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "connection_machines"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "machine_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "machines",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "connection_machines_machine_id_machines_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "connection_machines"

@@ -1,20 +1,20 @@
 import { randomBytes } from 'node:crypto'
 import { once } from 'node:events'
 import { rmSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 
+import { configFiles } from '@tamery/cli/src/config-files'
+import type { VaultAccount } from '@tamery/cli/src/vault'
 import { PORTS } from '@tamery/shared/ports'
+import { silently } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import type { UtilityProcess } from 'electron'
 import { app, dialog, safeStorage, utilityProcess } from 'electron'
 
-import type {
-  MachineAccount,
-  MachineProcessReply,
-  MachineProcessRequest,
-} from '../machine'
+import type { MachineProcessReply, MachineProcessRequest } from '../machine'
 import { createPrivateStore } from './private-store'
 
 const KEY_BYTES = 32
@@ -32,7 +32,7 @@ const store = createPrivateStore<{
 export type MachineState =
   | { status: 'off' | 'starting' }
   | { status: 'failed'; message: string }
-  | { status: 'on'; id: string; registerError: string | null; url: string }
+  | { status: 'on'; registerError: string | null; url: string }
 
 let state: MachineState = { status: 'off' }
 let child: UtilityProcess | null = null
@@ -53,13 +53,19 @@ const getVaultKey = async () => {
   return key
 }
 
-const askApproval = async (question: string) => {
+const askApproval = async ({
+  code,
+  label,
+}: {
+  code: string
+  label: string
+}) => {
   app.focus({ steal: true })
   const { response } = await dialog.showMessageBox({
     buttons: ['Don’t Allow', 'Allow'],
     cancelId: 0,
     defaultId: 0,
-    detail: question,
+    detail: `Allow ${label} to run queries on this computer, with its files, SSH keys and credentials? Only if Tamery shows ${code}.`,
     message: 'Allow a browser to use this computer?',
     type: 'question',
   })
@@ -69,7 +75,7 @@ const askApproval = async (question: string) => {
 const send = (forked: UtilityProcess, request: MachineProcessRequest) =>
   forked.postMessage(request)
 
-const start = async (account: MachineAccount | null) => {
+const start = async (account: VaultAccount | null) => {
   if (child) {
     return
   }
@@ -95,12 +101,16 @@ const start = async (account: MachineAccount | null) => {
   forked.on('message', async (reply: MachineProcessReply) => {
     if (reply.type === 'approval') {
       send(forked, {
-        allowed: await askApproval(reply.question),
+        allowed: await askApproval(reply),
         id: reply.id,
         type: 'answer',
       })
     } else if (reply.type === 'started') {
-      state = { ...reply, status: 'on' }
+      state = {
+        registerError: reply.registerError,
+        status: 'on',
+        url: reply.url,
+      }
     } else {
       state = { message: reply.message, status: 'failed' }
       forked.kill()
@@ -141,23 +151,43 @@ const stop = async () => {
   }
 }
 
-const getStatus = () => ({
-  enabled: store.get('enabled'),
-  publicUrl: store.get('publicUrl'),
-  ...state,
-})
+const getStatus = async () => {
+  // Read, never minted here: `null` until the machine first starts.
+  const savedId = await Result.tryPromise(() =>
+    readFile(
+      path.join(getConfigDir(), path.basename(configFiles.machineId)),
+      'utf-8'
+    )
+  )
+  return {
+    enabled: store.get('enabled'),
+    id: savedId.isOk() ? savedId.value.trim() : null,
+    publicUrl: store.get('publicUrl'),
+    ...state,
+  }
+}
+
+let lifecycle: Promise<unknown> = Promise.resolve()
+
+/** `start` awaits the keychain before it holds `child`, so a change running alongside would fork a second process. */
+const inTurn = <T>(change: () => Promise<T>) => {
+  const turn = lifecycle.then(change)
+  lifecycle = silently(() => turn)
+  return turn
+}
 
 export const machineHost = {
-  disable: async () => {
-    store.set('enabled', false)
-    await stop()
-    return getStatus()
-  },
-  enable: async ({
+  disable: () =>
+    inTurn(async () => {
+      store.set('enabled', false)
+      await stop()
+      return getStatus()
+    }),
+  enable: ({
     account,
     publicUrl,
   }: {
-    account: MachineAccount
+    account: VaultAccount
     publicUrl: string | null
   }) => {
     const parsed = publicUrl === null ? null : URL.parse(publicUrl)
@@ -169,24 +199,28 @@ export const machineHost = {
         'The address must be an https:// URL, such as https://my-mac.tail1234.ts.net.'
       )
     }
-    await stop()
-    store.set({ enabled: true, publicUrl: parsed?.origin ?? null })
-    await start(account)
-    return getStatus()
+    return inTurn(async () => {
+      await stop()
+      store.set({ enabled: true, publicUrl: parsed?.origin ?? null })
+      await start(account)
+      return getStatus()
+    })
   },
   /** On sign-out: the pairings, secrets and account it kept belong to the account leaving. */
-  forget: async () => {
-    await stop()
-    store.set('enabled', false)
-    store.delete('wrappedKey')
-    rmSync(getConfigDir(), { force: true, recursive: true })
-  },
+  forget: () =>
+    inTurn(async () => {
+      await stop()
+      store.set('enabled', false)
+      store.delete('wrappedKey')
+      rmSync(getConfigDir(), { force: true, recursive: true })
+    }),
   status: getStatus,
 }
 
 /** At launch, with the account the machine kept: it serves other devices with no window open. */
-export const restoreMachine = async () => {
-  if (store.get('enabled')) {
-    await start(null)
-  }
-}
+export const restoreMachine = () =>
+  inTurn(async () => {
+    if (store.get('enabled')) {
+      await start(null)
+    }
+  })

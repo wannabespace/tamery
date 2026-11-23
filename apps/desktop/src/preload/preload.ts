@@ -175,6 +175,7 @@ contextBridge.exposeInMainWorld('electron', {
   machine: namespaceBridge('machine', [
     'disable',
     'enable',
+    'fetch',
     'forget',
     'status',
   ]),

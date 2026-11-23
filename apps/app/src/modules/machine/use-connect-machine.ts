@@ -16,10 +16,11 @@ export const useConnectMachine = ({
   urls: string[]
 }) => {
   const { error, isPending, mutate, variables } = useMutation({
+    meta: { event: 'machine_paired' },
     mutationFn: (browserNonce: string) =>
-      machine.pair({ browserNonce, machineId, urls, via: 'list' }),
-    onSuccess: (pairing) => {
-      toast.success(`Connected to ${pairing.name}`)
+      machine.pair({ browserNonce, machineId, urls }),
+    onSuccess: () => {
+      toast.success('Machine connected')
       onConnected?.()
     },
   })

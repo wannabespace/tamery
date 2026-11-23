@@ -1,13 +1,16 @@
 import { RedisPublisher } from '@orpc/publisher/redis'
+import type { InferSchemaInput } from '@orpc/server'
 import { asyncIteratorObject } from '@orpc/server'
+import { db } from '@tamery/db'
 import type { Type } from 'arktype'
 import { type } from 'arktype'
+import { addSeconds } from 'date-fns'
+import { and, eq, gte, inArray, notInArray, or } from 'drizzle-orm'
+import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core'
 
 import { redis, redisSubscriber } from '~/lib/redis'
 import { authMiddleware, orpc } from '~/orpc'
 
-// Overload signatures require function declarations (func-style exception).
-// oxlint-disable-next-line eslint(func-style)
 export function createSyncOutputSchema<const T>(
   schema: type.validate<T>
 ): type.instantiate<
@@ -15,7 +18,6 @@ export function createSyncOutputSchema<const T>(
   | { type: '"update"'; value: T }
   | { type: '"delete"'; key: 'string.uuid.v7' }
 >
-// oxlint-disable-next-line eslint(func-style)
 export function createSyncOutputSchema(schema: Type) {
   return type.or(
     type({ type: '"insert"', value: schema }),
@@ -56,6 +58,62 @@ export const syncDiff = async <TItem>(opts: {
   const missingIds = inputIds.filter((id) => !existingIds.includes(id))
   return { missingIds, newItems, updatedItems }
 }
+
+export const createUserScopedSync = <
+  O extends Type<{ type: 'insert' | 'update' | 'delete' }[]>,
+>(
+  table: PgTable &
+    Record<'id' | 'userId', AnyPgColumn<{ data: string; notNull: true }>> &
+    Record<'updatedAt', AnyPgColumn<{ data: Date; notNull: true }>>,
+  output: O
+) =>
+  orpc
+    .use(authMiddleware)
+    .input(type({ id: 'string.uuid.v7', updatedAt: 'Date' }).array())
+    .output(output)
+    .handler(async ({ input, context }) => {
+      const ownRows = eq(table.userId, context.user.id)
+      const { updatedItems, newItems, missingIds } = await syncDiff({
+        input,
+        queries: {
+          existing: (includeIds) =>
+            db
+              .select({ id: table.id })
+              .from(table)
+              .where(and(ownRows, inArray(table.id, includeIds)))
+              .then((rows) => rows.map((row) => row.id)),
+          new: (excludeIds) =>
+            db
+              .select()
+              .from(table)
+              .where(and(ownRows, notInArray(table.id, excludeIds))),
+          updated: (items) =>
+            db
+              .select()
+              .from(table)
+              .where(
+                and(
+                  ownRows,
+                  or(
+                    ...items.map((row) =>
+                      and(
+                        eq(table.id, row.id),
+                        gte(table.updatedAt, addSeconds(row.updatedAt, 1))
+                      )
+                    )
+                  )
+                )
+              ),
+        },
+      })
+
+      // Drizzle types a row of a table it only knows as `PgTable` loosely; `.output` validates it.
+      return [
+        ...updatedItems.map((value) => ({ type: 'update', value })),
+        ...newItems.map((value) => ({ type: 'insert', value })),
+        ...missingIds.map((key) => ({ key, type: 'delete' })),
+      ] as InferSchemaInput<O>
+    })
 
 export const createEventsEndpoint = <
   O extends Type<{ type: 'insert' | 'update' | 'delete' }>,

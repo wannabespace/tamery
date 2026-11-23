@@ -24,7 +24,7 @@ export const ConnectionError = (props: ErrorComponentProps) => {
     return <MachineFailure error={props.error} retry={retry} />
   }
   if (props.error instanceof MachineNotPairedError) {
-    return <MachineNotPaired error={props.error} retry={retry} />
+    return <MachineNotPaired route={props.error.route} retry={retry} />
   }
   if (props.error instanceof UnconfirmedConnectionError) {
     return <MachineUnconfirmed error={props.error} retry={retry} />

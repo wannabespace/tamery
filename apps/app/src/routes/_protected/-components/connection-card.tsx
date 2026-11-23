@@ -21,6 +21,7 @@ import type { Connection } from '~/core/connection/sync'
 import { connectionResourcesQueryOptions } from '~/core/queries/connection/resources'
 import { posthog } from '~/lib/posthog'
 import { getCopyDatabaseAction } from '~/modules/copy-database/copy-database-dialog'
+import { useRunsOnMenu } from '~/modules/machine/runs-on-options'
 import { openNewWindow } from '~/utils/new-window'
 
 import { ConnectionCardMeta } from './connection-card-meta'
@@ -42,6 +43,7 @@ export const ConnectionCard = ({
   const { connectionStringsCollection, connectionsResourcesCollection } =
     useCollections()
   const transfer = useConnectionTransfer(connection)
+  const runsOn = useRunsOnMenu(connection.id)
   const { data: connectionString } = useLiveQuery({
     query: (q) =>
       q
@@ -162,6 +164,7 @@ export const ConnectionCard = ({
       : null,
     onRefresh: () => refresh.mutate(),
     onRemove,
+    runsOn,
   })
 
   return (

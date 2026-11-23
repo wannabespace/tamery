@@ -37,20 +37,18 @@ const reportOnce = (event: 'machine_outdated' | 'machine_unreachable') => {
   }
 }
 
-export const getMachineStatusMessage = (
-  status: MachineStatus,
-  name: string
-) => {
+/** Without the machine's name, which the UI shows masked beside it. */
+export const getMachineStatusMessage = (status: MachineStatus) => {
   if (status.state === 'connected') {
-    return `Queries from this browser run on ${name}.`
+    return 'Connected.'
   }
   if (status.state === 'outdated') {
-    return `Update the machine on ${name} to run queries.`
+    return 'Update the machine to run queries.'
   }
   if (status.reason === 'denied') {
-    return `This browser blocks Tamery from reaching ${name}. Allow local network access for this site in the browser’s settings.`
+    return 'This browser blocks Tamery from reaching it. Allow local network access for this site in the browser’s settings.'
   }
-  return `The machine on ${name} is not running. Start \`tamery machine\` there.`
+  return 'Not running. Start `tamery machine` or the desktop app there.'
 }
 
 export class MachineError extends Error {
@@ -58,7 +56,7 @@ export class MachineError extends Error {
   readonly status: MachineTrouble
 
   constructor(status: MachineTrouble, machineName: string) {
-    super(getMachineStatusMessage(status, machineName))
+    super(`${machineName}: ${getMachineStatusMessage(status)}`)
     this.name = 'MachineError'
     this.machineName = machineName
     this.status = status

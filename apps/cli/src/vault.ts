@@ -11,8 +11,12 @@ import { configFiles } from './config-files'
 
 const KEYCHAIN_ITEM = { name: 'machine-key', service: 'app.tamery.cli' }
 
+const vaultAccount = type({ email: 'string', id: 'string', token: 'string' })
+
+export type VaultAccount = typeof vaultAccount.infer
+
 const vaultData = type({
-  account: type({ email: 'string', id: 'string', token: 'string' }).or('null'),
+  account: vaultAccount.or('null'),
   connections: { '[string]': 'string' },
 })
 

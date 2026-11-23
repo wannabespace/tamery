@@ -69,13 +69,16 @@ export const RunsOn = () => {
         {/* Tooltip content is a flex row: one span keeps the sentence and its command on one line. */}
         <span>
           {down ? (
-            <FetchingReason
-              reason={
-                status
-                  ? getMachineStatusMessage(status, route.name)
-                  : `Runs on ${route.name}, which this browser is not connected to.`
-              }
-            />
+            <>
+              <span data-mask>{route.name}</span>:{' '}
+              <FetchingReason
+                reason={
+                  status
+                    ? getMachineStatusMessage(status)
+                    : 'This browser is not connected to it.'
+                }
+              />
+            </>
           ) : (
             <>
               Queries run on <span data-mask>{route.name}</span>

@@ -183,6 +183,7 @@ const server = await serveMachine({
   port: 0,
   publicUrl: new URL('https://db-box.tail1234.ts.net'),
   router: createRouter({
+    approver: approvals,
     id: '0190a1b2-0000-7000-8000-0000000000ff',
     name: 'test-box',
     userId: USER_ID,
