@@ -17,7 +17,7 @@ const machine = {
 const cloud = { execute: machineCall(), executeTransaction: machineCall() }
 const pairing = {
   browserId: 'browser',
-  enabled: true,
+  machineId: 'machine',
   name: 'valerii-mbp',
   secret: 'secret',
   url: 'http://127.0.0.1:26380',
@@ -44,6 +44,7 @@ mock.module('~/core/runtime/machine/machine', () => ({
   machine: { client: () => ({ query: { postgres: machine } }) },
 }))
 mock.module('~/core/runtime/machine/pairing', () => ({
+  getConnectionMachineId: () => state.route?.machineId ?? null,
   getMachineRoute: () => state.route,
 }))
 Object.assign(globalThis, { window: {} })
@@ -51,7 +52,12 @@ Object.assign(globalThis, { window: {} })
 const { createDialectProvider } = await import('./driver')
 const { dialects } = await import('./index')
 
-const paired: MachineRoute = { asks: null, name: pairing.name, pairing }
+const paired: MachineRoute = {
+  asks: null,
+  machineId: pairing.machineId,
+  name: pairing.name,
+  pairing,
+}
 const select = { query: 'SELECT 1', values: [] }
 
 beforeEach(() => {

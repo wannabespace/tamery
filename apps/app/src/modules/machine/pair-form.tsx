@@ -17,13 +17,7 @@ import { FetchingReason } from '~/core/connection/fetching-reason'
 import { parseMachineUrl } from '~/core/runtime/machine/client'
 import { machine } from '~/core/runtime/machine/machine'
 
-export const PairForm = ({
-  link,
-  replaces,
-}: {
-  link: string | null
-  replaces: string | null
-}) => {
+export const PairForm = ({ link }: { link: string | null }) => {
   const [url, setUrl] = useState(link ?? '')
   const target = url.trim() || MACHINE_URL
   const origin = parseMachineUrl(target)
@@ -31,7 +25,8 @@ export const PairForm = ({
     mutationFn: (browserNonce: string) =>
       machine.pair({
         browserNonce,
-        url: target,
+        machineId: null,
+        urls: [target],
         via: link === null ? 'manual' : 'link',
       }),
     onSuccess: (pairing) => toast.success(`Connected to ${pairing.name}`),
@@ -45,7 +40,7 @@ export const PairForm = ({
         mutate(machineKey.nonce())
       }}
     >
-      <SettingsGroup title="Connect this browser">
+      <SettingsGroup title="Connect by URL">
         <SettingsRow
           title="Machine URL"
           description={
@@ -75,27 +70,19 @@ export const PairForm = ({
         <SettingsRow
           title="Allow it at the machine"
           description={
-            <>
-              {isPending ? (
-                <>
-                  Allow this browser in the terminal running{' '}
-                  <InlineCode>tamery machine</InlineCode> only if it shows{' '}
-                  <InlineCode>{challenge.getUserCode(variables)}</InlineCode>.
-                </>
-              ) : (
-                <>
-                  Connect asks the terminal running{' '}
-                  <InlineCode>tamery machine</InlineCode>, or{' '}
-                  <InlineCode>tamery machine approve</InlineCode>.
-                </>
-              )}
-              {replaces && (
-                <>
-                  {' '}
-                  Replaces <span data-mask>{replaces}</span>.
-                </>
-              )}
-            </>
+            isPending ? (
+              <>
+                Allow this browser in the terminal running{' '}
+                <InlineCode>tamery machine</InlineCode> only if it shows{' '}
+                <InlineCode>{challenge.getUserCode(variables)}</InlineCode>.
+              </>
+            ) : (
+              <>
+                Connect asks the terminal running{' '}
+                <InlineCode>tamery machine</InlineCode>, or{' '}
+                <InlineCode>tamery machine approve</InlineCode>.
+              </>
+            )
           }
         >
           <Button type="submit" disabled={isPending || !origin}>

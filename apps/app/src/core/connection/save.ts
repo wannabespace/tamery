@@ -17,6 +17,7 @@ import { findResource } from '~/core/connection/resources'
 import { rememberOpenedResource } from '~/core/connection/stores'
 import type { Connection } from '~/core/connection/sync'
 import { machine } from '~/core/runtime/machine/machine'
+import { writeConnectionMachine } from '~/core/runtime/machine/pairing'
 
 export interface ConnectionDetails {
   color?: string | null
@@ -24,6 +25,8 @@ export interface ConnectionDetails {
   /** A string `find` returned on the machine, which keeps its password: `machine.keepFoundPassword`. */
   foundConnectionString?: string
   label?: string | null
+  /** Where it runs for this user; omitted leaves that as it is. */
+  machineId?: string | null
   name: string
   provider: Provider | null
   type: ConnectionType
@@ -54,10 +57,12 @@ export const saveConnectionString = async ({
   connectionString,
   connectionId,
   foundConnectionString,
+  machineId,
   updatedAt,
   writeRow,
 }: ConnectionStringInput & {
   foundConnectionString?: string
+  machineId?: string | null
   writeRow?: (isPasswordExists: boolean) => void
 }) => {
   const {
@@ -87,6 +92,9 @@ export const saveConnectionString = async ({
           (!stored?.isPasswordPopulated &&
             !!connectionsCollection.get(connectionId)?.isPasswordExists)
       )
+    }
+    if (machineId !== undefined) {
+      writeConnectionMachine(connectionId, machineId)
     }
     if (!existingResource) {
       const now = new Date()
@@ -133,7 +141,12 @@ export const saveConnectionString = async ({
 
 const saveConnection = async (
   connectionId: string,
-  { connectionString, foundConnectionString, ...details }: ConnectionDetails,
+  {
+    connectionString,
+    foundConnectionString,
+    machineId,
+    ...details
+  }: ConnectionDetails,
   writeRow: (
     row: Omit<Connection, 'createdAt' | 'id' | 'syncType' | 'workspaceId'>
   ) => void
@@ -143,6 +156,7 @@ const saveConnection = async (
     connectionId,
     connectionString: connectionString.trim(),
     foundConnectionString,
+    machineId,
     updatedAt,
     writeRow: (isPasswordExists) =>
       writeRow({
@@ -155,8 +169,8 @@ const saveConnection = async (
         updatedAt,
       }),
   })
-  // The web can query through the server, which must hold the row and its resource before the connection opens.
-  if (!window.electron && navigator.onLine) {
+  // The web can query through the server, and a machine checks the server's row, so either must hold it before the connection opens.
+  if ((!window.electron || machineId) && navigator.onLine) {
     const persisted = await saved.settled
     if (persisted.isErr()) {
       throw persisted.error.cause

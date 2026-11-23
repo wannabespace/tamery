@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import type { ConnectionDetails } from '~/core/connection/save'
 import { testConnectionQuery } from '~/core/queries/connection/test'
-import { useMachineRoute } from '~/core/runtime/machine/pairing'
+import { getMachineRouteById } from '~/core/runtime/machine/pairing'
 import { generateRandomName } from '~/utils/faker'
 
 import type { ConnectionForm, ConnectionFormValues } from './connection-form'
@@ -30,7 +30,6 @@ export type OnSave = (
 ) => Promise<unknown>
 
 export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
-  const machine = useMachineRoute(null)
   const test = useMutation({
     meta: { event: 'connection_tested' },
     mutationFn: (params: { connectionString: string; dialect: Dialect }) =>
@@ -63,7 +62,7 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
         syncType: values.syncType,
       },
       {
-        machine,
+        machine: getMachineRouteById(values.machineId),
         connectionString: editing
           ? described
           : { ...described, missingSecrets: [] },
@@ -128,6 +127,7 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
           connectionString,
           foundConnectionString: getFoundDatabase(values)?.connectionString,
           label: values.label.trim() || null,
+          machineId: values.machineId,
           name: values.name.trim() || generateRandomName(),
           provider: values.provider,
           type: values.type,

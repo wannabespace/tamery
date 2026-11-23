@@ -48,13 +48,16 @@ const authed = base
   })
 
 export const createRouter = ({
+  id,
   name,
   userId,
 }: {
+  id: string
   name: string
   userId: string
 }) => {
   const getInfo = () => ({
+    id,
     installer,
     latestVersion: updates.latest(),
     name,

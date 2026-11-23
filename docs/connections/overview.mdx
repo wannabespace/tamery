@@ -23,11 +23,15 @@ When a pasted string has a known problem, Tamery fixes it and tells you what cha
 
 Choose an engine, check the details, and click **Save connection**. **Cmd+Enter** (**Ctrl+Enter**) saves from anywhere in the form. The name is optional.
 
-On desktop, and in the web app through a [machine](/cli/overview) for the computer it runs on, you also get:
+On desktop, and through each [machine](/cli/overview) you're connected to, you also get:
 
 - A list of databases found on this computer: running Docker containers, and connections saved in DBeaver, TablePlus, DataGrip, pgAdmin, `pg_service.conf`, `.pgpass`, or `my.cnf`. On macOS, the desktop app can take a saved password from the Keychain once macOS asks you; through a machine, a saved password for a database on the machine's computer stays there, which uses it for the connection you save from it (your other devices ask for it). A password for a database elsewhere, or one in the Keychain, you type.
 - **Add via MCP** (desktop only), where your coding agent finds the database in your project and adds it for you.
 - Dropping a SQLite or DuckDB file onto the window (desktop only). See [SQLite](/connections/sqlite) and [DuckDB](/connections/duckdb).
+
+## Choose where it runs
+
+If your account has [machines](/cli/overview#choose-where-a-connection-runs), **Runs on** picks where this connection's queries run for you: **Tamery Cloud** in the web app, **This computer** in the desktop app, or one of your machines. Picking a database a machine found sets it for you. Each workspace member picks their own.
 
 ## Choose what syncs
 

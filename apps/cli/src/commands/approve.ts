@@ -11,7 +11,7 @@ export const approve = async () => {
   if (approvals.waiting().length === 0) {
     const waiting = spinner()
     waiting.start(
-      'Waiting for a browser. Click Connect in Tamery → Settings → Machine.'
+      'Waiting for a browser. Click Connect next to this machine in Tamery → Settings → Machines.'
     )
     while (approvals.waiting().length === 0) {
       // oxlint-disable-next-line eslint/no-await-in-loop -- polling the file the machine writes requests to

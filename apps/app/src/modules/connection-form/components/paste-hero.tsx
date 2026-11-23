@@ -14,6 +14,8 @@ import {
 } from 'motion/react'
 import { useEffect } from 'react'
 
+import { useLocalMachineIds } from '~/core/local-machine'
+
 import { getFileType } from '../lib/engine-fields'
 import type { FormMode } from '../lib/form-mode'
 import type { PasteFlash } from '../lib/use-paste-connection'
@@ -53,10 +55,11 @@ export const PasteHero = ({
   mode: FormMode
   onAgent: () => void
   onClipboard: () => void
-  onLocalDatabase: (database: LocalDatabase) => void
+  onLocalDatabase: (database: LocalDatabase, machineId: string | null) => void
   pasteable: boolean
 }) => {
   const reduceMotion = useReducedMotion()
+  const localMachineIds = useLocalMachineIds()
   const modifierHeld = useKeyHold(isMac ? 'Meta' : 'Control')
   const pasteHeld = useKeyHold('V') && modifierHeld
   const [shakeScope, shake] = useAnimate<HTMLDivElement>()
@@ -135,7 +138,13 @@ export const PasteHero = ({
       {mode.kind === 'create' && (
         <>
           {window.electron && <AgentButton onClick={onAgent} />}
-          <LocalDatabases onPick={onLocalDatabase} />
+          {localMachineIds.map((machineId) => (
+            <LocalDatabases
+              key={machineId ?? 'here'}
+              machineId={machineId}
+              onPick={(database) => onLocalDatabase(database, machineId)}
+            />
+          ))}
         </>
       )}
     </div>

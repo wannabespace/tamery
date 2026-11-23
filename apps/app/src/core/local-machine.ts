@@ -1,36 +1,38 @@
 import { isMac } from '@tamery/ui/lib/os'
+import { useSubscription } from 'seitu/react'
 
 import { machine } from '~/core/runtime/machine/machine'
 import {
-  getActivePairing,
-  useActivePairing,
+  MACHINE_QUERY_KEY,
+  machinePairings,
+  useMachineRouteById,
 } from '~/core/runtime/machine/pairing'
 
-const pairedClient = () => {
-  const pairing = getActivePairing()
-  return pairing ? machine.client(pairing) : null
-}
-
-export const localMachine = {
-  findDatabases: async () =>
-    window.electron
-      ? window.electron.localDatabases.find()
-      : ((await pairedClient()?.localDatabases.find()) ?? []),
-}
-
-// A machine's key stays under `['machine']`: `clearMachinePairing` drops that prefix, or another pairing would show this computer's databases.
-export const useLocalMachine = () => {
-  const pairing = useActivePairing()
-  if (window.electron) {
+/** The computer whose databases a connection running on `machineId` can reach: this desktop when `null`, else a paired machine. */
+export const useLocalMachine = (machineId: string | null) => {
+  const route = useMachineRouteById(machineId)
+  if (route?.pairing) {
+    const { pairing } = route
     return {
+      find: () => machine.client(pairing).localDatabases.find(),
+      name: route.name,
+      // Under the pairing's key, which unpairing drops, so another pairing never shows this computer's databases.
+      queryKey: [MACHINE_QUERY_KEY, pairing.browserId, 'localDatabases'],
+    }
+  }
+  if (!route && window.electron) {
+    const { localDatabases } = window.electron
+    return {
+      find: () => localDatabases.find(),
       name: isMac ? 'this Mac' : 'this computer',
       queryKey: ['localDatabases'],
     }
   }
-  return pairing
-    ? {
-        name: pairing.name,
-        queryKey: ['machine', 'localDatabases', pairing.browserId],
-      }
-    : null
+  return null
+}
+
+/** Every computer this app can list databases on: this desktop, as `null`, and each machine it is paired with. */
+export const useLocalMachineIds = () => {
+  const pairings = useSubscription(machinePairings)
+  return [...(window.electron ? [null] : []), ...Object.keys(pairings)]
 }

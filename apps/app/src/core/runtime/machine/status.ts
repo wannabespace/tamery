@@ -3,7 +3,6 @@ import type { MachineRouter } from '@tamery/cli/src/machine/router'
 import { machineKey, MIN_MACHINE_PROTOCOL } from '@tamery/shared/machine'
 import { queryOptions, skipToken, useQuery } from '@tanstack/react-query'
 import { Result } from 'better-result'
-import { useSubscription } from 'seitu/react'
 import { toast } from 'sonner'
 
 import { posthog } from '~/lib/posthog'
@@ -12,9 +11,9 @@ import { queryClient } from '~/lib/query-client'
 import { getMachineClient, isLoopbackUrl } from './client'
 import type { MachinePairing } from './pairing'
 import {
-  MACHINE_QUERY_KEY,
-  machinePairing,
   clearMachinePairing,
+  MACHINE_QUERY_KEY,
+  machinePairings,
 } from './pairing'
 
 const MACHINE_CHECK_INTERVAL = 10_000
@@ -92,10 +91,10 @@ const toUnreachable = async (
 }
 
 export const forget = (pairing: MachinePairing) => {
-  const message = `The machine on ${pairing.name} no longer knows this browser. Connect again from Settings → Machine.`
+  const message = `The machine on ${pairing.name} no longer knows this browser. Connect again from Settings → Machines.`
   // A late answer for a pairing this browser already replaced must not clear the new one.
-  if (machinePairing.get()?.secret === pairing.secret) {
-    clearMachinePairing()
+  if (machinePairings.get()[pairing.machineId]?.secret === pairing.secret) {
+    clearMachinePairing(pairing)
     toast.error(message, { id: 'machine-forgotten' })
   }
   return new Error(message)
@@ -136,13 +135,8 @@ export const statusQueryOptions = (pairing: MachinePairing | null) =>
     throwOnError: false,
   })
 
-export const useMachineStatus = () => {
-  const pairing = useSubscription(machinePairing)
-  const { data } = useQuery(
-    statusQueryOptions(pairing?.enabled ? pairing : null)
-  )
-  return pairing && { pairing, status: data ?? null }
-}
+export const useMachineStatus = (pairing: MachinePairing | null) =>
+  useQuery(statusQueryOptions(pairing)).data ?? null
 
 /**
  * Every call asks `hello` first, never a cached answer: the machine may have stopped since and another process taken its port,

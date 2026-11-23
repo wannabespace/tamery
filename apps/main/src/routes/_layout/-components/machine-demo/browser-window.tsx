@@ -1,7 +1,6 @@
 import { ArrowRight01Icon, ComputerIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
-import { MACHINE_URL } from '@tamery/shared/machine'
 import { AppLogo } from '@tamery/ui/components/brand/app-logo'
 import { Button } from '@tamery/ui/components/button'
 import { InlineCode } from '@tamery/ui/components/custom/inline-code'
@@ -11,7 +10,6 @@ import {
   SettingsRow,
 } from '@tamery/ui/components/custom/settings-group'
 import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
-import { Input } from '@tamery/ui/components/input'
 import { cn } from '@tamery/ui/lib/utils'
 import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
@@ -50,39 +48,25 @@ const Crumbs = ({
 
 const PairSettings = ({ step }: { step: number }) => (
   <div className="p-4">
-    <SettingsGroup title="Connect this browser">
+    <SettingsGroup title="Your machines">
       <SettingsRow
-        title="Machine URL"
-        description="Queries run on the computer at this address."
-      >
-        <Input
-          readOnly
-          variant="code"
-          aria-label="Machine URL"
-          className="hidden w-56 sm:flex"
-          value={MACHINE_URL}
-        />
-      </SettingsRow>
-      <SettingsRow
-        title="Allow it at the machine"
+        title={MACHINE_NAME}
         description={
           step >= CONNECT_STEP ? (
             <>
-              Allow this browser in the terminal only if it shows{' '}
+              Allow this browser in the terminal running{' '}
+              <InlineCode>tamery machine</InlineCode> only if it shows{' '}
               <span className={codeMatchClass(step)}>
                 <InlineCode>{PAIR_CODE}</InlineCode>
               </span>
               .
             </>
           ) : (
-            <>
-              Connect asks the terminal running{' '}
-              <InlineCode>tamery machine</InlineCode>.
-            </>
+            'Running. Connect this browser to run queries on it.'
           )
         }
       >
-        <Button>
+        <Button size="sm">
           <LoadingContent loading={step >= CONNECT_STEP}>
             Connect
           </LoadingContent>
@@ -128,7 +112,7 @@ export const BrowserWindow = ({
             page="orders"
           />
         ) : (
-          <Crumbs section="Settings" page="Machine" />
+          <Crumbs section="Settings" page="Machines" />
         )}
         <span className="text-muted-foreground ml-auto flex items-center gap-1.5">
           <span className="relative">

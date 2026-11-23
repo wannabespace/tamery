@@ -22,10 +22,10 @@ import {
 import { machineHostKeys } from './host-keys'
 import type { MachinePairing } from './pairing'
 import {
-  machineAsks,
-  machinePairing,
   clearMachinePairing,
-  getActivePairing,
+  getMachineRoute,
+  machineAsks,
+  machinePairings,
 } from './pairing'
 import { ensureConnected, forget, statusQueryOptions, toStatus } from './status'
 
@@ -128,6 +128,40 @@ const getPairedClient = memoize((pairing: MachinePairing): MachineRouter =>
   )
 )
 
+/** The machine at one of these URLs: a listed machine names every address it listens at, and this browser may reach only some. */
+const findMachineUrl = async (urls: string[], machineId: string | null) => {
+  const origins = urls.flatMap((url) => parseMachineUrl(url) ?? [])
+  if (origins.length === 0) {
+    throw new Error(
+      'Tamery pairs only with a machine on this computer or at an https:// address.'
+    )
+  }
+  const answers = await Promise.allSettled(
+    origins.map(async (origin) => {
+      const info = await getMachineClient(origin).machine.hello({
+        browserId: null,
+        nonce: machineKey.nonce(),
+      })
+      if (machineId !== null && info.id !== machineId) {
+        throw new Error(`Another machine answers at ${origin}.`)
+      }
+      return origin
+    })
+  )
+  const reached = answers.find((answer) => answer.status === 'fulfilled')
+  if (reached?.status === 'fulfilled') {
+    return reached.value
+  }
+  const [first] = answers
+  throw first?.status === 'rejected' ? first.reason : new Error('No answer.')
+}
+
+const unpair = async (pairing: MachinePairing) => {
+  await silently(() => getPairedClient(pairing).machine.unpair())
+  clearMachinePairing(pairing)
+  posthog.capture('machine_unpaired')
+}
+
 export const machine = {
   client: getPairedClient,
   /** Throws when the machine kept nothing: it restarted since finding the database, or `found` is not on its computer or not the saved string's server. */
@@ -136,7 +170,7 @@ export const machine = {
     connectionString: string
     found: string
   }) => {
-    const pairing = getActivePairing()
+    const pairing = getMachineRoute(input.connectionId)?.pairing
     const kept =
       !!pairing &&
       (await getPairedClient(pairing).localDatabases.keepPassword(input))
@@ -149,23 +183,21 @@ export const machine = {
   },
   pair: async ({
     browserNonce,
-    url,
+    machineId,
+    urls,
     via,
   }: {
     browserNonce: string
-    url: string
-    via: 'link' | 'manual'
+    /** `null` for a URL typed or opened from a link, which pairs with whichever machine answers there. */
+    machineId: string | null
+    urls: string[]
+    via: 'link' | 'list' | 'manual'
   }) => {
-    const origin = parseMachineUrl(url)
-    if (!origin) {
-      throw new Error(
-        'Tamery pairs only with a machine on this computer or at an https:// address.'
-      )
-    }
     const user = await getSessionUser()
     if (!user) {
       throw new Error('Sign in to connect a machine.')
     }
+    const origin = await findMachineUrl(urls, machineId)
     // Both nonces name the URL this browser calls: a machine reached through a relay at another one attests its own.
     await orpc.account.machine.attest.call({ nonce: browserNonce, origin })
     const nonce = machineKey.nonce()
@@ -181,19 +213,27 @@ export const machine = {
         'This machine is not signed in to your Tamery account, or answered from another address.'
       )
     }
-    const pairing = { ...paired, enabled: true, name: info.name, url: origin }
-    clearMachinePairing()
+    const pairing = {
+      ...paired,
+      machineId: info.id,
+      name: info.name,
+      url: origin,
+    }
+    const replaced = machinePairings.get()[info.id]
+    if (replaced) {
+      clearMachinePairing(replaced)
+    }
     queryClient.setQueryData(
       statusQueryOptions(pairing).queryKey,
       toStatus(info)
     )
-    machinePairing.set(pairing)
+    machinePairings.set((all) => ({ ...all, [info.id]: pairing }))
     posthog.capture('machine_paired', { remote: !isLoopbackUrl(origin), via })
     return pairing
   },
-  /** `false` when this browser lacks part of the string too. */
+  /** `false` when this browser lacks part of the string too, or the connection runs on no machine it is paired with. */
   saveSecrets: async (connectionId: string) => {
-    const pairing = getActivePairing()
+    const pairing = getMachineRoute(connectionId)?.pairing
     const connectionString =
       pairing && (await getCompleteString(connectionId, true))
     if (!(pairing && connectionString)) {
@@ -208,13 +248,7 @@ export const machine = {
     return true
   },
   /** Revokes the secret on the machine before forgetting it here, so a copy taken from this browser stops working too. */
-  unpair: async () => {
-    const pairing = machinePairing.get()
-    if (!pairing) {
-      return
-    }
-    await silently(() => getPairedClient(pairing).machine.unpair())
-    clearMachinePairing()
-    posthog.capture('machine_unpaired')
-  },
+  unpair,
+  unpairAll: () =>
+    Promise.all(Object.values(machinePairings.get()).map(unpair)),
 }

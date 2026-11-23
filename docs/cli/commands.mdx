@@ -36,7 +36,7 @@ tamery machine
 
 Lets the web app run your connections on this computer until you press **Ctrl+C**. If the computer isn't signed in yet, it signs in first, as `tamery login` does. [Tamery CLI](/cli/overview#run-the-machine) walks through pairing.
 
-It prints the account, the address it listens on and a link to connect a browser. When a browser clicks **Connect**, it asks you whether to allow it. It also reports requests it refused because of a wrong host or origin.
+It lists the computer under **Settings → Machines** in your account, with its hostname and the addresses it listens at, and keeps that entry current while it runs. It prints the account, the address it listens on and a link to connect a browser. When a browser clicks **Connect**, it asks you whether to allow it. It also reports requests it refused because of a wrong host or origin.
 
 | Flag | Use |
 | --- | --- |
@@ -55,7 +55,7 @@ Answers for a machine that runs without a terminal to ask in, such as a service,
 
 1. Keep the machine running.
 2. On the same computer, run `tamery machine approve`. It waits for a browser.
-3. In the web app, click **Connect** in **Settings → Machine**.
+3. In the web app, click **Connect** next to the machine in **Settings → Machines**.
 4. Answer the question in the `approve` terminal.
 
 The order of steps 2 and 3 doesn't matter, as long as you answer within 2 minutes of clicking **Connect**. At most 3 requests wait at a time; more are declined.
@@ -161,4 +161,4 @@ If you installed with the script but run `tamery` from another folder, the updat
 tamery logout
 ```
 
-Signs the CLI out of your account and deletes what it stored on this computer: the session, the saved secrets, their key in the keychain, and every pairing. The next `tamery machine` signs in again, so this is also how you switch accounts.
+Signs the CLI out of your account, removes this computer from **Settings → Machines**, and deletes what it stored on this computer: the session, the saved secrets, their key in the keychain, and every pairing. The next `tamery machine` signs in again, so this is also how you switch accounts.

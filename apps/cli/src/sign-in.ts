@@ -8,6 +8,7 @@ import { analytics } from './analytics'
 import { account, api } from './api'
 import { openBrowser } from './browser'
 import { env } from './env'
+import { machineIdentity } from './machine/identity'
 import { pairings } from './machine/pairings'
 import { paint } from './paint'
 import { vault } from './vault'
@@ -63,6 +64,7 @@ const signIn = async () => {
     if (previous && previous.id !== user.id) {
       await vault.reset()
       pairings.reset()
+      machineIdentity.reset()
     }
     await vault.setAccount(signedIn)
     await analytics.capture('signed_in', {})

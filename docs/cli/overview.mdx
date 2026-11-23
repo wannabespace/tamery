@@ -5,7 +5,7 @@ description: "Run the web app's queries on your own computer with tamery machine
 keywords: ['command line', 'terminal', 'local proxy', 'headless']
 ---
 
-`tamery machine` lets the web app run your queries on the computer where the machine runs. Use it for a database on localhost or a private network, a SQLite or DuckDB file, or a connection whose password Tamery's server doesn't have. The desktop app doesn't need it: it already runs queries on your computer.
+`tamery machine` turns the computer it runs on into a machine: a place where the web app, or the desktop app on another computer, runs your connections. Use it for a database on localhost or a private network, a SQLite or DuckDB file, or a connection whose password Tamery's server doesn't have. The desktop app doesn't need it for its own computer: it already runs queries there.
 
 ## Install
 
@@ -39,27 +39,35 @@ The CLI runs on macOS (Apple silicon and Intel), Linux (x64 and arm64), and Wind
    tamery machine
    ```
 
-   The first time, it opens the browser so you can sign in with the account you use in the web app. Then it opens **Settings → Machine** in the web app.
+   The first time, it opens the browser so you can sign in with the account you use in the web app. It then lists itself under **Settings → Machines** in every app signed in to your account, and opens that page.
 
-2. Check that the **Machine URL** is the one `tamery machine` printed, usually `http://127.0.0.1:26380`, and click **Connect**.
+2. In **Settings → Machines**, click **Connect** next to the machine. Tamery tries each address the machine listens at and uses the first one this browser reaches.
 
-3. **Settings → Machine** and the terminal running `tamery machine` both show a code. If they match, select **Yes** in the terminal and press **Enter**. This lets the browser run your connections on that computer, including ones that use its files, SSH keys or credentials. **No** is selected first, and no answer within 2 minutes counts as no.
+3. **Settings → Machines** and the terminal running `tamery machine` both show a code. If they match, select **Yes** in the terminal and press **Enter**. This lets the browser run your connections on that computer, including ones that use its files, SSH keys or credentials. **No** is selected first, and no answer within 2 minutes counts as no.
 
-Keep the machine running. The web app now sends every query through it, and a computer icon at the top of the window shows its state: a green dot while it answers, red within 10 seconds of it stopping. Hover it for the reason.
+To connect to a machine your account doesn't list, such as one you reach through a tunnel, enter its address under **Connect by URL**, or open the link the machine prints.
 
-If the machine stops, queries fail until you start it again. They never move to Tamery's cloud proxy on their own. To use the cloud proxy instead, for example while that computer is off, turn off **Run queries on** in **Settings → Machine**. Turning it back on needs no new approval.
+## Choose where a connection runs
+
+Each connection has a **Runs on** field in its form: **Tamery Cloud** in the web app, **This computer** in the desktop app, or one of your machines. Picking a database a machine found sets it to that machine. The choice is yours alone: in a shared workspace, every member picks where the connection runs for them, so nobody's queries go through your computer.
+
+While a connection that runs on a machine is open, a computer icon at the top of the window shows the machine's state: a green dot while it answers, red within 10 seconds of it stopping. Hover it for the reason.
+
+If the machine stops, that connection's queries fail until you start it again. They never move to Tamery's cloud proxy on their own. To use the cloud proxy instead, for example while that computer is off, set **Runs on** back to **Tamery Cloud**.
+
+A connection that runs on a machine this browser isn't connected to yet asks you to connect it, with the same code check.
 
 The machine accepts only browsers signed in to the same account as the machine.
 
-## Paired browsers
+## Your machines
 
-An allowed browser stays allowed when the machine restarts. To add another browser, click **Connect** there and allow it the same way.
+**Settings → Machines** lists every machine signed in to your account, whether it's running, and which ones this browser is connected to. A browser can be connected to several machines at once. An allowed browser stays allowed when the machine restarts.
 
-A browser uses one machine at a time. To switch to another machine, click **Unpair** in **Settings → Machine** first, or open the link the other machine prints. **Unpair** and signing out also make the machine forget this browser. To disconnect every browser at once, run [`tamery machine unpair-all`](/cli/commands#tamery-machine-unpair-all).
+**Disconnect** makes the machine forget this browser, and so does signing out. The trash button removes a machine from your account and disconnects it; a machine that still runs shows up again. To disconnect every browser at once, run [`tamery machine unpair-all`](/cli/commands#tamery-machine-unpair-all). [`tamery logout`](/cli/commands#tamery-logout) removes the machine from your account.
 
 ## Without a browser or terminal
 
-On a server without a browser, open the sign-in link that `tamery machine` prints on your own computer. Then enter the machine's address as the **Machine URL**. To reach it from another computer, see [Reach a machine on another computer](/cli/remote).
+On a server without a browser, open the sign-in link that `tamery machine` prints on your own computer. Then click **Connect** next to it in **Settings → Machines**, or enter its address under **Connect by URL**. To reach it from another computer, see [Reach a machine on another computer](/cli/remote).
 
 When the machine runs without a terminal to ask in, such as a service or a container, answer with [`tamery machine approve`](/cli/commands#tamery-machine-approve).
 
@@ -127,7 +135,7 @@ tamery update
 
 Then restart the machine. `tamery update` installs the latest version the same way you installed the CLI. [CLI commands](/cli/commands#tamery-update) covers what it does when something is in the way.
 
-When it starts, `tamery machine` checks for a newer version and tells you to run `tamery update` when there is one. **Settings → Machine** shows the update too. When the web app needs a newer machine, it stops sending queries to it and shows the update there.
+When it starts, `tamery machine` checks for a newer version and tells you to run `tamery update` when there is one. **Settings → Machines** shows the update too. When the web app needs a newer machine, it stops sending queries to it and shows the update there.
 
 <Cards>
   <Card href="/cli/commands" />

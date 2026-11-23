@@ -5,6 +5,7 @@ import { getCollections } from '~/core/collections'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import type { QueryLogEntry } from '~/core/runtime/log'
 import { machine } from '~/core/runtime/machine/machine'
+import { MachineNotPairedError } from '~/core/runtime/machine/not-paired'
 import { getMachineRoute } from '~/core/runtime/machine/pairing'
 import { orpcProxy } from '~/lib/orpc'
 
@@ -46,11 +47,15 @@ const getTransport = (dialect: Dialect, options: DialectOptions) => {
     draft: !connectionId,
   })
 
+  if (machineRoute && !machineRoute.pairing && connectionId) {
+    throw new MachineNotPairedError(machineRoute)
+  }
+
   if (!config.canSend) {
     throw new Error(config.reason ?? 'This connection is still loading.')
   }
 
-  if (machineRoute && connectionId) {
+  if (machineRoute?.pairing && connectionId) {
     return {
       input: { connectionId, resourceName: resource?.name ?? null },
       kind: 'proxy' as const,

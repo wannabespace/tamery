@@ -5,8 +5,10 @@ import { useQueryErrorResetBoundary } from '@tanstack/react-query'
 import type { ErrorComponentProps } from '@tanstack/react-router'
 
 import { UnconfirmedConnectionError } from '~/core/runtime/machine/machine'
+import { MachineNotPairedError } from '~/core/runtime/machine/not-paired'
 import { MachineError } from '~/core/runtime/machine/status'
 import { MachineFailure } from '~/modules/machine/machine-failure'
+import { MachineNotPaired } from '~/modules/machine/machine-not-paired'
 import { MachineUnconfirmed } from '~/modules/machine/machine-unconfirmed'
 
 import { ConnectionFailure } from './connection-failure'
@@ -20,6 +22,9 @@ export const ConnectionError = (props: ErrorComponentProps) => {
   }
   if (props.error instanceof MachineError) {
     return <MachineFailure error={props.error} retry={retry} />
+  }
+  if (props.error instanceof MachineNotPairedError) {
+    return <MachineNotPaired error={props.error} retry={retry} />
   }
   if (props.error instanceof UnconfirmedConnectionError) {
     return <MachineUnconfirmed error={props.error} retry={retry} />

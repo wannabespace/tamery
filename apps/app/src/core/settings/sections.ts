@@ -44,17 +44,20 @@ export const settingsSections = [
     label: 'Keyboard',
     slug: 'keyboard',
   },
-  window.electron
-    ? {
-        component: McpSettings,
-        icon: McpServerIcon,
-        label: 'MCP',
-        slug: 'mcp',
-      }
-    : {
-        component: MachineSettings,
-        icon: ComputerTerminal01Icon,
-        label: 'Machine',
-        slug: 'machine',
-      },
+  ...(window.electron
+    ? [
+        {
+          component: McpSettings,
+          icon: McpServerIcon,
+          label: 'MCP',
+          slug: 'mcp',
+        },
+      ]
+    : []),
+  {
+    component: MachineSettings,
+    icon: ComputerTerminal01Icon,
+    label: 'Machines',
+    slug: 'machines',
+  },
 ]

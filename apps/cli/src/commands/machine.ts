@@ -10,14 +10,17 @@ import { tunnelForwarding } from '@tamery/connection/ssh/tunnel'
 import { hasErrnoCode } from '@tamery/shared/errno'
 import { MACHINE_PAIR_PATH, MACHINE_URL } from '@tamery/shared/machine'
 import { PORTS } from '@tamery/shared/ports'
+import { silently, toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
 import { analytics } from '../analytics'
+import { api } from '../api'
 import { openBrowser } from '../browser'
 import { configFiles } from '../config-files'
 import { env } from '../env'
 import { approvals } from '../machine/approvals'
 import { hostKeys } from '../machine/host-keys'
+import { machineIdentity } from '../machine/identity'
 import { pairings } from '../machine/pairings'
 import { createRouter } from '../machine/router'
 import { serveMachine } from '../machine/server'
@@ -25,6 +28,10 @@ import { paint } from '../paint'
 import { getAccount } from '../sign-in'
 import { updates } from '../update-check'
 import { vault } from '../vault'
+
+/** Often enough that another device reads `seenAt` as up while the machine runs. */
+const REGISTER_INTERVAL_MS = 5 * 60 * 1000
+const MAX_NAME_LENGTH = 100
 
 export const machine = async (options: {
   port: number
@@ -49,7 +56,8 @@ export const machine = async (options: {
   )
   confineDuckdbFiles()
   confineSqliteFiles()
-  const router = createRouter({ name, userId: account.id })
+  const id = machineIdentity.get()
+  const router = createRouter({ id, name, userId: account.id })
   approvals.clear()
   const listening = Result.try(() =>
     serveMachine({ port: options.port, publicUrl, router })
@@ -68,6 +76,19 @@ export const machine = async (options: {
 
   const url = `http://127.0.0.1:${server.port}`
   const reachedAt = publicUrl?.origin ?? url
+  const register = () =>
+    api.machines.register({
+      id,
+      name: name.slice(0, MAX_NAME_LENGTH),
+      urls: publicUrl ? [publicUrl.origin, url] : [url],
+    })
+  const registered = await Result.tryPromise(register)
+  if (registered.isErr()) {
+    log.warn(
+      `Could not list this machine in your account: ${toError(registered.error.cause).message} Browsers can still connect with its URL.`
+    )
+  }
+  setInterval(() => silently(register), REGISTER_INTERVAL_MS)
   log.info(
     [
       `${paint.bold(name)} ${paint.dim('·')} ${account.email}`,

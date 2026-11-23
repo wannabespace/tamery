@@ -41,11 +41,11 @@ const REASONS = {
     'Only the name and color of this connection sync. Add its server details on this device to use it here.',
   passwordMissing: 'Enter the password to query this connection.',
   notInWeb:
-    'You cannot reach this connection from the web app. Run `tamery machine` or open this connection in the desktop app.',
+    'You cannot reach this connection from the web app. Run it on a machine (Edit → Runs on) or open it in the desktop app.',
   secretsMissing:
     'Enter the SSH or SSL credentials this device has not saved yet to query this connection.',
   secretsNotStoredInWeb:
-    'This connection was saved without its credentials, so the web app cannot reach it. Run `tamery machine` or open this connection in the desktop app.',
+    'This connection was saved without its credentials, so the web app cannot reach it. Run it on a machine (Edit → Runs on) or open it in the desktop app.',
 }
 
 const allowed = (type: FetchingType): FetchingConfig => ({
@@ -105,11 +105,17 @@ export const fetchingConfig = (
   }
 
   if (options.machine) {
-    const { asks, name } = options.machine
+    const { asks, name, pairing } = options.machine
     if (options.draft) {
       return blocked(
         'machine',
         `Saved connections run on ${name}, so save it to try it.`
+      )
+    }
+    if (!pairing) {
+      return blocked(
+        'machine',
+        `This connection runs on ${name}. Connect this browser to it in Settings → Machines.`
       )
     }
     if (asks === 'all') {

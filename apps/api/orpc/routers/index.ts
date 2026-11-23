@@ -10,12 +10,14 @@ import { banner } from './banner'
 import * as chats from './chats'
 import * as chatsMessages from './chats-messages'
 import * as chatsMessagesParts from './chats-messages-parts'
+import * as connectionMachines from './connection-machines'
 import * as connections from './connections'
 import * as connectionsResources from './connections-resources'
 import { contact } from './contact'
 import { contactSales } from './contact-sales'
 import { hasPasskey } from './has-passkey'
 import * as internal from './internal'
+import * as machines from './machines'
 import * as queries from './queries'
 import { releases } from './releases'
 import { repo } from './repo'
@@ -32,12 +34,14 @@ export const router = {
   chats,
   chatsMessages,
   chatsMessagesParts,
+  connectionMachines,
   connections,
   connectionsResources,
   contact,
   contactSales,
   hasPasskey,
   internal,
+  machines,
   queries,
   releases,
   repo,

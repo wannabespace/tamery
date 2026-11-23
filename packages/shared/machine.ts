@@ -6,8 +6,8 @@ import { type } from 'arktype'
 import { PORTS } from './ports'
 
 /** Bumped only by a change an older machine cannot serve; the app refuses a machine below `MIN_MACHINE_PROTOCOL`. */
-export const MACHINE_PROTOCOL = 2
-export const MIN_MACHINE_PROTOCOL = 2
+export const MACHINE_PROTOCOL = 3
+export const MIN_MACHINE_PROTOCOL = 3
 
 /** `localhost` may resolve to `::1`, where any other process can listen. */
 export const MACHINE_URL = `http://127.0.0.1:${PORTS.MACHINE}`
@@ -22,7 +22,7 @@ export const MACHINE_INSTALL_COMMANDS = {
   yarn: 'yarn global add tamery',
 }
 
-export const MACHINE_PAIR_PATH = '/settings/machine'
+export const MACHINE_PAIR_PATH = '/settings/machines'
 export const MACHINE_RPC_PATH = '/rpc'
 
 /** `origin` is the machine's URL as the browser calls it, which both sides name, so a relay elsewhere never matches. */

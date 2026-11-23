@@ -4,7 +4,6 @@ import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import type { ReactNode } from 'react'
 
 import { Link } from '~/components/link'
-import { setMachineEnabled } from '~/core/runtime/machine/pairing'
 import type { MachineError } from '~/core/runtime/machine/status'
 
 export const MachineFailure = ({
@@ -21,27 +20,14 @@ export const MachineFailure = ({
   let way: ReactNode = (
     <Button
       variant="outline"
-      onClick={() => {
-        setMachineEnabled(false)
-        retry()
-      }}
+      render={<Link to="/settings/$section" params={{ section: 'machines' }} />}
     >
-      Turn off machine
+      Machines
     </Button>
   )
   if (status.state === 'outdated') {
     title = 'Update the machine'
     description = <>This version of Tamery needs a newer machine on {name}.</>
-    way = (
-      <Button
-        variant="outline"
-        render={
-          <Link to="/settings/$section" params={{ section: 'machine' }} />
-        }
-      >
-        Machine settings
-      </Button>
-    )
   } else if (status.reason === 'denied') {
     title = 'The browser blocks the machine'
     description =

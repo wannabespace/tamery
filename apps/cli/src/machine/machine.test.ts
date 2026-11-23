@@ -182,7 +182,11 @@ confineSqliteFiles()
 const server = serveMachine({
   port: 0,
   publicUrl: new URL('https://db-box.tail1234.ts.net'),
-  router: createRouter({ name: 'test-box', userId: USER_ID }),
+  router: createRouter({
+    id: '0190a1b2-0000-7000-8000-0000000000ff',
+    name: 'test-box',
+    userId: USER_ID,
+  }),
 })
 const machineUrl = `http://127.0.0.1:${server.port}`
 

@@ -40,6 +40,7 @@ export const configFiles = {
   /** DuckDB's driver, one folder per version, installed on the machine's first DuckDB file. */
   duckdb: path.join(CONFIG_DIR, 'duckdb'),
   key: path.join(CONFIG_DIR, 'machine.key'),
+  machineId: path.join(CONFIG_DIR, 'machine-id'),
   /** Skips a file removed while it was listed. */
   readAll: <T>(dir: string, file: { assert: (text: string) => T }) =>
     fs.existsSync(dir)
