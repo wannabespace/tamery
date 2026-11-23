@@ -1,3 +1,5 @@
+import process from 'node:process'
+
 import { setupPortlessEnvs } from '@tamery/shared/portless-env'
 import type { InlineConfig } from 'vite'
 import { defineConfig } from 'vite'
@@ -5,7 +7,18 @@ import electron from 'vite-plugin-electron/simple'
 
 import packageJson from './package.json' with { type: 'json' }
 
-setupPortlessEnvs({ WEB_URL: 'app.local.tamery' })
+setupPortlessEnvs({
+  API_URL: 'api.local.tamery',
+  MAIN_URL: 'main.local.tamery',
+  WEB_URL: 'app.local.tamery',
+})
+
+// The machine process runs the CLI's machine, which reads these where the CLI's build inlines them.
+const machineEnv = {
+  API_URL: process.env.VITE_PUBLIC_API_URL ?? process.env.API_URL,
+  MAIN_URL: process.env.VITE_PUBLIC_MAIN_URL ?? process.env.MAIN_URL,
+  WEB_URL: process.env.VITE_PUBLIC_WEB_URL ?? process.env.WEB_URL,
+}
 
 const rolldownOptions: NonNullable<
   NonNullable<InlineConfig['build']>['rolldownOptions']
@@ -27,12 +40,19 @@ export default defineConfig({
   plugins: [
     electron({
       main: {
-        entry: ['src/main/main.ts', 'src/main/query.ts'],
+        entry: ['src/main/main.ts', 'src/main/query.ts', 'src/main/machine.ts'],
         vite: {
           build: {
             minify: false,
             rolldownOptions,
           },
+          define: Object.fromEntries(
+            Object.entries(machineEnv).map(([name, value]) => [
+              `import.meta.env.${name}`,
+              // Unset at build time (dev without portless), the process reads it when it runs, as `bun` does.
+              value ? JSON.stringify(value) : `process.env.${name}`,
+            ])
+          ),
         },
       },
       preload: {

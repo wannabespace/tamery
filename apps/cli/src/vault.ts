@@ -20,8 +20,14 @@ const vaultFile = type('string.json.parse').to(vaultData)
 
 type VaultData = typeof vaultData.infer
 
+/** Set by the desktop app's machine process, whose app keeps the key in its own keychain item through `safeStorage`. */
+let providedKey: string | null = null
+
 /** A headless Linux box usually has no Secret Service, so the key sits in a file beside the vault there. */
 const readKey = async () => {
+  if (providedKey !== null) {
+    return { key: providedKey, keyInFile: false }
+  }
   if (fs.existsSync(configFiles.key)) {
     return { key: fs.readFileSync(configFiles.key, 'utf-8'), keyInFile: true }
   }
@@ -108,10 +114,16 @@ export const vault = {
   reset: async () => {
     configFiles.remove(configFiles.vault)
     configFiles.remove(configFiles.key)
-    await silently(() => Bun.secrets.delete(KEYCHAIN_ITEM))
+    if (providedKey === null) {
+      await silently(() => Bun.secrets.delete(KEYCHAIN_ITEM))
+    }
   },
   setAccount: (account: VaultData['account']) =>
     change((data) => ({ ...data, account })),
+  /** Before any other call: the vault then never touches the keychain itself. */
+  useKey: (key: string) => {
+    providedKey = key
+  },
   setConnection: (id: string, connectionString: string) =>
     change((data) => ({
       ...data,

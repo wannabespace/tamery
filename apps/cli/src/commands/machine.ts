@@ -2,36 +2,21 @@ import os from 'node:os'
 import process from 'node:process'
 
 import { intro, log, outro } from '@clack/prompts'
-import { forwarding } from '@tamery/connection/forwarding'
-import { confineDuckdbFiles } from '@tamery/connection/queries/dialects/duckdb/instances'
-import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/client'
-import { resetTransactions } from '@tamery/connection/queries/transactions'
-import { tunnelForwarding } from '@tamery/connection/ssh/tunnel'
 import { hasErrnoCode } from '@tamery/shared/errno'
 import { MACHINE_PAIR_PATH, MACHINE_URL } from '@tamery/shared/machine'
 import { PORTS } from '@tamery/shared/ports'
-import { silently, toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
 import { analytics } from '../analytics'
-import { api } from '../api'
 import { openBrowser } from '../browser'
 import { configFiles } from '../config-files'
 import { env } from '../env'
-import { approvals } from '../machine/approvals'
-import { hostKeys } from '../machine/host-keys'
-import { machineIdentity } from '../machine/identity'
 import { pairings } from '../machine/pairings'
-import { createRouter } from '../machine/router'
-import { serveMachine } from '../machine/server'
+import { runMachine } from '../machine/run'
 import { paint } from '../paint'
 import { getAccount } from '../sign-in'
 import { updates } from '../update-check'
 import { vault } from '../vault'
-
-/** Often enough that another device reads `seenAt` as up while the machine runs. */
-const REGISTER_INTERVAL_MS = 5 * 60 * 1000
-const MAX_NAME_LENGTH = 100
 
 export const machine = async (options: {
   port: number
@@ -51,19 +36,11 @@ export const machine = async (options: {
   intro(`${paint.brand('◆ Tamery machine')} ${paint.dim(env.VERSION)}`)
   const account = await getAccount()
   const name = os.hostname().replace(/\.local$/u, '')
-  forwarding.use((connectionString) =>
-    tunnelForwarding(connectionString, hostKeys.confirm(connectionString))
+  const started = await Result.tryPromise(() =>
+    runMachine({ name, port: options.port, publicUrl, userId: account.id })
   )
-  confineDuckdbFiles()
-  confineSqliteFiles()
-  const id = machineIdentity.get()
-  const router = createRouter({ id, name, userId: account.id })
-  approvals.clear()
-  const listening = Result.try(() =>
-    serveMachine({ port: options.port, publicUrl, router })
-  )
-  if (listening.isErr()) {
-    const { cause } = listening.error
+  if (started.isErr()) {
+    const { cause } = started.error
     if (hasErrnoCode(cause, 'EADDRINUSE')) {
       throw new Error(
         `Port ${options.port} is busy. Is another machine running? Use --port to pick another.`
@@ -71,24 +48,14 @@ export const machine = async (options: {
     }
     throw cause
   }
-  const server = listening.value
+  const { registerError, stop, url } = started.value
   void updates.check()
-
-  const url = `http://127.0.0.1:${server.port}`
   const reachedAt = publicUrl?.origin ?? url
-  const register = () =>
-    api.machines.register({
-      id,
-      name: name.slice(0, MAX_NAME_LENGTH),
-      urls: publicUrl ? [publicUrl.origin, url] : [url],
-    })
-  const registered = await Result.tryPromise(register)
-  if (registered.isErr()) {
+  if (registerError) {
     log.warn(
-      `Could not list this machine in your account: ${toError(registered.error.cause).message} Browsers can still connect with its URL.`
+      `Could not list this machine in your account: ${registerError} Browsers can still connect with its URL.`
     )
   }
-  setInterval(() => silently(register), REGISTER_INTERVAL_MS)
   log.info(
     [
       `${paint.bold(name)} ${paint.dim('·')} ${account.email}`,
@@ -122,13 +89,12 @@ export const machine = async (options: {
     ].join('\n')
   )
 
-  const stop = async () => {
-    await server.stop(true)
-    await resetTransactions()
+  const quit = async () => {
+    await stop()
     outro(`Machine on ${name} stopped.`)
     await analytics.shutdown()
     process.exit(0)
   }
-  process.once('SIGINT', stop)
-  process.once('SIGTERM', stop)
+  process.once('SIGINT', quit)
+  process.once('SIGTERM', quit)
 }

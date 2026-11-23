@@ -6,11 +6,12 @@ import { MACHINE_RPC_PATH } from '@tamery/shared/machine'
 import { LOOPBACK_HOST } from '@tamery/shared/ports'
 import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { toError } from '@tamery/shared/utils'
+import { serve } from 'srvx'
 
 import { env } from '../env'
 import type { createRouter } from './router'
 
-/** Bun's maximum; its 10 s default cuts off any query that runs longer. */
+/** Bun's maximum; its 10 s default cuts off any query that runs longer. Node keeps a response open as long as it takes. */
 const IDLE_TIMEOUT_S = 255
 
 const PREFLIGHT_HEADERS = {
@@ -30,7 +31,7 @@ const refuse = (status: number, reason: string) => {
   return new Response(reason, { status })
 }
 
-export const serveMachine = ({
+export const serveMachine = async ({
   port,
   publicUrl,
   router,
@@ -59,8 +60,9 @@ export const serveMachine = ({
     serializer: querySerializer,
   })
 
-  return Bun.serve({
-    fetch: async (request, server) => {
+  const server = serve({
+    bun: { idleTimeout: IDLE_TIMEOUT_S },
+    fetch: async (request) => {
       const host = request.headers.get('host') ?? ''
       const isPublic = publicUrl !== null && host === publicUrl.host
       if (!isPublic && !LOOPBACK_HOST.test(host)) {
@@ -90,9 +92,7 @@ export const serveMachine = ({
         context: {
           authorization: request.headers.get('authorization'),
           // Never built from the Host header, whose port a relay on another loopback port picks.
-          origin: isPublic
-            ? publicUrl.origin
-            : `http://127.0.0.1:${server.port}`,
+          origin: isPublic ? publicUrl.origin : `http://127.0.0.1:${getPort()}`,
         },
         prefix: MACHINE_RPC_PATH,
       })
@@ -104,8 +104,22 @@ export const serveMachine = ({
       }
       return answer
     },
+    gracefulShutdown: false,
     hostname: '127.0.0.1',
-    idleTimeout: IDLE_TIMEOUT_S,
+    manual: true,
     port,
+    silent: true,
   })
+  // srvx knows the port only once listening, which `port: 0` leaves to the system.
+  const getPort = () => {
+    if (!server.url) {
+      throw new Error('The machine is not listening.')
+    }
+    return Number(new URL(server.url).port)
+  }
+  await server.serve()
+  return {
+    port: getPort(),
+    stop: () => server.close(true),
+  }
 }

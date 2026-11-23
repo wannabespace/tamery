@@ -2,16 +2,22 @@ import { SettingsGroup } from '@tamery/ui/components/custom/settings-group'
 import { useSubscription } from 'seitu/react'
 
 import { parseMachineUrl } from '~/core/runtime/machine/client'
-import { machinePairings, useMachines } from '~/core/runtime/machine/pairing'
+import {
+  machinePairings,
+  thisMachineId,
+  useMachines,
+} from '~/core/runtime/machine/pairing'
 import { pairingLink } from '~/lib/pairing-link'
 
 import { InstallMachine } from './install-machine'
 import type { ListedMachine } from './machine-row'
 import { MachineRow } from './machine-row'
 import { PairForm } from './pair-form'
+import { ThisComputer } from './this-computer'
 
 export const MachineSettings = () => {
-  const machines = useMachines()
+  const ownId = useSubscription(thisMachineId)
+  const machines = useMachines().filter(({ id }) => id !== ownId)
   const pairings = useSubscription(machinePairings)
   const listed: ListedMachine[] = [
     ...machines,
@@ -32,6 +38,7 @@ export const MachineSettings = () => {
 
   return (
     <>
+      {window.electron && <ThisComputer />}
       {listed.length > 0 && (
         <SettingsGroup title="Your machines">
           {listed.map((item) => (

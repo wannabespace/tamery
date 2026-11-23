@@ -33,6 +33,14 @@ export const machinePairings = createWebStorageValue({
   type: 'localStorage',
 })
 
+/** This desktop's own machine, kept once it ran: a connection on it runs here, never over HTTP to itself. */
+export const thisMachineId = createWebStorageValue({
+  defaultValue: null,
+  key: 'this-machine-id',
+  schema: type('string | null'),
+  type: 'localStorage',
+})
+
 /** Per connection, what its machine last answered `NEEDS_SECRETS` with while this browser lacked it too. */
 export const machineAsks = createStore<
   Record<string, (typeof machineNeedsSecrets.infer)['fields']>
@@ -72,7 +80,7 @@ export const getMachineRouteById = (
   machineId: string | null,
   connectionId: string | null = null
 ): MachineRoute | null =>
-  machineId === null
+  machineId === null || machineId === thisMachineId.get()
     ? null
     : toRoute({
         asks: (connectionId && machineAsks.get()[connectionId]) || null,
@@ -107,7 +115,8 @@ export const useMachineRouteById = (
   const asks = useSubscription(machineAsks, {
     selector: (all) => (connectionId && all[connectionId]) || null,
   })
-  return machineId === null
+  const ownId = useSubscription(thisMachineId)
+  return machineId === null || machineId === ownId
     ? null
     : toRoute({
         asks,

@@ -1,4 +1,6 @@
 export const PORTS = {
+  /** Beside `MACHINE`, so `tamery machine` and the desktop app can both serve one computer. */
+  DESKTOP_MACHINE: 26_382,
   MACHINE: 26_380,
   MCP: 26_381,
 } as const

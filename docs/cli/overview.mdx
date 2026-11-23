@@ -65,6 +65,18 @@ The machine accepts only browsers signed in to the same account as the machine.
 
 **Disconnect** makes the machine forget this browser, and so does signing out. The trash button removes a machine from your account and disconnects it; a machine that still runs shows up again. To disconnect every browser at once, run [`tamery machine unpair-all`](/cli/commands#tamery-machine-unpair-all). [`tamery logout`](/cli/commands#tamery-logout) removes the machine from your account.
 
+## The desktop app as a machine
+
+The desktop app can be a machine too, with no CLI. In the desktop app, open **Settings → Machines** and turn on **Let your other devices use this computer**. It lists the computer in your account as `<hostname> (desktop app)`, listening at `http://127.0.0.1:26382`, and keeps serving while Tamery runs, even with every window closed.
+
+When a browser clicks **Connect** next to it, the desktop app asks in a dialog whether to allow it, with the same code the browser shows. **Don't Allow** is the default.
+
+Browsers on the same computer connect directly. To reach it from another computer, put a tunnel in front of it as for [`tamery machine`](/cli/remote), using port `26382`, and enter the tunnel's `https://` address under **Address for other computers**.
+
+The desktop app runs a connection on this computer whether **Runs on** says **This computer** or names this computer's machine. Name the machine when your other devices should run it here too.
+
+The machine signs in with the desktop app's account and keeps its own copy of the secrets browsers send it, encrypted with a key in the system keychain. Signing out turns it off, removes it from your account and forgets the browsers it allowed.
+
 ## Without a browser or terminal
 
 On a server without a browser, open the sign-in link that `tamery machine` prints on your own computer. Then click **Connect** next to it in **Settings → Machines**, or enter its address under **Connect by URL**. To reach it from another computer, see [Reach a machine on another computer](/cli/remote).

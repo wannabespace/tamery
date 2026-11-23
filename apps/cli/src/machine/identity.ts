@@ -2,6 +2,7 @@ import fs from 'node:fs'
 
 import { type } from 'arktype'
 import { Result } from 'better-result'
+import { v7 } from 'uuid'
 
 import { configFiles } from '../config-files'
 
@@ -16,7 +17,7 @@ export const machineIdentity = {
     if (saved.isOk() && machineId.allows(saved.value)) {
       return saved.value
     }
-    const id = Bun.randomUUIDv7()
+    const id = v7()
     configFiles.write(configFiles.machineId, id)
     return id
   },

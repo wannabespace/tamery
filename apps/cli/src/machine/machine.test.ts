@@ -179,7 +179,7 @@ const { configFiles } = await import('../config-files')
 
 confineSqliteFiles()
 
-const server = serveMachine({
+const server = await serveMachine({
   port: 0,
   publicUrl: new URL('https://db-box.tail1234.ts.net'),
   router: createRouter({
@@ -258,7 +258,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await server.stop(true)
+  await server.stop()
   fs.rmSync(home, { force: true, recursive: true })
 })
 

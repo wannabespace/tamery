@@ -26,6 +26,7 @@ import {
   getMachineRoute,
   machineAsks,
   machinePairings,
+  thisMachineId,
 } from './pairing'
 import { ensureConnected, forget, statusQueryOptions, toStatus } from './status'
 
@@ -251,4 +252,13 @@ export const machine = {
   unpair,
   unpairAll: () =>
     Promise.all(Object.values(machinePairings.get()).map(unpair)),
+  /** On sign-out: this desktop's machine leaves the account with it, and forgets the browsers it allowed. */
+  forgetThisComputer: async () => {
+    const id = thisMachineId.get()
+    if (id !== null) {
+      await silently(() => orpc.machines.remove.call({ id }))
+      thisMachineId.set(null)
+    }
+    await window.electron?.machine.forget()
+  },
 }
