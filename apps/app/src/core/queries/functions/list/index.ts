@@ -69,7 +69,8 @@ export const functionsType = type({
   ...item,
   args: item.args ?? null,
   behavior: item.behavior || '',
-  body: item.body || '',
+  // Only blank lines go: PL/Python bodies break if the first line's indent is trimmed.
+  body: item.body?.replace(/^\s*\n/u, '').trimEnd() || '',
   custom: !!custom,
   extras: item.extras || '',
   inline: !!inline,
