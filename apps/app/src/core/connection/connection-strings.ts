@@ -99,7 +99,7 @@ export const createConnectionStringsCollection = (
           }
         },
         dropQueries(connectionId) {
-          queryClient.removeQueries({
+          void queryClient.resetQueries({
             predicate: ({ queryKey: [, id] }) =>
               id === connectionId ||
               (typeof id === 'string' &&
