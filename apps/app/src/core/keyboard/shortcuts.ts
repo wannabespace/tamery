@@ -26,6 +26,18 @@ export const SHORTCUTS = {
     hotkeys: ['Mod+L'],
     title: 'New chat',
   },
+  chatNextTurn: {
+    description:
+      'In a chat with the messages focused, scroll to the next question and its answer.',
+    hotkeys: ['Alt+ArrowDown'],
+    title: 'Next message',
+  },
+  chatPreviousTurn: {
+    description:
+      'In a chat with the messages focused, scroll to the previous question and its answer.',
+    hotkeys: ['Alt+ArrowUp'],
+    title: 'Previous message',
+  },
   chatSendNow: {
     description:
       'While the agent works, stop it and send the message at once instead of queuing it.',

@@ -358,6 +358,7 @@ export const ChatMessages = ({
   onRegenerate?: () => void
   runSkipped: NonNullable<ToolPartActions['skipped']>['run']
 }) => {
+  const transcriptRef = useRef<HTMLDivElement>(null)
   const last = messages.at(-1)
   // A change runs as the user's message, so only where `onEdit` says the chat takes one.
   const skipped = onEdit && {
@@ -372,7 +373,7 @@ export const ChatMessages = ({
   }
   return (
     <MessageScrollerProvider autoScroll>
-      <MessageScroller>
+      <MessageScroller ref={transcriptRef}>
         <MessageScrollerViewport>
           <MessageScrollerContent
             role="log"
@@ -447,7 +448,7 @@ export const ChatMessages = ({
           </MessageScrollerContent>
         </MessageScrollerViewport>
         <MessageScrollerButton className="absolute inset-x-0 bottom-3 mx-auto" />
-        <TurnRail messages={messages} />
+        <TurnRail messages={messages} transcript={transcriptRef} />
       </MessageScroller>
     </MessageScrollerProvider>
   )

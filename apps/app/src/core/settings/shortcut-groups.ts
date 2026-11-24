@@ -27,6 +27,8 @@ export const SHORTCUT_GROUPS: { shortcuts: ShortcutId[]; title: string }[] = [
       'queryLogger',
       'aiChat',
       'chatSendNow',
+      'chatPreviousTurn',
+      'chatNextTurn',
     ],
     title: 'Tabs and panels',
   },
