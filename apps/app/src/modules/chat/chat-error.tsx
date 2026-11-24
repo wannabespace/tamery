@@ -11,6 +11,32 @@ import { Button } from '@tamery/ui/components/button'
 import { Link } from '@tanstack/react-router'
 
 import { posthog } from '~/lib/posthog'
+import { isServerError } from '~/utils/error'
+
+const ChatErrorText = ({ error }: { error: Error }) => {
+  // fetch throws a TypeError only when the request never reached the API
+  if (error instanceof TypeError) {
+    return (
+      <>
+        <AlertTitle>Couldn’t reach Tamery</AlertTitle>
+        <AlertDescription>
+          Check your internet connection, then retry.
+        </AlertDescription>
+      </>
+    )
+  }
+  if (isServerError(error)) {
+    return (
+      <>
+        <AlertTitle>Tamery couldn’t answer</AlertTitle>
+        <AlertDescription>
+          Something went wrong on our side. Retry in a moment.
+        </AlertDescription>
+      </>
+    )
+  }
+  return <AlertTitle data-mask>{error.message}</AlertTitle>
+}
 
 export const ChatError = ({
   error,
@@ -22,17 +48,7 @@ export const ChatError = ({
   <div className="shrink-0 px-3">
     <Alert variant="error">
       <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
-      {/* fetch throws a TypeError only when the request never reached the API */}
-      {error instanceof TypeError ? (
-        <>
-          <AlertTitle>Couldn’t reach Tamery</AlertTitle>
-          <AlertDescription>
-            Check your internet connection, then retry.
-          </AlertDescription>
-        </>
-      ) : (
-        <AlertTitle data-mask>{error.message}</AlertTitle>
-      )}
+      <ChatErrorText error={error} />
       <AlertAction>
         {error.message === AI_BUDGET_SPENT_MESSAGE ? (
           <Button
