@@ -1,7 +1,11 @@
 import '@tamery/shared/arktype-config'
 import process from 'node:process'
 
-import { ORPCError, ValidationError } from '@orpc/server'
+import {
+  onAsyncIteratorObjectError,
+  ORPCError,
+  ValidationError,
+} from '@orpc/server'
 import { RPCHandler } from '@orpc/server/fetch'
 import { isDevelopmentOrigin, ORIGINS } from '@tamery/shared/origins'
 import { sanitizeLogData } from '@tamery/shared/sanitize-log'
@@ -17,7 +21,29 @@ import { router } from './orpc/routers'
 import { healthRouter } from './routers/health'
 import type { AppVariables } from './variables'
 
+const errorLogData = (error: unknown) => ({
+  cause: error instanceof Error ? error.cause : undefined,
+  message: error instanceof Error ? error.message : String(error),
+  stack: error instanceof Error ? error.stack : undefined,
+  type: error instanceof Error ? error.constructor.name : typeof error,
+})
+
 const handler = new RPCHandler(router, {
+  // `interceptors` never sees a stream's errors: they are thrown after its response is sent and logged.
+  clientInterceptors: [
+    onAsyncIteratorObjectError((thrown, { path }) => {
+      if (!(thrown instanceof ORPCError)) {
+        console.error(
+          JSON.stringify(
+            sanitizeLogData({
+              error: errorLogData(thrown),
+              path: path.join('/'),
+            })
+          )
+        )
+      }
+    }),
+  ],
   interceptors: [
     async ({ next, context, request }) => {
       try {
@@ -27,15 +53,7 @@ const handler = new RPCHandler(router, {
           throw new ORPCError('CLIENT_CLOSED_REQUEST')
         }
 
-        context.addLogData({
-          error: {
-            cause: error instanceof Error ? error.cause : undefined,
-            message: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-            type:
-              error instanceof Error ? error.constructor.name : typeof error,
-          },
-        })
+        context.addLogData({ error: errorLogData(error) })
 
         if (error instanceof ORPCError) {
           if (error.cause instanceof ValidationError) {
