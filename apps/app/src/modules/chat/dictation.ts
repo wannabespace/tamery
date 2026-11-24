@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import { dictationModelValue } from '~/core/user/ai-key'
 import { orpc } from '~/lib/orpc'
 
 const writeAscii = (view: DataView, offset: number, text: string) => {
@@ -74,7 +75,12 @@ export const useDictation = (onText: (text: string) => void) => {
     meta: { event: 'ai_chat_dictated' },
     mutationFn: async (recording: Blob) => {
       const audio = await toWav(recording)
-      return audio ? orpc.ai.transcribe.call({ audio }) : ''
+      return audio
+        ? orpc.ai.transcribe.call({
+            audio,
+            model: dictationModelValue.get() ?? undefined,
+          })
+        : ''
     },
     onSuccess: (text) => {
       if (text) {

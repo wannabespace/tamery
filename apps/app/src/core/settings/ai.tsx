@@ -1,5 +1,9 @@
 import type { AiKeyProvider } from '@tamery/shared/ai-key'
-import { AI_KEY_PROVIDERS } from '@tamery/shared/ai-key'
+import {
+  AI_KEY_PROVIDERS,
+  DICTATION_MODELS,
+  getDictationModel,
+} from '@tamery/shared/ai-key'
 import { objectEntries } from '@tamery/shared/utils'
 import { Alert, AlertDescription } from '@tamery/ui/components/alert'
 import { Button } from '@tamery/ui/components/button'
@@ -18,9 +22,11 @@ import {
 } from '@tamery/ui/components/select'
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useSubscription } from 'seitu/react'
 
-import { useAiKey } from '~/core/user/ai-key'
+import { dictationModelValue, useAiKey } from '~/core/user/ai-key'
 import { orpc } from '~/lib/orpc'
+import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 
 const providers = objectEntries(AI_KEY_PROVIDERS).map(([value, label]) => ({
@@ -70,7 +76,50 @@ const SavedKey = ({
           <LoadingContent loading={isPending}>Remove</LoadingContent>
         </Button>
       </SettingsRow>
+      <DictationModelRow provider={provider} />
     </SettingsGroup>
+  )
+}
+
+const DictationModelRow = ({ provider }: { provider: AiKeyProvider }) => {
+  const picked = useSubscription(dictationModelValue)
+  const items = DICTATION_MODELS[provider].map(({ id, name }) => ({
+    label: name,
+    value: id,
+  }))
+  if (items.length === 0) {
+    return null
+  }
+  return (
+    <SettingsRow
+      title="Dictation model"
+      description="Turns what you say into a chat message, on this device."
+    >
+      <Select
+        items={items}
+        value={getDictationModel(provider, picked)}
+        onValueChange={(next) => {
+          if (next) {
+            dictationModelValue.set(next)
+            posthog.capture('ai_dictation_model_picked', {
+              model: next,
+              provider,
+            })
+          }
+        }}
+      >
+        <SelectTrigger size="sm" aria-label="Dictation model" className="w-48">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent size="sm">
+          {items.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </SettingsRow>
   )
 }
 

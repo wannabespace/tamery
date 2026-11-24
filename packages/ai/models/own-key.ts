@@ -3,8 +3,8 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import type { AiKeyProvider } from '@tamery/shared/ai-key'
-import { AI_KEY_PROVIDERS } from '@tamery/shared/ai-key'
-import type { LanguageModel, Tool, ToolSet } from 'ai'
+import { AI_KEY_PROVIDERS, getDictationModel } from '@tamery/shared/ai-key'
+import type { LanguageModel, Tool, ToolSet, TranscriptionModel } from 'ai'
 import { generateText } from 'ai'
 
 import type { ChatModelId } from './list'
@@ -16,13 +16,18 @@ export interface AiKey {
   provider: AiKeyProvider
 }
 
-type FixedModels = Record<'fast' | 'search' | 'summary', LanguageModel> & {
-  transcribe: LanguageModel | null
-}
+type FixedModels = Record<'fast' | 'search' | 'summary', LanguageModel>
+
+/** A chat model reading the recording from its prompt, or a provider's own speech-to-text model. */
+export type Dictation =
+  | { kind: 'prompt'; model: LanguageModel }
+  | { kind: 'transcription'; model: TranscriptionModel }
 
 interface ProviderModels {
   /** Takes a chat model's OpenRouter id; `fast` only reaches OpenRouter. */
   chat: (id: ChatModelId, fast: boolean, auto: boolean) => LanguageModel
+  /** Takes an id from the provider's `DICTATION_MODELS`. */
+  dictation: ((id: string) => Dictation) | null
   models: FixedModels
   /** `null` on OpenRouter, whose search is a server tool `searchWeb` asks for in its provider options. */
   webSearch: Tool | null
@@ -35,11 +40,11 @@ const anthropicModels = (apiKey: string): ProviderModels => {
   return {
     // Anthropic's API spells a version with dashes where OpenRouter has dots.
     chat: (id) => anthropic(bareId(id).replaceAll('.', '-')),
+    dictation: null,
     models: {
       fast: anthropic('claude-haiku-5-5'),
       search: anthropic('claude-haiku-5-5'),
       summary: anthropic('claude-sonnet-5-5'),
-      transcribe: null,
     },
     webSearch: anthropic.tools.webSearch_20260318(),
   }
@@ -49,11 +54,11 @@ const googleModels = (apiKey: string): ProviderModels => {
   const google = createGoogleGenerativeAI({ apiKey })
   return {
     chat: (id) => google(bareId(id)),
+    dictation: (id) => ({ kind: 'prompt', model: google(id) }),
     models: {
       fast: google('gemini-3.8-flash'),
       search: google('gemini-3.8-flash'),
       summary: google('gemini-3.8-flash'),
-      transcribe: google('gemini-3.8-flash'),
     },
     webSearch: google.tools.googleSearch({}),
   }
@@ -63,20 +68,27 @@ const openaiModels = (apiKey: string): ProviderModels => {
   const openai = createOpenAI({ apiKey })
   return {
     chat: (id) => openai(bareId(id)),
+    dictation: (id) => ({
+      kind: 'transcription',
+      model: openai.transcription(id),
+    }),
     models: {
       fast: openai('gpt-6.1-terra'),
       search: openai('gpt-6.1-terra'),
       summary: openai('gpt-6.1-terra'),
-      transcribe: null,
     },
     webSearch: openai.tools.webSearch(),
   }
 }
 
-const userOpenRouterModels = (apiKey: string): ProviderModels => ({
-  ...openRouterModels(createOpenRouter({ apiKey })),
-  webSearch: null,
-})
+const userOpenRouterModels = (apiKey: string): ProviderModels => {
+  const openrouter = createOpenRouter({ apiKey })
+  return {
+    ...openRouterModels(openrouter),
+    dictation: (id) => ({ kind: 'prompt', model: openrouter(id) }),
+    webSearch: null,
+  }
+}
 
 const providerModels = {
   anthropic: anthropicModels,
@@ -114,8 +126,18 @@ export const chatModelFor = (
     ? providerModels[key.provider](key.key).chat(id, fast, auto)
     : chatModel(id, fast, auto)
 
-export const canTranscribe = (key?: AiKey | null) =>
-  modelsFor(key).transcribe !== null
+/** How a call dictates: on Tamery's model without a key, else on the key's pick of its provider's models; null when the provider takes no audio. */
+export const dictationFor = (
+  key: AiKey | null,
+  picked: string | null
+): Dictation | null => {
+  if (!key) {
+    return { kind: 'prompt', model: models.transcribe }
+  }
+  const id = getDictationModel(key.provider, picked)
+  const { dictation } = providerModels[key.provider](key.key)
+  return id && dictation ? dictation(id) : null
+}
 
 export const ownKeyWebSearchTools = (
   key?: AiKey | null

@@ -12,7 +12,7 @@ export {
 } from './list'
 export type { ChatEffort, ChatModelId } from './list'
 export {
-  canTranscribe,
+  dictationFor,
   chatModelsFor,
   OWN_KEY_AUTO_MODELS,
   verifyAiKey,

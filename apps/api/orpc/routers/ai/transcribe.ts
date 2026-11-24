@@ -1,6 +1,6 @@
 import { transcribe as runTranscribe } from '@tamery/ai/features'
 import { DICTATION } from '@tamery/ai/limits'
-import { canTranscribe } from '@tamery/ai/models'
+import { dictationFor } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { type } from 'arktype'
@@ -27,13 +27,15 @@ export const transcribe = orpc
       audio: type
         .instanceOf(File)
         .narrow((audio) => audio.size <= MAX_AUDIO_BYTES),
+      /** The own key's dictation model; one its provider does not offer falls back to its default. */
+      'model?': 'string',
     })
   )
   .errors({
     BAD_REQUEST: { message: 'The recording is not a WAV file.' },
     NOT_SUPPORTED: {
       message:
-        "Dictation needs a Google or OpenRouter key: your AI provider's models take no audio.",
+        "Dictation needs a Google, OpenAI or OpenRouter key: Anthropic's models take no audio.",
     },
     TOO_MANY_REQUESTS: { message: AI_BUDGET_SPENT_MESSAGE },
   })
@@ -45,12 +47,13 @@ export const transcribe = orpc
       context.user.id,
       errors.TOO_MANY_REQUESTS
     )
-    if (!canTranscribe(key)) {
+    const dictation = dictationFor(key, input.model ?? null)
+    if (!dictation) {
       throw errors.NOT_SUPPORTED()
     }
     return runTranscribe({
       audio: input.audio,
-      key,
+      dictation,
       signal,
       telemetry: telemetry({
         feature: AiFeature.Dictation,

@@ -1,8 +1,7 @@
 import type { TelemetryOptions } from 'ai'
-import { generateText } from 'ai'
+import { generateText, transcribe as transcribeAudio } from 'ai'
 
-import type { AiKey } from '../models/own-key'
-import { modelsFor } from '../models/own-key'
+import type { Dictation } from '../models/own-key'
 
 const TRANSCRIBE_INSTRUCTIONS = [
   'Transcribe the recording word for word, in the language it is spoken in, with punctuation.',
@@ -10,30 +9,30 @@ const TRANSCRIBE_INSTRUCTIONS = [
   'Return only the transcript. For silence or noise, return nothing.',
 ].join('\n')
 
-/** Throws on a key whose provider takes no audio; `modelsFor(key).transcribe` tells beforehand. */
+/** `dictation` comes from `dictationFor`: a speech-to-text model hears the audio alone, a chat model reads it with the instructions. */
 export const transcribe = async (data: {
   audio: File
-  key?: AiKey | null
+  dictation: Dictation
   signal?: AbortSignal
   telemetry?: TelemetryOptions
 }) => {
-  const model = modelsFor(data.key).transcribe
-  if (!model) {
-    throw new Error(`${data.key?.provider} takes no audio`)
+  const audio = new Uint8Array(await data.audio.arrayBuffer())
+  if (data.dictation.kind === 'transcription') {
+    const { text } = await transcribeAudio({
+      abortSignal: data.signal,
+      audio,
+      model: data.dictation.model,
+      telemetry: data.telemetry,
+    })
+    return text.trim()
   }
   const { text } = await generateText({
     abortSignal: data.signal,
     instructions: TRANSCRIBE_INSTRUCTIONS,
-    model,
+    model: data.dictation.model,
     prompt: [
       {
-        content: [
-          {
-            data: new Uint8Array(await data.audio.arrayBuffer()),
-            mediaType: 'audio/wav',
-            type: 'file',
-          },
-        ],
+        content: [{ data: audio, mediaType: 'audio/wav', type: 'file' }],
         role: 'user',
       },
     ],
