@@ -93,7 +93,12 @@ const start = async (account: VaultAccount | null) => {
     path.join(import.meta.dirname, './machine.js'),
     [],
     {
-      env: { ...process.env, TAMERY_CONFIG_DIR: getConfigDir() },
+      env: {
+        ...process.env,
+        // A utility process ignores `execArgv: ['--use-system-ca']`; without the keychain its `fetch` refuses portless's dev CA.
+        NODE_USE_SYSTEM_CA: '1',
+        TAMERY_CONFIG_DIR: getConfigDir(),
+      },
       serviceName: 'Tamery Machine',
     }
   )
