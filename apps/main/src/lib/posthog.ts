@@ -32,8 +32,6 @@ const withClient = async (run: (client: PostHog) => void) => {
 export const posthog = {
   capture: (...args: Parameters<PostHog['capture']>) =>
     withClient((client) => client.capture(...args)),
-  identify: (...args: Parameters<PostHog['identify']>) =>
-    withClient((client) => client.identify(...args)),
   reset: () => withClient((client) => client.reset()),
   start: load,
 }

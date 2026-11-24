@@ -25,9 +25,11 @@ import { useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { dictationModelValue, useAiKey } from '~/core/user/ai-key'
+import { useHasAccount } from '~/lib/auth'
 import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
+import { AiCredits } from '~/modules/account/ai-credits'
 
 const providers = objectEntries(AI_KEY_PROVIDERS).map(([value, label]) => ({
   label,
@@ -199,10 +201,16 @@ const KeyForm = () => {
 
 export const AiSettings = () => {
   const { aiKey, isLoading } = useAiKey()
+  const hasAccount = useHasAccount()
 
   if (isLoading) {
     return null
   }
 
-  return aiKey ? <SavedKey {...aiKey} /> : <KeyForm />
+  return (
+    <>
+      {aiKey ? <SavedKey {...aiKey} /> : <KeyForm />}
+      {hasAccount && <AiCredits />}
+    </>
+  )
 }

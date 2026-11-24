@@ -10,7 +10,7 @@ export const Route = createFileRoute('/_auth/sign-in')({
     const { data } = await authClient.getSession()
 
     if (data?.user) {
-      throw redirect({ to: '/account' })
+      throw redirect({ href: import.meta.env.VITE_PUBLIC_WEB_URL })
     }
   },
 })

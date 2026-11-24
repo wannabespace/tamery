@@ -41,9 +41,12 @@ export const Navbar = () => {
       onClick: () => posthog.capture('docs_opened', { source: 'navbar' }),
     },
   ]
-  const account = session?.user
-    ? { label: 'Account', to: '/account' as const }
-    : { label: 'Sign in', to: '/sign-in' as const }
+  const account: { label: string; link: LinkProps } = session?.user
+    ? {
+        label: 'Open web app',
+        link: { href: import.meta.env.VITE_PUBLIC_WEB_URL },
+      }
+    : { label: 'Sign in', link: { to: '/sign-in' } }
 
   return (
     <header
@@ -61,7 +64,7 @@ export const Navbar = () => {
             variant="ghost"
             size="sm"
             className="hidden sm:inline-flex"
-            render={<Link to={account.to} />}
+            render={<Link {...account.link} />}
           >
             {account.label}
           </Button>
@@ -91,7 +94,7 @@ export const Navbar = () => {
                   {label}
                 </DropdownMenuItem>
               ))}
-              <DropdownMenuItem render={<Link to={account.to} />}>
+              <DropdownMenuItem render={<Link {...account.link} />}>
                 {account.label}
               </DropdownMenuItem>
             </DropdownMenuContent>

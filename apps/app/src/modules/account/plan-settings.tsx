@@ -1,7 +1,9 @@
-import { Alert02Icon } from '@hugeicons/core-free-icons'
+import { Alert02Icon, ArrowUpRight01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { SUBSCRIPTION_PAST_DUE_MESSAGE } from '@tamery/shared/constants'
 import { PRO_TRIAL_DAYS } from '@tamery/shared/credits'
+import { HOBBY_PLAN, PRO_PLAN } from '@tamery/shared/plans'
+import { uppercaseFirst } from '@tamery/shared/utils'
 import {
   Alert,
   AlertDescription,
@@ -15,22 +17,30 @@ import {
   SettingsRow,
 } from '@tamery/ui/components/custom/settings-group'
 import { smallItemInsetClassName } from '@tamery/ui/components/item'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@tamery/ui/components/table'
 import { Tabs, TabsList, TabsTrigger } from '@tamery/ui/components/tabs'
 import { cn } from '@tamery/ui/lib/utils'
-import { useQuery } from '@tanstack/react-query'
-import { getRouteApi, useRouter } from '@tanstack/react-router'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useState } from 'react'
 
 import {
-  useBillingPortal,
+  subscriptionsQueryOptions,
   useSubscription,
-  useUpgradeSubscription,
-} from '~/hooks/use-subscription'
+} from '~/core/user/use-subscription'
+import type { ORPCOutputs } from '~/lib/orpc'
 import { orpc } from '~/lib/orpc'
-import { HOBBY_PLAN, PRO_PLAN } from '~/utils/pricing'
 
-const { useSearch } = getRouteApi('/account/')
+import { openStripe, stripeReturnUrl } from './browser'
+
+type Subscription = ORPCOutputs['account']['subscription']['list'][number]
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', {
@@ -41,10 +51,7 @@ const formatCurrency = (amount: number) =>
     style: 'currency',
   }).format(amount)
 
-const getStatus = (
-  subscription: NonNullable<ReturnType<typeof useSubscription>>,
-  trialEndsLater: boolean
-) => {
+const getStatus = (subscription: Subscription, trialEndsLater: boolean) => {
   if (subscription.cancelAt) {
     return `Cancels on ${format(subscription.cancelAt, 'MMM d, yyyy')}`
   }
@@ -64,26 +71,32 @@ const getStatus = (
   return 'No upcoming payment'
 }
 
-export const Subscription = () => {
-  const { period, type: clientType } = useSearch()
-  const subscription = useSubscription()
-  const { data: subscriptions } = useQuery(
-    orpc.account.subscription.list.queryOptions()
+const Plan = () => {
+  const { subscription } = useSubscription()
+  const { data: subscriptions } = useQuery(subscriptionsQueryOptions)
+  const [isYearly, setIsYearly] = useState(false)
+  const upgrade = useMutation({
+    meta: { event: 'subscription_checkout_started' },
+    mutationFn: (yearly: boolean) =>
+      orpc.account.subscription.upgrade.call({
+        cancelUrl: stripeReturnUrl('plan'),
+        isYearly: yearly,
+        returnUrl: stripeReturnUrl('plan'),
+        successUrl: stripeReturnUrl('plan'),
+      }),
+    onSuccess: openStripe,
+  })
+  const portal = useMutation(
+    orpc.account.subscription.billingPortal.mutationOptions({
+      meta: { event: 'billing_portal_opened' },
+      onSuccess: openStripe,
+    })
   )
-  const router = useRouter()
-  const returnHref = router.buildLocation({
-    search: { type: clientType },
-    to: '/account',
-  }).href
-  const { openBillingPortal, isOpening } = useBillingPortal({ returnHref })
-  const { upgrade, isUpgrading } = useUpgradeSubscription(clientType)
-  const [isYearly, setIsYearly] = useState(period === 'yearly')
   // oxlint-disable-next-line react/hook-use-state -- frozen at mount, never set
   const [mountedAt] = useState(() => Date.now())
   const trialEndsLater = Boolean(
     subscription?.trialEnd && subscription.trialEnd.getTime() > mountedAt
   )
-
   const shownPeriod = subscription?.period ?? (isYearly ? 'yearly' : 'monthly')
   const proPrice = subscription
     ? subscription.price
@@ -125,10 +138,12 @@ export const Subscription = () => {
           ) : (
             <Button
               size="sm"
-              disabled={isUpgrading}
-              onClick={() => upgrade(isYearly)}
+              disabled={upgrade.isPending}
+              onClick={() => upgrade.mutate(isYearly)}
             >
-              <LoadingContent loading={isUpgrading}>Upgrade</LoadingContent>
+              <LoadingContent loading={upgrade.isPending}>
+                Upgrade
+              </LoadingContent>
             </Button>
           )}
         </SettingsRow>
@@ -158,23 +173,97 @@ export const Subscription = () => {
             <Button
               variant="outline"
               size="sm"
-              disabled={isOpening}
-              onClick={() => openBillingPortal()}
+              disabled={portal.isPending}
+              onClick={() =>
+                portal.mutate({ returnUrl: stripeReturnUrl('plan') })
+              }
             >
-              <LoadingContent loading={isOpening}>Manage</LoadingContent>
+              <LoadingContent loading={portal.isPending}>Manage</LoadingContent>
             </Button>
           </SettingsRow>
         </SettingsGroup>
       )}
-      <p
-        className={cn(
-          smallItemInsetClassName,
-          'text-muted-foreground text-xs text-pretty'
-        )}
-      >
-        Tamery is independent and funded by its users, with no investors. Your
-        subscription pays for its development. Thank you.
-      </p>
     </>
   )
 }
+
+const formatCents = (amount: number) =>
+  new Intl.NumberFormat('en-US', {
+    currency: 'USD',
+    style: 'currency',
+  }).format(amount / 100)
+
+const Invoices = () => {
+  const { data: invoices = [] } = useQuery(orpc.account.invoices.queryOptions())
+
+  if (invoices.length === 0) {
+    return null
+  }
+
+  return (
+    <SettingsGroup title="Invoices">
+      <Table className="table-fixed">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-2/5">Date</TableHead>
+            <TableHead className="w-1/4 text-right">Amount</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="w-24" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {invoices.map((invoice) => (
+            <TableRow key={invoice.id}>
+              <TableCell>{format(invoice.createdAt, 'MMMM d, yyyy')}</TableCell>
+              <TableCell variant="numeric">
+                {formatCents(invoice.amount)}
+              </TableCell>
+              <TableCell>
+                {uppercaseFirst(invoice.status ?? 'unknown')}
+              </TableCell>
+              <TableCell className="text-right">
+                {invoice.url && (
+                  <Button
+                    variant="ghost-muted"
+                    size="xs"
+                    render={
+                      <a
+                        href={invoice.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="View invoice"
+                      />
+                    }
+                  >
+                    View
+                    <HugeiconsIcon
+                      icon={ArrowUpRight01Icon}
+                      strokeWidth={2}
+                      data-icon="inline-end"
+                    />
+                  </Button>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </SettingsGroup>
+  )
+}
+
+export const PlanSettings = () => (
+  <>
+    <Plan />
+    <Invoices />
+    <p
+      className={cn(
+        smallItemInsetClassName,
+        'text-muted-foreground text-xs text-pretty'
+      )}
+    >
+      Tamery is independent and funded by its users, with no investors. Your
+      subscription pays for its development. Thank you.
+    </p>
+  </>
+)

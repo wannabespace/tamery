@@ -1,5 +1,8 @@
 import { ORPCError, os } from '@orpc/server'
-import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
+import {
+  CLIENT_IP_HEADER,
+  SESSION_NOT_FOUND_MESSAGE,
+} from '@tamery/shared/constants'
 import { decrypt } from '@tamery/shared/crypto-node'
 import type { Permissions } from '@tamery/shared/permissions'
 import { getPermissions } from '@tamery/shared/permissions'
@@ -10,6 +13,7 @@ import { aiKey } from '~/lib/ai-key'
 import { auth } from '~/lib/auth'
 import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { redis } from '~/lib/redis'
+import { sessionActivity } from '~/lib/session-activity'
 import { getSubscription } from '~/lib/subscription'
 
 import type { Context } from './context'
@@ -124,6 +128,10 @@ export const authMiddleware = logMiddleware.use(
     }
 
     context.addLogData({ userId: session.user.id })
+    void sessionActivity.touch(
+      session.session.id,
+      context.headers.get(CLIENT_IP_HEADER)
+    )
 
     try {
       return await next({

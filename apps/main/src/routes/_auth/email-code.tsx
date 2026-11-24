@@ -1,4 +1,5 @@
 import { Button } from '@tamery/ui/components/button'
+import { TotpCodeInput } from '@tamery/ui/components/custom/totp-code-input'
 import { useMutation } from '@tanstack/react-query'
 import {
   createFileRoute,
@@ -11,7 +12,6 @@ import { type } from 'arktype'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { TotpCodeInput } from '~/components/totp-code-input'
 import { authClient } from '~/lib/auth'
 import { handleError } from '~/utils/error'
 
@@ -119,7 +119,7 @@ export const Route = createFileRoute('/_auth/email-code')({
     const { data } = await authClient.getSession()
 
     if (data?.user) {
-      throw redirect({ to: '/account' })
+      throw redirect({ href: import.meta.env.VITE_PUBLIC_WEB_URL })
     }
   },
 })

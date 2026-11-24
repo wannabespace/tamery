@@ -1,3 +1,4 @@
+import { HOBBY_PLAN, PRO_PLAN } from '@tamery/shared/plans'
 import { Button } from '@tamery/ui/components/button'
 import { Tabs, TabsList, TabsTrigger } from '@tamery/ui/components/tabs'
 import { Link } from '@tanstack/react-router'
@@ -7,12 +8,13 @@ import { Chapter } from '~/components/chapter'
 import { Reveal } from '~/components/reveal'
 import { useSubscription } from '~/hooks/use-subscription'
 import { authClient } from '~/lib/auth'
-import { HOBBY_PLAN, PRO_PLAN } from '~/utils/pricing'
 
 import { ContactSalesDialog } from './contact-sales-dialog'
 import { PlanCard } from './plan-card'
 import type { Period } from './price'
 import { Price } from './price'
+
+const PLAN_SETTINGS_URL = `${import.meta.env.VITE_PUBLIC_WEB_URL}/settings/plan`
 
 const ENTERPRISE_FEATURES = [
   'Volume pricing on one invoice',
@@ -65,17 +67,24 @@ export const Pricing = () => {
           price={<Price period={period} plan={PRO_PLAN} />}
           action={
             subscription ? (
-              <Button size="lg" render={<Link to="/account" />}>
+              <Button
+                size="lg"
+                render={<a href={PLAN_SETTINGS_URL} aria-label="Manage plan" />}
+              >
                 Manage plan
               </Button>
             ) : (
               <Button
                 size="lg"
                 render={
-                  <Link
-                    to={session ? '/account' : '/sign-in'}
-                    search={{ period }}
-                  />
+                  session ? (
+                    <a
+                      href={PLAN_SETTINGS_URL}
+                      aria-label="Try free for 7 days"
+                    />
+                  ) : (
+                    <Link to="/sign-in" />
+                  )
                 }
               >
                 Try free for 7 days

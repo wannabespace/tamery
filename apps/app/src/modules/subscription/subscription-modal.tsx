@@ -1,5 +1,3 @@
-import { LinkSquare02Icon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
 import {
   Dialog,
@@ -16,7 +14,6 @@ import { toast } from 'sonner'
 
 import { useSubscription as useUserSubscription } from '~/core/user/use-subscription'
 import { posthog } from '~/lib/posthog'
-import { accountUrl } from '~/lib/urls'
 import { appStore, setIsSubscriptionDialogOpen } from '~/store'
 
 export const SubscriptionModal = () => {
@@ -82,20 +79,11 @@ export const SubscriptionModal = () => {
           )}
           <Button
             render={
-              <a
-                href={accountUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Upgrade to Pro"
-              />
+              <Link to="/settings/$section" params={{ section: 'plan' }} />
             }
+            onClick={() => setIsSubscriptionDialogOpen(false)}
           >
             Upgrade to Pro
-            <HugeiconsIcon
-              icon={LinkSquare02Icon}
-              strokeWidth={2}
-              className="size-4"
-            />
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -34,7 +34,7 @@ import { toast } from 'sonner'
 import { Link } from '~/components/link'
 import { authClient } from '~/lib/auth'
 import { clearDb } from '~/lib/sync'
-import { accountUrl, sharesUrl } from '~/lib/urls'
+import { sharesUrl } from '~/lib/urls'
 
 import { SupportDialog } from './support-dialog'
 import { useSignOut } from './use-sign-out'
@@ -110,7 +110,15 @@ export const UserButton = ({
             Sign in
           </DropdownMenuItem>
         ) : (
-          <DropdownMenuItem onClick={() => window.open(accountUrl, '_blank')}>
+          <DropdownMenuItem
+            render={
+              <Link
+                to="/settings/$section"
+                params={{ section: 'account' }}
+                activateOn="click"
+              />
+            }
+          >
             <HugeiconsIcon icon={UserIcon} strokeWidth={2} />
             Account
           </DropdownMenuItem>

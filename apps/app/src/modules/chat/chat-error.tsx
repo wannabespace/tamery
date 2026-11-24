@@ -8,9 +8,9 @@ import {
   AlertTitle,
 } from '@tamery/ui/components/alert'
 import { Button } from '@tamery/ui/components/button'
+import { Link } from '@tanstack/react-router'
 
 import { posthog } from '~/lib/posthog'
-import { creditsUrl } from '~/lib/urls'
 
 export const ChatError = ({
   error,
@@ -38,14 +38,7 @@ export const ChatError = ({
           <Button
             size="xs"
             variant="outline"
-            render={
-              <a
-                href={creditsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Add credits"
-              />
-            }
+            render={<Link to="/settings/$section" params={{ section: 'ai' }} />}
             onClick={() => posthog.capture('ai_credits_link_opened')}
           >
             Add credits

@@ -1,5 +1,5 @@
-import { PRO_INCLUDED_AI_USD, PRO_PRICE_USD } from '@tamery/shared/credits'
-import { FREE_SHARE_LIMIT, FREE_WEEKLY_LIMITS } from '@tamery/shared/usage'
+import { PRO_INCLUDED_AI_USD, PRO_PRICE_USD } from './credits'
+import { FREE_SHARE_LIMIT, FREE_WEEKLY_LIMITS } from './usage'
 
 export interface PricingPlan {
   name: string

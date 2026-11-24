@@ -1,7 +1,6 @@
 import { PRO_TRIAL_DAYS } from '@tamery/shared/credits'
+import { PRO_PLAN } from '@tamery/shared/plans'
 import { FREE_WEEKLY_LIMITS } from '@tamery/shared/usage'
-
-import { PRO_PLAN } from '~/utils/pricing'
 
 export const FAQ_QUESTIONS = [
   {

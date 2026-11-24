@@ -1,6 +1,5 @@
+import type { PricingPlan } from '@tamery/shared/plans'
 import { NumberFlow } from '@tamery/ui/components/custom/number-flow'
-
-import type { PricingPlan } from '~/utils/pricing'
 
 export type Period = keyof PricingPlan['price']
 

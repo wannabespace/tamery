@@ -29,7 +29,6 @@
     "posthog-js": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "react-qr-code": "catalog:",
     "remark-gfm": "^4.0.0",
     "sonner": "catalog:",
     "takumi-js": "catalog:"
