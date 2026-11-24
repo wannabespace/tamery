@@ -57,11 +57,33 @@ Each run, like any job you execute by hand, sends the "Deploy outside GitHub Act
 
 **Per-workspace keys:** `--args=run,rotate:connection-keys,--execute[,<workspaceId>...]`. It needs no env change.
 
+## Attachments
+
+The api and the purge job reach the chat attachments bucket with an HMAC key of `tamery-attachments`, kept as `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`. OpenTofu never creates the key, so the secret stays out of the state.
+
+**First key or a new one:**
+
+1. Create a key. The output shows its access ID and secret once:
+
+   ```bash
+   gcloud storage hmac create tamery-attachments@gen-lang-client-0721016191.iam.gserviceaccount.com --project=gen-lang-client-0721016191
+   ```
+
+2. Set `S3_ACCESS_KEY_ID` to the access ID and `S3_SECRET_ACCESS_KEY` to the secret (**Setting a value**), then start a new api revision.
+3. When replacing a key, deactivate and delete the old one only after the new revision serves:
+
+   ```bash
+   gcloud storage hmac update <old access ID> --deactivate --project=gen-lang-client-0721016191
+   gcloud storage hmac delete <old access ID> --project=gen-lang-client-0721016191
+   ```
+
+**The KMS key `attachments`** encrypts the bucket and rotates itself every 90 days. Revoking Cloud Storage's binding on it stops every attachment from opening.
+
 ## Incidents
 
 - **Secret read by someone else** (the alert names who and from where):
   1. Rotate that secret.
-  2. If it was `ENCRYPTION_SECRET` or `USER_KEY_SECRET`, run **New key value**.
+  2. If it was `ENCRYPTION_SECRET` or `USER_KEY_SECRET`, run **New key value**. If it was an `S3_*` key, replace the HMAC key (**Attachments**).
 - **Running API instance compromised:** it holds both keys and every other secret.
   1. Remove `tamery-api`'s `secretAccessor` bindings, which stops new instances from booting.
   2. Check the audit log, then deploy under a new service account.

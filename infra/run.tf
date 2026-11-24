@@ -48,7 +48,7 @@ locals {
       cpu_idle    = false
       timeout     = "3600s"
       egress      = "PRIVATE_RANGES_ONLY"
-      env         = merge(local.public_urls, { REDIS_CA = google_redis_instance.tamery.server_ca_certs[0].cert })
+      env         = merge(local.public_urls, local.attachments_env, { REDIS_CA = google_redis_instance.tamery.server_ca_certs[0].cert })
       secrets     = local.api_secrets
       # A revision that cannot reach its database must never take traffic.
       health = "/health"
@@ -71,8 +71,8 @@ locals {
       args    = ["--filter", "@tamery/db", "purge-deleted-records"]
       timeout = "1800s"
       retries = 1
-      env     = { NODE_ENV = "production" }
-      secrets = ["DATABASE_URL"]
+      env     = merge(local.attachments_env, { NODE_ENV = "production" })
+      secrets = ["DATABASE_URL", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"]
     }
     api-rotate = {
       account = "tamery-api"

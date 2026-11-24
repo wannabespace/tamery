@@ -33,6 +33,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # Stands in for the chat attachments bucket (`S3_*` in `apps/api/.env`).
+  s3:
+    image: adobe/s3mock:5.2.3
+    # The image runs as uid 1000, which cannot write to a root-owned volume.
+    user: root
+    restart: unless-stopped
+    ports:
+      - '9090:9090'
+    environment:
+      - COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS=tamery-attachments
+      - COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT=true
+      - COM_ADOBE_TESTING_S3MOCK_STORE_ROOT=/data
+    volumes:
+      - s3_data:/data
+
   # The agent eval's databases (`packages/evals`), seeded by its runner: `docker compose -f docker-compose.dev.yml --profile evals up -d`.
   eval-postgres:
     image: postgres:18-alpine
@@ -64,3 +79,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  s3_data:

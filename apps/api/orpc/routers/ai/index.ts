@@ -1,4 +1,5 @@
 export { abortStream } from './abort-stream'
+export { attachment } from './attachment'
 export { attachStream } from './attach-stream'
 export { chatCost } from './chat-cost'
 export { claimToolCall } from './claim-tool-call'

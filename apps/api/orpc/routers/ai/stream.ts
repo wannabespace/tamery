@@ -8,30 +8,47 @@ import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
 import { resolveChatContext } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
+import { parseAttachmentRef } from '@tamery/shared/attachments'
 import { runInBackground } from '@tamery/shared/background'
 import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { isToolUIPart, validateUIMessages } from 'ai'
 import { type } from 'arktype'
 
 import { payForAi } from '~/lib/ai-key'
+import { attachments } from '~/lib/attachments'
 import { chatPersist } from '~/lib/chat-persist'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
-// A file rides in the transcript as a data URL; a remote URL would have the model provider fetch it on the user's behalf.
-const attachmentsFit = (message: AppUIMessage) => {
+const isAttachmentId = type('string.uuid.v7')
+
+// A file arrives as a data URL, or as a reference to one already stored in this chat when a turn is edited or asked again; a remote URL would have the model provider fetch it on the user's behalf.
+const attachmentsFit = async (chatId: string, message: AppUIMessage) => {
   const files = message.parts.filter((part) => part.type === 'file')
-  return (
-    files.length <= CHAT_LIMITS.attachments &&
-    files.every((file) => {
+  if (files.length > CHAT_LIMITS.attachments) {
+    return false
+  }
+  const fits = await Promise.all(
+    files.map((file) => {
+      if (!CHAT_LIMITS.attachmentTypes.has(file.mediaType)) {
+        return false
+      }
+      const ref = parseAttachmentRef(file.url)
+      if (ref) {
+        return (
+          ref.chatId === chatId &&
+          isAttachmentId.allows(ref.id) &&
+          attachments.exists(ref)
+        )
+      }
       const prefix = `data:${file.mediaType};base64,`
       return (
-        CHAT_LIMITS.attachmentTypes.has(file.mediaType) &&
         file.url.startsWith(prefix) &&
         ((file.url.length - prefix.length) * 3) / 4 <=
           CHAT_LIMITS.attachmentBytes
       )
     })
   )
+  return fits.every(Boolean)
 }
 
 export const stream = orpc
@@ -62,7 +79,11 @@ export const stream = orpc
     })
 
     const turn = messages.at(-1)
-    if (!turn || turn.role === 'system' || !attachmentsFit(turn)) {
+    if (
+      !turn ||
+      turn.role === 'system' ||
+      !(await attachmentsFit(input.chatId, turn))
+    ) {
       throw errors.BAD_REQUEST()
     }
 
@@ -83,15 +104,17 @@ export const stream = orpc
       })
     }
 
-    await (
-      turn.role === 'user'
-        ? chatPersist.persistMessage
-        : chatPersist.persistToolOutputs
-    )({
-      chatId: input.chatId,
-      message: turn,
-      userId: context.user.id,
-    })
+    await (turn.role === 'user'
+      ? chatPersist.persistMessage({
+          chatId: input.chatId,
+          message: await attachments.store(input.chatId, turn),
+          userId: context.user.id,
+        })
+      : chatPersist.persistToolOutputs({
+          chatId: input.chatId,
+          message: turn,
+          userId: context.user.id,
+        }))
 
     const history = await chatPersist.loadMessages({
       chatId: input.chatId,

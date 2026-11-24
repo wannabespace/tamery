@@ -16,7 +16,7 @@ Database connection details (host, port, type, username) are **always encrypted 
 
 ### Chat History
 
-AI conversation history is stored both locally on your device and synced to our cloud servers to enable access across devices.
+AI conversation history is stored both locally on your device and synced to our cloud servers to enable access across devices. Images and PDFs you attach to a message are kept apart from the conversation in our encrypted cloud storage, and are erased with the chat they belong to.
 
 ### Analytics
 
