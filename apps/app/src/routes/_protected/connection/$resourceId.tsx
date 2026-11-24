@@ -209,11 +209,15 @@ export const Route = createFileRoute('/_protected/connection/$resourceId')({
       connectionsCollection,
       connectionsResourcesCollection,
       connectionStringsCollection,
+      machinesCollection,
       workspacesCollection,
     } = context.collections
 
     // Before the loader prefetches: until the first catch-up, a connection on a machine would run here instead.
-    await connectionMachinesCollection.utils.whenSynced()
+    const machines = await machinesCollection.toArrayWhenReady()
+    if (machines.length > 0) {
+      await connectionMachinesCollection.utils.whenSynced()
+    }
 
     let connectionResource = connectionsResourcesCollection.get(
       params.resourceId
