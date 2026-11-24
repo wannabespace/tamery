@@ -56,7 +56,7 @@ Below **Auto**, every model is listed, grouped by company: Anthropic, OpenAI, Go
 - **Context**: how much of the chat the model reads. **200K** keeps each answer cheaper and faster; the full window lets a chat run longer before it is summarized.
 - **Fast mode**: sends the model to its fastest providers, which can cost more.
 
-Each model keeps its own options, and both the pick and the options apply to every chat on this device. When a model's provider fails, the agent answers with another model from the list.
+Each model keeps its own options, and both the pick and the options apply to every chat on this device. On **Auto**, when a model's provider fails, the agent answers with another company's model instead. A model you picked yourself always answers itself: if its provider fails, the chat shows the error and you can retry or pick another model.
 
 ### Long chats
 

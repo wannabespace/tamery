@@ -38,6 +38,7 @@ const resumable = createResumableUIMessageStream({
 
 type ChatStreamInput = Pick<
   ChatStepInput,
+  | 'auto'
   | 'connection'
   | 'contextTokens'
   | 'effort'
@@ -64,6 +65,7 @@ export const chatStream = {
       const abortController = new AbortController()
       const uiStream = await streamChatStep({
         abortSignal: abortController.signal,
+        auto: data.auto,
         connection: data.connection,
         contextTokens: data.contextTokens,
         effort: data.effort,

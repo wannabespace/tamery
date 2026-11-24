@@ -55,6 +55,8 @@ const rate = async (
 }
 
 interface ChatPick {
+  /** Auto chose the model, so it may fall back to another company's. */
+  auto: boolean
   effort: ChatEffort
   model: ChatModelId
 }
@@ -71,10 +73,15 @@ export const pickChatModel = async (data: {
     (model) => model.id === data.model
   )
   if (picked) {
-    return { effort: data.effort ?? DEFAULT_CHAT_EFFORT, model: picked.id }
+    return {
+      auto: false,
+      effort: data.effort ?? DEFAULT_CHAT_EFFORT,
+      model: picked.id,
+    }
   }
   if (data.key && data.key.provider !== 'openrouter') {
     return {
+      auto: true,
       effort: DEFAULT_CHAT_EFFORT,
       model: OWN_KEY_AUTO_MODELS[data.key.provider],
     }
@@ -85,6 +92,7 @@ export const pickChatModel = async (data: {
   const turn = data.messages.at(-1)
   if (turn?.role !== 'user') {
     return {
+      auto: true,
       effort: previous?.effort ?? DEFAULT_CHAT_EFFORT,
       model:
         previous?.model ??
@@ -95,6 +103,7 @@ export const pickChatModel = async (data: {
   const floor = previous?.model ? AUTO_CHAT_MODELS.indexOf(previous.model) : -1
   const level = await rate(turn, data.onJevUsage, data.key?.key)
   return {
+    auto: true,
     effort: AUTO_CHAT_EFFORTS[level] ?? DEFAULT_CHAT_EFFORT,
     model: AUTO_CHAT_MODELS[Math.max(floor, level)] ?? DEFAULT_CHAT_MODEL,
   }

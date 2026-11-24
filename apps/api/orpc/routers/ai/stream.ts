@@ -114,7 +114,7 @@ export const stream = orpc
       feature: AiFeature.Chat,
       userId: context.user.id,
     }
-    const { effort, model } = await pickChatModel({
+    const { auto, effort, model } = await pickChatModel({
       effort: input.effort,
       key: payer.key,
       messages: history,
@@ -138,6 +138,7 @@ export const stream = orpc
         : stored
 
     const str = await chatStream.claim({
+      auto,
       chatId: input.chatId,
       connection,
       messages: afterCompaction(history, compaction),

@@ -130,6 +130,7 @@ const PROMPT_CACHE = {
 
 export interface ChatStepInput {
   abortSignal?: AbortSignal
+  auto?: boolean
   /** The transcript is cut to this many tokens, oldest turns first; the model's full window when unset. */
   contextTokens?: number
   effort?: ChatEffort
@@ -186,7 +187,11 @@ export const streamChatStep = async (data: ChatStepInput) => {
         ? fitContext(data.messages, data.contextTokens)
         : data.messages
     ),
-    model: chatModelFor(model, data.fast ?? false, data.key),
+    model: chatModelFor(
+      model,
+      { auto: data.auto ?? false, fast: data.fast ?? false },
+      data.key
+    ),
     providerOptions: {
       openrouter: {
         ...PROMPT_CACHE.openrouter,

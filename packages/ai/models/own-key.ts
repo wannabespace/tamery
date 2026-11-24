@@ -22,7 +22,7 @@ type FixedModels = Record<'fast' | 'search' | 'summary', LanguageModel> & {
 
 interface ProviderModels {
   /** Takes a chat model's OpenRouter id; `fast` only reaches OpenRouter. */
-  chat: (id: ChatModelId, fast: boolean) => LanguageModel
+  chat: (id: ChatModelId, fast: boolean, auto: boolean) => LanguageModel
   models: FixedModels
   /** `null` on OpenRouter, whose search is a server tool `searchWeb` asks for in its provider options. */
   webSearch: Tool | null
@@ -107,12 +107,12 @@ export const modelsFor = (key?: AiKey | null): FixedModels =>
 /** Only an OpenRouter account has cross-provider fallbacks and `:nitro` routing. */
 export const chatModelFor = (
   id: ChatModelId,
-  fast: boolean,
+  { auto, fast }: { auto: boolean; fast: boolean },
   key?: AiKey | null
 ) =>
   key
-    ? providerModels[key.provider](key.key).chat(id, fast)
-    : chatModel(id, fast)
+    ? providerModels[key.provider](key.key).chat(id, fast, auto)
+    : chatModel(id, fast, auto)
 
 export const canTranscribe = (key?: AiKey | null) =>
   modelsFor(key).transcribe !== null

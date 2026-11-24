@@ -180,12 +180,15 @@ export const openRouterModels = (provider: typeof openrouter) => {
     createRetryableModel({ model: model(id), retries: [model(fallback)] })
   return {
     // `:nitro` is OpenRouter's shortcut for routing to the fastest providers of a model, not a separate model.
-    chat: (id: ChatModelId, fast: boolean) =>
+    // Only Auto falls back to another company's model: a model the user picked answers or fails.
+    chat: (id: ChatModelId, fast: boolean, auto: boolean) =>
       createRetryableModel({
         model: model(fast ? `${id}:nitro` : id),
-        retries: CHAT_FALLBACKS.filter((fallback) => fallback !== id).map(
-          (fallback) => model(fallback)
-        ),
+        retries: auto
+          ? CHAT_FALLBACKS.filter((fallback) => fallback !== id).map(
+              (fallback) => model(fallback)
+            )
+          : [],
       }),
     models: {
       fast: retryable(MODEL_IDS.fast),
@@ -201,7 +204,7 @@ export const openRouterModels = (provider: typeof openrouter) => {
 const tamery = openRouterModels(openrouter)
 
 export const chatModel = memoize(tamery.chat, {
-  cacheKey: (id, fast) => `${id}:${fast}`,
+  cacheKey: (id, fast, auto) => `${id}:${fast}:${auto}`,
 })
 
 export const { models } = tamery

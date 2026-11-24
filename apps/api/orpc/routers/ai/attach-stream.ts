@@ -58,7 +58,7 @@ export const attachStream = orpc
       feature: AiFeature.Chat,
       userId: context.user.id,
     }
-    const { effort, model } = await pickChatModel({
+    const { auto, effort, model } = await pickChatModel({
       effort: input.effort,
       key: payer.key,
       messages,
@@ -69,6 +69,7 @@ export const attachStream = orpc
     const compaction = await chatPersist.compaction(input.chatId)
 
     const restarted = await chatStream.claim({
+      auto,
       chatId: input.chatId,
       connection: await chatPersist.connection({
         connectionResourceId: owned.connectionResourceId,
