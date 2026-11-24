@@ -6,9 +6,9 @@ import { Result } from 'better-result'
 
 import { analytics } from './analytics'
 import { account, api } from './api'
-import { pairings } from './bridge/pairings'
 import { openBrowser } from './browser'
 import { env } from './env'
+import { localAccount } from './local-account'
 import { paint } from './paint'
 import { vault } from './vault'
 
@@ -59,12 +59,7 @@ const signIn = async () => {
       'Saving the session. If your system keychain asks, allow it'
     )
     const signedIn = { email: user.email, id: user.id, token }
-    const previous = await vault.account()
-    if (previous && previous.id !== user.id) {
-      await vault.reset()
-      pairings.reset()
-    }
-    await vault.setAccount(signedIn)
+    await localAccount.set(signedIn)
     await analytics.capture('signed_in', {})
     waiting.stop(`Signed in as ${paint.bold(user.email)}`)
     return signedIn

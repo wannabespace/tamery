@@ -1,5 +1,5 @@
 export { aiUsage } from './ai-usage'
-export { bridge } from './bridge'
+export { machine } from './machine'
 export { challenge } from './challenge'
 export { invoices } from './invoices'
 export { revokeSession } from './revoke-session'

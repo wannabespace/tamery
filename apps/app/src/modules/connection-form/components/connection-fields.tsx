@@ -5,7 +5,7 @@ import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { FieldGroup } from '@tamery/ui/components/field'
 
-import { useBridgeRoute } from '~/core/runtime/bridge/pairing'
+import { useMachineRouteById } from '~/core/runtime/machine/pairing'
 import { posthog } from '~/lib/posthog'
 
 import type {
@@ -24,10 +24,10 @@ export const ConnectionFields = ({
 }: {
   form: ConnectionForm
   locked: (field: string) => boolean
-  values: Pick<ConnectionFormValues, 'host' | 'provider' | 'type'>
+  values: Pick<ConnectionFormValues, 'host' | 'machineId' | 'provider' | 'type'>
 }) => {
   const fileType = getFileType(values)
-  const bridge = useBridgeRoute(null)
+  const machine = useMachineRouteById(values.machineId)
 
   return (
     <>
@@ -73,23 +73,23 @@ export const ConnectionFields = ({
           )
         )}
       </FieldGroup>
-      {bridge && !fileType && isLocalHost(values.host.trim()) && (
+      {machine && !fileType && isLocalHost(values.host.trim()) && (
         <Footnote>
-          Local databases are reached from the bridge on{' '}
-          <span data-mask>{bridge.name}</span>.
+          Local databases are reached from the machine on{' '}
+          <span data-mask>{machine.name}</span>.
         </Footnote>
       )}
       {fileType && !window.electron && (
         <Footnote>
-          {bridge ? (
+          {machine ? (
             <>
-              The file opens on <span data-mask>{bridge.name}</span>, the
-              computer running your bridge.
+              The file opens on <span data-mask>{machine.name}</span>, the
+              computer running your machine.
             </>
           ) : (
             <>
               The file opens on the computer running{' '}
-              <InlineCode>tamery bridge</InlineCode>.
+              <InlineCode>tamery machine</InlineCode>.
             </>
           )}
         </Footnote>

@@ -10,14 +10,17 @@ import { resourceRowsQueryInfiniteOptions } from '~/core/queries/rows/list'
 import { resourceTableTotalQueryOptions } from '~/core/queries/rows/total'
 import { resourceTableColumnsQueryOptions } from '~/core/queries/tables/columns'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
-import { getBridgeRoute, useBridgeRoute } from '~/core/runtime/bridge/pairing'
+import {
+  getMachineRoute,
+  useMachineRoute,
+} from '~/core/runtime/machine/pairing'
 import { queryClient } from '~/lib/query-client'
 
 import { fetchingConfig } from './fetching-config'
 
 export const canQueryConnection = (connection: Connection) =>
   fetchingConfig(connection, {
-    bridge: getBridgeRoute(connection.id),
+    machine: getMachineRoute(connection.id),
     connectionString:
       getCollections().connectionStringsCollection.get(connection.id) ?? null,
   }).canSend
@@ -85,7 +88,7 @@ export const prefetchConnectionResourceTableCore = async ({
 export const useFetchingConfig = (
   connection: Pick<Connection, 'id' | 'syncType' | 'isPasswordExists'>
 ) => {
-  const bridge = useBridgeRoute(connection.id)
+  const machine = useMachineRoute(connection.id)
   const { connectionStringsCollection } = useCollections()
   const { data: connectionString } = useLiveQuery({
     query: (q) =>
@@ -96,7 +99,7 @@ export const useFetchingConfig = (
   })
 
   return fetchingConfig(connection, {
-    bridge,
+    machine,
     connectionString: connectionString ?? null,
   })
 }

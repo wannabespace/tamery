@@ -79,7 +79,12 @@ export const loadPermissions = async () => {
 }
 
 export const resetGuestState = async () => {
-  const { cleanCollections } = await import('~/core/collections')
+  const [{ cleanCollections }, { machine }] = await Promise.all([
+    import('~/core/collections'),
+    import('~/core/runtime/machine/machine'),
+  ])
+  // The guest's account is gone, but this computer's machine process still signs in as it.
+  await machine.forgetThisComputer()
   await cleanCollections()
   queryClient.removeQueries({ queryKey: [API_QUERY_KEY] })
   await loadPermissions()

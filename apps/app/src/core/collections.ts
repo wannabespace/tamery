@@ -12,6 +12,10 @@ import {
   createConnectionsCollection,
   createConnectionsResourcesCollection,
 } from '~/core/connection/sync'
+import {
+  createConnectionMachinesCollection,
+  createMachinesCollection,
+} from '~/core/runtime/machine/sync'
 import { createWorkspacesCollection } from '~/core/workspace/sync'
 import {
   createChatsCollection,
@@ -31,11 +35,13 @@ const createCollections = () => {
     chatsCollection: createChatsCollection(),
     chatsMessagesCollection: createChatsMessagesCollection(),
     chatsMessagesPartsCollection: createChatsMessagesPartsCollection(),
+    connectionMachinesCollection: createConnectionMachinesCollection(),
     connectionStringsCollection,
     connectionsCollection: createConnectionsCollection(
       connectionStringsCollection
     ),
     connectionsResourcesCollection,
+    machinesCollection: createMachinesCollection(),
     queriesCollection: createQueriesCollection(),
     workspacesCollection: createWorkspacesCollection(),
   }

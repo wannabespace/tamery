@@ -3,8 +3,9 @@ import { silently } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
 import { analytics } from '../analytics'
-import { account } from '../api'
-import { pairings } from '../bridge/pairings'
+import { account, api } from '../api'
+import { localAccount } from '../local-account'
+import { machineIdentity } from '../machine/identity'
 import { paint } from '../paint'
 import { vault } from '../vault'
 
@@ -14,10 +15,13 @@ export const logout = async () => {
   const current = saved.unwrapOr(null)
   if (current) {
     await analytics.capture('signed_out', {})
+    const id = machineIdentity.saved()
+    if (id) {
+      await silently(() => api.machines.remove({ id }))
+    }
     await silently(() => account.signOut(current.token))
   }
-  await vault.reset()
-  pairings.reset()
+  await localAccount.reset()
   log.success(
     current
       ? `Signed out of ${paint.bold(current.email)}. Saved secrets and paired browsers are gone.`

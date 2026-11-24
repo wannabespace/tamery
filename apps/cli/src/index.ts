@@ -10,9 +10,7 @@ import type { ArgsDef, CommandContext } from 'citty'
 import { defineCommand, runCommand } from 'citty'
 
 import { analytics } from './analytics'
-import { pairings } from './bridge/pairings'
 import { approve } from './commands/approve'
-import { bridge } from './commands/bridge'
 import {
   createConnection,
   deleteConnection,
@@ -22,11 +20,13 @@ import {
 } from './commands/connection'
 import { login } from './commands/login'
 import { logout } from './commands/logout'
+import { machine } from './commands/machine'
 import { FORMATS, query } from './commands/query'
 import { update } from './commands/update'
 import { whoami } from './commands/whoami'
 import { env } from './env'
 import { findCommand, printHelp } from './help'
+import { pairings } from './machine/pairings'
 import { paint } from './paint'
 
 const MAX_PORT = 65_535
@@ -45,58 +45,59 @@ const reportingErrors =
     }
   }
 
-const bridgeArgs = {
+const machineArgs = {
   port: {
-    default: String(PORTS.BRIDGE),
+    default: String(PORTS.MACHINE),
     description: 'Port on 127.0.0.1',
     type: 'string',
     valueHint: 'port',
   },
   'public-url': {
-    description: 'The HTTPS URL a tunnel on this computer serves the bridge at',
+    description:
+      'The HTTPS URL a tunnel on this computer serves the machine at',
     type: 'string',
     valueHint: 'url',
   },
 } satisfies ArgsDef
 
-// A parent's `run` would also run after each subcommand's, so plain `tamery bridge` is the hidden default `start`.
-const bridgeCommand = defineCommand({
-  args: bridgeArgs,
+// A parent's `run` would also run after each subcommand's, so plain `tamery machine` is the hidden default `start`.
+const machineCommand = defineCommand({
+  args: machineArgs,
   default: 'start',
   meta: {
     description: 'Let the web app run your connections on this computer',
-    name: 'tamery bridge',
+    name: 'tamery machine',
   },
   subCommands: {
     approve: defineCommand({
       meta: {
         description:
-          'Allow a browser waiting to connect, when the bridge has no terminal',
-        name: 'tamery bridge approve',
+          'Allow a browser waiting to connect, when the machine has no terminal',
+        name: 'tamery machine approve',
       },
       run: reportingErrors(approve),
     }),
     start: defineCommand({
-      args: bridgeArgs,
-      meta: { hidden: true, name: 'tamery bridge' },
+      args: machineArgs,
+      meta: { hidden: true, name: 'tamery machine' },
       run: reportingErrors(({ args }) => {
         const port = Number(args.port)
         if (!Number.isInteger(port) || port < 1 || port > MAX_PORT) {
           throw new Error('--port must be a number from 1 to 65535.')
         }
-        return bridge({ port, publicUrl: args['public-url'] })
+        return machine({ port, publicUrl: args['public-url'] })
       }),
     }),
     'unpair-all': defineCommand({
       meta: {
         description: 'Disconnect every browser',
-        name: 'tamery bridge unpair-all',
+        name: 'tamery machine unpair-all',
       },
       run: reportingErrors(async () => {
         pairings.reset()
-        await analytics.capture('bridge_unpaired_all', {})
+        await analytics.capture('machine_unpaired_all', {})
         log.success(
-          `Every browser is unpaired. Pair again with ${paint.accent('tamery bridge')}.`
+          `Every browser is unpaired. Pair again with ${paint.accent('tamery machine')}.`
         )
       }),
     }),
@@ -231,7 +232,6 @@ const main = defineCommand({
     version: env.VERSION,
   },
   subCommands: {
-    bridge: bridgeCommand,
     connection: connectionCommand,
     help: defineCommand({
       meta: { hidden: true, name: 'tamery' },
@@ -251,14 +251,7 @@ const main = defineCommand({
       },
       run: reportingErrors(logout),
     }),
-    proxy: defineCommand({
-      meta: { hidden: true, name: 'tamery proxy' },
-      run: reportingErrors(() => {
-        throw new Error(
-          `${paint.accent('tamery proxy')} is now ${paint.accent('tamery bridge')}.`
-        )
-      }),
-    }),
+    machine: machineCommand,
     query: defineCommand({
       args: queryArgs,
       meta: {

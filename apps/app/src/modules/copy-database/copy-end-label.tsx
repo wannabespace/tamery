@@ -1,10 +1,16 @@
+import { canQueryConnection } from '~/core/connection/fetching'
 import { ResourceLabel } from '~/core/connection/resource-label'
 import type { Connection, ConnectionResource } from '~/core/connection/sync'
+import { getMachineRoute } from '~/core/runtime/machine/pairing'
 
 export interface CopyEnd {
   connection: Connection
   resource: ConnectionResource
 }
+
+/** The copy runs this computer's `pg_dump` and `psql`, so both ends must run here: a machine's `localhost` is another server. */
+export const canCopyHere = ({ connection }: CopyEnd) =>
+  canQueryConnection(connection) && !getMachineRoute(connection.id)
 
 export const ConnectionNameLabel = ({
   connection,

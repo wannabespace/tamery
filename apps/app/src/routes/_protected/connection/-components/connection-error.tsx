@@ -4,10 +4,12 @@ import { toError } from '@tamery/shared/utils'
 import { useQueryErrorResetBoundary } from '@tanstack/react-query'
 import type { ErrorComponentProps } from '@tanstack/react-router'
 
-import { UnconfirmedConnectionError } from '~/core/runtime/bridge/bridge'
-import { BridgeError } from '~/core/runtime/bridge/status'
-import { BridgeFailure } from '~/modules/bridge/bridge-failure'
-import { BridgeUnconfirmed } from '~/modules/bridge/bridge-unconfirmed'
+import { UnconfirmedConnectionError } from '~/core/runtime/machine/machine'
+import { MachineNotPairedError } from '~/core/runtime/machine/not-paired'
+import { MachineError } from '~/core/runtime/machine/status'
+import { MachineFailure } from '~/modules/machine/machine-failure'
+import { MachineNotPaired } from '~/modules/machine/machine-not-paired'
+import { MachineUnconfirmed } from '~/modules/machine/machine-unconfirmed'
 
 import { ConnectionFailure } from './connection-failure'
 
@@ -18,11 +20,14 @@ export const ConnectionError = (props: ErrorComponentProps) => {
     queryErrors.reset()
     props.reset()
   }
-  if (props.error instanceof BridgeError) {
-    return <BridgeFailure error={props.error} retry={retry} />
+  if (props.error instanceof MachineError) {
+    return <MachineFailure error={props.error} retry={retry} />
+  }
+  if (props.error instanceof MachineNotPairedError) {
+    return <MachineNotPaired route={props.error.route} retry={retry} />
   }
   if (props.error instanceof UnconfirmedConnectionError) {
-    return <BridgeUnconfirmed error={props.error} retry={retry} />
+    return <MachineUnconfirmed error={props.error} retry={retry} />
   }
   if (
     isKeychainLocked(props.error) ||

@@ -6,7 +6,7 @@ keywords:
   ['reference', 'options', 'arguments', 'usage', 'login', 'add', 'remove']
 ---
 
-`tamery --help` (`-h`) lists the commands, and `--help` after a command, such as `tamery bridge --help`, shows its options and subcommands. `tamery --version` (`-v`) prints the version.
+`tamery --help` (`-h`) lists the commands, and `--help` after a command, such as `tamery machine --help`, shows its options and subcommands. `tamery --version` (`-v`) prints the version.
 
 ## tamery login
 
@@ -28,45 +28,45 @@ tamery whoami
 
 Prints the account this computer is signed in to, or says it isn't signed in and exits with code 1.
 
-## tamery bridge
+## tamery machine
 
 ```bash
-tamery bridge
+tamery machine
 ```
 
-Lets the web app run your connections on this computer until you press **Ctrl+C**. If the computer isn't signed in yet, it signs in first, as `tamery login` does. [Tamery CLI](/cli/overview#run-the-bridge) walks through pairing.
+Lets the web app run your connections on this computer until you press **Ctrl+C**. If the computer isn't signed in yet, it signs in first, as `tamery login` does. [Tamery CLI](/cli/overview#run-the-machine) walks through pairing.
 
-It prints the account, the address it listens on and a link to connect a browser. When a browser clicks **Connect**, it asks you whether to allow it. It also reports requests it refused because of a wrong host or origin.
+It lists the computer under **Settings → Machines** in your account, with its hostname and the addresses it listens at, and keeps that entry current while it runs. It prints the account, the address it listens on and a link to connect a browser. When a browser clicks **Connect**, it asks you whether to allow it. It also reports requests it refused because of a wrong host or origin.
 
 | Flag | Use |
 | --- | --- |
 | `--port <port>` | Listen on another port. The default is `26380`. |
-| `--public-url <url>` | The HTTPS address a tunnel or reverse proxy on this computer serves the bridge at. See [Reach a bridge on another computer](/cli/remote). |
+| `--public-url <url>` | The HTTPS address a tunnel or reverse proxy on this computer serves the machine at. See [Reach a machine on another computer](/cli/remote). |
 
-If the port is taken, usually by another bridge, it says so and exits. Stop the other one or pass `--port`.
+If the port is taken, usually by another machine, it says so and exits. Stop the other one or pass `--port`.
 
-## tamery bridge approve
+## tamery machine approve
 
 ```bash
-tamery bridge approve
+tamery machine approve
 ```
 
-Answers for a bridge that runs without a terminal to ask in, such as a service, a container or a detached session. When `tamery bridge` runs in a terminal you can see, the question appears there instead.
+Answers for a machine that runs without a terminal to ask in, such as a service, a container or a detached session. When `tamery machine` runs in a terminal you can see, the question appears there instead.
 
-1. Keep the bridge running.
-2. On the same computer, run `tamery bridge approve`. It waits for a browser.
-3. In the web app, click **Connect** in **Settings → Bridge**.
+1. Keep the machine running.
+2. On the same computer, run `tamery machine approve`. It waits for a browser.
+3. In the web app, click **Connect** next to the machine in **Settings → Machines**.
 4. Answer the question in the `approve` terminal.
 
 The order of steps 2 and 3 doesn't matter, as long as you answer within 2 minutes of clicking **Connect**. At most 3 requests wait at a time; more are declined.
 
-## tamery bridge unpair-all
+## tamery machine unpair-all
 
 ```bash
-tamery bridge unpair-all
+tamery machine unpair-all
 ```
 
-Disconnects every paired browser, also from a bridge that is already running. Each one needs to be allowed again. Saved secrets stay.
+Disconnects every paired browser, also from a machine that is already running. Each one needs to be allowed again. Saved secrets stay.
 
 ## tamery connection list
 
@@ -94,7 +94,7 @@ echo "$DATABASE_URL" | tamery connection create --name "Orders"
 | `--label <label>` | The label it is grouped under, such as `prod` or `staging`. |
 | `--sync <full\|no-password\|metadata>` | What syncs to your other devices: **Full**, **No password** or **Metadata only**. The default is `full`. See [Security](/connections/security). |
 
-The engine comes from the string's scheme, such as `postgres://`, `mysql://` or `mongodb://`. The CLI keeps the whole string on this computer too, so `tamery bridge` runs the connection without asking for its secrets or file access.
+The engine comes from the string's scheme, such as `postgres://`, `mysql://` or `mongodb://`. The CLI keeps the whole string on this computer too, so `tamery machine` runs the connection without asking for its secrets or file access.
 
 When the string opens a file or uses this computer's SSH keys or credentials, such as a SQLite or DuckDB file, a certificate file, an SSH tunnel or a MongoDB login with AWS, OIDC or Kerberos, the CLI asks you to allow that before it connects. A piped string can't be allowed, so add such a connection in a terminal. `tamery connection update --connection-string` asks the same way.
 
@@ -141,7 +141,7 @@ By default only one read-only statement runs, such as `SELECT`, `SHOW`, `EXPLAIN
 | `--max-rows <count>` | Stop after this many rows. The default is `1000`. When rows were left out, the table says so, JSON sets `truncated`, and CSV writes a note to stderr. |
 | `--database <name>` | Run in another database on the same server. |
 
-It finds the connection string the way `tamery bridge` does. For a **No password** or **Metadata only** connection that this computer doesn't have the secrets of yet, it asks for the connection string once and keeps it with the bridge's secrets. When a connection opens a file or signs in with this computer's keys or credentials, and nobody allowed that here yet, it asks you first. Without a terminal, such as in a script, it fails instead, so run the query once in a terminal.
+It finds the connection string the way `tamery machine` does. For a **No password** or **Metadata only** connection that this computer doesn't have the secrets of yet, it asks for the connection string once and keeps it with the machine's secrets. When a connection opens a file or signs in with this computer's keys or credentials, and nobody allowed that here yet, it asks you first. Without a terminal, such as in a script, it fails instead, so run the query once in a terminal.
 
 ## tamery update
 
@@ -149,9 +149,9 @@ It finds the connection string the way `tamery bridge` does. For a **No password
 tamery update
 ```
 
-Installs the latest version the way you installed the CLI: with the install script, npm, pnpm or Bun. It shows that tool's output, then asks you to restart `tamery bridge` if it is running. When you already have the latest version, it says so and installs nothing. On a release candidate, it also installs a newer release candidate. It ignores `TAMERY_VERSION`: to install a specific version, run the install script with it.
+Installs the latest version the way you installed the CLI: with the install script, npm, pnpm or Bun. It shows that tool's output, then asks you to restart `tamery machine` if it is running. When you already have the latest version, it says so and installs nothing. On a release candidate, it also installs a newer release candidate. It ignores `TAMERY_VERSION`: to install a specific version, run the install script with it.
 
-If the update fails, for example because npm needs permissions you don't have, it says why. Fix that and run `tamery update` again. On Windows, a `tamery bridge` that is still running can hold the file the update replaces: stop it and try again.
+If the update fails, for example because npm needs permissions you don't have, it says why. Fix that and run `tamery update` again. On Windows, a `tamery machine` that is still running can hold the file the update replaces: stop it and try again.
 
 If you installed with the script but run `tamery` from another folder, the update goes to `~/.tamery/bin` and the command says so. Delete the other copy, or replace it with the new one.
 
@@ -161,4 +161,4 @@ If you installed with the script but run `tamery` from another folder, the updat
 tamery logout
 ```
 
-Signs the CLI out of your account and deletes what it stored on this computer: the session, the saved secrets, their key in the keychain, and every pairing. The next `tamery bridge` signs in again, so this is also how you switch accounts.
+Signs the CLI out of your account, removes this computer from **Settings → Machines**, and deletes what it stored on this computer: the session, the saved secrets, their key in the keychain, and every pairing. The next `tamery machine` signs in again, so this is also how you switch accounts.

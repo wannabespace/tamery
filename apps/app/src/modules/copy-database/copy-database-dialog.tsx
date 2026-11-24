@@ -11,12 +11,11 @@ import { createRef, useEffect, useImperativeHandle, useState } from 'react'
 import { v7 as uuidv7 } from 'uuid'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
-import { canQueryConnection } from '~/core/connection/fetching'
 import { refreshCatalog } from '~/core/connection/refresh-after-run'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
 
 import type { CopyEnd } from './copy-end-label'
-import { CopyEndLabel } from './copy-end-label'
+import { canCopyHere, CopyEndLabel } from './copy-end-label'
 import { CopyForm } from './copy-form'
 import type { CopyLogLine } from './copy-log-line'
 import {
@@ -47,11 +46,16 @@ export const getCopyDatabaseAction = (source: CopyEnd | null) =>
   getCapabilities(getDialect(source.connection.type)).flags.includes(
     'copyDatabase'
   ) &&
-  canQueryConnection(source.connection)
+  canCopyHere(source)
     ? () => copyDatabaseDialogRef.current?.open(source)
     : null
 
 const startCopy = async (run: CopyRun) => {
+  if (!(canCopyHere(run.source) && canCopyHere(run.target))) {
+    throw new Error(
+      'Both databases must run on this computer. Set Runs on to This computer for each, then copy again.'
+    )
+  }
   const [from, to] = await Promise.all([
     connectionResourceToQueryParams(run.source.resource),
     connectionResourceToQueryParams(run.target.resource),

@@ -22,10 +22,10 @@ Synced connection strings are encrypted with a workspace key. They are decrypted
 ## Where queries run
 
 - **Desktop:** your computer connects to the database directly.
-- **Web with [`tamery bridge`](/cli/overview):** the computer running the bridge connects to the database. Queries carry connection IDs, and the bridge gets each connection string through your account. Only the details your sync type keeps off Tamery's servers go from the browser to the bridge, once. Tamery's servers confirm that the bridge and the browser are signed in to the same account, and the bridge refuses requests that reach it through another address than its **Bridge URL**.
-- **Web without a bridge:** Tamery's cloud proxy connects to public database servers and handles the query and its results.
+- **Web with [`tamery machine`](/cli/overview):** the computer running the machine connects to the database. Queries carry connection IDs, and the machine gets each connection string through your account. Only the details your sync type keeps off Tamery's servers go from the browser to the machine, once. Tamery's servers confirm that the machine and the browser are signed in to the same account, and the machine refuses requests that reach it through another address than its **Machine URL**.
+- **Web without a machine:** Tamery's cloud proxy connects to public database servers and handles the query and its results.
 
-The cloud proxy cannot reach private addresses, open SQLite, DuckDB and certificate files on your computer, or sign in to MongoDB with AWS, OIDC or Kerberos credentials. Use desktop or the bridge for those. The bridge skips files in app data folders and uses those credentials only for MongoDB Atlas, so a few of these need desktop. Connections whose secrets stay on your device also need desktop or the bridge.
+The cloud proxy cannot reach private addresses, open SQLite, DuckDB and certificate files on your computer, or sign in to MongoDB with AWS, OIDC or Kerberos credentials. Use desktop or the machine for those. The machine skips files in app data folders and uses those credentials only for MongoDB Atlas, so a few of these need desktop. Connections whose secrets stay on your device also need desktop or the machine.
 
 ### Cloud proxy IP addresses
 
@@ -36,7 +36,7 @@ If your database only accepts allowlisted IP addresses, add these so the cloud p
 34.40.119.38
 ```
 
-Add both. The proxy can connect from either one. Desktop and `tamery bridge` connect from your own network, so allow that address instead.
+Add both. The proxy can connect from either one. Desktop and `tamery machine` connect from your own network, so allow that address instead.
 
 Only Tamery's cloud proxy uses these addresses, but it connects for every Tamery user. An allowlist narrows who can reach your database, and the database password still protects it.
 
@@ -44,7 +44,7 @@ Encryption between Tamery and your database depends on the connection's SSL sett
 
 ## SSH tunnels
 
-SSH tunnels run on desktop and on the computer running `tamery bridge`. Tamery checks the server's host key and asks before trusting an unknown one, for the bridge in the web app. A changed key is refused.
+SSH tunnels run on desktop and on the computer running `tamery machine`. Tamery checks the server's host key and asks before trusting an unknown one, for the machine in the web app. A changed key is refused.
 
 You can use your SSH agent, a key file, a pasted private key, or a password. `~/.ssh/config` is supported; `ProxyJump` and `ProxyCommand` are not.
 

@@ -20,6 +20,7 @@ const pickFound = (connectionString: string): ConnectionFormValues => {
     host: parts.host ?? '',
     https: parts.https ?? null,
     label: '',
+    machineId: null,
     name: 'found',
     options: parts.options ?? '',
     password: '',

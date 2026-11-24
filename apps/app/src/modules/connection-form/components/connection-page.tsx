@@ -35,6 +35,7 @@ import { NameField } from './name-field'
 import { PageColumns } from './page-columns'
 import { PasteHero } from './paste-hero'
 import { PasteNotes } from './paste-notes'
+import { RunsOnField } from './runs-on-field'
 import { SshFields } from './ssh-fields'
 import { SyncField } from './sync-field'
 import type { FixSource } from './test-alert'
@@ -249,6 +250,7 @@ export const ConnectionPage = ({
                       <LabelField form={form} />
                       <ColorField form={form} />
                       {mode.kind === 'create' && <SyncField form={form} />}
+                      <RunsOnField form={form} />
                     </FieldGroup>
                   </motion.div>
                 )}

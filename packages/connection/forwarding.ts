@@ -24,7 +24,7 @@ let getForwarding = (connectionString: string): Promise<Forwarding | null> => {
 }
 
 /**
- * Where every dialect client but Oracle and libsql gets its sockets. The desktop database process and the bridge plug SSH
+ * Where every dialect client but Oracle and libsql gets its sockets. The desktop database process and the machine plug SSH
  * tunnels in, resolving once the session is open (an unknown host key's prompt included) so a driver's connect timeout
  * never runs while the prompt is up; the cloud proxy plugs in its public-host guard. Nothing else imports ssh2, so the
  * proxies never load it.

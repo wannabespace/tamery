@@ -12,7 +12,7 @@ const BUSY_TIMEOUT_MS = 2000
 let isConfined = false
 
 /**
- * The bridge opens only the file its connection names: `ATTACH` and `VACUUM INTO` would reach any other. A plain `VACUUM`
+ * The machine opens only the file its connection names: `ATTACH` and `VACUUM INTO` would reach any other. A plain `VACUUM`
  * attaches an unnamed temporary database, which names no file, so it still runs.
  */
 export const confineSqliteFiles = () => {
