@@ -15,7 +15,7 @@ import {
 } from '@tamery/ui/components/tooltip'
 import { cn } from '@tamery/ui/lib/utils'
 import type { Node, NodeProps } from '@xyflow/react'
-import { useStore, useUpdateNodeInternals } from '@xyflow/react'
+import { useUpdateNodeInternals, useViewportStore } from '@xyflow/react'
 import type { CSSProperties } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
@@ -96,7 +96,7 @@ export const TableNodeView = ({ data, id, selected }: NodeProps<TableNode>) => {
               relationTouches(relation, hoveredTableId)))
       ),
   })
-  const compact = useStore((state) => state.transform[2] < COMPACT_ZOOM)
+  const compact = useViewportStore((state) => state.transform[2] < COMPACT_ZOOM)
   const linkedColumns = new Set(
     diagram.relations.flatMap((relation) => [
       relation.source.table === table.id ? relation.source.column : '',
