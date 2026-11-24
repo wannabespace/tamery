@@ -58,7 +58,8 @@ export const attachStream = orpc
       feature: AiFeature.Chat,
       userId: context.user.id,
     }
-    const model = await pickChatModel({
+    const { effort, model } = await pickChatModel({
+      effort: input.effort,
       key: payer.key,
       messages,
       model: input.model,
@@ -75,7 +76,7 @@ export const attachStream = orpc
       }),
       messages: afterCompaction(messages, compaction),
       contextTokens: resolveChatContext(model, input.context),
-      effort: input.effort,
+      effort,
       fast: input.fast,
       isSubagent: !!owned.parentChatId,
       key: payer.key,

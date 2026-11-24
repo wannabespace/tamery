@@ -1,3 +1,4 @@
+import type { AppUIMessage } from '@tamery/ai/message'
 import type { ChatDataParts } from '@tamery/ai/tools'
 import { toError } from '@tamery/shared/utils'
 import type { DataUIPart } from 'ai'
@@ -8,6 +9,9 @@ import { getCollections } from '~/core/collections'
 import { posthog } from '~/lib/posthog'
 
 import { getJudgedProbability } from './auto-approval'
+
+export const sqlRuns = (message: AppUIMessage) =>
+  message.parts.flatMap((part) => (part.type === 'data-sql' ? [part.data] : []))
 
 /** `!` opens a statement the user runs themselves, like a shell command in a terminal agent. */
 export const sqlOf = (text: string) =>

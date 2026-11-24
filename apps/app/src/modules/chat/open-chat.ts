@@ -1,8 +1,9 @@
 import { valueToText } from '@tamery/shared/value-text'
+import { eq, useLiveQuery } from '@tanstack/react-db'
+import { useSubscription } from 'seitu/react'
 import { v7 } from 'uuid'
 
-import { getCollections } from '~/core/collections'
-import { getConnectionResourceStore } from '~/core/connection/stores'
+import { getCollections, useCollections } from '~/core/collections'
 import { openTab } from '~/core/tabs/actions'
 import { tabPath } from '~/core/tabs/ids'
 import { checkOrUpgrade } from '~/core/user/permissions'
@@ -10,12 +11,23 @@ import { history } from '~/lib/last-location'
 import { posthog } from '~/lib/posthog'
 
 import { getChatInstance } from './chat-instance'
-import { chatDraftsValue, setChatDraft } from './stores'
+import {
+  chatDraftsValue,
+  composerFocusRequestStore,
+  newChatIdsValue,
+  setChatDraft,
+  setNewChatId,
+} from './stores'
 import { openSubagentStore } from './subagents-store'
-import { chatTab, chatTabId } from './tab'
+import { chatTabId, newChatTabId } from './tab'
 
 export const openChat = (resourceId: string, chatId: string) => {
-  const tabId = openTab(resourceId, chatTabId(chatId))
+  const tabId = openTab(
+    resourceId,
+    chatId === newChatIdsValue.get()[resourceId]
+      ? newChatTabId
+      : chatTabId(chatId)
+  )
   openSubagentStore(resourceId).set(null)
   history.push(tabPath(resourceId, tabId))
 }
@@ -26,19 +38,38 @@ const isBlankChat = (resourceId: string, chatId: string) =>
   getChatInstance({ chatId, connectionResourceId: resourceId }).messages
     .length === 0
 
-/** Opens a fresh chat, reusing an open one nothing was written in yet; a chat with a draft stays as it is. */
+/** Opens the resource's unsent chat, starting a fresh one unless nothing was written in it yet; a draft stays listed under its own id. */
 export const startNewChat = (resourceId: string) => {
   if (!checkOrUpgrade('ai.chat.use')) {
     return
   }
-  const blank = getConnectionResourceStore(resourceId)
-    .get()
-    .tabs.map((tab) => chatTab.match(tab.id)?.chatId)
-    .find((chatId) => chatId && isBlankChat(resourceId, chatId))
-  if (!blank) {
+  let chatId = newChatIdsValue.get()[resourceId]
+  if (!chatId || !isBlankChat(resourceId, chatId)) {
     posthog.capture('ai_chat_created')
+    chatId = v7()
+    setNewChatId(resourceId, chatId)
   }
-  openChat(resourceId, blank ?? v7())
+  openChat(resourceId, chatId)
+  composerFocusRequestStore.set((count) => count + 1)
+}
+
+export const useIsBlankChatOpen = (resourceId: string, tabId?: string) => {
+  const { chatsCollection } = useCollections()
+  const chatId = useSubscription(newChatIdsValue, {
+    selector: (ids) => ids[resourceId] ?? '',
+  })
+  const hasDraft = useSubscription(chatDraftsValue, {
+    selector: (drafts) => !!drafts[chatId],
+  })
+  const { data: saved } = useLiveQuery(
+    (q) =>
+      q
+        .from({ chat: chatsCollection })
+        .where(({ chat }) => eq(chat.id, chatId))
+        .findOne(),
+    [chatId]
+  )
+  return tabId === newChatTabId && !hasDraft && !saved
 }
 
 const ROW_TEXT_LIMIT = 4000
@@ -55,6 +86,7 @@ export const askAboutRow = (data: {
   }
   posthog.capture('ai_chat_row_asked')
   const chatId = v7()
+  setNewChatId(data.resourceId, chatId)
   setChatDraft(
     chatId,
     data.resourceId,

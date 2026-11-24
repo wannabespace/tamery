@@ -9,11 +9,16 @@ import { flushSync } from 'react-dom'
 
 import { navigatorOpenValue } from './stores'
 
-let mountedSearch: HTMLInputElement | null = null
+let mountedSearch: { input: HTMLInputElement; reveal: () => void } | null = null
+
+export const revealNavigatorSearch = () => {
+  mountedSearch?.reveal()
+  mountedSearch?.input.focus()
+}
 
 export const focusSearchAfter = (update: () => void) => {
   flushSync(update)
-  mountedSearch?.focus()
+  mountedSearch?.input.focus()
 }
 
 const unlessComposing =
@@ -78,6 +83,7 @@ export const useNavigatorSearch = ({
   const highlightedControlId = useId()
   const listId = useId()
   const [focused, setFocused] = useState(false)
+  const [revealed, setRevealed] = useState(false)
   const [moved, setMoved] = useState<{
     activeId?: string
     id: string
@@ -146,7 +152,11 @@ export const useNavigatorSearch = ({
         options: { preventDefault: false },
       },
       { callback: () => highlightedControl()?.click(), hotkey: 'Enter' },
-      { callback: onClear, hotkey: 'Escape', options: { enabled: !!search } },
+      {
+        callback: () => (search ? onClear() : setRevealed(false)),
+        hotkey: 'Escape',
+        options: { enabled: !!search || revealed },
+      },
     ],
     { target: searchRef }
   )
@@ -155,21 +165,26 @@ export const useNavigatorSearch = ({
   return {
     highlightedControlId,
     highlightedId,
+    isSearchOpen: revealed || !!search,
     listId,
     searchProps: {
       'aria-activedescendant': highlightedId && highlightedControlId,
       'aria-controls': listId,
       'aria-expanded': true,
-      onBlur: () => setFocused(false),
+      onBlur: () => {
+        setFocused(false)
+        setRevealed(false)
+      },
       onFocus: () => setFocused(true),
       ref: (input: HTMLInputElement) => {
         searchRef.current = input
-        mountedSearch = input
+        const mounted = { input, reveal: () => setRevealed(true) }
+        mountedSearch = mounted
         if (document.activeElement === document.body) {
           input.focus({ preventScroll: true })
         }
         return () => {
-          if (mountedSearch === input) {
+          if (mountedSearch === mounted) {
             mountedSearch = null
           }
         }

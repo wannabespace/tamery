@@ -1,6 +1,8 @@
 import '@tamery/shared/arktype-config'
 import { env } from '@tamery/db/env'
 import {
+  aiKeys,
+  chats,
   chatsMessages,
   chatsMessagesParts,
   connections,
@@ -17,6 +19,9 @@ await runColumnKeyRotation({
     { cipher: connections.connectionString, id: connections.id },
     { cipher: queries.query, id: queries.id },
     { cipher: schemaNotes.note, id: schemaNotes.id },
+    { cipher: aiKeys.key, id: aiKeys.id },
+    { cipher: chats.title, id: chats.id },
+    { cipher: chats.compaction, id: chats.id },
     { cipher: chatsMessages.metadata, id: chatsMessages.id },
     { cipher: chatsMessagesParts.part, id: chatsMessagesParts.id },
     { cipher: shares.view, id: shares.id },

@@ -4,7 +4,6 @@ import {
   PencilEdit01Icon,
   PinIcon,
   PinOffIcon,
-  PlusSignIcon,
   Search01Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -19,10 +18,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@tamery/ui/components/alert-dialog'
-import { Button } from '@tamery/ui/components/button'
 import { HighlightText } from '@tamery/ui/components/custom/highlight'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
-import { SearchInput } from '@tamery/ui/components/custom/search-input'
 import {
   SidebarContent,
   SidebarGroupLabel,
@@ -36,6 +33,7 @@ import { Spinner } from '@tamery/ui/components/spinner'
 import { cn } from '@tamery/ui/lib/utils'
 import { eq, useLiveQuery } from '@tanstack/react-db'
 import { useParams } from '@tanstack/react-router'
+import { isStaticToolUIPart } from 'ai'
 import { Fragment, useState, useSyncExternalStore } from 'react'
 import { useSubscription } from 'seitu/react'
 
@@ -44,15 +42,17 @@ import type { AppMenuNode } from '~/components/app-menu'
 import { getCollections, useCollections } from '~/core/collections'
 import { useConnectionContext } from '~/core/connection/route'
 import { useNavigatorSearch } from '~/modules/navigator/keyboard'
+import { NavigatorSearchField } from '~/modules/navigator/navigator-header'
 import { getNavigatorStore } from '~/modules/navigator/stores'
 
 import { chatActions } from './chat-actions'
 import { getChatInstance } from './chat-instance'
 import { awaitsUser } from './chat-tool-types'
-import { openChat, startNewChat } from './open-chat'
+import { openChat } from './open-chat'
 import { RenameChatDialog } from './rename-chat-dialog'
-import { chatDraftsValue, unreadChatsValue } from './stores'
+import { chatDraftsValue, newChatIdsValue, unreadChatsValue } from './stores'
 import { chatTab } from './tab'
+import { isSkipped } from './tool-status'
 
 const SKELETON_ROWS = 6
 const DAY = 24 * 60 * 60 * 1000
@@ -93,7 +93,10 @@ interface ChatRow {
   title: string
 }
 
-/** Chats whose latest message holds a change waiting on the user. */
+const waitsOnUser = (part: AppMessagePart) =>
+  awaitsUser(part) || (isStaticToolUIPart(part) && isSkipped(part))
+
+/** Chats whose latest message holds a change waiting on the user: one to approve, or one Auto skipped, which the user's next message settles. */
 const waitingChatIds = (
   rows: { chatId: string; messageId: string; part: AppMessagePart }[]
 ) => {
@@ -102,7 +105,7 @@ const waitingChatIds = (
     rows
       .filter(
         (row) =>
-          awaitsUser(row.part) &&
+          waitsOnUser(row.part) &&
           lastMessageId.get(row.chatId) === row.messageId
       )
       .map((row) => row.chatId)
@@ -313,7 +316,11 @@ export const ChatList = () => {
     return unread.includes(chatId) ? 'unread' : undefined
   }
   const { tabId } = useParams({ strict: false })
-  const activeId = tabId && chatTab.match(tabId)?.chatId
+  const newChatId = useSubscription(newChatIdsValue, {
+    selector: (ids) => ids[connectionResource.id],
+  })
+  const activeParams = tabId ? chatTab.match(tabId) : null
+  const activeId = activeParams && (activeParams.chatId ?? newChatId)
   const [search, setSearch] = useState('')
   const [deleting, setDeleting] = useState<ChatRow | null>(null)
   const [renaming, setRenaming] = useState<ChatRow | null>(null)
@@ -351,36 +358,30 @@ export const ChatList = () => {
   // Drafts live in this window and show at once, so before the chats load they would sit under the skeleton, and a sent chat's draft would show as a draft.
   const grouped = Object.groupBy(isLoading ? [] : rows, groupOf)
   const shown = GROUPS.flatMap((group) => grouped[group] ?? [])
-  const { highlightedControlId, highlightedId, listId, searchProps } =
-    useNavigatorSearch({
-      activeId: activeId || undefined,
-      nodes: shown,
-      onBack: () => getNavigatorStore(connectionResource.id).set('tables'),
-      onClear: () => setSearch(''),
-      search,
-    })
+  const {
+    highlightedControlId,
+    highlightedId,
+    isSearchOpen,
+    listId,
+    searchProps,
+  } = useNavigatorSearch({
+    activeId: activeId || undefined,
+    nodes: shown,
+    onBack: () => getNavigatorStore(connectionResource.id).set('tables'),
+    onClear: () => setSearch(''),
+    search,
+  })
 
   return (
     <>
-      <div className="shrink-0 pb-1.5 pl-2">
-        <SearchInput
-          size="sm"
-          data-mask
-          placeholder="Search"
-          aria-label="Search chats"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          onClear={() => setSearch('')}
-          start={
-            <HugeiconsIcon
-              icon={Search01Icon}
-              strokeWidth={2}
-              className="text-muted-foreground/70 size-3.5"
-            />
-          }
-          {...searchProps}
-        />
-      </div>
+      <NavigatorSearchField
+        open={isSearchOpen}
+        placeholder="Search chats"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        onClear={() => setSearch('')}
+        {...searchProps}
+      />
       <SidebarContent
         id={listId}
         className="scroll-fade min-h-0 flex-1 pb-2 pl-2"
@@ -409,22 +410,13 @@ export const ChatList = () => {
               icon={AiChat02Icon}
               title="No chats yet"
               description="Ask the AI about your data, change it, or compare it with another connection."
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => startNewChat(connectionResource.id)}
-              >
-                <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
-                New chat
-              </Button>
-            </IconEmpty>
+            />
           ))}
         <SidebarMenu data-mask>
           {GROUPS.map((group) =>
             grouped[group] ? (
               <Fragment key={group}>
-                <SidebarGroupLabel className="mt-2 first:mt-0">
+                <SidebarGroupLabel className="mt-4 first:mt-0">
                   {group}
                 </SidebarGroupLabel>
                 {grouped[group].map((row) => (

@@ -1,10 +1,4 @@
-import {
-  LayoutTable02Icon,
-  PlusSignIcon,
-  Search01Icon,
-} from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
-import { Button } from '@tamery/ui/components/button'
+import { LayoutTable02Icon, Search01Icon } from '@hugeicons/core-free-icons'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import {
   SidebarContent,
@@ -30,7 +24,6 @@ import { TreeRowContent } from './tree-row-content'
 
 const ROW_HEIGHTS = {
   empty: 30,
-  'new-schema': 44,
   schema: 32,
   separator: 13,
   table: 30,
@@ -140,12 +133,7 @@ export const TablesList = ({
             icon={LayoutTable02Icon}
             title={`No ${names.table}s yet`}
             description="Create the first one, or ask the AI to design it."
-          >
-            <Button variant="outline" size="sm" onClick={() => onCreateTable()}>
-              <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
-              New {names.table}
-            </Button>
-          </IconEmpty>
+          />
         )}
       </SidebarContent>
     )

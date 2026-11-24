@@ -2,11 +2,10 @@ import { openrouter } from '@openrouter/ai-sdk-provider'
 import { createRetryableModel } from 'ai-retry/language-model'
 import { memoize } from 'memoza'
 
-/** The models the chat offers, first is the default; the picker groups them by provider in this order. Every id is an OpenRouter id that takes tools and `reasoning.effort`; `context` is its window in tokens, from OpenRouter's catalog; the picker lists only `featured` ones until the user searches. */
+/** The models the chat offers, first is the default; the picker groups them by provider in this order. Every id is an OpenRouter id that takes tools and `reasoning.effort`; `context` is its window in tokens, from OpenRouter's catalog. */
 export const chatModels = [
   {
     id: 'anthropic/claude-opus-5.5',
-    featured: true,
     context: 1_000_000,
     name: 'Claude Opus 5.5',
     provider: 'Anthropic',
@@ -19,7 +18,6 @@ export const chatModels = [
   },
   {
     id: 'anthropic/claude-sonnet-5.5',
-    featured: true,
     context: 1_000_000,
     name: 'Claude Sonnet 5.5',
     provider: 'Anthropic',
@@ -38,7 +36,6 @@ export const chatModels = [
   },
   {
     id: 'openai/gpt-6.1-sol',
-    featured: true,
     context: 1_050_000,
     name: 'GPT-6.1 Sol',
     provider: 'OpenAI',
@@ -50,22 +47,27 @@ export const chatModels = [
     provider: 'OpenAI',
   },
   {
+    id: 'google/gemini-4-argon',
+    context: 1_048_576,
+    name: 'Gemini 4 Argon',
+    provider: 'Google',
+  },
+  {
     id: 'google/gemini-4-carbon',
     context: 1_048_576,
     name: 'Gemini 4 Carbon',
     provider: 'Google',
   },
   {
-    id: 'google/gemini-4-hydrogen',
+    id: 'google/gemini-4-neon',
     context: 1_048_576,
-    name: 'Gemini 4 Hydrogen',
+    name: 'Gemini 4 Neon',
     provider: 'Google',
   },
   {
-    id: '~google/gemini-pro-latest',
-    featured: true,
+    id: 'google/gemini-4-hydrogen',
     context: 1_048_576,
-    name: 'Gemini Pro',
+    name: 'Gemini 4 Hydrogen',
     provider: 'Google',
   },
   {
@@ -77,7 +79,6 @@ export const chatModels = [
   {
     id: 'x-ai/grok-4.7',
     context: 500_000,
-    featured: true,
     name: 'Grok 4.7',
     provider: 'xAI',
   },
@@ -147,10 +148,13 @@ export const AUTO_CHAT_MODELS: ChatModelId[] = [
   'anthropic/claude-opus-5.5',
 ]
 
+/** Auto's effort for each level of difficulty, in the same order as `AUTO_CHAT_MODELS`. */
+export const AUTO_CHAT_EFFORTS: ChatEffort[] = ['low', 'medium', 'high']
+
 const CHAT_FALLBACKS: ChatModelId[] = [
   'openai/gpt-6.1-sol',
   'x-ai/grok-4.7',
-  '~google/gemini-pro-latest',
+  'google/gemini-4-argon',
 ]
 
 /** Mistral's id for the editor's fill-in-the-middle completion. */
@@ -166,7 +170,7 @@ export const MODEL_IDS = {
   search: ['google/gemini-3.8-flash', 'anthropic/claude-haiku-4.5'],
   structured: ['anthropic/claude-sonnet-5.5', 'x-ai/grok-4.7'],
   summary: ['google/gemini-3.8-flash', 'anthropic/claude-sonnet-5.5'],
-  transcribe: ['google/gemini-3.8-flash', '~google/gemini-pro-latest'],
+  transcribe: ['google/gemini-3.8-flash', 'google/gemini-4-argon'],
 } as const
 
 /** The chat's and every fixed feature's models on one OpenRouter account: Tamery's, or a user's own key. */

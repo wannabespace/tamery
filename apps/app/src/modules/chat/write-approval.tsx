@@ -20,7 +20,7 @@ import { plural } from '~/utils/plural'
 
 import { autoApprovalsStore, estimateKey } from './auto-approval'
 import type { ToolPartActions } from './chat-tool-types'
-import { approvalModeValue } from './stores'
+import { approvalModeValue, hasDecidedChangeValue } from './stores'
 
 const AUTO_NOTES = { checking: 'Auto is checking', run: 'Auto is running it' }
 
@@ -45,6 +45,7 @@ export const WriteApproval = ({
   })
   const destructive = write?.kind === 'destructive'
   const isAuto = useSubscription(approvalModeValue) === 'auto'
+  const hasDecided = useSubscription(hasDecidedChangeValue)
   const approval = useSubscription(autoApprovalsStore, {
     selector: (approvals) => approvals[toolCallId] ?? null,
   })
@@ -83,6 +84,7 @@ export const WriteApproval = ({
   const hint = [
     note,
     typeof estimate.data === 'number' && `~${plural(estimate.data, 'row')}`,
+    !isAuto && !hasDecided && 'Changes wait for Run unless Auto is on',
   ]
     .filter(Boolean)
     .join(' · ')
@@ -100,6 +102,7 @@ export const WriteApproval = ({
         disabled={isRunning}
         onClick={() => {
           posthog.capture('ai_chat_write_declined', decision)
+          hasDecidedChangeValue.set(true)
           void decideWrite({ approved: false, input, toolCallId })
         }}
       >
@@ -114,6 +117,7 @@ export const WriteApproval = ({
               disabled={isRunning}
               onClick={() => {
                 posthog.capture('ai_chat_write_approved', decision)
+                hasDecidedChangeValue.set(true)
                 run.mutate()
               }}
             />

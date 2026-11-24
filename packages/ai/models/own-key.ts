@@ -88,7 +88,7 @@ const providerModels = {
 /** What Auto answers with on a provider's own key, since Jev runs only on OpenRouter. */
 export const OWN_KEY_AUTO_MODELS = {
   anthropic: 'anthropic/claude-sonnet-5.5',
-  google: '~google/gemini-pro-latest',
+  google: 'google/gemini-4-argon',
   openai: 'openai/gpt-6.1-sol',
 } as const satisfies Record<Exclude<AiKeyProvider, 'openrouter'>, ChatModelId>
 

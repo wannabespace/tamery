@@ -1,25 +1,23 @@
 import {
   AiChat02Icon,
-  ArrowDown01Icon,
   ArrowRight01Icon,
+  FolderAddIcon,
   HierarchyIcon,
   FlashIcon,
   Key01Icon,
   LayoutTable02Icon,
   LeftToRightListDashIcon,
+  PencilEdit02Icon,
+  PlusSignIcon,
   Refresh01Icon,
   Search01Icon,
   SecurityCheckIcon,
   SourceCodeIcon,
+  ArrowDown01Icon,
   ViewIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from '@tamery/ui/components/input-group'
 import {
   SidebarGroupLabel,
   SidebarMenuButton,
@@ -125,6 +123,16 @@ const ChatsList = ({ chatTitle }: { chatTitle: string }) =>
     </SidebarMenuButton>
   ))
 
+const ACTIONS = {
+  chat: [{ icon: PencilEdit02Icon, label: 'New chat' }],
+  schema: [],
+  table: [
+    { icon: PlusSignIcon, label: 'New table' },
+    { icon: ViewIcon, label: 'New view' },
+    { icon: FolderAddIcon, label: 'New schema' },
+  ],
+} satisfies Record<ShowcaseTab, { icon: typeof ViewIcon; label: string }[]>
+
 export const Navigator = ({
   chatTitle,
   tab,
@@ -133,8 +141,8 @@ export const Navigator = ({
   tab: ShowcaseTab
 }) => (
   <div className="text-foreground flex h-full w-52 shrink-0 flex-col pr-1.5">
-    <div className="mb-1.5 flex h-8 shrink-0 items-center pl-2">
-      <Button variant="heading" size="sm" className="flex-1 justify-start">
+    <div className="flex h-8 shrink-0 items-center pl-2">
+      <Button variant="heading" size="sm">
         {SECTIONS[tab]}
         <HugeiconsIcon
           icon={ArrowDown01Icon}
@@ -143,19 +151,32 @@ export const Navigator = ({
           className="text-muted-foreground size-4"
         />
       </Button>
-    </div>
-    <div className="flex shrink-0 items-center gap-1 pb-1.5 pl-2">
-      <InputGroup size="sm">
-        <InputGroupAddon>
-          <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
-        </InputGroupAddon>
-        <InputGroupInput placeholder="Search" readOnly />
-      </InputGroup>
-      {tab === 'table' && (
-        <Button variant="outline-muted" size="icon-sm">
-          <HugeiconsIcon icon={Refresh01Icon} strokeWidth={2} />
+      <div className="ml-auto flex items-center">
+        {tab === 'table' && (
+          <Button variant="ghost-muted" size="icon-sm">
+            <HugeiconsIcon
+              icon={Refresh01Icon}
+              strokeWidth={2}
+              className="size-4"
+            />
+          </Button>
+        )}
+        <Button variant="ghost-muted" size="icon-sm">
+          <HugeiconsIcon
+            icon={Search01Icon}
+            strokeWidth={2}
+            className="size-4"
+          />
         </Button>
-      )}
+      </div>
+    </div>
+    <div className="mt-2 mb-3 flex shrink-0 flex-col pl-2">
+      {ACTIONS[tab].map(({ icon, label }) => (
+        <SidebarMenuButton key={label}>
+          <HugeiconsIcon icon={icon} strokeWidth={2} />
+          <span>{label}</span>
+        </SidebarMenuButton>
+      ))}
     </div>
     <div className="flex min-h-0 flex-1 flex-col gap-0.5 pl-2">
       {tab === 'table' && <TablesList />}

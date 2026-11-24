@@ -25,10 +25,14 @@ import { posthog } from '~/lib/posthog'
 import { CHAT_COLUMN } from './chat-column'
 import { ChatError } from './chat-error'
 import { ChatInput } from './chat-input'
-import { ChatIntro } from './chat-intro'
 import { ChatMessages } from './chat-messages'
 import { ChatPaused } from './chat-paused'
 import { ChatStarters } from './chat-starters'
+import {
+  CHAT_EMPTY_LAYOUT,
+  CHAT_LAYOUT,
+  ChatIntroHeading,
+} from './composer-stand-in'
 import { ContextMeter } from './context-meter'
 import type { ChatCommand } from './prompt-mentions'
 import { modelPickerOpenStore } from './stores'
@@ -87,14 +91,9 @@ export const ChatConversation = ({
   const isEmpty = session.messages.length === 0
 
   return (
-    <div
-      className={cn(
-        'flex min-h-0 flex-1 flex-col',
-        isEmpty && 'justify-center-safe overflow-y-auto'
-      )}
-    >
+    <div className={cn(CHAT_LAYOUT, isEmpty && CHAT_EMPTY_LAYOUT)}>
       {isEmpty ? (
-        <ChatIntro />
+        <ChatIntroHeading />
       ) : (
         <ChatMessages
           compactedThroughId={session.compaction?.throughMessageId}

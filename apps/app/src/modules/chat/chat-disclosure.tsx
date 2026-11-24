@@ -40,13 +40,16 @@ export const ChatDisclosure = ({
   )
   if (!children) {
     return (
-      <div className="text-muted-foreground flex h-5 items-center gap-1.5 text-xs">
+      <div
+        data-slot="chat-step"
+        className="text-muted-foreground flex h-5 items-center gap-1.5 text-xs"
+      >
         {line}
       </div>
     )
   }
   return (
-    <Collapsible>
+    <Collapsible data-slot="chat-step">
       <div className="flex items-center gap-1">
         <CollapsibleTrigger variant="disclosure" className="group min-w-0">
           {line}

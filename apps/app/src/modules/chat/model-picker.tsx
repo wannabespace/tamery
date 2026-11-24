@@ -1,11 +1,9 @@
 import {
   AiBrain01Icon,
   ArrowDown01Icon,
-  ArrowLeft01Icon,
   Cancel01Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import type { ChatEffort } from '@tamery/ai/models'
 import { matchesSearch } from '@tamery/shared/utils'
 import {
   Command,
@@ -22,14 +20,19 @@ import {
   PopoverTrigger,
 } from '@tamery/ui/components/popover'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { ActionItem, ListEmpty } from '~/modules/runner/components/popover-list'
 
-import { DrillInButton } from './drill-in-button'
+import {
+  CONTROLS,
+  EFFORT_LABELS,
+  ModelOptions,
+  formatContext,
+} from './model-options'
 import type { ChatModelOptions } from './stores'
 import {
   chatModelOptionsValue,
@@ -38,22 +41,10 @@ import {
   recentChatModelsValue,
 } from './stores'
 
-const EFFORT_LABELS: Record<ChatEffort, string> = {
-  high: 'High',
-  low: 'Low',
-  medium: 'Medium',
-  xhigh: 'Max',
-}
-
 const RECENT_LIMIT = 4
 
 const matchesName = (value: string, search: string, keywords?: string[]) =>
   matchesSearch(search, [value, ...(keywords ?? [])].join(' ')) ? 1 : 0
-
-const formatContext = (tokens: number) =>
-  tokens >= 1_000_000
-    ? `${Math.floor(tokens / 1_000_000)}M`
-    : `${Math.round(tokens / 1000)}K`
 
 const forget = (id: string) => {
   recentChatModelsValue.set((recent) => recent.filter((other) => other !== id))
@@ -90,17 +81,22 @@ export const ModelPicker = () => {
   const open = useSubscription(modelPickerOpenStore)
   const [search, setSearch] = useState('')
   const [highlighted, setHighlighted] = useState('')
-  const [configuringId, setConfiguringId] = useState<string | null>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const optionsRef = useRef<HTMLDivElement>(null)
+  const [activeRow, setActiveRow] = useState<HTMLElement | null>(null)
   const models = data?.models ?? []
   const current = models.find((model) => model.id === picked)
-  const configuring = models.find((model) => model.id === configuringId)
   const recent = recentIds.flatMap(
     (id) => models.find((model) => model.id === id) ?? []
   )
-  const listed = search
-    ? models
-    : models.filter((model) => model.featured || model.id === current?.id)
-  const providers = [...new Set(listed.map((model) => model.provider))]
+  const currentRow =
+    current &&
+    (recentIds.includes(current.id) ? `recent:${current.id}` : current.id)
+  const active = highlighted || currentRow || 'auto'
+  const activeModel = models.find(
+    (model) => model.id === active.replace(/^recent:/u, '')
+  )
+  const providers = [...new Set(models.map((model) => model.provider))]
 
   const optionsOf = (model: (typeof models)[number]) => ({
     context: allOptions[model.id]?.context ?? model.contexts.at(-1) ?? 0,
@@ -119,38 +115,45 @@ export const ModelPicker = () => {
       .join(' · ')
   }
 
-  const configure = (id: string) => {
-    setConfiguringId(id)
-    setSearch('')
-    setHighlighted('')
-  }
-
-  const back = () => {
-    setHighlighted(configuringId ?? '')
-    setConfiguringId(null)
-    setSearch('')
+  const setOpen = (next: boolean) => {
+    modelPickerOpenStore.set(next)
+    if (!next) {
+      setSearch('')
+      setHighlighted('')
+    }
   }
 
   const select = (id: string | null) => {
     choose(id)
-    modelPickerOpenStore.set(false)
-    setSearch('')
+    setOpen(false)
     posthog.capture('ai_chat_model_changed', { model: id ?? 'auto' })
   }
 
-  const modelRow = (model: (typeof models)[number], value: string) => (
+  // cmdk scrolls before a controlled value reaches the DOM, so it would bring the previous row into view; the row scrolls itself once highlighted.
+  const showRow = (row: HTMLElement | null) => {
+    setActiveRow(row)
+    if (!row || row.matches(':hover')) {
+      return
+    }
+    if (row.parentElement?.firstElementChild === row) {
+      row
+        .closest('[cmdk-group]')
+        ?.querySelector('[cmdk-group-heading]')
+        ?.scrollIntoView({ block: 'nearest' })
+    }
+    row.scrollIntoView({ block: 'nearest' })
+  }
+
+  const rowRef = (value: string) => (value === active ? showRow : undefined)
+
+  const modelRow = (model: (typeof models)[number]) => (
     <>
-      <span className="flex-1 truncate">{model.name}</span>
+      {model.name}
       {model.id === current?.id && (
-        <span className="text-muted-foreground text-xs">{summary(model)}</span>
+        <span className="text-muted-foreground flex-1 truncate text-xs">
+          {summary(model)}
+        </span>
       )}
-      <DrillInButton
-        label="Effort, context and speed"
-        onOpen={() => {
-          setHighlighted(value)
-          configure(model.id)
-        }}
-      />
     </>
   )
 
@@ -158,17 +161,17 @@ export const ModelPicker = () => {
     <Popover
       open={open}
       onOpenChange={(next, details) => {
-        // Escape is one step of the ladder: out of a model's options first, then the picker.
-        if (!next && details.reason === 'escape-key' && configuringId) {
+        // Escape is one step of the ladder: the options panel hands focus back to the search first, then the picker closes.
+        if (
+          !next &&
+          details.reason === 'escape-key' &&
+          details.event.target instanceof Node &&
+          optionsRef.current?.contains(details.event.target)
+        ) {
           details.cancel()
-          back()
           return
         }
-        modelPickerOpenStore.set(next)
-        if (!next) {
-          setSearch('')
-          setConfiguringId(null)
-        }
+        setOpen(next)
       }}
     >
       <PopoverTrigger
@@ -180,181 +183,152 @@ export const ModelPicker = () => {
           />
         }
       >
+        {current && <AiProviderIcon provider={current.provider} />}
         <span className="text-foreground truncate">
-          {current?.name ?? 'Auto'}
+          {current?.name ?? 'Auto model'}
         </span>
-        {current && <span className="shrink-0">{summary(current)}</span>}
         <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} />
       </PopoverTrigger>
       <PopoverContent side="top" align="start" padding="none" className="w-80">
         <Command
           loop
           filter={matchesName}
-          value={highlighted}
+          value={active}
           onValueChange={setHighlighted}
           onKeyDown={(event) => {
-            const id = highlighted.replace(/^recent:/u, '')
             const caretAtEnd =
               !(event.target instanceof HTMLInputElement) ||
               event.target.selectionStart === event.target.value.length
-            if (
-              event.key === 'ArrowRight' &&
-              !configuring &&
-              models.some((model) => model.id === id) &&
-              caretAtEnd
-            ) {
+            if (event.key === 'ArrowRight' && activeModel && caretAtEnd) {
               event.preventDefault()
-              configure(id)
+              optionsRef.current?.querySelector<HTMLElement>(CONTROLS)?.focus()
             } else if (
-              configuring &&
-              ((event.key === 'ArrowLeft' && !search) || event.key === 'Escape')
+              (event.key === 'Backspace' || event.key === 'Delete') &&
+              !search &&
+              activeModel &&
+              active.startsWith('recent:')
             ) {
-              // preventDefault also keeps the window's Escape-to-Navigator from pulling focus out, which would close the picker.
               event.preventDefault()
-              event.stopPropagation()
-              back()
+              const index = recent.indexOf(activeModel)
+              const neighbour = recent[index + 1] ?? recent[index - 1]
+              setHighlighted(neighbour ? `recent:${neighbour.id}` : 'auto')
+              forget(activeModel.id)
             }
           }}
         >
           <CommandInput
-            placeholder={configuring ? 'Search options' : 'Search all models'}
+            ref={searchRef}
+            placeholder="Search models"
             autoFocus
             value={search}
             onValueChange={setSearch}
           />
-          {configuring ? (
-            <CommandList className="max-h-104">
-              <CommandGroup>
-                <CommandItem value="back" onSelect={back}>
-                  <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
-                  <span className="flex-1 truncate">{configuring.name}</span>
-                  <span className="text-muted-foreground text-xs">
-                    {summary(configuring)}
-                  </span>
-                </CommandItem>
-              </CommandGroup>
-              <CommandGroup heading="Effort">
-                {data?.efforts.map((level) => (
-                  <CommandItem
-                    key={level}
-                    value={`effort:${level}`}
-                    keywords={['effort', EFFORT_LABELS[level]]}
-                    data-checked={optionsOf(configuring).effort === level}
-                    onSelect={() =>
-                      setOption(configuring.id, { effort: level })
-                    }
+          {/* A fixed height, not a cap: the popover opens upward from its bottom edge, so a list that resized with the results would move the search field under the caret. */}
+          <CommandList className="h-72">
+            <ListEmpty icon={AiBrain01Icon}>No matching models</ListEmpty>
+            <CommandGroup>
+              <CommandItem
+                ref={rowRef('auto')}
+                value="auto"
+                keywords={['Auto']}
+                data-checked={!current}
+                onSelect={() => select(null)}
+              >
+                Auto
+                <span className="text-muted-foreground flex-1 truncate text-xs">
+                  Picks a model for each message
+                </span>
+              </CommandItem>
+            </CommandGroup>
+            {!search && recent.length > 0 && (
+              <CommandGroup heading="Recent">
+                {recent.map((model) => (
+                  <ActionItem
+                    key={model.id}
+                    ref={rowRef(`recent:${model.id}`)}
+                    value={`recent:${model.id}`}
+                    data-checked={model.id === current?.id}
+                    onSelect={() => select(model.id)}
+                    actions={[
+                      {
+                        icon: Cancel01Icon,
+                        label: 'Remove from Recent',
+                        onSelect: () => forget(model.id),
+                      },
+                    ]}
                   >
-                    {EFFORT_LABELS[level]}
-                  </CommandItem>
+                    <AiProviderIcon provider={model.provider} />
+                    {modelRow(model)}
+                  </ActionItem>
                 ))}
               </CommandGroup>
-              <CommandGroup heading="Context">
-                {configuring.contexts.map((tokens) => (
-                  <CommandItem
-                    key={tokens}
-                    value={`context:${tokens}`}
-                    keywords={['context', formatContext(tokens)]}
-                    data-checked={optionsOf(configuring).context === tokens}
-                    onSelect={() =>
-                      setOption(configuring.id, { context: tokens })
-                    }
-                  >
-                    {formatContext(tokens)}
-                    <span className="text-muted-foreground text-xs">
-                      {tokens === configuring.contexts.at(-1)
-                        ? 'The whole chat'
-                        : 'Summarized sooner'}
-                    </span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-              <CommandGroup heading="Speed">
-                <CommandItem
-                  value="fast"
-                  keywords={['fast', 'speed']}
-                  data-checked={optionsOf(configuring).fast}
-                  onSelect={() =>
-                    setOption(configuring.id, {
-                      fast: !optionsOf(configuring).fast,
-                    })
-                  }
-                >
-                  Fast
-                  <span className="text-muted-foreground text-xs">
-                    Fastest providers, may cost more
+            )}
+            {providers.map((provider) => (
+              <CommandGroup
+                key={provider}
+                heading={
+                  <span className="flex items-center gap-1.5">
+                    <AiProviderIcon provider={provider} className="size-3.5" />
+                    {provider}
                   </span>
-                </CommandItem>
-              </CommandGroup>
-            </CommandList>
-          ) : (
-            // A fixed height, not a cap: the popover opens upward from its bottom edge, so a list that resized with the results would move the search field under the caret.
-            <CommandList className="h-72">
-              <ListEmpty icon={AiBrain01Icon}>No matching models</ListEmpty>
-              <CommandGroup>
-                <CommandItem
-                  value="auto"
-                  keywords={['Auto']}
-                  data-checked={!current}
-                  onSelect={() => select(null)}
-                >
-                  <span className="flex-1 truncate">Auto</span>
-                  <span className="text-muted-foreground text-xs">
-                    Picks a model for each message
-                  </span>
-                </CommandItem>
-              </CommandGroup>
-              {!search && recent.length > 0 && (
-                <CommandGroup heading="Recent">
-                  {recent.map((model) => (
-                    <ActionItem
+                }
+              >
+                {models
+                  .filter((model) => model.provider === provider)
+                  .map((model) => (
+                    <CommandItem
                       key={model.id}
-                      value={`recent:${model.id}`}
+                      ref={rowRef(model.id)}
+                      value={model.id}
+                      keywords={[model.name, provider]}
                       data-checked={model.id === current?.id}
                       onSelect={() => select(model.id)}
-                      actions={[
-                        {
-                          icon: Cancel01Icon,
-                          label: 'Remove from Recent',
-                          onSelect: () => forget(model.id),
-                        },
-                      ]}
                     >
-                      {modelRow(model, `recent:${model.id}`)}
-                    </ActionItem>
+                      {modelRow(model)}
+                    </CommandItem>
                   ))}
-                </CommandGroup>
-              )}
-              {providers.map((provider) => (
-                <CommandGroup
-                  key={provider}
-                  heading={
-                    <span className="flex items-center gap-1.5">
-                      <AiProviderIcon
-                        provider={provider}
-                        className="size-3.5"
-                      />
-                      {provider}
-                    </span>
-                  }
-                >
-                  {listed
-                    .filter((model) => model.provider === provider)
-                    .map((model) => (
-                      <CommandItem
-                        key={model.id}
-                        value={model.id}
-                        keywords={[model.name, provider]}
-                        data-checked={model.id === current?.id}
-                        onSelect={() => select(model.id)}
-                      >
-                        {modelRow(model, model.id)}
-                      </CommandItem>
-                    ))}
-                </CommandGroup>
-              ))}
-            </CommandList>
-          )}
+              </CommandGroup>
+            ))}
+          </CommandList>
         </Command>
+        <Popover
+          open={open && !!activeModel}
+          onOpenChange={(next, details) => {
+            if (next || details.reason !== 'escape-key') {
+              return
+            }
+            if (
+              details.event.target instanceof Node &&
+              optionsRef.current?.contains(details.event.target)
+            ) {
+              searchRef.current?.focus()
+            } else {
+              setOpen(false)
+            }
+          }}
+        >
+          <PopoverContent
+            side="right"
+            align="start"
+            alignOffset={-4}
+            padding="none"
+            className="w-64 in-data-anchor-hidden:hidden"
+            anchor={activeRow}
+            initialFocus={false}
+            finalFocus={false}
+          >
+            {activeModel && data && (
+              <ModelOptions
+                ref={optionsRef}
+                contexts={activeModel.contexts}
+                efforts={data.efforts}
+                options={optionsOf(activeModel)}
+                onChange={(option) => setOption(activeModel.id, option)}
+                onLeave={() => searchRef.current?.focus()}
+              />
+            )}
+          </PopoverContent>
+        </Popover>
       </PopoverContent>
     </Popover>
   )

@@ -22,10 +22,11 @@ export const generateChatTitle = async (data: {
   key?: AiKey | null
   telemetry?: TelemetryOptions
 }) => {
-  const firstUserMessage = data.messages.find(
-    (message) => message.role === 'user'
-  )
-  const prompt = firstUserMessage ? textFromMessage(firstUserMessage) : ''
+  const prompt =
+    data.messages
+      .filter((message) => message.role === 'user')
+      .map(textFromMessage)
+      .find(Boolean) ?? ''
   if (!prompt) {
     return null
   }

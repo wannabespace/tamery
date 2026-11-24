@@ -123,7 +123,7 @@ const SidebarGroupLabel = ({
     props: mergeProps<'div'>(
       {
         className: cn(
-          `text-foreground/70 group-data-highlighted/menu-item:bg-foreground/10 focus-visible:bg-foreground/10 text-2xs flex h-6 shrink-0 items-center rounded-md px-2 font-semibold tracking-wider uppercase outline-hidden [&>svg]:size-4 [&>svg]:shrink-0`,
+          `text-muted-foreground group-data-highlighted/menu-item:bg-foreground/10 focus-visible:bg-foreground/10 flex h-7 shrink-0 items-center rounded-md px-2 text-sm outline-hidden [&>svg]:size-4 [&>svg]:shrink-0`,
           className
         ),
       },

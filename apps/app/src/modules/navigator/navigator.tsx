@@ -25,20 +25,29 @@ export const Navigator = () => {
   )
 
   return (
-    <div className="text-foreground flex h-full flex-col pr-1.5">
+    <div className="group/navigator text-foreground relative flex h-full flex-col pr-1.5">
       <NavigatorHeader />
       <Activity mode={navigator === 'tables' ? 'visible' : 'hidden'}>
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div
+          data-active={navigator === 'tables' || undefined}
+          className="flex min-h-0 flex-1 flex-col"
+        >
           <TablesPanel onCreateTable={createTable} />
         </div>
       </Activity>
       <Activity mode={navigator === 'definitions' ? 'visible' : 'hidden'}>
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div
+          data-active={navigator === 'definitions' || undefined}
+          className="flex min-h-0 flex-1 flex-col"
+        >
           <DefinitionsPanel />
         </div>
       </Activity>
       <Activity mode={navigator === 'chats' ? 'visible' : 'hidden'}>
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div
+          data-active={navigator === 'chats' || undefined}
+          className="flex min-h-0 flex-1 flex-col"
+        >
           <ChatList />
         </div>
       </Activity>

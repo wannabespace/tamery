@@ -5,6 +5,7 @@ import {
   Alert,
   AlertAction,
   AlertDescription,
+  AlertTitle,
 } from '@tamery/ui/components/alert'
 import { Button } from '@tamery/ui/components/button'
 
@@ -18,10 +19,20 @@ export const ChatError = ({
   error: Error
   onRetry: () => void
 }) => (
-  <div className="shrink-0 px-2">
-    <Alert variant="destructive">
+  <div className="shrink-0 px-3">
+    <Alert variant="error">
       <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
-      <AlertDescription>{error.message}</AlertDescription>
+      {/* fetch throws a TypeError only when the request never reached the API */}
+      {error instanceof TypeError ? (
+        <>
+          <AlertTitle>Couldn’t reach Tamery</AlertTitle>
+          <AlertDescription>
+            Check your internet connection, then retry.
+          </AlertDescription>
+        </>
+      ) : (
+        <AlertTitle data-mask>{error.message}</AlertTitle>
+      )}
       <AlertAction>
         {error.message === AI_BUDGET_SPENT_MESSAGE ? (
           <Button

@@ -2,14 +2,19 @@ import { type } from 'arktype'
 
 import type { AppUIMessage } from '../message'
 import { textFromMessage } from '../message'
-import type { ChatModelId } from '../models/list'
-import { AUTO_CHAT_MODELS, DEFAULT_CHAT_MODEL } from '../models/list'
+import type { ChatEffort, ChatModelId } from '../models/list'
+import {
+  AUTO_CHAT_EFFORTS,
+  AUTO_CHAT_MODELS,
+  DEFAULT_CHAT_EFFORT,
+  DEFAULT_CHAT_MODEL,
+} from '../models/list'
 import type { AiKey } from '../models/own-key'
 import { chatModelsFor, OWN_KEY_AUTO_MODELS } from '../models/own-key'
 import type { JevUsage } from './jev'
 import { askJev } from './jev'
 
-// One level per model of `AUTO_CHAT_MODELS`, in the same order.
+// One level per model of `AUTO_CHAT_MODELS` and effort of `AUTO_CHAT_EFFORTS`, in the same order.
 const DIFFICULTY = {
   criteria: [
     'A lookup or one simple query: count rows, show a table, find a record, explain a column',
@@ -49,30 +54,48 @@ const rate = async (
   }
 }
 
-/** The user's pick, or Auto's when they picked none or one no longer offered. On a provider's own key Auto is that provider's model, since Jev runs only on OpenRouter; otherwise it has Jev rate each new user turn, keeps a turn's tool steps on the model that started it, and never steps a chat down a tier: a lighter model would read the whole history again without the previous model's prompt cache. */
+interface ChatPick {
+  effort: ChatEffort
+  model: ChatModelId
+}
+
+/** The user's pick, or Auto's when they picked none or one no longer offered. On a provider's own key Auto is that provider's model at the default effort, since Jev runs only on OpenRouter; otherwise it has Jev rate each new user turn and keeps a turn's tool steps on the model and effort that started it. The effort follows each turn's own rating, but a chat never steps down a model tier: a lighter model would read the whole history again without the previous model's prompt cache. */
 export const pickChatModel = async (data: {
+  effort?: ChatEffort
   key?: AiKey | null
   messages: AppUIMessage[]
   model?: string
   onJevUsage: (usage: JevUsage) => Promise<void>
-}): Promise<ChatModelId> => {
+}): Promise<ChatPick> => {
   const picked = chatModelsFor(data.key).find(
     (model) => model.id === data.model
   )
   if (picked) {
-    return picked.id
+    return { effort: data.effort ?? DEFAULT_CHAT_EFFORT, model: picked.id }
   }
   if (data.key && data.key.provider !== 'openrouter') {
-    return OWN_KEY_AUTO_MODELS[data.key.provider]
+    return {
+      effort: DEFAULT_CHAT_EFFORT,
+      model: OWN_KEY_AUTO_MODELS[data.key.provider],
+    }
   }
   const previous = data.messages.findLast(
     (message) => message.role === 'assistant'
-  )?.metadata?.model
+  )?.metadata
   const turn = data.messages.at(-1)
   if (turn?.role !== 'user') {
-    return previous ?? AUTO_CHAT_MODELS[STANDARD_TIER] ?? DEFAULT_CHAT_MODEL
+    return {
+      effort: previous?.effort ?? DEFAULT_CHAT_EFFORT,
+      model:
+        previous?.model ??
+        AUTO_CHAT_MODELS[STANDARD_TIER] ??
+        DEFAULT_CHAT_MODEL,
+    }
   }
-  const floor = previous ? AUTO_CHAT_MODELS.indexOf(previous) : -1
-  const tier = Math.max(floor, await rate(turn, data.onJevUsage, data.key?.key))
-  return AUTO_CHAT_MODELS[tier] ?? DEFAULT_CHAT_MODEL
+  const floor = previous?.model ? AUTO_CHAT_MODELS.indexOf(previous.model) : -1
+  const level = await rate(turn, data.onJevUsage, data.key?.key)
+  return {
+    effort: AUTO_CHAT_EFFORTS[level] ?? DEFAULT_CHAT_EFFORT,
+    model: AUTO_CHAT_MODELS[Math.max(floor, level)] ?? DEFAULT_CHAT_MODEL,
+  }
 }

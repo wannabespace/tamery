@@ -11,7 +11,6 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupTextarea,
 } from '@tamery/ui/components/input-group'
 import { Kbd } from '@tamery/ui/components/kbd'
 import {
@@ -20,8 +19,10 @@ import {
   TooltipTrigger,
 } from '@tamery/ui/components/tooltip'
 import type { FileUIPart } from 'ai'
-import type { ComponentRef, KeyboardEvent, ReactNode } from 'react'
+import type { editor } from 'monaco-editor'
+import type { ComponentRef, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
+import { useSubscription } from 'seitu/react'
 
 import { useConnectionContext, useTabContext } from '~/core/connection/route'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
@@ -33,6 +34,14 @@ import { useIsOnline } from '~/store'
 import { ApprovalModePicker } from './approval-mode-picker'
 import { AttachmentChip } from './attachment-chip'
 import { ATTACHMENT_ACCEPT, readAttachments } from './attachments'
+import {
+  CHAT_COMPOSER_FIELD,
+  CHAT_COMPOSER_FORM,
+  CHAT_PLACEHOLDER,
+  ComposerTextarea,
+  releaseStandIn,
+  standInText,
+} from './composer-stand-in'
 import { useDictation } from './dictation'
 import { DictationButton } from './dictation-button'
 import { MentionHighlight } from './mention-highlight'
@@ -40,11 +49,16 @@ import { ModelPicker } from './model-picker'
 import type { ChatCommand, PromptMention } from './prompt-mentions'
 import { commandOf, usePromptMentions } from './prompt-mentions'
 import { PromptMenu } from './prompt-menu'
+import { SqlComposer } from './sql-composer'
 import { sqlOf } from './sql-run'
-import { chatDraftsValue, setChatDraft } from './stores'
+import {
+  chatDraftsValue,
+  composerFocusRequestStore,
+  setChatDraft,
+} from './stores'
 
 const draftOf = (chatId: string) => {
-  const text = chatDraftsValue.get()[chatId]?.text ?? ''
+  const text = standInText() ?? chatDraftsValue.get()[chatId]?.text ?? ''
   const statement = sqlOf(text)
   return { isSql: statement !== null, value: statement ?? text }
 }
@@ -74,25 +88,11 @@ const sendLabelOf = ({
 
 const placeholderOf = ({
   isRecording,
-  isSql,
   suggestion,
 }: {
   isRecording: boolean
-  isSql: boolean
   suggestion: string | undefined
-}) => {
-  if (isRecording) {
-    return 'Listening…'
-  }
-  if (isSql) {
-    return 'SQL to run, ⌫ to go back to chat'
-  }
-  return suggestion ?? 'Ask, @ to mention, / for commands, ! to run SQL'
-}
-
-const leavesSql = (event: KeyboardEvent<HTMLTextAreaElement>) =>
-  event.key === 'Escape' ||
-  (event.key === 'Backspace' && event.currentTarget.selectionEnd === 0)
+}) => (isRecording ? 'Listening…' : (suggestion ?? CHAT_PLACEHOLDER))
 
 export const ChatInput = ({
   canInterrupt = true,
@@ -136,6 +136,7 @@ export const ChatInput = ({
   const [value, setValue] = useState(() => draftOf(chatId).value)
   const [files, setFiles] = useState<FileUIPart[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const sqlEditorRef = useRef<editor.IStandaloneCodeEditor>(null)
   const highlightRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const confirmRef = useRef<ComponentRef<typeof RunnerAlertDialog>>(null)
@@ -151,6 +152,10 @@ export const ChatInput = ({
     textareaRef.current?.focus()
   })
 
+  const focusRequest = useSubscription(composerFocusRequestStore)
+
+  useEffect(releaseStandIn, [])
+
   useEffect(() => {
     setChatDraft(
       chatId,
@@ -161,11 +166,24 @@ export const ChatInput = ({
 
   useEffect(() => {
     const textarea = textareaRef.current
-    if (isActive && textarea) {
+    const sqlEditor = sqlEditorRef.current
+    if (!isActive) {
+      return
+    }
+    if (sqlEditor) {
+      sqlEditor.focus()
+      sqlEditor.setPosition(
+        sqlEditor.getModel()?.getFullModelRange().getEndPosition() ?? {
+          column: 1,
+          lineNumber: 1,
+        }
+      )
+    } else if (textarea) {
       textarea.focus()
       textarea.setSelectionRange(textarea.value.length, textarea.value.length)
     }
-  }, [isActive])
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- isSql swaps the textarea and the SQL editor, and the one that mounts takes focus; focusRequest is New chat landing on the chat that is already open
+  }, [focusRequest, isActive, isSql])
 
   const attach = async (picked: File[]) => {
     const parts = await readAttachments(picked, files.length)
@@ -210,7 +228,7 @@ export const ChatInput = ({
 
   return (
     <form
-      className="relative shrink-0 px-3 py-2"
+      className={CHAT_COMPOSER_FORM}
       onSubmit={(event) => {
         event.preventDefault()
         submit()
@@ -239,90 +257,94 @@ export const ChatInput = ({
             </AttachmentGroup>
           </InputGroupAddon>
         )}
-        <div className="relative flex w-full">
-          <MentionHighlight
-            ref={highlightRef}
-            labels={menu.sentMentions().map(({ label }) => label)}
-            value={value}
-          />
-          <InputGroupTextarea
-            ref={textareaRef}
-            data-mask
-            aria-label="Message"
-            placeholder={placeholderOf({
-              isRecording: dictation.isRecording,
-              isSql,
-              suggestion,
-            })}
-            rows={2}
-            className="relative field-sizing-content max-h-64 min-h-14 px-3 pt-2.5"
-            value={value}
-            onChange={(event) => {
-              const next = event.target.value
-              if (!isSql && !value && next.startsWith('!')) {
-                setIsSql(true)
-                setValue(next.slice(1))
-                return
-              }
-              setValue(next)
-            }}
-            onScroll={(event) => {
-              if (highlightRef.current) {
-                highlightRef.current.scrollTop = event.currentTarget.scrollTop
-              }
-            }}
-            onSelect={(event) => menu.onSelect(event)}
-            onDragOver={(event) => {
-              if (event.dataTransfer.types.includes('Files')) {
-                event.preventDefault()
-              }
-            }}
-            onDrop={(event) => {
-              if (event.dataTransfer.files.length > 0) {
-                event.preventDefault()
-                void attach([...event.dataTransfer.files])
-              }
-            }}
-            onPaste={(event) => {
-              if (event.clipboardData.files.length > 0) {
-                event.preventDefault()
-                void attach([...event.clipboardData.files])
-              }
-            }}
-            onKeyDown={(event) => {
-              if (menu.onKeyDown(event)) {
-                return
-              }
-              if (event.key === 'Escape' && dictation.isRecording) {
-                event.preventDefault()
-                dictation.cancel()
-              } else if (isSql && leavesSql(event)) {
-                event.preventDefault()
-                setIsSql(false)
-              } else if (
-                event.key === 'Tab' &&
-                !event.shiftKey &&
-                !value &&
-                !isSql &&
-                suggestion
-              ) {
-                event.preventDefault()
-                posthog.capture('ai_chat_suggestion_taken')
-                setValue(suggestion)
-              } else if (event.key === 'ArrowUp' && !value && lastPrompt) {
-                event.preventDefault()
-                posthog.capture('ai_chat_prompt_recalled')
-                setValue(lastPrompt)
-              } else if (
-                event.key === 'Enter' &&
-                !event.shiftKey &&
-                !event.nativeEvent.isComposing
-              ) {
-                event.preventDefault()
-                submit(canInterrupt && (event.metaKey || event.ctrlKey))
-              }
-            }}
-          />
+        <div className={CHAT_COMPOSER_FIELD}>
+          {isSql ? (
+            <SqlComposer
+              editorRef={sqlEditorRef}
+              value={value}
+              onChange={setValue}
+              onLeave={() => setIsSql(false)}
+              onSubmit={(now) => submit(canInterrupt && now)}
+            />
+          ) : (
+            <>
+              <MentionHighlight
+                ref={highlightRef}
+                labels={menu.sentMentions().map(({ label }) => label)}
+                value={value}
+              />
+              <ComposerTextarea
+                ref={textareaRef}
+                placeholder={placeholderOf({
+                  isRecording: dictation.isRecording,
+                  suggestion,
+                })}
+                value={value}
+                onChange={(event) => {
+                  const next = event.target.value
+                  if (!value && next.startsWith('!')) {
+                    setIsSql(true)
+                    setValue(next.slice(1))
+                    return
+                  }
+                  setValue(next)
+                }}
+                onScroll={(event) => {
+                  if (highlightRef.current) {
+                    highlightRef.current.scrollTop =
+                      event.currentTarget.scrollTop
+                  }
+                }}
+                onSelect={(event) => menu.onSelect(event)}
+                onDragOver={(event) => {
+                  if (event.dataTransfer.types.includes('Files')) {
+                    event.preventDefault()
+                  }
+                }}
+                onDrop={(event) => {
+                  if (event.dataTransfer.files.length > 0) {
+                    event.preventDefault()
+                    void attach([...event.dataTransfer.files])
+                  }
+                }}
+                onPaste={(event) => {
+                  if (event.clipboardData.files.length > 0) {
+                    event.preventDefault()
+                    void attach([...event.clipboardData.files])
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (menu.onKeyDown(event)) {
+                    return
+                  }
+                  if (event.key === 'Escape' && dictation.isRecording) {
+                    event.preventDefault()
+                    dictation.cancel()
+                  } else if (
+                    event.key === 'Tab' &&
+                    !event.shiftKey &&
+                    !value &&
+                    suggestion
+                  ) {
+                    event.preventDefault()
+                    posthog.capture('ai_chat_suggestion_taken')
+                    setValue(suggestion)
+                  } else if (event.key === 'ArrowUp' && !value && lastPrompt) {
+                    event.preventDefault()
+                    posthog.capture('ai_chat_prompt_recalled')
+                    setValue(lastPrompt)
+                  } else if (
+                    event.key === 'Enter' &&
+                    !event.shiftKey &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault()
+                    submit(canInterrupt && (event.metaKey || event.ctrlKey))
+                  }
+                }}
+              />
+            </>
+          )}
         </div>
         <InputGroupAddon align="block-end">
           <div className="flex min-w-0 flex-1 items-center gap-1">

@@ -1,13 +1,15 @@
 import type { UIMessage } from 'ai'
 import { isTextUIPart } from 'ai'
 
-import type { ChatModelId } from './models/list'
+import type { ChatEffort, ChatModelId } from './models/list'
 import type { ChatDataParts, ChatTools } from './tools'
 
 export interface AppMessageMetadata {
   capped?: boolean
   /** Input tokens of the answer's last step: how much of the window the chat fills now. */
   context?: number
+  /** The `reasoning.effort` the answer ran at; Auto keeps a turn's tool steps on it. */
+  effort?: ChatEffort
   finishedAt?: number
   /** The model that wrote the answer; Auto keeps a turn's tool steps on it. */
   model?: ChatModelId
@@ -40,7 +42,7 @@ export const textFromMessage = (message: Pick<AppUIMessage, 'parts'>) =>
     .join('\n')
     .trim()
 
-/** A statement the user ran themselves from the composer: kept for the agent to read, never answered. */
+/** A statement the user ran themselves from the composer, which the agent answers like a message. */
 export const isSqlRun = (message: Pick<AppUIMessage, 'parts'>) =>
   message.parts.some((part) => part.type === 'data-sql')
 

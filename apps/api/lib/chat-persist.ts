@@ -521,7 +521,7 @@ export const chatPersist = {
 
       const [updated] = await db
         .update(chats)
-        // Titles are stored in plaintext, and one summarizing a pasted connection string would carry its password.
+        // A title summarizing a pasted connection string would carry its password into every chat list.
         .set({ title: redactSecrets(title) })
         .where(
           and(

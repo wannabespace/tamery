@@ -6,7 +6,6 @@ import {
 } from '@tamery/ai/features'
 import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
-import { isSqlRun } from '@tamery/ai/message'
 import { resolveChatContext } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { runInBackground } from '@tamery/shared/background'
@@ -67,21 +66,6 @@ export const stream = orpc
       throw errors.BAD_REQUEST()
     }
 
-    if (isSqlRun(turn)) {
-      await chatPersist.ensureChat({
-        chatId: input.chatId,
-        connectionResourceId: input.connectionResourceId,
-        subagent: input.subagent,
-        userId: context.user.id,
-      })
-      await chatPersist.persistMessage({
-        chatId: input.chatId,
-        message: turn,
-        userId: context.user.id,
-      })
-      return
-    }
-
     const payer = await payForAi(context.user.id, errors.TOO_MANY_REQUESTS)
 
     const { connection, isSubagent, title } = await chatPersist.ensureChat({
@@ -130,7 +114,8 @@ export const stream = orpc
       feature: AiFeature.Chat,
       userId: context.user.id,
     }
-    const model = await pickChatModel({
+    const { effort, model } = await pickChatModel({
+      effort: input.effort,
       key: payer.key,
       messages: history,
       model: input.model,
@@ -157,7 +142,7 @@ export const stream = orpc
       connection,
       messages: afterCompaction(history, compaction),
       contextTokens,
-      effort: input.effort,
+      effort,
       fast: input.fast,
       isSubagent,
       key: payer.key,

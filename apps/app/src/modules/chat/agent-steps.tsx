@@ -4,8 +4,9 @@ import { isStaticToolUIPart, isToolUIPart } from 'ai'
 
 import { ChatDisclosure } from './chat-disclosure'
 import { MessagePart } from './chat-message-part'
-import { getLiveLabel } from './chat-tool-part'
+import { getLiveLabel, hasLabel } from './chat-tool-part'
 import type { ToolPartActions } from './chat-tool-types'
+import { isSkipped } from './tool-status'
 
 type Segment =
   | { kind: 'part'; part: AppMessagePart }
@@ -36,7 +37,7 @@ const isLegwork = (part: AppMessagePart) => {
 const isVisible = (part: AppMessagePart) =>
   part.type === 'text' || part.type === 'reasoning'
     ? !!part.text.trim()
-    : isStaticToolUIPart(part)
+    : isStaticToolUIPart(part) && (!isLegwork(part) || hasLabel(part.type))
 
 /** A turn interrupted before it wrote or ran anything has nothing to show. */
 export const hasContent = (parts: AppMessagePart[]) => parts.some(isVisible)
@@ -70,7 +71,7 @@ const currentStep = (parts: AppMessagePart[]) => {
 const isText = (segment: Segment) =>
   segment.kind === 'part' && segment.part.type === 'text'
 
-/** Tool work that follows tool work sits close as one block; text keeps the answer's wider rhythm around it. */
+/** Tool work that follows tool work sits close as one block, step lines closer still; text keeps the answer's wider rhythm around it. */
 const toBlocks = (segments: Segment[]) => {
   const blocks: { prose: boolean; segments: Segment[]; start: number }[] = []
   for (const [index, segment] of segments.entries()) {
@@ -84,6 +85,9 @@ const toBlocks = (segments: Segment[]) => {
   return blocks
 }
 
+const isSkippedChange = (part: AppMessagePart) =>
+  isStaticToolUIPart(part) && part.type === 'tool-execute' && isSkipped(part)
+
 const plural = (count: number) => (count === 1 ? '1 step' : `${count} steps`)
 
 export const AgentParts = ({
@@ -96,12 +100,19 @@ export const AgentParts = ({
   isWorking: boolean
   parts: AppMessagePart[]
 }) => {
-  const segments = toSegments(parts)
+  const answer = toSegments(parts.filter((part) => !isSkippedChange(part)))
+  // Skipped changes sit under the answer, where `chat-step.ts` tells the agent their cards are.
+  const segments: Segment[] = [
+    ...answer,
+    ...parts
+      .filter(isSkippedChange)
+      .map((part) => ({ kind: 'part' as const, part })),
+  ]
   const render = (segment: Segment, index: number) => {
     if (segment.kind === 'part') {
       return <MessagePart key={index} actions={actions} part={segment.part} />
     }
-    const isLive = isWorking && index === segments.length - 1
+    const isLive = isWorking && index === answer.length - 1
     const [only] = segment.parts
     if (segment.parts.length === 1 && only && !isLive) {
       return <MessagePart key={index} actions={actions} part={only} />
@@ -127,7 +138,10 @@ export const AgentParts = ({
     prose ? (
       run.map((segment, offset) => render(segment, start + offset))
     ) : (
-      <div key={start} className="flex flex-col gap-3">
+      <div
+        key={start}
+        className="flex flex-col gap-3 [&>[data-slot=chat-step]+[data-slot=chat-step]]:-mt-1.5"
+      >
         {run.map((segment, offset) => render(segment, start + offset))}
       </div>
     )

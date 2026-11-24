@@ -14,7 +14,7 @@ export const ChatPaused = ({
   by: 'limit' | 'user'
   onContinue: () => void
 }) => (
-  <div className="shrink-0 px-2">
+  <div className="shrink-0 px-3">
     <Alert>
       <HugeiconsIcon icon={PauseIcon} strokeWidth={2} />
       <AlertDescription>

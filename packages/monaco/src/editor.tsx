@@ -93,7 +93,7 @@ export const FIELD_EDITOR_OPTIONS = {
 } satisfies monaco.editor.IStandaloneEditorConstructionOptions
 
 // Every editor state Monaco's own Escape bindings undo; the leave action must not shadow any of them. Monaco also dispatches keys from its focused frame, so without `editorTextFocus` the action would swallow every later Escape.
-const ESCAPE_UNUSED =
+export const ESCAPE_UNUSED =
   'editorTextFocus && !suggestWidgetVisible && !inlineSuggestionVisible && !parameterHintsVisible && !findWidgetVisible && !editorHasSelection && !editorHasMultipleSelections'
 
 export const Monaco = ({

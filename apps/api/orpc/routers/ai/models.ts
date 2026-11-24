@@ -14,9 +14,8 @@ export const models = orpc
     defaultEffort: DEFAULT_CHAT_EFFORT,
     efforts: CHAT_EFFORTS,
     models: chatModelsFor(await aiKey.get(context.user.id)).map(
-      ({ id, name, provider, ...model }) => ({
+      ({ id, name, provider }) => ({
         contexts: chatContexts(id),
-        featured: 'featured' in model,
         id,
         name,
         provider,

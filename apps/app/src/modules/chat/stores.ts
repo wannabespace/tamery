@@ -4,6 +4,8 @@ import { memoize } from 'memoza'
 import { createStore } from 'seitu'
 import { createWebStorageValue } from 'seitu/web'
 
+import { CHAT_DRAFTS_KEY, CHAT_NEW_IDS_KEY } from '~/lib/constants'
+
 import type { PromptMention } from './prompt-mentions'
 
 /** The model the chat answers with; null is Auto, which the API picks per message. */
@@ -21,6 +23,14 @@ export const approvalModeValue = createWebStorageValue({
   defaultValue: 'ask' as ApprovalMode,
   key: 'chat-approval-mode',
   schema: type("'ask' | 'auto'"),
+  type: 'localStorage',
+})
+
+/** Until the user first runs or declines a change, its card also says that changes wait for Run. */
+export const hasDecidedChangeValue = createWebStorageValue({
+  defaultValue: false,
+  key: 'chat-has-decided-change',
+  schema: type('boolean'),
   type: 'localStorage',
 })
 
@@ -65,7 +75,7 @@ export interface ChatDraft {
 /** Unsent composer text per chat id; a chat with no messages yet lists as a draft under its database. */
 export const chatDraftsValue = createWebStorageValue({
   defaultValue: {} as Record<string, ChatDraft>,
-  key: 'chat-drafts',
+  key: CHAT_DRAFTS_KEY,
   schema: type({
     '[string]': { resourceId: 'string', text: 'string', updatedAt: 'number' },
   }),
@@ -87,8 +97,21 @@ export const setChatDraft = (
       : drafts
   })
 
+/** Per resource, the id its unsent chat takes; the `chat` tab and its URL carry none until the first message. */
+export const newChatIdsValue = createWebStorageValue({
+  defaultValue: {} as Record<string, string>,
+  key: CHAT_NEW_IDS_KEY,
+  schema: type({ '[string]': 'string' }),
+  type: 'localStorage',
+})
+
+export const setNewChatId = (resourceId: string, chatId: string) =>
+  newChatIdsValue.set((ids) => ({ ...ids, [resourceId]: chatId }))
+
 /** Lets `/model` open the composer's model picker. */
 export const modelPickerOpenStore = createStore(false)
+
+export const composerFocusRequestStore = createStore(0)
 
 export interface QueuedMessage {
   files: FileUIPart[]

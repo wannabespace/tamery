@@ -48,7 +48,9 @@ import { MessageFiles } from './message-files'
 import type { PromptMention } from './prompt-mentions'
 import { usePromptMentions } from './prompt-mentions'
 import { PromptMenu } from './prompt-menu'
+import { sqlRuns } from './sql-run'
 import { SqlRunCard } from './statement-part'
+import { TurnRail } from './turn-rail'
 
 const ACTIONS_CLASS =
   'flex items-center gap-0.5 transition-opacity duration-150 focus-within:opacity-100 group-hover/message:opacity-100'
@@ -311,9 +313,6 @@ const AnswerActions = ({
   )
 }
 
-const sqlRuns = (message: AppUIMessage) =>
-  message.parts.flatMap((part) => (part.type === 'data-sql' ? [part.data] : []))
-
 const UserTurn = ({
   message,
   onEdit,
@@ -448,6 +447,7 @@ export const ChatMessages = ({
           </MessageScrollerContent>
         </MessageScrollerViewport>
         <MessageScrollerButton className="absolute inset-x-0 bottom-3 mx-auto" />
+        <TurnRail messages={messages} />
       </MessageScroller>
     </MessageScrollerProvider>
   )

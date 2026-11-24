@@ -2,7 +2,10 @@ import {
   Delete02Icon,
   NoteIcon,
   PencilEdit02Icon,
+  Search01Icon,
 } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { matchesSearch } from '@tamery/shared/utils'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -15,6 +18,7 @@ import {
 import { Button } from '@tamery/ui/components/button'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
+import { SearchInput } from '@tamery/ui/components/custom/search-input'
 import { SettingsGroup } from '@tamery/ui/components/custom/settings-group'
 import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 import {
@@ -32,8 +36,12 @@ import { useHotkey } from '@tanstack/react-hotkeys'
 import { useRef, useState } from 'react'
 
 import { useCollections } from '~/core/collections'
+import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
+import { useShortcut } from '~/core/keyboard/use-shortcuts'
 import { schemaNotes } from '~/core/schema-notes/notes'
 import type { SchemaNote } from '~/core/schema-notes/sync'
+
+const SEARCH_FROM = 11
 
 const getTarget = ({ column, table }: SchemaNote) =>
   table && (column ? `${table}.${column}` : table)
@@ -208,12 +216,34 @@ export const SchemaNotesSettings = () => {
         .orderBy(({ note }) => note.column),
   })
   const [deleting, setDeleting] = useState<SchemaNote | null>(null)
+  const [search, setSearch] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+  const searchable = rows.length >= SEARCH_FROM
+
+  useShortcut('search', () => searchRef.current?.focus(), {
+    enabled: searchable,
+  })
+  useHotkey('Escape', () => setSearch(''), {
+    enabled: !!search,
+    target: searchRef,
+  })
 
   if (!isReady) {
     return null
   }
 
-  const groups = Map.groupBy(rows, ({ resource }) => resource.id)
+  const groups = Map.groupBy(
+    rows.filter(({ connection, note, resource }) =>
+      matchesSearch(
+        search,
+        connection.name,
+        resource.name,
+        getTarget(note),
+        note.note
+      )
+    ),
+    ({ resource }) => resource.id
+  )
 
   return (
     <>
@@ -224,7 +254,26 @@ export const SchemaNotesSettings = () => {
         reads a database’s notes in every prompt about it and saves new ones as
         it learns them.
       </p>
-      {groups.size === 0 && (
+      {searchable && (
+        <SearchInput
+          ref={searchRef}
+          placeholder="Search notes"
+          aria-label="Search notes"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          onClear={() => setSearch('')}
+          start={<HugeiconsIcon icon={Search01Icon} strokeWidth={2} />}
+          end={!search && <ShortcutKbd shortcut="search" />}
+        />
+      )}
+      {rows.length > 0 && groups.size === 0 && (
+        <IconEmpty
+          icon={Search01Icon}
+          title="No notes found"
+          description="Search by table, column, database or what a note says."
+        />
+      )}
+      {rows.length === 0 && (
         <IconEmpty
           icon={NoteIcon}
           title="No schema notes yet"

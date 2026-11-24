@@ -1,6 +1,3 @@
-import { Search01Icon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
-import { SearchInput } from '@tamery/ui/components/custom/search-input'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from '@tanstack/react-router'
 import { useEffect } from 'react'
@@ -13,6 +10,7 @@ import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list
 import { tableTabId } from '~/core/tabs/ids'
 
 import { useNavigatorSearch } from './keyboard'
+import { NavigatorSearchField } from './navigator-header'
 import { pinnedTable } from './pinned-tables'
 import { navigatorStore } from './stores'
 import { TablesList } from './tables-list'
@@ -87,38 +85,31 @@ export const TablesPanel = ({
       tableTabId(row.schema, row.table.name) === activeTabId
   )?.id
 
-  const { highlightedControlId, highlightedId, listId, searchProps } =
-    useNavigatorSearch({
-      activeId,
-      nodes: rows.filter(
-        (row) => row.kind !== 'empty' && row.kind !== 'separator'
-      ),
-      onClear: () => setSearch(''),
-      search,
-    })
+  const {
+    highlightedControlId,
+    highlightedId,
+    isSearchOpen,
+    listId,
+    searchProps,
+  } = useNavigatorSearch({
+    activeId,
+    nodes: rows.filter(
+      (row) => row.kind !== 'empty' && row.kind !== 'separator'
+    ),
+    onClear: () => setSearch(''),
+    search,
+  })
 
   return (
     <>
-      <div className="flex shrink-0 items-center pb-1.5 pl-2">
-        <SearchInput
-          className="flex-1"
-          size="sm"
-          data-mask
-          placeholder="Search"
-          aria-label={`Search ${names.table}s`}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onClear={() => setSearch('')}
-          start={
-            <HugeiconsIcon
-              icon={Search01Icon}
-              strokeWidth={2}
-              className="text-muted-foreground/70 size-3.5"
-            />
-          }
-          {...searchProps}
-        />
-      </div>
+      <NavigatorSearchField
+        open={isSearchOpen}
+        placeholder={`Search ${names.table}s`}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        onClear={() => setSearch('')}
+        {...searchProps}
+      />
       <TablesList
         className="min-h-0 flex-1"
         activeId={activeId}

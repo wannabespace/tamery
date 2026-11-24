@@ -248,8 +248,13 @@
 }
 
 [data-shell-left],
-[data-shell-bottom] {
+[data-shell-bottom],
+[data-shell-chat] {
   display: none;
+}
+
+.shell-chat [data-shell-chat] {
+  display: revert-layer;
 }
 
 .shell-left [data-shell-left] {

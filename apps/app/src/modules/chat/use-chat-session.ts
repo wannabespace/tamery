@@ -1,7 +1,6 @@
 import { useChat } from '@ai-sdk/react'
 import type { AppUIMessage } from '@tamery/ai/message'
 import {
-  isSqlRun,
   mergeMessages,
   messagesFromPartRows,
   textFromMessage,
@@ -46,7 +45,7 @@ const isAnswering = (
   )
 
 const awaitsAnswer = (message: AppUIMessage | undefined) =>
-  message?.role === 'user' && !isSqlRun(message)
+  message?.role === 'user'
 
 const pausedBy = ({
   lastAsked,

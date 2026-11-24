@@ -50,7 +50,9 @@ You can use your SSH agent, a key file, a pasted private key, or a password. `~/
 
 ## What else we store
 
-Saved queries and AI chats are stored on our servers, so they follow you to every device. They are kept per database and go away when you remove the connection.
+Saved queries and AI chats are stored on our servers, so they follow you to every device. They are kept per database and go away when you delete them or remove the connection. We keep a copy of deleted data for 90 days, then erase it for good.
+
+A chat stores everything it shows: your messages, the agent's answers, and the SQL and rows of every query it ran. This holds for every sync type, since the sync type decides only what happens to the connection string. Chats, their titles included, and saved SQL are encrypted on our servers with a key Tamery holds, so this is not end-to-end encryption.
 
 Query history and the query logger stay on the device that ran the queries. So do your Navigator, tab, and table layout.
 

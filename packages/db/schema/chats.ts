@@ -13,7 +13,7 @@ import {
 import * as d from 'drizzle-orm/pg-core'
 
 import { baseTable } from '../base-table'
-import { encryptedJson } from '../utils'
+import { encryptedJson, encryptedText } from '../utils'
 import { users } from './auth'
 import { connectionsResources } from './connections'
 
@@ -31,7 +31,8 @@ export const chats = d.snakeCase.table(
       .references((): d.AnyPgColumn => chats.id, { onDelete: 'cascade' }),
     compaction: encryptedJson().$type<ChatCompaction>(),
     pinnedAt: d.timestamp({ withTimezone: true }),
-    title: d.text(),
+    // The table still has the plaintext `title` column until `scripts/encrypt-chat-titles.ts` has run in production, and the next generated migration drops it: generate one only after that run.
+    title: encryptedText('encrypted_title'),
     userId: d
       .uuid()
       .references(() => users.id, { onDelete: 'cascade' })
