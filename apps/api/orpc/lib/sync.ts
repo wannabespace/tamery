@@ -107,7 +107,7 @@ export const createUserScopedSync = <
         },
       })
 
-      // Drizzle types a row of a table it only knows as `PgTable` loosely; `.output` validates it.
+      // Drizzle cannot infer a row from a generic table (`T['$inferSelect']`, `.from(T)` both fail as of 1.0.0-rc.6); `.output` validates it.
       return [
         ...updatedItems.map((value) => ({ type: 'update', value })),
         ...newItems.map((value) => ({ type: 'insert', value })),
