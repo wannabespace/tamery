@@ -11,8 +11,8 @@ import {
 } from '@tamery/ui/components/tooltip'
 import type {
   Connection,
-  EdgeChange,
-  NodeChange,
+  EdgeChangeset,
+  NodeChangeset,
   Viewport,
 } from '@xyflow/react'
 import {
@@ -22,8 +22,9 @@ import {
   Controls,
   MiniMap,
   ReactFlow,
+  useOptionsStore,
   useReactFlow,
-  useStore,
+  useViewportStore,
 } from '@xyflow/react'
 import type { CSSProperties } from 'react'
 import { useEffect, useState } from 'react'
@@ -64,8 +65,8 @@ const MIN_ZOOM = 0.2
 const MAX_ZOOM = 2.5
 
 const ZoomVariable = () => {
-  const zoom = useStore((state) => state.transform[2])
-  const domNode = useStore((state) => state.domNode)
+  const zoom = useViewportStore((state) => state.transform[2])
+  const domNode = useOptionsStore((state) => state.domNode)
 
   useEffect(() => {
     domNode?.style.setProperty('--diagram-zoom', String(zoom))
@@ -117,38 +118,37 @@ export const Canvas = ({
     )
   )
 
-  const handleNodesChange = (changes: NodeChange<TableNode>[]) => {
-    const moved = changes.flatMap((change) =>
-      change.type === 'position' && change.position
-        ? [[change.id, change.position] as const]
-        : []
+  const handleNodesChange = (changes: NodeChangeset<TableNode>) => {
+    const positionChanges = changes.getByType('position')
+    const moved = positionChanges.flatMap((change) =>
+      change.position ? [[change.id, change.position] as const] : []
     )
     if (moved.length > 0) {
       const next = { ...positions, ...Object.fromEntries(moved) }
       onPositionsChange(next)
-      if (changes.some((c) => c.type === 'position' && !c.dragging)) {
+      if (positionChanges.some((change) => !change.dragging)) {
         onPositionsCommit(next)
       }
     }
-    const sized = changes.flatMap((change) =>
-      change.type === 'dimensions' && change.dimensions
-        ? [[change.id, change.dimensions] as const]
-        : []
-    )
+    const sized = changes
+      .getByType('dimensions')
+      .flatMap((change) =>
+        change.dimensions ? [[change.id, change.dimensions] as const] : []
+      )
     if (sized.length > 0) {
       setMeasured((current) => ({ ...current, ...Object.fromEntries(sized) }))
     }
-    for (const change of changes) {
-      if (change.type === 'select' && change.selected) {
+    for (const change of changes.getByType('select')) {
+      if (change.selected) {
         actions.select(change.id)
         onEdgeSelect(null)
       }
     }
   }
 
-  const handleEdgesChange = (changes: EdgeChange<RelationEdge>[]) => {
-    for (const change of changes) {
-      if (change.type === 'select' && change.selected) {
+  const handleEdgesChange = (changes: EdgeChangeset<RelationEdge>) => {
+    for (const change of changes.getByType('select')) {
+      if (change.selected) {
         onEdgeSelect(change.id)
         actions.select(null)
       }
