@@ -15,6 +15,7 @@ import { tableTypeIcon } from '~/core/catalog/table-type'
 import { AskUserPart } from './ask-user-part'
 import { ChatDisclosure } from './chat-disclosure'
 import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
+import { getLookupDetail } from './lookup-detail'
 import { NotePart } from './note-part'
 import { StatementCard } from './statement-card'
 import { ExplainPlan, StatementPart } from './statement-part'
@@ -244,6 +245,10 @@ const getDetail = (part: ChatToolPart) => {
   }
   if (part.type === 'tool-web_search' && part.state === 'output-available') {
     return <WebSources sources={part.output.sources} />
+  }
+  const lookup = getLookupDetail(part)
+  if (lookup) {
+    return lookup
   }
   if (part.state === 'output-error' && !isAnsweredByApp(part)) {
     return (
