@@ -27,6 +27,7 @@ export const mssqlIndexes = (db: Kysely<MssqlDatabase>) =>
       'i.is_primary_key as is_primary',
       'i.is_unique_constraint as is_constraint',
       'i.type_desc as index_type',
+      'i.filter_definition as predicate',
       (eb) =>
         eb
           .case()

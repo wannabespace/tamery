@@ -17,7 +17,15 @@ Pick **Schema** from the menu at the top of the Navigator, or press **Cmd+2** (*
 | **Policies** | Row access rules. | PostgreSQL, SQL Server, ClickHouse |
 | **Privileges** | Grants and who holds them. | MySQL, MariaDB |
 
-Each page has a search field, a schema picker, and a filter by kind, such as constraint type or functions versus procedures.
+Each page has a search field, a schema picker, and a filter by kind, such as constraint type or functions versus procedures. Click a column header to sort by it: numbers sort largest first, names A to Z, and a third click goes back to the original order.
+
+## Indexes
+
+Indexes are grouped by table. A badge marks primary keys and unique indexes, and the index method shows next to the columns only when it isn't the engine's default, like `gin` on PostgreSQL. Partial indexes show their `where` condition, on PostgreSQL, SQL Server, and MongoDB, and PostgreSQL shows `include` columns too.
+
+**Redundant** marks an index whose columns another index on the same table already starts with, such as an index on `domain` next to a primary key on `domain, user_hash`. Queries can use the other one, so this one usually only slows down writes. Point at the badge to see which index covers it.
+
+On PostgreSQL, each index also shows its **Size** and how many times queries have read it (**Scans**). **Unused** marks a regular index no query has read since the database's statistics were last reset. While you sort by size or scans, the table with the largest index comes first.
 
 For table relationships, open the [visualizer](/features/schema-visualizer).
 

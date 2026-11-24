@@ -22,13 +22,17 @@ export const indexesType = type({
   'custom_expression?': nullableString,
   'granularity?': 'number',
   'index_definition?': nullableString,
+  'included_columns?': nullableString,
   'index_type?': 'string',
   'is_constraint?': bitFlag,
   'is_custom?': bitFlag,
   is_primary: bitFlag,
   is_unique: bitFlag,
   name: 'string',
+  'predicate?': nullableString,
+  'scans?': 'number | null',
   schema: 'string',
+  'size_bytes?': 'number | null',
   table: 'string',
 }).pipe(
   ({
@@ -39,6 +43,8 @@ export const indexesType = type({
     index_type,
     index_definition,
     custom_expression,
+    included_columns,
+    size_bytes,
     ...data
   }) => ({
     ...data,
@@ -46,8 +52,10 @@ export const indexesType = type({
     custom: !!is_custom,
     customExpression: custom_expression ?? undefined,
     definition: index_definition,
+    included: included_columns ?? undefined,
     isPrimary: !!is_primary,
     isUnique: !!is_unique,
+    sizeBytes: size_bytes ?? undefined,
     type: index_type,
   })
 )

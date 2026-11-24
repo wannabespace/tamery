@@ -19,7 +19,6 @@ import {
 
 import type { ConnectionCapabilities } from './capability-presets'
 import {
-  btreeIndexes,
   full,
   noFunctions,
   noPolicies,
@@ -58,7 +57,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
       'renameViews',
     ],
     functions: noFunctions,
-    indexes: { rename: false, skipTypes: SKIP_INDEX_TYPES },
+    indexes: { plainTypes: [], rename: false, skipTypes: SKIP_INDEX_TYPES },
     names: SQL_NAMES,
     policies: {
       alterInPlace: true,
@@ -98,7 +97,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
       'uniqueKeys',
     ],
     functions: noFunctions,
-    indexes: { rename: false, skipTypes: [] },
+    indexes: { plainTypes: [], rename: false, skipTypes: [] },
     names: SQL_NAMES,
     policies: noPolicies,
     referentialActions: ['NO ACTION', 'RESTRICT'],
@@ -121,7 +120,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
     fixedConstraintNames: {},
     flags: ['documentIndexes', 'ilike', 'uniqueKeys'],
     functions: noFunctions,
-    indexes: { rename: false, skipTypes: [] },
+    indexes: { plainTypes: [], rename: false, skipTypes: [] },
     names: { column: 'field', row: 'document', table: 'collection' },
     policies: noPolicies,
     referentialActions: [],
@@ -162,7 +161,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
       schemaBinding: true,
       securityDefiner: false,
     },
-    indexes: btreeIndexes,
+    indexes: { plainTypes: ['NONCLUSTERED'], rename: true, skipTypes: [] },
     names: SQL_NAMES,
     policies: { ...noPolicies, predicates: true },
     referentialActions: REFERENTIAL_ACTIONS.filter(
@@ -213,7 +212,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
       schemaBinding: false,
       securityDefiner: false,
     },
-    indexes: btreeIndexes,
+    indexes: { plainTypes: ['BTREE'], rename: true, skipTypes: [] },
     names: SQL_NAMES,
     policies: noPolicies,
     // InnoDB parses SET DEFAULT but rejects the table.
@@ -263,7 +262,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
       ...noFunctions,
       argumentPlaceholder: 'p_id IN NUMBER, p_label OUT VARCHAR2',
     },
-    indexes: btreeIndexes,
+    indexes: { plainTypes: ['NORMAL'], rename: true, skipTypes: [] },
     names: SQL_NAMES,
     policies: noPolicies,
     referentialActions: ['NO ACTION', 'CASCADE', 'SET NULL'],
@@ -302,6 +301,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
       'explain',
       'foreignKeyOnUpdate',
       'ilike',
+      'indexStats',
       'materializedViews',
       'renameColumns',
       'renameConstraints',
@@ -320,7 +320,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
       schemaBinding: false,
       securityDefiner: true,
     },
-    indexes: btreeIndexes,
+    indexes: { plainTypes: ['btree'], rename: true, skipTypes: [] },
     names: SQL_NAMES,
     policies: {
       alterInPlace: false,
@@ -362,7 +362,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
       'uniqueKeys',
     ],
     functions: noFunctions,
-    indexes: { rename: false, skipTypes: [] },
+    indexes: { plainTypes: [], rename: false, skipTypes: [] },
     names: SQL_NAMES,
     policies: noPolicies,
     referentialActions: REFERENTIAL_ACTIONS,

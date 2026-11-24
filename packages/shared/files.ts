@@ -85,6 +85,11 @@ export const recordsToMarkdownTable = (
 }
 
 const sizeFormats = {
+  gigabyte: new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 1,
+    style: 'unit',
+    unit: 'gigabyte',
+  }),
   kilobyte: new Intl.NumberFormat(undefined, {
     maximumFractionDigits: 0,
     style: 'unit',
@@ -97,7 +102,11 @@ const sizeFormats = {
   }),
 }
 
-export const fileSize = (bytes: number) =>
-  bytes < 1_000_000
-    ? sizeFormats.kilobyte.format(Math.max(1, bytes / 1000))
-    : sizeFormats.megabyte.format(bytes / 1_000_000)
+export const fileSize = (bytes: number) => {
+  if (bytes < 1_000_000) {
+    return sizeFormats.kilobyte.format(Math.max(1, bytes / 1000))
+  }
+  return bytes < 1_000_000_000
+    ? sizeFormats.megabyte.format(bytes / 1_000_000)
+    : sizeFormats.gigabyte.format(bytes / 1_000_000_000)
+}

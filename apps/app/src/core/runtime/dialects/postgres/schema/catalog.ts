@@ -3,6 +3,7 @@ export interface PgCatalog {
   pg_class: PgClass
   pg_constraint: PgConstraint
   pg_index: PgIndex
+  pg_stat_user_indexes: PgStatUserIndexes
   pg_attribute: PgAttribute
   pg_settings: PgSettings
   pg_policies: PgPolicies
@@ -107,6 +108,11 @@ interface PgIndex {
   indnkeyatts: number
   indisunique: boolean
   indisprimary: boolean
+}
+
+interface PgStatUserIndexes {
+  indexrelid: number
+  idx_scan: string
 }
 
 interface PgAttribute {
