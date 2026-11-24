@@ -31,6 +31,18 @@ describe('destructiveKeywords', () => {
     ).toEqual(['UPDATE', 'DELETE'])
   })
 
+  it('flags CREATE OR REPLACE, which swaps out an existing object', () => {
+    expect(
+      destructiveKeywords('CREATE OR REPLACE VIEW v AS SELECT 1', pg)
+    ).toEqual(['REPLACE'])
+    expect(
+      destructiveKeywords(
+        'CREATE OR REPLACE TRIGGER g INSTEAD OF DELETE ON v FOR EACH ROW BEGIN NULL; END;',
+        dialects[Dialect.Oracle]
+      )
+    ).toEqual(['REPLACE'])
+  })
+
   it('flags code it cannot see into', () => {
     expect(
       destructiveKeywords('DO $$ BEGIN DROP TABLE users; END $$', pg)
@@ -97,7 +109,7 @@ describe('destructiveKeywords', () => {
     ).toEqual([])
     expect(
       destructiveKeywords(
-        'CREATE OR REPLACE TRIGGER g INSTEAD OF DELETE ON v FOR EACH ROW BEGIN NULL; END;',
+        'CREATE TRIGGER g INSTEAD OF DELETE ON v FOR EACH ROW BEGIN NULL; END;',
         dialects[Dialect.Oracle]
       )
     ).toEqual([])

@@ -98,9 +98,23 @@ const keywordsRun = (
     )
   })
 
+// Counted whatever it tokenized as: PostgreSQL and Oracle do not list `REPLACE` as a keyword, and `CREATE OR REPLACE` swaps out the object it names.
+const replacedObjects = (text: string, dialect: DialectSpec) =>
+  splitStatements(text, dialect).flatMap(({ tokens }) => {
+    const [command, or, verb = ''] = tokens.map((token) =>
+      token.text.toUpperCase()
+    )
+    return command === 'CREATE' && or === 'OR' && DESTRUCTIVE.has(verb)
+      ? [verb]
+      : []
+  })
+
 /** Additive writes (INSERT, CREATE) are left out on purpose. */
 export const destructiveKeywords = (text: string, dialect: DialectSpec) => [
-  ...new Set(keywordsRun(DESTRUCTIVE, text, dialect)),
+  ...new Set([
+    ...replacedObjects(text, dialect),
+    ...keywordsRun(DESTRUCTIVE, text, dialect),
+  ]),
 ]
 
 // COMMENT counts only as a statement's first word: as a keyword it would make `SELECT comment` a write to `readsOnly`.
@@ -127,12 +141,10 @@ export const additiveOnly = (text: string, dialect: DialectSpec): boolean => {
   const statements = splitStatements(text, dialect)
   return (
     statements.length > 0 &&
-    statements.every(({ tokens }) => {
-      const [command, next] = tokens.map((token) => token.text.toUpperCase())
-      // `REPLACE` is not a keyword in every dialect, so `CREATE OR REPLACE` slips past the destructive check below.
-      return ADDITIVE_COMMANDS.has(command ?? '') && next !== 'OR'
-    }) &&
-    keywordsRun(DESTRUCTIVE, text, dialect).length === 0
+    statements.every(({ tokens }) =>
+      ADDITIVE_COMMANDS.has(tokens[0]?.text.toUpperCase() ?? '')
+    ) &&
+    destructiveKeywords(text, dialect).length === 0
   )
 }
 
