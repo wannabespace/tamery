@@ -53,7 +53,7 @@ export const getChatInstance = memoize(
         finishListeners.get(data.chatId)?.(event)
       },
       onToolCall: ({ toolCall }) => {
-        chatToolRuns.answer(chat, toolCall, data.connectionResourceId)
+        void chatToolRuns.answer(chat, toolCall, data.connectionResourceId)
         if (!toolCall.dynamic && toolCall.toolName === 'execute') {
           void autoApprove({
             chat,

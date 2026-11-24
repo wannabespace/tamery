@@ -54,7 +54,22 @@ type ChatStreamInput = Pick<
   onFinish: ChatStepInput['onEnd']
 }
 
+const TOOL_CALL_CLAIM_SECONDS = 3600
+
 export const chatStream = {
+  /** The first window to claim a tool call answers or decides it; the others watch its output arrive. Claiming again from the same window keeps it. */
+  claimToolCall: async (data: {
+    chatId: string
+    toolCallId: string
+    windowId: string
+  }) => {
+    const key = `ai:tool-call:${data.chatId}:${data.toolCallId}`
+    const claimed = await redis.set(key, data.windowId, {
+      EX: TOOL_CALL_CLAIM_SECONDS,
+      NX: true,
+    })
+    return !!claimed || (await redis.get(key)) === data.windowId
+  },
   claim: async (data: ChatStreamInput) => {
     const streamId = v7()
     if (!(await activeStream.claim(data.chatId, streamId))) {

@@ -1,9 +1,11 @@
 import type { ChatDataParts, ChatTools } from '@tamery/ai/tools'
 import { Button } from '@tamery/ui/components/button'
+import { useSubscription } from 'seitu/react'
 
 import { useCollections } from '~/core/collections'
 
 import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
+import { decidedElsewhereStore } from './chat-tools'
 import { StatementCard, summarize } from './statement-card'
 import { getStatus, isAnsweredByApp, isSkipped } from './tool-status'
 import { WriteApproval } from './write-approval'
@@ -108,6 +110,9 @@ export const StatementPart = ({
   const target = usePartTarget(
     part.state === 'input-streaming' ? undefined : part.input
   )
+  const isDecidedElsewhere = useSubscription(decidedElsewhereStore, {
+    selector: (calls) => !!calls[part.toolCallId],
+  })
   const awaitsApproval =
     part.type === 'tool-execute' &&
     part.state === 'input-available' &&
@@ -118,7 +123,11 @@ export const StatementPart = ({
   }
 
   let status = getStatus(part, actions.isLive)
-  if (awaitsApproval && actions.decide) {
+  if (awaitsApproval && isDecidedElsewhere) {
+    status = (
+      <span className="text-muted-foreground">Decided in another window</span>
+    )
+  } else if (awaitsApproval && actions.decide) {
     status = (
       <WriteApproval
         connection={connection}

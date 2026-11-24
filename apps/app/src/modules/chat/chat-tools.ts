@@ -6,12 +6,14 @@ import { toError } from '@tamery/shared/utils'
 import type { ChatOnToolCallCallback } from 'ai'
 import { isToolUIPart } from 'ai'
 import { Result } from 'better-result'
+import { createStore } from 'seitu'
 
 import { agentDatabase } from '~/core/agent/database'
 import { getCollections } from '~/core/collections'
 import { posthog } from '~/lib/posthog'
 
 import { resumeSubagent } from './subagents-store'
+import { claimToolCall } from './tool-call-claim'
 
 type AppChat = Chat<AppUIMessage>
 type AnyToolCall = Parameters<
@@ -28,6 +30,17 @@ export const READ_ONLY =
 
 const runs = new Map<string, AbortController>()
 const decided = new Set<string>()
+/** Calls another window or device answers or decides; their cards say so instead of offering Run. */
+export const decidedElsewhereStore = createStore<Record<string, true>>({})
+
+const claimOnServer = async (chatId: string, toolCallId: string) => {
+  const claimed = await claimToolCall(chatId, toolCallId)
+  if (!claimed) {
+    decided.add(toolCallId)
+    decidedElsewhereStore.set((calls) => ({ ...calls, [toolCallId]: true }))
+  }
+  return claimed
+}
 
 /** A call is decided once per window: a second press, or a card remounted mid-run by a chat switch, is ignored. A chat reopened from the collections holds no live turns, and `addToolOutput` only finds a call among those, so the transcript is seeded first. */
 const claimDecision = (
@@ -206,35 +219,36 @@ const read = async (
 }
 
 export const chatToolRuns = {
-  /** Answers the model's tool calls in the window. Everything but an `execute` or an `ask_user` runs on its own: those wait for the user on their card, whatever the transcript or the data it read says. A change aimed at another connection than the chat's fails here, and is claimed so its card can never run it, not even in Auto. */
-  answer: (
+  /** Answers the model's tool calls in the window that claims each first. Everything but an `execute` or an `ask_user` runs on its own: those wait for the user on their card, whatever the transcript or the data it read says. A change aimed at another connection than the chat's fails here, and is claimed so its card can never run it, not even in Auto. */
+  answer: async (
     chat: AppChat,
     toolCall: AnyToolCall,
     connectionResourceId: string
   ) => {
-    if (
-      !toolCall.dynamic &&
-      toolCall.toolName === 'execute' &&
-      !isOwnConnection(toolCall.input.connectionId, connectionResourceId)
-    ) {
-      decided.add(toolCall.toolCallId)
-      void chat.addToolOutput({
-        errorText: READ_ONLY,
-        state: 'output-error',
-        tool: toolCall.toolName,
-        toolCallId: toolCall.toolCallId,
-      })
+    if (toolCall.dynamic || toolCall.toolName === 'ask_user') {
       return
     }
-    if (
-      !toolCall.dynamic &&
-      toolCall.toolName !== 'execute' &&
-      toolCall.toolName !== 'ask_user'
-    ) {
+    if (toolCall.toolName === 'execute') {
+      if (isOwnConnection(toolCall.input.connectionId, connectionResourceId)) {
+        return
+      }
+      decided.add(toolCall.toolCallId)
+      if (await claimOnServer(chat.id, toolCall.toolCallId)) {
+        void chat.addToolOutput({
+          errorText: READ_ONLY,
+          state: 'output-error',
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+        })
+      }
+      return
+    }
+    if (await claimOnServer(chat.id, toolCall.toolCallId)) {
       void read(chat, toolCall, connectionResourceId)
     }
   },
-  reply: ({
+  claim: claimOnServer,
+  reply: async ({
     chat,
     output,
     toolCallId,
@@ -245,13 +259,16 @@ export const chatToolRuns = {
     toolCallId: string
     transcript: AppUIMessage[]
   }) => {
-    if (claimDecision(chat, toolCallId, transcript)) {
+    if (
+      claimDecision(chat, toolCallId, transcript) &&
+      (await claimOnServer(chat.id, toolCallId))
+    ) {
       void chat.addToolOutput({ output, tool: 'ask_user', toolCallId })
     }
   },
   isDecided: (toolCallId: string) => decided.has(toolCallId),
   /** Answers a change Auto would not run, so the agent goes on without it; its card offers Run to the user. */
-  skip: ({
+  skip: async ({
     chat,
     toolCallId,
     transcript,
@@ -260,7 +277,10 @@ export const chatToolRuns = {
     toolCallId: string
     transcript: AppUIMessage[]
   }) => {
-    if (!claimDecision(chat, toolCallId, transcript)) {
+    if (
+      !claimDecision(chat, toolCallId, transcript) ||
+      !(await claimOnServer(chat.id, toolCallId))
+    ) {
       return
     }
     resumeSubagent(chat.id)
@@ -287,7 +307,10 @@ export const chatToolRuns = {
     toolCallId: string
     transcript: AppUIMessage[]
   }) => {
-    if (!claimDecision(chat, toolCallId, transcript)) {
+    if (
+      !claimDecision(chat, toolCallId, transcript) ||
+      !(await claimOnServer(chat.id, toolCallId))
+    ) {
       return
     }
     resumeSubagent(chat.id)

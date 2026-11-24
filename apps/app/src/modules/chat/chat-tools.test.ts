@@ -28,6 +28,11 @@ mock.module('~/core/agent/database', () => ({
   },
 }))
 mock.module('~/lib/posthog', () => ({ posthog: { capture: () => {} } }))
+const claimedElsewhere = new Set<string>()
+mock.module('./tool-call-claim', () => ({
+  claimToolCall: (_chatId: string, toolCallId: string) =>
+    Promise.resolve(!claimedElsewhere.has(toolCallId)),
+}))
 mock.module('~/core/collections', () => ({
   getCollections: () => ({
     connectionsResourcesCollection: {
@@ -36,7 +41,7 @@ mock.module('~/core/collections', () => ({
   }),
 }))
 
-const { chatToolRuns } = await import('./chat-tools')
+const { chatToolRuns, decidedElsewhereStore } = await import('./chat-tools')
 
 const target = { connectionId: 'connection', resource: null }
 
@@ -58,8 +63,9 @@ const reply = step(
 const createChat = (answers: UIMessageChunk[][]) => {
   const sent: AppUIMessage[][] = []
   const chat: Chat<AppUIMessage> = new Chat<AppUIMessage>({
-    onToolCall: ({ toolCall }) =>
-      chatToolRuns.answer(chat, toolCall, 'resource'),
+    onToolCall: ({ toolCall }) => {
+      void chatToolRuns.answer(chat, toolCall, 'resource')
+    },
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     transport: {
       reconnectToStream: () => Promise.resolve(null),
@@ -196,4 +202,36 @@ test('a change aimed at another connection fails before Run can reach it', async
       .flatMap(({ parts }) => parts)
       .find((part) => 'toolCallId' in part && part.toolCallId === 'foreign')
   ).toMatchObject({ state: 'output-error' })
+})
+
+test('a call another window claimed neither reads nor runs here', async () => {
+  read.mockClear()
+  write.mockClear()
+  claimedElsewhere.add('elsewhere-read').add('elsewhere-write')
+  const { chat, sent } = createChat([
+    step({
+      input: { ...target, statement: 'select 1' },
+      toolCallId: 'elsewhere-read',
+      toolName: 'query',
+      type: 'tool-input-available',
+    }),
+  ])
+
+  await chat.sendMessage({ text: 'How many orders?' })
+  await chatToolRuns.write({
+    approved: true,
+    chat,
+    input: { ...target, statement: 'delete from orders' },
+    toolCallId: 'elsewhere-write',
+    transcript: [],
+  })
+  await Bun.sleep(10)
+
+  expect(read).not.toHaveBeenCalled()
+  expect(write).not.toHaveBeenCalled()
+  expect(sent).toHaveLength(1)
+  expect(decidedElsewhereStore.get()).toMatchObject({
+    'elsewhere-read': true,
+    'elsewhere-write': true,
+  })
 })

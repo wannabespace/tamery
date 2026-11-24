@@ -61,6 +61,10 @@ export const autoApprove = async ({
     return
   }
   setApproval(toolCallId, 'checking')
+  if (!(await chatToolRuns.claim(chat.id, toolCallId))) {
+    forget(toolCallId)
+    return
+  }
   const signal = chatToolRuns.signal(chat.id)
   const run = async () => {
     setApproval(toolCallId, 'run')
@@ -117,5 +121,5 @@ export const autoApprove = async ({
     return
   }
   forget(toolCallId)
-  chatToolRuns.skip({ chat, toolCallId, transcript })
+  void chatToolRuns.skip({ chat, toolCallId, transcript })
 }
