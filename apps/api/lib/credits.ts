@@ -33,7 +33,11 @@ const getIncludedSpent = async (userId: string) => {
     .select({ cost: sum(aiUsageTable.cost).mapWith(Number) })
     .from(aiUsageTable)
     .where(
-      and(eq(aiUsageTable.userId, userId), gt(aiUsageTable.createdAt, since))
+      and(
+        eq(aiUsageTable.userId, userId),
+        eq(aiUsageTable.ownKey, false),
+        gt(aiUsageTable.createdAt, since)
+      )
     )
   return { since, spent: spent?.cost ?? 0 }
 }

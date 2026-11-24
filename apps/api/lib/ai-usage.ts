@@ -43,17 +43,21 @@ const alertNoCost = async (record: AiUsageRecord) => {
   }
 }
 
-export const aiUsage = createAiUsage(async (record) => {
-  if (!record.cost && record.inputTokens + record.outputTokens > 0) {
+export const aiUsage = createAiUsage(async ({ ownKey = false, ...record }) => {
+  if (
+    !(ownKey || record.cost) &&
+    record.inputTokens + record.outputTokens > 0
+  ) {
     await alertNoCost(record)
   }
   await db.insert(aiUsageTable).values({
     ...record,
+    ownKey,
     workspaceId: record.chatId
       ? await getWorkspaceIdFromChat(record.chatId)
       : null,
   })
-  if (record.cost) {
+  if (record.cost && !ownKey) {
     await credits.spend({ cost: record.cost, userId: record.userId })
   }
 })

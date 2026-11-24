@@ -60,15 +60,12 @@ export const judgeStatement = orpc
       additive: input.additive,
       dialect: input.dialect,
       key,
-      onJevUsage: async (usage) => {
-        if (!key) {
-          await aiUsage.recordPriced(scope, usage)
-        }
-      },
+      onJevUsage: (usage) =>
+        aiUsage.recordPriced({ ...scope, ownKey: !!key }, usage),
       proposal,
       request,
       signal,
       statement: input.statement,
-      telemetry: key ? undefined : aiUsage.telemetry(scope),
+      telemetry: aiUsage.telemetry({ ...scope, ownKey: !!key }),
     })
   })

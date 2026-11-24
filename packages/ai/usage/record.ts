@@ -8,6 +8,8 @@ import type { AiFeature } from './feature'
 export interface AiUsageScope {
   chatId?: string
   feature: AiFeature
+  /** Paid by the user's own provider key, so the cost is an estimate that spends nothing. */
+  ownKey?: boolean
   userId: string
 }
 

@@ -111,8 +111,13 @@ export const AiUsage = () => {
           </TableHeader>
           <TableBody>
             {usage.map((row) => (
-              <TableRow key={row.month}>
-                <TableCell>{formatMonth(row.month)}</TableCell>
+              <TableRow key={`${row.month}:${row.ownKey}`}>
+                <TableCell>
+                  {formatMonth(row.month)}
+                  {row.ownKey && (
+                    <span className="text-muted-foreground"> · Your key</span>
+                  )}
+                </TableCell>
                 <TableCell variant="numeric">
                   {formatTokens(row.calls)}
                 </TableCell>
@@ -123,11 +128,15 @@ export const AiUsage = () => {
                   {formatTokens(row.outputTokens ?? 0)}
                 </TableCell>
                 <TableCell variant="numeric">
-                  {row.cost === null ? (
+                  {row.cost === null && (
                     <span className="text-muted-foreground">Unknown</span>
-                  ) : (
-                    formatCost(row.cost)
                   )}
+                  {row.cost !== null && row.ownKey && (
+                    <span className="text-muted-foreground">
+                      ≈ {formatCost(row.cost)}
+                    </span>
+                  )}
+                  {row.cost !== null && !row.ownKey && formatCost(row.cost)}
                 </TableCell>
               </TableRow>
             ))}

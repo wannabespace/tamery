@@ -28,22 +28,19 @@ export const aiKey = {
 
 export type AiPayer = Awaited<ReturnType<typeof payForAi>>
 
-/** Who pays for a chat call: the user's own key, else Tamery's budget for Pro. A call on the key records no usage, so it never counts toward the budget or spends credits. */
+/** Who pays for a chat call: the user's own key, else Tamery's budget for Pro. A call on the key is recorded as `ownKey`, so AI usage shows it while it never counts toward the budget or spends credits. */
 export const payForAi = async (userId: string, refused: () => Error) => {
   const key = await aiKey.get(userId)
   if (!(key || (await credits.canUseAi(userId)))) {
     throw refused()
   }
+  const scoped = (scope: AiUsageScope) => ({ ...scope, ownKey: !!key })
   return {
     key,
     recordJev:
       (scope: AiUsageScope) =>
-      async (usage: Parameters<typeof aiUsage.recordPriced>[1]) => {
-        if (!key) {
-          await aiUsage.recordPriced(scope, usage)
-        }
-      },
-    telemetry: (scope: AiUsageScope) =>
-      key ? undefined : aiUsage.telemetry(scope),
+      (usage: Parameters<typeof aiUsage.recordPriced>[1]) =>
+        aiUsage.recordPriced(scoped(scope), usage),
+    telemetry: (scope: AiUsageScope) => aiUsage.telemetry(scoped(scope)),
   }
 }
