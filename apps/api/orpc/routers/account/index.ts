@@ -1,6 +1,6 @@
 export { aiKey } from './ai-key'
 export { aiUsage } from './ai-usage'
-export { bridge } from './bridge'
+export { machine } from './machine'
 export { challenge } from './challenge'
 export { credits } from './credits'
 export { invoices } from './invoices'

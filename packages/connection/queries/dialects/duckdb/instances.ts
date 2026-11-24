@@ -1,12 +1,10 @@
-import { realpath } from 'node:fs/promises'
-import { homedir } from 'node:os'
-import path from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 
 import type { DuckDBInstance } from '@duckdb/node-api'
 import { silently } from '@tamery/shared/utils'
 
 import { databaseFile } from '../../../database-file'
+import { localPath } from '../../../local-path'
 import { duckdbDriver } from './driver'
 
 const FILE_BUSY_TIMEOUT_MS = 10_000
@@ -37,7 +35,7 @@ const waitForClose = (entry: OpenFile) =>
 
 let isConfined = false
 
-/** The bridge opens only files its terminal approved: a confined instance reads no other file or URL, writes included. */
+/** The machine opens only the file its connection names: a confined instance reads no other file or URL, writes included. */
 export const confineDuckdbFiles = () => {
   isConfined = true
 }
@@ -95,13 +93,13 @@ export const connectTo = async (
   connectionString: string,
   readOnly: boolean
 ) => {
-  const file = databaseFile.path(connectionString)
+  const real = localPath.getDatabaseFile(connectionString)
   // DuckDB would create an empty database at a mistyped path.
-  const real = await realpath(
-    file.startsWith('~/') ? path.join(homedir(), file.slice(2)) : file
-  ).catch((error: unknown) => {
-    throw new Error(`There is no file at ${file}.`, { cause: error })
-  })
+  if (!real) {
+    throw new Error(
+      `There is no file at ${databaseFile.path(connectionString)}.`
+    )
+  }
   const { instance, release } = await acquire(real, readOnly)
   try {
     const connection = await instance.connect()

@@ -9,10 +9,14 @@ import { Result } from 'better-result'
 
 import { configFiles } from './config-files'
 
-const KEYCHAIN_ITEM = { name: 'bridge-key', service: 'app.tamery.cli' }
+const KEYCHAIN_ITEM = { name: 'machine-key', service: 'app.tamery.cli' }
+
+const vaultAccount = type({ email: 'string', id: 'string', token: 'string' })
+
+export type VaultAccount = typeof vaultAccount.infer
 
 const vaultData = type({
-  account: type({ email: 'string', id: 'string', token: 'string' }).or('null'),
+  account: vaultAccount.or('null'),
   connections: { '[string]': 'string' },
 })
 
@@ -20,8 +24,14 @@ const vaultFile = type('string.json.parse').to(vaultData)
 
 type VaultData = typeof vaultData.infer
 
+/** Set by the desktop app's machine process, whose app keeps the key in its own keychain item through `safeStorage`. */
+let providedKey: string | null = null
+
 /** A headless Linux box usually has no Secret Service, so the key sits in a file beside the vault there. */
 const readKey = async () => {
+  if (providedKey !== null) {
+    return { key: providedKey, keyInFile: false }
+  }
   if (fs.existsSync(configFiles.key)) {
     return { key: fs.readFileSync(configFiles.key, 'utf-8'), keyInFile: true }
   }
@@ -38,7 +48,7 @@ const readKey = async () => {
     return { key: null, keyInFile: true }
   }
   throw new Error(
-    'The keychain refused the bridge key. Unlock it and run the command again.'
+    'The keychain refused the machine key. Unlock it and run the command again.'
   )
 }
 
@@ -50,7 +60,7 @@ const getKey = async () => {
   // A new key would leave every secret in the file unreadable for good.
   if (fs.existsSync(configFiles.vault)) {
     throw new Error(
-      'The bridge key is gone from the keychain, so the saved secrets cannot be read. Run `tamery logout` to start over.'
+      'The machine key is gone from the keychain, so the saved secrets cannot be read. Run `tamery logout` to start over.'
     )
   }
   const key = randomBytes(32).toString('base64')
@@ -76,7 +86,7 @@ const readData = (key: string): VaultData =>
 
 /**
  * Key and file are read on every call, never kept: `tamery login` and `tamery logout` replace both from another process
- * while a bridge runs, and a copy held here would write the old account back under a key that is gone.
+ * while a machine runs, and a copy held here would write the old account back under a key that is gone.
  */
 const read = async () =>
   fs.existsSync(configFiles.vault) ? readData(await getKey()) : EMPTY
@@ -108,10 +118,16 @@ export const vault = {
   reset: async () => {
     configFiles.remove(configFiles.vault)
     configFiles.remove(configFiles.key)
-    await silently(() => Bun.secrets.delete(KEYCHAIN_ITEM))
+    if (providedKey === null) {
+      await silently(() => Bun.secrets.delete(KEYCHAIN_ITEM))
+    }
   },
   setAccount: (account: VaultData['account']) =>
     change((data) => ({ ...data, account })),
+  /** Before any other call: the vault then never touches the keychain itself. */
+  useKey: (key: string) => {
+    providedKey = key
+  },
   setConnection: (id: string, connectionString: string) =>
     change((data) => ({
       ...data,

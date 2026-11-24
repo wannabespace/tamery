@@ -34,7 +34,7 @@ const fetchLatest = (timeoutMs = STARTUP_TIMEOUT_MS) =>
   })
 
 export const updates = {
-  /** Never awaited at startup: the registry must not hold the bridge back. */
+  /** Never awaited at startup: the registry must not hold the machine back. */
   check: async () => {
     const fetched = await fetchLatest()
     if (fetched.isOk() && isNewer(fetched.value)) {

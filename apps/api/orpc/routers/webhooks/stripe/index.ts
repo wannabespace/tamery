@@ -53,17 +53,22 @@ export const stripe = orpc
   .errors({
     BAD_REQUEST: { message: 'Stripe event not found' },
     INTERNAL_SERVER_ERROR: {},
+    UNAUTHORIZED: { message: 'Invalid Stripe signature' },
   })
   .handler(async ({ context, errors }) => {
+    const event = await validateRequest(context.request)
+
+    if (!event) {
+      throw errors.UNAUTHORIZED()
+    }
+
+    const handler = eventMap.get(event.type)
+
+    if (!handler) {
+      throw errors.BAD_REQUEST()
+    }
+
     try {
-      const event = await validateRequest(context.request)
-
-      const handler = eventMap.get(event.type)
-
-      if (!handler) {
-        throw errors.BAD_REQUEST()
-      }
-
       const subscription = event.data.object
 
       if (

@@ -50,6 +50,7 @@ import { env, nodeEnv } from '~/env'
 import { locateIp } from '~/lib/geo-ip'
 import { posthog } from '~/lib/posthog'
 import { resend, sendEmail } from '~/lib/resend'
+import { safeEqual } from '~/lib/safe-equal'
 
 import { redis, redisMemoize } from './redis'
 import {
@@ -142,10 +143,8 @@ export const sendNewSignInEmail = async ({
   // Versionless browser + city: a browser update or a new Wi-Fi is not a new device. A Redis failure counts as new so the warning still goes out.
   const isNewDevice = await redis
     .sAdd(knownDevicesKey, `${formatBrowserName(userAgent ?? '')}|${location}`)
-    .then(
-      (added) => added > 0,
-      () => true
-    )
+    .then((added) => added > 0)
+    .catch(() => true)
   await redis.expire(knownDevicesKey, KNOWN_DEVICES_TTL).catch(console.error)
 
   if (newUser || !isNewDevice) {
@@ -662,6 +661,18 @@ export const auth = betterAuth({
     emailHarmony(),
     anonymous(),
   ],
+  rateLimit: {
+    customRules: {
+      // proxy checks every viewer's session from its own NAT address, which would put them all in one bucket.
+      '/get-session': (request, rule) =>
+        safeEqual(
+          request.headers.get('x-proxy-token') ?? '',
+          env.PROXY_SHARED_SECRET
+        )
+          ? false
+          : rule,
+    },
+  },
   secret: env.BETTER_AUTH_SECRET,
   socialProviders: {
     github: {

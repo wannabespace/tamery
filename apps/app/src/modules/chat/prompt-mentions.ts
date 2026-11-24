@@ -13,8 +13,9 @@ import { agentDatabase } from '~/core/agent/database'
 import { useCollections } from '~/core/collections'
 import { lastOpenedResourcesStorageValue } from '~/core/connection/last-opened-resources'
 import { useConnectionContext } from '~/core/connection/route'
-import { localMachine, useLocalMachine } from '~/core/local-machine'
+import { useLocalMachine } from '~/core/local-machine'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
+import { useConnectionMachineId } from '~/core/runtime/machine/pairing'
 import { posthog } from '~/lib/posthog'
 
 import { escapeRegExp } from './mention-text'
@@ -226,10 +227,10 @@ export const usePromptMentions = ({
           type: connections.type,
         })),
   })
-  const machine = useLocalMachine()
+  const machine = useLocalMachine(useConnectionMachineId(connection.id))
   const { data: skills = [] } = useQuery({
     enabled: !!machine,
-    queryFn: localMachine.listSkills,
+    queryFn: () => machine?.listSkills() ?? [],
     queryKey: [...(machine?.queryKey ?? []), 'skills'],
     staleTime: 30_000,
   })

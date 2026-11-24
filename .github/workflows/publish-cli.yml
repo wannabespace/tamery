@@ -99,7 +99,7 @@ jobs:
         run: |
           binary="./${{ matrix.binaries }}"
           test "$($binary --version)" = "$VERSION"
-          $binary bridge --help | grep -q -- --public-url
+          $binary machine --help | grep -q -- --public-url
 
       # Alpine leaves libstdc++ out, which Bun's musl build links; the install script tells users to add it.
       - name: Run the musl binary on Alpine
@@ -108,7 +108,7 @@ jobs:
           docker run --rm -v "$PWD/dist:/dist:ro" alpine:latest sh -c "
             apk add -q libstdc++ &&
             test \"\$(/dist/${{ matrix.alpine }} --version)\" = '$VERSION' &&
-            /dist/${{ matrix.alpine }} bridge --help | grep -q -- --public-url
+            /dist/${{ matrix.alpine }} machine --help | grep -q -- --public-url
           "
 
   publish:

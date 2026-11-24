@@ -268,13 +268,14 @@ export const answerToolCalls = (message: AppUIMessage) =>
       }
       const output = await Promise.resolve()
         .then(() => answer(part))
-        .then(
-          (value) => ({ output: value, state: 'output-available' as const }),
-          (error: unknown) => ({
-            errorText: toError(error).message,
-            state: 'output-error' as const,
-          })
-        )
+        .then((value) => ({
+          output: value,
+          state: 'output-available' as const,
+        }))
+        .catch((error: unknown) => ({
+          errorText: toError(error).message,
+          state: 'output-error' as const,
+        }))
       Object.assign(part, output)
     })
   )

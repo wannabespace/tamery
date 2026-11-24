@@ -13,6 +13,7 @@ import Store from 'electron-store'
 import { restoreDockIcon, windowIcon } from './lib/app-icon'
 import { setupProtocolHandler } from './lib/deep-link'
 import { initElectronEvents, registerHandlers } from './lib/events'
+import { restoreMachine } from './lib/machine-host'
 import { restoreMcpServer } from './lib/mcp'
 import { buildMenu } from './lib/menu'
 import { queryProcess } from './lib/query-process'
@@ -280,6 +281,7 @@ app.on('ready', () => {
   setupProtocolHandler(createWindow)
 
   void restoreMcpServer()
+  void restoreMachine()
 
   setInterval(() => autoUpdater?.checkForUpdates(), 1000 * 60 * 10)
 })

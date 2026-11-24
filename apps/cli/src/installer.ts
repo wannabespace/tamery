@@ -1,6 +1,6 @@
 import process from 'node:process'
 
-import type { BRIDGE_INSTALL_COMMANDS } from '@tamery/shared/bridge'
+import type { MACHINE_INSTALL_COMMANDS } from '@tamery/shared/machine'
 
 /**
  * The npm launcher runs the binary from inside its own package; the install scripts put it anywhere else. Matched by
@@ -9,7 +9,7 @@ import type { BRIDGE_INSTALL_COMMANDS } from '@tamery/shared/bridge'
 export const detectInstaller = (
   execPath: string,
   platform: NodeJS.Platform
-): keyof typeof BRIDGE_INSTALL_COMMANDS => {
+): keyof typeof MACHINE_INSTALL_COMMANDS => {
   const path = execPath.toLowerCase().replaceAll('\\', '/')
   if (!path.includes('/node_modules/')) {
     return platform === 'win32' ? 'powershell' : 'shell'

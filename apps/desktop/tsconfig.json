@@ -7,5 +7,13 @@
     "noEmit": true,
     "strictNullChecks": true
   },
-  "include": ["."]
+  "include": ["."],
+  "references": [
+    {
+      "path": "../api"
+    },
+    {
+      "path": "../cli"
+    }
+  ]
 }

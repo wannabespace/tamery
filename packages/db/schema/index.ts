@@ -47,6 +47,13 @@ export { copies, deletedRecords } from './deleted-records'
 export { earlyAccess } from './early-access'
 export { workspaceEncryptionKeys } from './encryption'
 export {
+  connectionMachines,
+  connectionMachinesInsertSchema,
+  connectionMachinesSelectSchema,
+  machines,
+  machinesSelectSchema,
+} from './machines'
+export {
   queries,
   queriesUpdateSchema,
   queriesInsertSchema,

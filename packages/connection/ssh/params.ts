@@ -59,7 +59,7 @@ export const SSH_FIELD_AT_FAULT: Record<
 }
 
 export const SSH_ELSEWHERE =
-  'SSH tunnels run in the Tamery desktop app or through `tamery bridge`. Open this connection there, or start the bridge.'
+  'SSH tunnels run in the Tamery desktop app or through `tamery machine`. Open this connection there, or start the machine.'
 
 export const SSH_PARAMS = {
   auth: 'ssh_auth',

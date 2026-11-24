@@ -31,10 +31,12 @@ import {
   MAX_REMEMBERED_RESOURCES,
 } from '~/core/connection/last-opened-resources'
 import { useShortcut, useShortcuts } from '~/core/keyboard/use-shortcuts'
+import { useMachineRoute } from '~/core/runtime/machine/pairing'
 import { workspaceSelection } from '~/core/workspace/utils'
 import { useGoBack } from '~/hooks/use-go-back'
 import type { Panel } from '~/lib/panels'
 import { panelSize, useShellLayout } from '~/lib/panels'
+import { MachineNotPaired } from '~/modules/machine/machine-not-paired'
 import { useEscapeToNavigator } from '~/modules/navigator/keyboard'
 import { showNavigatorSection } from '~/modules/navigator/navigator-header'
 import { navigatorPanel } from '~/modules/navigator/panel'
@@ -133,6 +135,7 @@ const ResourcePage = () => {
   }, [connectionResource.id])
 
   const fetching = useFetchingConfig(connection)
+  const machineRoute = useMachineRoute(connection.id)
   const needsDetails = fetching.type === 'waiting-for-details'
   const locked = fetching.type === 'waiting-for-password' || needsDetails
 
@@ -155,6 +158,10 @@ const ResourcePage = () => {
   // Route context keeps the row from entry, so without this a refetch under a removed connection throws its way to the error page.
   if (isRemoved) {
     return null
+  }
+
+  if (machineRoute && !machineRoute.pairing) {
+    return <MachineNotPaired route={machineRoute} />
   }
 
   if (locked) {

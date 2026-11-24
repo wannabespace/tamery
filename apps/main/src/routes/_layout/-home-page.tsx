@@ -5,11 +5,11 @@ import { Share } from '~/modules/features/share'
 import { Pricing } from '~/modules/pricing/pricing'
 
 import { Agents } from './-components/agents'
-import { Bridge } from './-components/bridge'
 import { Engines } from './-components/engines'
 import { Faq } from './-components/faq'
 import { GetStarted } from './-components/get-started'
 import { Hero } from './-components/hero'
+import { Machine } from './-components/machine'
 import { Security } from './-components/security'
 
 export const HomePage = () => (
@@ -22,7 +22,7 @@ export const HomePage = () => (
     <Agents />
     <Share />
     <Security />
-    <Bridge />
+    <Machine />
     <Pricing />
     <Faq />
     <GetStarted />

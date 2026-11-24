@@ -28,7 +28,7 @@ const lockfile = type({
 })
 
 /**
- * What the bridge downloads on its first DuckDB file, pinned to the lockfile's versions and checksums: the binding of this
+ * What the machine downloads on its first DuckDB file, pinned to the lockfile's versions and checksums: the binding of this
  * target alone, since each platform's is tens of megabytes.
  */
 const getDuckdbPackages = async (target: Target) => {
@@ -115,8 +115,8 @@ await Promise.all(
       },
       entrypoints: [path.join(import.meta.dirname, '..', 'src', 'index.ts')],
       // ssh2 loads these native addons inside a try and runs on pure JS without them; bundled, an unbuilt one fails the build.
-      // DuckDB's driver is tens of megabytes per platform, so the bridge downloads it on its first DuckDB file.
-      // Keychain's addon is per platform too; the bridge finds local databases without it and leaves their Keychain passwords to the user.
+      // DuckDB's driver is tens of megabytes per platform, so the machine downloads it on its first DuckDB file.
+      // Keychain's addon is per platform too; the machine finds local databases without it and leaves their Keychain passwords to the user.
       external: [
         'cpu-features',
         '*.node',

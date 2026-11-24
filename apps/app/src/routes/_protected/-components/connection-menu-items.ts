@@ -31,6 +31,7 @@ export const buildConnectionMenuItems = ({
   onOpenInNewWindow,
   onRefresh,
   onRemove,
+  runsOn,
 }: {
   canEdit: boolean
   canSend: boolean
@@ -47,6 +48,7 @@ export const buildConnectionMenuItems = ({
   onOpenInNewWindow: (() => void) | null
   onRefresh: () => void
   onRemove: VoidFunction
+  runsOn: AppMenuNode | null
 }): AppMenuNode[] => [
   {
     label: 'Open in New Window',
@@ -61,6 +63,7 @@ export const buildConnectionMenuItems = ({
     disabled: !canEdit,
     onSelect: onEdit,
   },
+  ...(runsOn ? [runsOn] : []),
   {
     label: 'Refresh',
     icon: Refresh01Icon,

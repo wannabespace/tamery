@@ -1,0 +1,891 @@
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test,
+} from 'bun:test'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import process from 'node:process'
+
+import { createORPCClient, ORPCError } from '@orpc/client'
+import { RPCLink } from '@orpc/client/fetch'
+import { forwarding } from '@tamery/connection/forwarding'
+import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/client'
+import { HOST_KEY_REFUSALS } from '@tamery/connection/ssh/host-key'
+import { tunnelError } from '@tamery/connection/ssh/params'
+import { querySerializer } from '@tamery/query-proxy/serializer'
+import { challenge } from '@tamery/shared/challenge'
+import { encrypt } from '@tamery/shared/crypto-node'
+import { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { machineKey } from '@tamery/shared/machine'
+import { SafeURL } from '@tamery/shared/safe-url'
+import { sleep } from '@tamery/shared/utils'
+
+import type { MachineRouter } from './router'
+
+const WEB_URL = 'https://app.tamery.test'
+const USER_ID = 'user-1'
+const home = fs.mkdtempSync(path.join(os.tmpdir(), 'tamery-machine-'))
+// The key file keeps the tests off the real keychain; HOME would not do, since the test runner fixes `os.homedir()`.
+Object.assign(process.env, {
+  API_URL: 'https://api.tamery.test',
+  MAIN_URL: 'https://tamery.test',
+  TAMERY_CONFIG_DIR: home,
+  WEB_URL,
+})
+fs.writeFileSync(path.join(home, 'machine.key'), 'test-key')
+
+const ids = {
+  certificate: '0190a1b2-0000-7000-8000-000000000006',
+  tunnel: '0190a1b2-0000-7000-8000-000000000008',
+  full: '0190a1b2-0000-7000-8000-000000000001',
+  gone: '0190a1b2-0000-7000-8000-000000000004',
+  machineLogin: '0190a1b2-0000-7000-8000-000000000005',
+  proxied: '0190a1b2-0000-7000-8000-00000000000a',
+  metadataOnly: '0190a1b2-0000-7000-8000-000000000002',
+  noPassword: '0190a1b2-0000-7000-8000-000000000003',
+  socketless: '0190a1b2-0000-7000-8000-000000000009',
+  unresolved: '0190a1b2-0000-7000-8000-000000000007',
+  found: '0190a1b2-0000-7000-8000-00000000000b',
+  foundElsewhere: '0190a1b2-0000-7000-8000-00000000000c',
+}
+
+const databaseFile = path.join(home, 'test.db')
+const sqliteString = `sqlite://${databaseFile}`
+fs.writeFileSync(databaseFile, '')
+const appDataFile = path.join(home, 'Users', 'me', 'Library', 'Cookies.sqlite')
+fs.mkdirSync(path.dirname(appDataFile), { recursive: true })
+fs.writeFileSync(appDataFile, '')
+
+const modified = (connectionString: string, isPasswordExists = false) => ({
+  connectionString,
+  isPasswordExists,
+  status: 'modified',
+  updatedAt: new Date(),
+})
+
+const certificateString =
+  'postgresql://user:secret@db.internal:5432/app?sslkey=/home/me/.ssh/id_rsa'
+const tunnelString =
+  'postgresql://user:secret@db.internal:5432/app?ssh_host=bastion.example.com&ssh_user=deploy&ssh_auth=agent'
+const machineLoginString =
+  'mongodb://db.example.com/app?authMechanism=MONGODB-AWS'
+
+const serverCopies: Record<string, unknown> = {
+  [ids.certificate]: modified(certificateString),
+  [ids.tunnel]: modified(tunnelString),
+  [ids.full]: modified(sqliteString),
+  [ids.gone]: { status: 'not-found' },
+  [ids.machineLogin]: modified(machineLoginString),
+  [ids.metadataOnly]: { status: 'no-connection-string' },
+  [ids.proxied]: modified(`${machineLoginString}&proxyHost=evil.example`),
+  [ids.noPassword]: modified('postgresql://user:@db.internal:5432/app', true),
+  [ids.socketless]: modified(`postgresql://${databaseFile}`),
+  [ids.unresolved]: { status: 'no-connection-string' },
+  [ids.found]: modified('postgresql://me@localhost:5433/orders', true),
+  [ids.foundElsewhere]: modified('postgresql://me@evil.example:5433/app', true),
+}
+let apiDown = false
+let signedOut = false
+let attestDown = false
+const attested: string[] = []
+/** `origin nonce` pairs the user's own browser had Tamery vouch for. */
+const browserNonces = new Set<string>()
+
+interface Attestation {
+  nonce: string
+  origin: string
+}
+
+void mock.module('../api', () => ({
+  account: {},
+  api: {
+    account: {
+      machine: {
+        attest: ({ nonce, origin }: Attestation) => {
+          if (attestDown) {
+            return Promise.reject(new Error('fetch failed'))
+          }
+          attested.push(`${origin} ${nonce}`)
+          return Promise.resolve()
+        },
+        verify: ({ nonce, origin }: Attestation) => {
+          if (attestDown) {
+            return Promise.reject(new Error('fetch failed'))
+          }
+          return Promise.resolve(browserNonces.delete(`${origin} ${nonce}`))
+        },
+      },
+    },
+    connections: {
+      resolve: ({ id }: { id: string }) => {
+        if (signedOut) {
+          return Promise.reject(new ORPCError('UNAUTHORIZED'))
+        }
+        return apiDown
+          ? Promise.reject(new Error('fetch failed'))
+          : Promise.resolve(serverCopies[id])
+      },
+    },
+  },
+}))
+
+const FOUND = {
+  connectionString: 'postgresql://me@localhost:5433/app',
+  hasPassword: true,
+  name: 'Local app',
+  source: 'DBeaver',
+  type: ConnectionType.Postgres,
+}
+const FOUND_WITHOUT_PASSWORD = {
+  ...FOUND,
+  connectionString: 'postgresql://me@localhost:5434/other',
+  hasPassword: false,
+}
+const FOUND_REMOTE = {
+  ...FOUND,
+  connectionString: 'postgresql://me@db.vpn.example:5432/app',
+}
+const FOUND_PASSWORD = 'found@secret/1'
+
+void mock.module('@tamery/connection/local-databases/find', () => ({
+  localDatabases: {
+    find: () => Promise.resolve([FOUND, FOUND_WITHOUT_PASSWORD, FOUND_REMOTE]),
+    unlock: (connectionString: string) =>
+      Promise.resolve({
+        password: [FOUND, FOUND_REMOTE].some(
+          (found) => found.connectionString === connectionString
+        )
+          ? FOUND_PASSWORD
+          : '',
+        withheld: false,
+      }),
+  },
+}))
+
+const { createRouter } = await import('./router')
+const { serveMachine } = await import('./server')
+const { pairings } = await import('./pairings')
+const { approvals } = await import('./approvals')
+const { hostKeys } = await import('./host-keys')
+const { vault } = await import('../vault')
+const { configFiles } = await import('../config-files')
+
+confineSqliteFiles()
+
+const server = await serveMachine({
+  port: 0,
+  publicUrl: new URL('https://db-box.tail1234.ts.net'),
+  router: createRouter({
+    approver: approvals,
+    id: '0190a1b2-0000-7000-8000-0000000000ff',
+    name: 'test-box',
+    userId: USER_ID,
+  }),
+})
+const machineUrl = `http://127.0.0.1:${server.port}`
+
+const createClient = (secret: string | null): MachineRouter =>
+  createORPCClient(
+    new RPCLink({
+      headers: {
+        ...(secret && { authorization: `Bearer ${secret}` }),
+        origin: WEB_URL,
+      },
+      origin: machineUrl,
+      serializer: querySerializer,
+      url: '/rpc',
+    })
+  )
+
+/** Plays the person at the terminal: answers the next request to arrive and returns it. */
+const answer = async (allowed: boolean) => {
+  while (approvals.waiting().length === 0) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- waiting for the request to arrive
+    await sleep(10)
+  }
+  const [request] = approvals.waiting()
+  approvals.decide(request?.id ?? '', allowed)
+  return request
+}
+
+/** The browser attests `browserNonce` for the URL it calls, `attestedFor`, which a relay would name instead of the machine's. */
+const requestAccess = (
+  overrides: {
+    attestedFor?: string
+    browserNonce?: string
+    label?: string
+    nonce?: string
+    userId?: string
+  } = {}
+) => {
+  const {
+    attestedFor = machineUrl,
+    browserNonce = machineKey.nonce(),
+    ...input
+  } = overrides
+  browserNonces.add(`${attestedFor} ${browserNonce}`)
+  return createClient(null).machine.pair({
+    browserNonce,
+    label: 'Test browser',
+    nonce: machineKey.nonce(),
+    userId: USER_ID,
+    ...input,
+  })
+}
+
+const pair = async () => {
+  const [pairing] = await Promise.all([requestAccess(), answer(true)])
+  return pairing
+}
+
+const expectError = async (call: Promise<unknown>, code: string) => {
+  const error = await call.then(() => null).catch((error_: unknown) => error_)
+  expect(error).toMatchObject({ code, defined: true })
+  return error
+}
+
+let paired: Awaited<ReturnType<typeof pair>>
+
+beforeAll(async () => {
+  paired = await pair()
+  expect(paired.info).toMatchObject({ name: 'test-box' })
+})
+
+afterAll(async () => {
+  await server.stop()
+  fs.rmSync(home, { force: true, recursive: true })
+})
+
+// A test that stands in for the tunnel opener puts back none, so the next one never runs through its stand-in.
+afterEach(() => {
+  forwarding.use(() => Promise.resolve(null))
+})
+
+describe('requests', () => {
+  test('a host other than loopback or the public URL is refused', async () => {
+    const response = await fetch(`${machineUrl}/rpc`, {
+      headers: { host: 'evil.example' },
+      method: 'POST',
+    })
+    expect(response.status).toBe(421)
+  })
+
+  test('an unknown origin is refused before anything runs', async () => {
+    const response = await fetch(`${machineUrl}/rpc/machine/hello`, {
+      headers: { origin: 'https://evil.example' },
+      method: 'POST',
+    })
+    expect(response.status).toBe(403)
+  })
+
+  test('a preflight from the app is answered without the secret', async () => {
+    const response = await fetch(`${machineUrl}/rpc/machine/hello`, {
+      headers: { origin: WEB_URL },
+      method: 'OPTIONS',
+    })
+    expect(response.status).toBe(204)
+    expect(response.headers.get('access-control-allow-origin')).toBe(WEB_URL)
+    expect(response.headers.get('access-control-allow-headers')).toContain(
+      'authorization'
+    )
+  })
+})
+
+describe('pairing', () => {
+  test('a browser allowed at the terminal is paired, its nonce attested to Tamery for the URL it called', async () => {
+    const nonce = machineKey.nonce()
+    const [pairing] = await Promise.all([
+      requestAccess({ nonce }),
+      answer(true),
+    ])
+    expect(attested).toContain(`${machineUrl} ${nonce}`)
+    expect(pairings.find(pairing.browserId)?.hash).toBe(
+      machineKey.hash(pairing.secret)
+    )
+  })
+
+  test('a request relayed from another URL is refused before anyone is asked', async () => {
+    await expectError(
+      requestAccess({ attestedFor: 'https://relay.example' }),
+      'OTHER_ACCOUNT'
+    )
+    await expectError(
+      requestAccess({ attestedFor: 'http://127.0.0.1:9999' }),
+      'OTHER_ACCOUNT'
+    )
+    expect(approvals.waiting()).toHaveLength(0)
+  })
+
+  test('the first answer stands when the terminal and `tamery machine approve` both answer', async () => {
+    const asked = requestAccess()
+    const request = await answer(false)
+    approvals.decide(request?.id ?? '', true)
+    await expectError(asked, 'DECLINED')
+  })
+
+  test('a declined browser gets nothing', async () => {
+    const before = pairings.labels().length
+    await Promise.all([expectError(requestAccess(), 'DECLINED'), answer(false)])
+    expect(pairings.labels().length).toBe(before)
+  })
+
+  test('a label cannot write control characters into the terminal prompt', async () => {
+    const [, request] = await Promise.all([
+      requestAccess({ label: 'Chrome\u001B[2K\rYour MacBook' }),
+      answer(true),
+    ])
+    expect(request?.question).toContain('Chrome[2KYour MacBook')
+    expect(request?.question).not.toContain('\r')
+  })
+
+  test('the terminal shows the code of the browser asking, so the user can match it', async () => {
+    const browserNonce = machineKey.nonce()
+    const [, request] = await Promise.all([
+      requestAccess({ browserNonce }),
+      answer(true),
+    ])
+    expect(request?.question).toContain(challenge.getUserCode(browserNonce))
+  })
+
+  test('a browser signed in to another account is refused before anyone is asked', async () => {
+    await expectError(requestAccess({ userId: 'someone' }), 'OTHER_ACCOUNT')
+    expect(approvals.waiting()).toHaveLength(0)
+  })
+
+  test('a request Tamery cannot attest is refused before anyone is asked', async () => {
+    attestDown = true
+    try {
+      await expectError(requestAccess(), 'NOT_ATTESTED')
+    } finally {
+      attestDown = false
+    }
+    expect(approvals.waiting()).toHaveLength(0)
+  })
+
+  test('hello proves the machine holds the browser key', async () => {
+    const nonce = machineKey.nonce()
+    const info = await createClient(null).machine.hello({
+      browserId: paired.browserId,
+      nonce,
+    })
+    expect(info.proof).toBe(
+      machineKey.proof(machineKey.hash(paired.secret), nonce)
+    )
+    const stranger = await createClient(null).machine.hello({
+      browserId: 'unknown',
+      nonce,
+    })
+    expect(stranger.proof).toBeNull()
+  })
+
+  test('a call without a paired secret is refused', async () => {
+    await expectError(
+      createClient('not-a-secret').query.sqlite.execute({
+        connectionId: ids.full,
+        query: 'select 1',
+      }),
+      'UNAUTHORIZED'
+    )
+  })
+
+  test('unpairing from another process reaches the running machine', async () => {
+    const { browserId, secret } = await pair()
+    configFiles.remove(path.join(configFiles.browsers, `${browserId}.json`))
+    await expectError(createClient(secret).machine.unpair(), 'UNAUTHORIZED')
+    const saved = path.join(home, 'browsers-before-reset')
+    fs.cpSync(configFiles.browsers, saved, { recursive: true })
+    pairings.reset()
+    try {
+      await expectError(
+        createClient(paired.secret).machine.unpair(),
+        'UNAUTHORIZED'
+      )
+    } finally {
+      fs.cpSync(saved, configFiles.browsers, { recursive: true })
+    }
+  })
+
+  test('an unpaired browser is refused from then on', async () => {
+    const { secret } = await pair()
+    await createClient(secret).machine.unpair()
+    await expectError(
+      createClient(secret).machine.saveSecrets({
+        connectionId: ids.full,
+        connectionString: sqliteString,
+      }),
+      'UNAUTHORIZED'
+    )
+  })
+})
+
+describe('connections', () => {
+  test('a synced SQLite file runs only once its path is saved on the machine', async () => {
+    const client = createClient(paired.secret)
+    const run = () =>
+      client.query.sqlite.execute({
+        connectionId: ids.full,
+        query: 'select 1 as one',
+      })
+    await expectError(run(), 'UNCONFIRMED')
+    await client.machine.saveSecrets({
+      connectionId: ids.full,
+      connectionString: `sqlite://${path.join(home, 'other.db')}`,
+    })
+    await expectError(run(), 'UNCONFIRMED')
+    await client.machine.saveSecrets({
+      connectionId: ids.full,
+      connectionString: sqliteString,
+    })
+    const { result } = await run()
+    expect(JSON.stringify(result)).toContain('one')
+  })
+
+  test('a synced certificate file or machine login is refused until saved on the machine', async () => {
+    const client = createClient(paired.secret)
+    await expectError(
+      client.query.postgres.execute({
+        connectionId: ids.certificate,
+        query: 'select 1',
+      }),
+      'UNCONFIRMED'
+    )
+    await expectError(
+      client.query.mongodb.execute({
+        connectionId: ids.machineLogin,
+        query: 'db.users.find()',
+      }),
+      'UNCONFIRMED'
+    )
+    await client.machine.saveSecrets({
+      connectionId: ids.machineLogin,
+      connectionString:
+        'mongodb://elsewhere.example.com/app?authMechanism=MONGODB-AWS',
+    })
+    await expectError(
+      client.query.mongodb.execute({
+        connectionId: ids.machineLogin,
+        query: 'db.users.find()',
+      }),
+      'UNCONFIRMED'
+    )
+  })
+
+  test('a machine login routed through a proxy the machine was not allowed is refused', async () => {
+    const client = createClient(paired.secret)
+    await client.machine.saveSecrets({
+      connectionId: ids.proxied,
+      connectionString: machineLoginString,
+    })
+    await expectError(
+      client.query.mongodb.execute({
+        connectionId: ids.proxied,
+        query: 'db.users.find()',
+      }),
+      'UNCONFIRMED'
+    )
+  })
+
+  test("a synced SSH tunnel is refused until saved on the machine, since it uses this computer's keys", async () => {
+    await expectError(
+      createClient(paired.secret).query.postgres.execute({
+        connectionId: ids.tunnel,
+        query: 'select 1',
+      }),
+      'UNCONFIRMED'
+    )
+  })
+
+  test.each([
+    [
+      'signs in another way',
+      'postgresql://user:secret@db.internal:5432/app?ssh_host=bastion.example.com&ssh_user=deploy&ssh_auth=password',
+    ],
+    [
+      'reaches another database host',
+      'postgresql://user:secret@other.internal:5432/app?ssh_host=bastion.example.com&ssh_user=deploy&ssh_auth=agent',
+    ],
+  ])(
+    'a synced tunnel that %s than the one saved on the machine is refused',
+    async (_, saved) => {
+      const client = createClient(paired.secret)
+      await client.machine.saveSecrets({
+        connectionId: ids.tunnel,
+        connectionString: saved,
+      })
+      await expectError(
+        client.query.postgres.execute({
+          connectionId: ids.tunnel,
+          query: 'select 1',
+        }),
+        'UNCONFIRMED'
+      )
+    }
+  )
+
+  test('a query through an unknown SSH host key fails with the key, and runs once the browser trusts it', async () => {
+    const client = createClient(paired.secret)
+    const hostKey = {
+      fingerprint: 'SHA256:abc',
+      host: 'bastion.example.com',
+      keyType: 'ssh-ed25519',
+    }
+    let isTrusted = false
+    forwarding.use(async (connectionString) => {
+      isTrusted ||= await hostKeys.confirm(connectionString)(hostKey)
+      if (!isTrusted) {
+        throw tunnelError(HOST_KEY_REFUSALS.unknown)
+      }
+      return null
+    })
+    const saved = `${sqliteString}?ssh_host=bastion.example.com&ssh_user=deploy&ssh_auth=agent`
+    serverCopies[ids.socketless] = modified(saved)
+    await client.machine.saveSecrets({
+      connectionId: ids.socketless,
+      connectionString: saved,
+    })
+    const run = () =>
+      client.query.sqlite.execute({
+        connectionId: ids.socketless,
+        query: 'select 1 as one',
+      })
+    await client.machine.trustHostKey(hostKey)
+    const error = await expectError(run(), 'UNKNOWN_HOST_KEY')
+    expect(error).toMatchObject({ data: hostKey })
+    await client.machine.trustHostKey(hostKey)
+    const { result } = await run()
+    expect(JSON.stringify(result)).toContain('one')
+  })
+
+  test.each([
+    ['a file in an app data folder', `sqlite://${appDataFile}`],
+    ['a cloud login to a server other than Atlas', machineLoginString],
+  ])('a paired browser cannot have the machine open %s', async (_, saved) => {
+    const client = createClient(paired.secret)
+    serverCopies[ids.socketless] = modified(saved)
+    await client.machine.saveSecrets({
+      connectionId: ids.socketless,
+      connectionString: saved,
+    })
+    const error = await expectError(
+      saved.startsWith('sqlite')
+        ? client.query.sqlite.execute({
+            connectionId: ids.socketless,
+            query: 'select 1',
+          })
+        : client.query.mongodb.execute({
+            connectionId: ids.socketless,
+            query: 'db.users.find()',
+          }),
+      'BAD_REQUEST'
+    )
+    expect(error).toMatchObject({
+      message: expect.stringContaining('desktop app'),
+    })
+  })
+
+  test('secrets are saved only for a connection Tamery confirms', async () => {
+    const client = createClient(paired.secret)
+    await expectError(
+      client.machine.saveSecrets({
+        connectionId: ids.gone,
+        connectionString: sqliteString,
+      }),
+      'NOT_FOUND'
+    )
+    await expect(
+      client.machine.saveSecrets({
+        connectionId: '6f1c2b3a-0000-4000-8000-000000000001',
+        connectionString: sqliteString,
+      })
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+    apiDown = true
+    try {
+      await expect(
+        client.machine.saveSecrets({
+          connectionId: ids.unresolved,
+          connectionString: sqliteString,
+        })
+      ).rejects.toThrow()
+    } finally {
+      apiDown = false
+    }
+    expect(await vault.connection(ids.gone)).toBeNull()
+    expect(await vault.connection(ids.unresolved)).toBeNull()
+  })
+
+  test('a Metadata only connection asks for everything, then runs from the saved copy', async () => {
+    const client = createClient(paired.secret)
+    const error = await expectError(
+      client.query.sqlite.execute({
+        connectionId: ids.metadataOnly,
+        query: 'select 1',
+      }),
+      'NEEDS_SECRETS'
+    )
+    expect(error).toMatchObject({
+      data: { connectionId: ids.metadataOnly, fields: 'all' },
+    })
+    await client.machine.saveSecrets({
+      connectionId: ids.metadataOnly,
+      connectionString: sqliteString,
+    })
+    await client.query.sqlite.execute({
+      connectionId: ids.metadataOnly,
+      query: 'select 1',
+    })
+  })
+
+  test('a No password connection asks for the password only', async () => {
+    const error = await expectError(
+      createClient(paired.secret).query.postgres.execute({
+        connectionId: ids.noPassword,
+        query: 'select 1',
+      }),
+      'NEEDS_SECRETS'
+    )
+    expect(error).toMatchObject({ data: { fields: ['password'] } })
+  })
+
+  test('saving one missing field keeps the secrets saved before', async () => {
+    const client = createClient(paired.secret)
+    await client.machine.saveSecrets({
+      connectionId: ids.noPassword,
+      connectionString:
+        'postgresql://user:secret@db.internal:5432/app?sslpassword=kept',
+    })
+    await client.machine.saveSecrets({
+      connectionId: ids.noPassword,
+      connectionString:
+        'postgresql://user:new@db.internal:5432/app?sslpassword=',
+    })
+    expect(await vault.connection(ids.noPassword)).toContain('sslpassword=kept')
+  })
+
+  test('with the API down, a resolved or locally saved connection still runs', async () => {
+    apiDown = true
+    try {
+      const client = createClient(paired.secret)
+      await client.query.sqlite.execute({
+        connectionId: ids.full,
+        query: 'select 1',
+      })
+      await client.query.sqlite.execute({
+        connectionId: ids.metadataOnly,
+        query: 'select 1',
+      })
+    } finally {
+      apiDown = false
+    }
+  })
+
+  test('a query cannot reach a SQLite file other than the one allowed', async () => {
+    const error = await createClient(paired.secret)
+      .query.sqlite.execute({
+        connectionId: ids.full,
+        query: `attach database '${path.join(home, 'other.db')}' as other`,
+      })
+      .catch((error_: unknown) => error_)
+    expect(error).toMatchObject({
+      message: expect.stringMatching(/not authorized/iu),
+    })
+    await expect(
+      createClient(paired.secret).query.sqlite.execute({
+        connectionId: ids.full,
+        query: `vacuum into '${path.join(home, 'copy.db')}'`,
+      })
+    ).rejects.toThrow()
+    expect(fs.existsSync(path.join(home, 'copy.db'))).toBe(false)
+  })
+
+  test('VACUUM still runs, since it attaches no file', async () => {
+    await createClient(paired.secret).query.sqlite.execute({
+      connectionId: ids.full,
+      query: 'vacuum',
+    })
+  })
+
+  test('a connection runs only as its own dialect, so another one cannot open its path as a file', async () => {
+    await expect(
+      createClient(paired.secret).query.sqlite.execute({
+        connectionId: ids.socketless,
+        query: 'select 1',
+      })
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+  })
+
+  test('a session Tamery ended stops even a locally saved connection', async () => {
+    await vault.setConnection(ids.unresolved, sqliteString)
+    signedOut = true
+    try {
+      await expect(
+        createClient(paired.secret).query.sqlite.execute({
+          connectionId: ids.unresolved,
+          query: 'select 1',
+        })
+      ).rejects.toThrow()
+    } finally {
+      signedOut = false
+    }
+  })
+
+  test('a database error reaches the app with its message', async () => {
+    const error = await createClient(paired.secret)
+      .query.sqlite.execute({ connectionId: ids.full, query: 'select from' })
+      .catch((error_: unknown) => error_)
+    expect(error).toMatchObject({
+      code: 'INTERNAL_SERVER_ERROR',
+      message: expect.stringContaining('syntax error'),
+    })
+  })
+
+  test('a connection gone from the account is not found and its saved copy is deleted', async () => {
+    await vault.setConnection(ids.gone, sqliteString)
+    await expectError(
+      createClient(paired.secret).query.sqlite.execute({
+        connectionId: ids.gone,
+        query: 'select 1',
+      }),
+      'NOT_FOUND'
+    )
+    expect(await vault.connection(ids.gone)).toBeNull()
+  })
+
+  test('a connection string is never run', async () => {
+    const error = await createClient(paired.secret)
+      .query.sqlite.execute({
+        connectionString: sqliteString,
+        query: 'select 1',
+      } as never)
+      .catch((error_: unknown) => error_)
+    expect(error).toMatchObject({ code: 'BAD_REQUEST' })
+  })
+})
+
+describe('local databases', () => {
+  test('an unpaired browser finds and keeps nothing', async () => {
+    const client = createClient(null)
+    await expectError(client.localDatabases.find(), 'UNAUTHORIZED')
+    await expectError(
+      client.localDatabases.keepPassword({
+        connectionId: ids.found,
+        connectionString: FOUND.connectionString,
+        found: FOUND.connectionString,
+      }),
+      'UNAUTHORIZED'
+    )
+  })
+
+  test('a found password stays on the machine and fills in only the server it was found on', async () => {
+    const client = createClient(paired.secret)
+    let resolved = ''
+    forwarding.use((connectionString) => {
+      resolved = connectionString
+      throw new Error('stopped before connecting')
+    })
+    const runOn = (connectionId: string) =>
+      client.query.postgres.execute({ connectionId, query: 'select 1' })
+    expect(await client.localDatabases.find()).toEqual([
+      FOUND,
+      FOUND_WITHOUT_PASSWORD,
+      { ...FOUND_REMOTE, hasPassword: false },
+    ])
+    for (const refused of [
+      FOUND_WITHOUT_PASSWORD.connectionString,
+      'postgresql://admin@evil.example/app',
+      FOUND_REMOTE.connectionString,
+    ].map((found) => ({ connectionString: found, found }))) {
+      expect(
+        // oxlint-disable-next-line eslint/no-await-in-loop -- each keep must finish before the next
+        await client.localDatabases.keepPassword({
+          connectionId: ids.found,
+          ...refused,
+        })
+      ).toBe(false)
+    }
+    expect(
+      await client.localDatabases.keepPassword({
+        connectionId: ids.found,
+        connectionString: 'postgresql://me@evil.example:5433/orders',
+        found: FOUND.connectionString,
+      })
+    ).toBe(false)
+    for (const connectionId of [ids.found, ids.foundElsewhere]) {
+      expect(
+        // oxlint-disable-next-line eslint/no-await-in-loop -- each keep must finish before the next
+        await client.localDatabases.keepPassword({
+          connectionId,
+          connectionString: 'postgresql://me@localhost:5433/orders',
+          found: FOUND.connectionString,
+        })
+      ).toBe(true)
+    }
+    expect(approvals.waiting()).toHaveLength(0)
+    await runOn(ids.found).catch(() => null)
+    expect(new SafeURL(resolved).password).toBe(
+      encodeURIComponent(FOUND_PASSWORD)
+    )
+    await expectError(runOn(ids.foundElsewhere), 'NEEDS_SECRETS')
+  })
+})
+
+describe('vault', () => {
+  test('a vault another process rewrote is read, never overwritten with an older copy', async () => {
+    const account = { email: 'other@tamery.test', id: 'user-2', token: 't' }
+    configFiles.write(
+      configFiles.vault,
+      encrypt({
+        secret: 'test-key',
+        text: JSON.stringify({ account, connections: {} }),
+      })
+    )
+    await vault.setConnection(ids.full, sqliteString)
+    expect(await vault.account()).toEqual(account)
+  })
+
+  test('a new vault over SSH keeps its key in a file, never asking the keychain', async () => {
+    configFiles.remove(configFiles.vault)
+    configFiles.remove(configFiles.key)
+    process.env.SSH_CONNECTION = '10.0.0.2 51000 10.0.0.1 22'
+    const keychain = [
+      spyOn(Bun.secrets, 'get').mockRejectedValue(new Error('asked')),
+      spyOn(Bun.secrets, 'set').mockRejectedValue(new Error('asked')),
+    ]
+    try {
+      await vault.setConnection(ids.full, sqliteString)
+      expect(fs.existsSync(configFiles.key)).toBe(true)
+      expect(await vault.connection(ids.full)).toBe(sqliteString)
+      for (const spy of keychain) {
+        expect(spy).not.toHaveBeenCalled()
+      }
+    } finally {
+      delete process.env.SSH_CONNECTION
+      for (const spy of keychain) {
+        spy.mockRestore()
+      }
+      configFiles.remove(configFiles.vault)
+      fs.writeFileSync(configFiles.key, 'test-key')
+    }
+  })
+
+  test('logout resets a vault it cannot read', async () => {
+    const { logout } = await import('../commands/logout')
+    configFiles.write(configFiles.vault, 'not a vault')
+    const keychain = spyOn(Bun.secrets, 'delete').mockResolvedValue(true)
+    try {
+      await expect(vault.account()).rejects.toThrow()
+      await logout()
+      expect(fs.existsSync(configFiles.vault)).toBe(false)
+      expect(pairings.labels()).toHaveLength(0)
+    } finally {
+      keychain.mockRestore()
+      fs.writeFileSync(configFiles.key, 'test-key')
+    }
+  })
+})

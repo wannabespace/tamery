@@ -3,9 +3,10 @@ import type { Dialect } from '@tamery/shared/enums/connection-type'
 
 import { getCollections } from '~/core/collections'
 import { fetchingConfig } from '~/core/connection/fetching-config'
-import { bridge } from '~/core/runtime/bridge/bridge'
-import { getBridgeRoute } from '~/core/runtime/bridge/pairing'
 import type { QueryLogEntry } from '~/core/runtime/log'
+import { machine } from '~/core/runtime/machine/machine'
+import { MachineNotPairedError } from '~/core/runtime/machine/not-paired'
+import { getMachineRoute } from '~/core/runtime/machine/pairing'
 import { orpcProxy } from '~/lib/orpc'
 
 export interface DialectOptions {
@@ -39,22 +40,26 @@ const getTransport = (dialect: Dialect, options: DialectOptions) => {
   const connection = connectionId
     ? (connectionsCollection.get(connectionId) ?? null)
     : null
-  const bridgeRoute = getBridgeRoute(connectionId ?? null)
+  const machineRoute = getMachineRoute(connectionId ?? null)
   const config = fetchingConfig(connection, {
-    bridge: bridgeRoute,
+    machine: machineRoute,
     connectionString: describeConnectionString(options.connectionString),
     draft: !connectionId,
   })
+
+  if (machineRoute && !machineRoute.pairing) {
+    throw new MachineNotPairedError(machineRoute)
+  }
 
   if (!config.canSend) {
     throw new Error(config.reason ?? 'This connection is still loading.')
   }
 
-  if (bridgeRoute && connectionId) {
+  if (machineRoute?.pairing && connectionId) {
     return {
       input: { connectionId, resourceName: resource?.name ?? null },
       kind: 'proxy' as const,
-      proxy: bridge.client(bridgeRoute.pairing).query[dialect],
+      proxy: machine.client(machineRoute.pairing).query[dialect],
     }
   }
 

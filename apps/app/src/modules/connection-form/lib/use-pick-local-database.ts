@@ -3,8 +3,6 @@ import { useSelector } from '@tanstack/react-form'
 import { Result } from 'better-result'
 import { useRef, useState } from 'react'
 
-import { localMachine } from '~/core/local-machine'
-
 import type { ConnectionForm } from './connection-form'
 import type { PasteVia } from './use-paste-connection'
 
@@ -21,24 +19,31 @@ export const usePickLocalDatabase = ({
   const [withheld, setWithheld] = useState<{ host: string; source: string }>()
   const host = useSelector(form.store, ({ values }) => values.host)
 
-  const pick = async ({
-    connectionString,
-    name,
-    source,
-    type,
-  }: LocalDatabase) => {
+  const pick = async (
+    { connectionString, hasPassword, name, source, type }: LocalDatabase,
+    machineId: string | null
+  ) => {
     setWithheld(undefined)
     // Replaces the form rather than merging like a paste: another pick on the same host would keep the previous password, database and options.
     form.reset()
     read(connectionString, 'found')
+    form.setFieldValue('machineId', machineId)
     form.setFieldValue('name', name)
     form.setFieldValue('type', type)
+    if (machineId !== null || !window.electron) {
+      form.setFieldValue(
+        'foundDatabase',
+        hasPassword ? { connectionString, source } : null
+      )
+      return
+    }
     if (unlocking.current === connectionString) {
       return
     }
     unlocking.current = connectionString
-    const unlock = await Result.tryPromise(
-      async () => await localMachine.unlockDatabase(connectionString)
+    const { localDatabases } = window.electron
+    const unlock = await Result.tryPromise(() =>
+      localDatabases.unlock(connectionString)
     )
     const unlocked = unlock.unwrapOr(null)
     if (unlocking.current !== connectionString) {

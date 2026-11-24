@@ -1,6 +1,6 @@
 {
   "name": "@tamery/cli",
-  "version": "0.99.2",
+  "version": "0.99.4",
   "private": true,
   "description": "Tamery from your terminal.",
   "keywords": [
@@ -62,8 +62,10 @@
     "pg": "catalog:",
     "portless": "catalog:",
     "posthog-node": "catalog:",
+    "srvx": "catalog:",
     "ssh-config": "catalog:",
     "ssh2": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "uuid": "catalog:"
   }
 }

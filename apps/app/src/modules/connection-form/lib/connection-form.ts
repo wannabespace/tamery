@@ -5,6 +5,7 @@ import type { ConnectionGuess } from '@tamery/connection/guess'
 import { guessConnection } from '@tamery/connection/guess'
 import type { GuessedParts } from '@tamery/connection/guess/types'
 import { isLocalHost } from '@tamery/connection/hosts'
+import { connectionSecrets } from '@tamery/connection/secrets'
 import type { SshTunnel } from '@tamery/connection/ssh/params'
 import { EMPTY_SSH_TUNNEL } from '@tamery/connection/ssh/params'
 import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
@@ -12,9 +13,11 @@ import { SyncType } from '@tamery/shared/enums/sync-type'
 import { pick } from '@tamery/shared/utils'
 import { useAppForm } from '@tamery/ui/components/tanstack-form'
 import { type } from 'arktype'
+import { Result } from 'better-result'
 import { useState } from 'react'
 
 import type { Connection } from '~/core/connection/sync'
+import { getConnectionMachineId } from '~/core/runtime/machine/pairing'
 import { posthog } from '~/lib/posthog'
 import { generateRandomName } from '~/utils/faker'
 
@@ -27,7 +30,11 @@ export interface ConnectionFormValues extends Omit<
   'ssh' | 'type'
 > {
   color: string | null
+  /** A database the machine found with its password, which stays on the machine: the form leaves the password empty. */
+  foundDatabase: { connectionString: string; source: string } | null
   label: string
+  /** The machine it runs on, `null` for here: the cloud proxy on the web, this computer on desktop. */
+  machineId: string | null
   name: string
   ssh: SshTunnel
   sshEnabled: boolean
@@ -38,9 +45,11 @@ export interface ConnectionFormValues extends Omit<
 const DEFAULT_VALUES: ConnectionFormValues = {
   color: null,
   database: '',
+  foundDatabase: null,
   host: '',
   https: null,
   label: '',
+  machineId: null,
   name: '',
   options: '',
   password: '',
@@ -126,6 +135,7 @@ export const getFormValues = (
     ...(parts && pick(parts, [...SERVER_FIELDS, 'https'])),
     color: connection.color,
     label: connection.label ?? '',
+    machineId: getConnectionMachineId(connection.id),
     name: connection.name,
     provider: parts ? parts.provider : connection.provider,
     ssh: parts?.ssh ?? EMPTY_SSH_TUNNEL,
@@ -158,11 +168,27 @@ export const getParts = (values: ConnectionFormValues): ConnectionParts => {
   }
 }
 
+/** `null` once the form has a password or names another server than the one the machine found the password for. */
+export const getFoundDatabase = (values: ConnectionFormValues) => {
+  const { foundDatabase } = values
+  const sameServer =
+    !!foundDatabase &&
+    !values.password &&
+    Result.try(() =>
+      connectionSecrets.isSameServer(
+        connectionParts.format(getParts(values)),
+        foundDatabase.connectionString
+      )
+    ).unwrapOr(false)
+  return sameServer ? foundDatabase : null
+}
+
 export const getMissing = (values: ConnectionFormValues) =>
   getEngineFields(values).rows.flatMap(({ name, optional }) =>
     optional ||
     values[name].trim() ||
-    (name === 'password' && isLocalHost(values.host.trim()))
+    (name === 'password' &&
+      (isLocalHost(values.host.trim()) || !!getFoundDatabase(values)))
       ? []
       : [name]
   )

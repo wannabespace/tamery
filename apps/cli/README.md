@@ -2,7 +2,7 @@
 
 The command-line companion to [Tamery](https://tamery.app), the database client for PostgreSQL, MySQL, SQL Server, Oracle, ClickHouse, MongoDB and SQLite.
 
-Its main job is `tamery bridge`: it lets the [Tamery web app](https://web.tamery.app) run your saved connections on your own computer or server. Use it for:
+Its main job is `tamery machine`: it lets the [Tamery web app](https://web.tamery.app) run your saved connections on your own computer or server. Use it for:
 
 - databases on localhost or a private network
 - SQLite files
@@ -36,22 +36,22 @@ Builds for macOS (Apple silicon, Intel), Linux (x64, arm64, glibc and musl) and 
 ## Quick start
 
 ```bash
-tamery bridge
+tamery machine
 ```
 
 1. The first time, it signs you in through the browser.
-2. It opens **Settings → Bridge** in the web app. Click **Connect**.
+2. It opens **Settings → Machine** in the web app. Click **Connect**.
 3. Check that the code in the terminal matches the one in the browser, and allow it.
 
-From then on, the web app sends this browser's queries through the bridge for as long as it runs.
+From then on, the web app sends this browser's queries through the machine for as long as it runs.
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
-| `tamery bridge` | Run the web app's queries on this computer. `--port` changes the port (default `26380`), and `--public-url` serves it through a tunnel or reverse proxy. |
-| `tamery bridge approve` | Allow a browser from another terminal when the bridge runs as a service or in a container. |
-| `tamery bridge unpair-all` | Disconnect every paired browser. |
+| `tamery machine` | Run the web app's queries on this computer. `--port` changes the port (default `26380`), and `--public-url` serves it through a tunnel or reverse proxy. |
+| `tamery machine approve` | Allow a browser from another terminal when the machine runs as a service or in a container. |
+| `tamery machine unpair-all` | Disconnect every paired browser. |
 | `tamery login` | Sign this computer in to your Tamery account. |
 | `tamery whoami` | Show which account this computer is signed in to. |
 | `tamery update` | Update the CLI the same way you installed it. |
@@ -61,13 +61,14 @@ From then on, the web app sends this browser's queries through the bridge for as
 
 ## Security
 
-- The bridge listens only on `127.0.0.1`.
+- The machine listens only on `127.0.0.1`.
 - It accepts only browsers signed in to your own account, and only after you approve them in the terminal.
 - Secrets it keeps are encrypted with a key in the system keychain. On a Linux server without a keychain, the key goes in a file only your user can read.
-- It asks before a connection uses a local file, an SSH tunnel or the computer's own credentials.
+- Allowing a browser lets it use the computer's files, SSH keys and credentials, so allow only your own. Even then, it never opens files in app data folders (`~/Library`, `AppData`, dot folders), and it signs in with the computer's cloud credentials only to MongoDB Atlas.
+- It doesn't run a teammate's edit to a connection that uses those until you allow it in the web app.
 
 ## Docs
 
 - [Overview and setup](https://docs.tamery.app/cli/overview)
 - [All commands](https://docs.tamery.app/cli/commands)
-- [Reach a bridge on another computer](https://docs.tamery.app/cli/remote)
+- [Reach a machine on another computer](https://docs.tamery.app/cli/remote)

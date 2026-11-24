@@ -3,15 +3,17 @@ import { isKeychainLocked } from '@tamery/shared/keychain'
 import { toError } from '@tamery/shared/utils'
 import type { ErrorComponentProps } from '@tanstack/react-router'
 
-import { UnconfirmedConnectionError } from '~/core/runtime/bridge/bridge'
-import { BridgeError } from '~/core/runtime/bridge/status'
+import { UnconfirmedConnectionError } from '~/core/runtime/machine/machine'
+import { MachineNotPairedError } from '~/core/runtime/machine/not-paired'
+import { MachineError } from '~/core/runtime/machine/status'
 import { TableError } from '~/core/table/table-error'
 
 export const TabError = ({ error }: ErrorComponentProps) => {
   const failure = toError(error)
   if (
     isKeychainLocked(error) ||
-    error instanceof BridgeError ||
+    error instanceof MachineError ||
+    error instanceof MachineNotPairedError ||
     error instanceof UnconfirmedConnectionError ||
     isConnectionFailure(failure.message)
   ) {

@@ -173,6 +173,13 @@ contextBridge.exposeInMainWorld('electron', {
   ]),
   localDatabases: namespaceBridge('localDatabases', ['find', 'unlock']),
   localSkills: namespaceBridge('localSkills', ['list']),
+  machine: namespaceBridge('machine', [
+    'disable',
+    'enable',
+    'fetch',
+    'forget',
+    'status',
+  ]),
   mcp: {
     ...namespaceBridge('mcp', [
       'calls',

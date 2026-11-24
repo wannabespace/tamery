@@ -16,12 +16,17 @@ import type {
 import { findResource } from '~/core/connection/resources'
 import { rememberOpenedResource } from '~/core/connection/stores'
 import type { Connection } from '~/core/connection/sync'
-import { bridge } from '~/core/runtime/bridge/bridge'
+import { machine } from '~/core/runtime/machine/machine'
+import { writeConnectionMachine } from '~/core/runtime/machine/pairing'
 
 export interface ConnectionDetails {
   color?: string | null
   connectionString: string
+  /** A string `find` returned on the machine, which keeps its password: `machine.keepFoundPassword`. */
+  foundConnectionString?: string
   label?: string | null
+  /** Where it runs for this user; omitted leaves that as it is. */
+  machineId?: string | null
   name: string
   provider: Provider | null
   type: ConnectionType
@@ -51,9 +56,13 @@ const rollback = (
 export const saveConnectionString = async ({
   connectionString,
   connectionId,
+  foundConnectionString,
+  machineId,
   updatedAt,
   writeRow,
 }: ConnectionStringInput & {
+  foundConnectionString?: string
+  machineId?: string | null
   writeRow?: (isPasswordExists: boolean) => void
 }) => {
   const {
@@ -79,6 +88,7 @@ export const saveConnectionString = async ({
       // An empty password on a device that never had it means "not known here", not "none": clearing the flag would stop every device asking for it.
       writeRow(
         record.isPasswordPopulated ||
+          !!foundConnectionString ||
           (!stored?.isPasswordPopulated &&
             !!connectionsCollection.get(connectionId)?.isPasswordExists)
       )
@@ -94,18 +104,27 @@ export const saveConnectionString = async ({
       })
     }
   })
+  if (machineId !== undefined) {
+    writeConnectionMachine(connectionId, machineId)
+  }
 
   const settle = async () => {
     const persisted = await Result.tryPromise(() => tx.isPersisted.promise)
     if (persisted.isOk()) {
-      // After the server holds the row, which the bridge checks first, and before the connection opens: a file, tunnel or
-      // machine login runs on the bridge only once its terminal allowed it. A failure only toasts, never fails the save.
-      const sent = await Result.tryPromise(() =>
-        bridge.saveSecrets(connectionId)
-      )
+      // After the server holds the row, which the machine checks first, and before the connection opens, which needs what the
+      // machine keeps. A failure only toasts, never fails the save.
+      const sent = await Result.tryPromise(async () => {
+        await (foundConnectionString
+          ? machine.keepFoundPassword({
+              connectionId,
+              connectionString,
+              found: foundConnectionString,
+            })
+          : machine.saveSecrets(connectionId))
+      })
       if (sent.isErr()) {
         toast.error(toError(sent.error.cause).message, {
-          id: `bridge-save-${connectionId}`,
+          id: `machine-save-${connectionId}`,
         })
       }
       if (resource && resource !== stored?.defaultResourceName) {
@@ -122,7 +141,12 @@ export const saveConnectionString = async ({
 
 const saveConnection = async (
   connectionId: string,
-  { connectionString, ...details }: ConnectionDetails,
+  {
+    connectionString,
+    foundConnectionString,
+    machineId,
+    ...details
+  }: ConnectionDetails,
   writeRow: (
     row: Omit<Connection, 'createdAt' | 'id' | 'syncType' | 'workspaceId'>
   ) => void
@@ -131,6 +155,8 @@ const saveConnection = async (
   const saved = await saveConnectionString({
     connectionId,
     connectionString: connectionString.trim(),
+    foundConnectionString,
+    machineId,
     updatedAt,
     writeRow: (isPasswordExists) =>
       writeRow({
@@ -143,8 +169,8 @@ const saveConnection = async (
         updatedAt,
       }),
   })
-  // The web can query through the server, which must hold the row and its resource before the connection opens.
-  if (!window.electron && navigator.onLine) {
+  // The web can query through the server, and a machine checks the server's row, so either must hold it before the connection opens.
+  if ((!window.electron || machineId) && navigator.onLine) {
     const persisted = await saved.settled
     if (persisted.isErr()) {
       throw persisted.error.cause

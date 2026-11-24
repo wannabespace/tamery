@@ -32,6 +32,11 @@ resource "google_artifact_registry_repository" "tamery" {
   location      = local.region
   format        = "DOCKER"
 
+  # Scanning bills every image digest pushed, and deploy.yml pushes new ones on each merge.
+  vulnerability_scanning_config {
+    enablement_config = "DISABLED"
+  }
+
   # Rollback puts a service on an earlier image, so the newest ones stay however old they are.
   cleanup_policies {
     id     = "keep-recent"

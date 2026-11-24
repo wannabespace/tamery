@@ -74,7 +74,7 @@ main() {
   url="https://github.com/wannabespace/tamery/releases/download/cli-v$version"
 
   mkdir -p "$INSTALL_DIR"
-  # Inside the install folder, so the final mv is a rename that a running bridge doesn't block.
+  # Inside the install folder, so the final mv is a rename that a running machine doesn't block.
   tmp=$(mktemp -d "$INSTALL_DIR/.install.XXXXXX")
   trap 'rm -rf "$tmp"' EXIT
 
@@ -109,7 +109,7 @@ main() {
       fi
       ;;
   esac
-  printf '\nRun: %s bridge\n' "$command_name"
+  printf '\nRun: %s machine\n' "$command_name"
 }
 
 main "$@"

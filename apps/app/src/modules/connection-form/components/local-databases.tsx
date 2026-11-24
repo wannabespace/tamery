@@ -3,21 +3,23 @@ import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 
-import { localMachine, useLocalMachine } from '~/core/local-machine'
+import { useLocalMachine } from '~/core/local-machine'
 import { plural } from '~/utils/plural'
 
 import type { LocalDatabase } from '../lib/use-pick-local-database'
 
 export const LocalDatabases = ({
+  machineId,
   onPick,
 }: {
+  machineId: string | null
   onPick: (database: LocalDatabase) => void
 }) => {
-  const machine = useLocalMachine()
+  const machine = useLocalMachine(machineId)
   const { data: databases = [] } = useQuery({
     enabled: !!machine,
-    queryFn: localMachine.findDatabases,
-    queryKey: [...(machine?.queryKey ?? []), 'databases'],
+    queryFn: () => machine?.findDatabases() ?? [],
+    queryKey: [...(machine?.queryKey ?? []), 'localDatabases'],
     staleTime: 0,
     throwOnError: false,
   })

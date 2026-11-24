@@ -8,7 +8,7 @@ let requireDriver = () =>
   createRequire(import.meta.url)('@duckdb/node-api') as DuckdbDriver
 let driver: DuckdbDriver | null = null
 
-/** Loaded on first use. The bridge's binary ships without it and plugs in a copy it installs into a folder of its own. */
+/** Loaded on first use. The machine's binary ships without it and plugs in a copy it installs into a folder of its own. */
 export const duckdbDriver = {
   load: () => {
     driver ??= requireDriver()

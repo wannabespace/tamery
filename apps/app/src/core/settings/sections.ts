@@ -9,7 +9,7 @@ import {
   UserGroupIcon,
 } from '@hugeicons/core-free-icons'
 
-import { BridgeSettings } from '~/modules/bridge/bridge-settings'
+import { MachineSettings } from '~/modules/machine/machine-settings'
 import { McpSettings } from '~/modules/mcp/mcp-settings'
 
 import { AiSettings } from './ai'
@@ -60,17 +60,20 @@ export const settingsSections = [
     label: 'Schema notes',
     slug: 'schema-notes',
   },
-  window.electron
-    ? {
-        component: McpSettings,
-        icon: McpServerIcon,
-        label: 'MCP',
-        slug: 'mcp',
-      }
-    : {
-        component: BridgeSettings,
-        icon: ComputerTerminal01Icon,
-        label: 'Bridge',
-        slug: 'bridge',
-      },
+  ...(window.electron
+    ? [
+        {
+          component: McpSettings,
+          icon: McpServerIcon,
+          label: 'MCP',
+          slug: 'mcp',
+        },
+      ]
+    : []),
+  {
+    component: MachineSettings,
+    icon: ComputerTerminal01Icon,
+    label: 'Machines',
+    slug: 'machines',
+  },
 ]

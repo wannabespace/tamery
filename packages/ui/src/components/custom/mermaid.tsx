@@ -71,7 +71,9 @@ export const Mermaid = ({
   const [svg, setSvg] = useState('')
 
   useEffect(() => {
-    void renderChart(id, chart).then(setSvg, () => setSvg(''))
+    void renderChart(id, chart)
+      .then(setSvg)
+      .catch(() => setSvg(''))
   }, [chart, id])
 
   if (!svg) {

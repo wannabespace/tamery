@@ -16,11 +16,11 @@ import { Result } from 'better-result'
 
 import { analytics } from '../analytics'
 import { api } from '../api'
-import { getLocalAccess } from '../bridge/connections'
-import { installDuckdb } from '../bridge/duckdb'
-import { printable } from '../bridge/printable'
-import { enableSshTunnels } from '../bridge/ssh'
-import { askInTerminal } from '../bridge/terminal-question'
+import { getLocalAccess } from '../machine/connections'
+import { installDuckdb } from '../machine/duckdb'
+import { printable } from '../machine/printable'
+import { enableSshTunnels } from '../machine/ssh'
+import { askInTerminal } from '../machine/terminal-question'
 import { paint } from '../paint'
 import { getAccount } from '../sign-in'
 import { vault } from '../vault'
@@ -65,7 +65,7 @@ export const readConnectionString = async (message = 'Connection string') => {
 }
 
 /**
- * The bridge runs a string from its vault without asking, so a file, SSH route or machine login gets into the vault only
+ * The machine runs a string from its vault without asking, so a file, SSH route or machine login gets into the vault only
  * once the person at this terminal allowed it, never from a script; and before the test, which already uses them.
  */
 const confirmLocalAccess = async (connectionString: string) => {
@@ -128,7 +128,7 @@ const testConnectionString = async () => {
   }
 }
 
-/** The bridge's copy of the string, and the resource the app opens it at, as the app's own save adds. */
+/** The machine's copy of the string, and the resource the app opens it at, as the app's own save adds. */
 const saveLocally = (
   connectionId: string,
   connectionString: string,

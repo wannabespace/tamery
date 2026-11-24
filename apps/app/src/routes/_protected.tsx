@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 
 import { EventsProvider } from '~/components/events-provider'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
+import { useDropQueriesOnMachineChange } from '~/core/runtime/machine/pairing'
 import {
   loadPermissions,
   permix,
@@ -18,6 +19,7 @@ import { ActionsCenter } from '~/modules/actions-center/actions-center'
 import { useConnectionLinks } from '~/modules/connection-links/use-connection-links'
 import { CopyDatabaseDialog } from '~/modules/copy-database/copy-database-dialog'
 import { GlobalBanner } from '~/modules/global-banner/global-banner'
+import { HostKeyDialog } from '~/modules/machine/host-key-dialog'
 import { McpHost } from '~/modules/mcp/mcp-host'
 import { SubscriptionModal } from '~/modules/subscription/subscription-modal'
 
@@ -30,6 +32,7 @@ const ProtectedLayout = () => {
   useConnectionStringsSync()
   useLastOpenedResourcesSync()
   useConnectionLinks()
+  useDropQueriesOnMachineChange()
 
   useShortcut('settings', () => {
     if (!router.matchRoute({ to: '/settings' }, { fuzzy: true })) {
@@ -55,6 +58,7 @@ const ProtectedLayout = () => {
         <ActionsCenter />
         {window.electron && <McpHost />}
         {window.electron && <CopyDatabaseDialog />}
+        <HostKeyDialog />
         <SubscriptionModal />
         <WorkspaceInvitationDialog />
         <div className="flex h-full flex-col">
@@ -77,17 +81,23 @@ const ProtectedLayout = () => {
 export const Route = createFileRoute('/_protected')({
   component: ProtectedLayout,
   beforeLoad: async () => {
-    const { getCollections, whenOfflineReady } =
-      await import('~/core/collections')
+    const [{ getCollections, whenOfflineReady }, { thisMachineQuery }] =
+      await Promise.all([
+        import('~/core/collections'),
+        import('~/core/runtime/machine/pairing'),
+      ])
     const c = getCollections()
 
     await Promise.all([
       whenOfflineReady(),
+      c.connectionMachinesCollection.stateWhenReady(),
       c.connectionStringsCollection.stateWhenReady(),
       c.connectionsCollection.stateWhenReady(),
+      c.machinesCollection.stateWhenReady(),
       c.connectionsResourcesCollection.stateWhenReady(),
       c.workspacesCollection.stateWhenReady(),
       permix.isReady() || loadPermissions(),
+      window.electron && queryClient.ensureQueryData(thisMachineQuery),
     ])
 
     return { collections: c }
