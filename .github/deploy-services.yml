@@ -7,6 +7,7 @@ app:
   - 'apps/api/**'
   - 'apps/app/**'
   - 'apps/cli/**'
+  - 'apps/desktop/package.json'
   - 'apps/proxy/**'
 docs:
   - *shared
