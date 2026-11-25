@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react'
 import { fullSignOut } from '~/lib/auth'
 import { restartToUnlock } from '~/lib/device-encryption'
 import { posthog } from '~/lib/posthog'
+import { isSessionExpiredError } from '~/utils/error'
 
 const getStack = (error: Error) => {
   if (!error.stack) {
@@ -41,12 +42,13 @@ export const ErrorPage = ({ error: thrown }: ErrorComponentProps) => {
   const error = toError(thrown)
   const isConnectionError = isConnectionFailure(error.message)
   const isLocked = isKeychainLocked(thrown)
+  const isSessionLost = isSessionExpiredError(thrown)
 
   useEffect(() => {
-    if (!(isConnectionError || isLocked)) {
+    if (!(isConnectionError || isLocked || isSessionLost)) {
       posthog.captureException(thrown)
     }
-  }, [thrown, isConnectionError, isLocked])
+  }, [thrown, isConnectionError, isLocked, isSessionLost])
   const isValidationError = error instanceof TraversalError
   const stack = getStack(error)
   const cause =
@@ -59,6 +61,9 @@ export const ErrorPage = ({ error: thrown }: ErrorComponentProps) => {
   if (isLocked) {
     description =
       'Restart Tamery to unlock saved connections, or sign out to reset this device.'
+  } else if (isSessionLost) {
+    description =
+      "Tamery couldn't confirm you're signed in. Sign in to pick up where you left off."
   } else if (isConnectionError) {
     description =
       'Check your database connection settings and network, then try again.'
@@ -66,9 +71,22 @@ export const ErrorPage = ({ error: thrown }: ErrorComponentProps) => {
     description = 'Some data did not match the format the app expected.'
   }
 
+  const retryAction = isSessionLost ? (
+    <Button
+      onClick={() => {
+        posthog.capture('session_sign_in_retried')
+        void router.navigate({ to: '/auth' })
+      }}
+    >
+      Sign in
+    </Button>
+  ) : (
+    <Button onClick={() => window.location.reload()}>Refresh</Button>
+  )
+
   // A connection failure's message is a raw driver/OpenSSL dump; the description already explains it, and the full text stays under Show details.
   const summary =
-    !isConnectionError && isReadableMessage(error.message)
+    !(isConnectionError || isSessionLost) && isReadableMessage(error.message)
       ? error.message.split('\n')[0]
       : null
 
@@ -135,7 +153,7 @@ export const ErrorPage = ({ error: thrown }: ErrorComponentProps) => {
                 <Button onClick={restartToUnlock}>Restart Tamery</Button>
               </>
             ) : (
-              <Button onClick={() => window.location.reload()}>Refresh</Button>
+              retryAction
             )}
           </div>
 
