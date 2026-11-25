@@ -41,6 +41,19 @@ test('ClickHouse parses ISO text for a DateTime column only, in SET and WHERE', 
   )
 })
 
+test('a ClickHouse Float32 key matches as Float32, since it reads back rounded', () => {
+  const columns = [{ id: 'ratio', type: 'Nullable(Float32)' }]
+  const query = clickhouse
+    .deleteFrom('events')
+    .where((eb) =>
+      matchesPrimaryKeys(eb, bindValue.clickhouse, columns, { ratio: 0.1 })
+    )
+
+  expect(prepareQuery(query.compile())).toBe(
+    'alter table `events` delete where `ratio` = toFloat32(0.1) settings mutations_sync = 1'
+  )
+})
+
 test('a json column binds json text, NULL as is and undefined as DEFAULT', () => {
   const columns = [{ id: 'tags', type: 'jsonb' }]
   const { parameters, sql } = postgres

@@ -1,5 +1,5 @@
 import type { ColumnTypes } from '@tamery/connection/queries/value-binding'
-import { clickhouseDateTime } from '@tamery/connection/queries/value-binding'
+import { clickhouseBindValue } from '@tamery/connection/queries/value-binding'
 import { fromWire, toWire } from '@tamery/mongo/values'
 import type { SqlDialect } from '@tamery/shared/enums/connection-type'
 import { Dialect } from '@tamery/shared/enums/connection-type'
@@ -74,7 +74,7 @@ const clickhouseBind =
     if (clickhouseJsonColumnType.test(columnType)) {
       return parseJson(columnType, `{"v":${JSON.stringify(value)}}`)
     }
-    return clickhouseDateTime(columnType, value)
+    return clickhouseBindValue(columnType, value)
   }
 
 const bindOracleJson = bindJsonAsText(Dialect.Oracle)
