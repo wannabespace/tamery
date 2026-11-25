@@ -57,6 +57,7 @@ export const getChatInstance = memoize(
         if (!toolCall.dynamic && toolCall.toolName === 'execute') {
           void autoApprove({
             chat,
+            connectionResourceId: data.connectionResourceId,
             input: toolCall.input,
             toolCallId: toolCall.toolCallId,
             transcript: chat.messages,
