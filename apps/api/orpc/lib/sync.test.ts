@@ -53,10 +53,27 @@ describe('syncDiff', () => {
     })
   })
 
-  test('a client version newer than the server is not an update', async () => {
+  test.each([
+    ['a late offline replay the server holds with an older stamp', -60_000],
+    ['a device whose clock ran ahead', -5],
+  ])('%s is an update', async (_, serverOffset) => {
     expect(
       await diff(
-        [{ id: uuid(1), updatedAt: at(0) }],
+        [{ id: uuid(1), updatedAt: at(60_000 + serverOffset) }],
+        [{ id: uuid(1), updatedAt: at(60_000) }]
+      )
+    ).toEqual({
+      missingIds: [],
+      newIds: [],
+      requested: [[uuid(1)]],
+      updatedIds: [uuid(1)],
+    })
+  })
+
+  test('the version the server holds is not an update', async () => {
+    expect(
+      await diff(
+        [{ id: uuid(1), updatedAt: at(5) }],
         [{ id: uuid(1), updatedAt: at(5) }]
       )
     ).toEqual({ missingIds: [], newIds: [], requested: [], updatedIds: [] })

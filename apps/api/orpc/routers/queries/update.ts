@@ -34,4 +34,5 @@ export const update = orpc
       type: 'update',
       value: updated,
     })
+    return updated
   })

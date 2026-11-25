@@ -13,7 +13,7 @@ import { publisher } from './events'
 
 export const create = orpc
   .use(authMiddleware)
-  .input(connectionsResourcesInsertSchema)
+  .input(connectionsResourcesInsertSchema.omit('updatedAt'))
   .errors({
     NOT_FOUND: { message: 'Connection not found' },
   })
