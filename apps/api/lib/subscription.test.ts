@@ -14,9 +14,9 @@ const DATABASE_URL =
 
 Object.assign(process.env, {
   DATABASE_URL,
-  ENCRYPTION_SECRET: 'test',
+  ENCRYPTION_SECRET: 'test-encryption-secret-of-32-chars',
   NODE_ENV: 'test',
-  USER_KEY_SECRET: 'test',
+  USER_KEY_SECRET: 'test-user-key-secret-of-32-chars',
 })
 
 const PRICES = {

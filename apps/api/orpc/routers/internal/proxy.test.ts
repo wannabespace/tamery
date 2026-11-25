@@ -35,8 +35,8 @@ mock.module('@tamery/db', () => ({
 }))
 Object.assign(process.env, {
   DATABASE_URL: 'postgres://test@127.0.0.1:1/test',
-  ENCRYPTION_SECRET: 'test',
-  USER_KEY_SECRET: 'test',
+  ENCRYPTION_SECRET: 'test-encryption-secret-of-32-chars',
+  USER_KEY_SECRET: 'test-user-key-secret-of-32-chars',
 })
 mock.module('~/env', () => ({ env: { PROXY_SHARED_SECRET: 'secret' } }))
 const orpc = os.$context<Context>()
