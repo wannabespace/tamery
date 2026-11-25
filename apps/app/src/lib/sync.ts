@@ -252,7 +252,7 @@ export const syncCollectionOptions = <T extends { updatedAt: Date }>(
           return
         }
 
-        // The server stamps `updatedAt`, so its row, not the optimistic one, is the version the next catch-up reports.
+        // The server stamps `updatedAt`: the optimistic row's would make the next catch-up resend this row.
         if (mutation.type === 'update') {
           const stored = await serverMutation('update')(
             mutation.key,
