@@ -88,6 +88,7 @@ if (!stripe) {
 }
 
 const retrieve = spyOn(stripe.subscriptions, 'retrieve')
+const cancel = spyOn(stripe.subscriptions, 'cancel')
 
 beforeAll(async () => {
   await migrate(db, {
@@ -100,6 +101,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   retrieve.mockReset()
+  cancel.mockReset()
   await db.execute('TRUNCATE users, subscriptions CASCADE')
 })
 
@@ -132,11 +134,13 @@ const createUser = async (
 }
 
 const stripeSubscription = ({
+  cancelAtPeriodEnd = false,
   price = PRICES.team,
   quantity,
   status,
   userId,
 }: {
+  cancelAtPeriodEnd?: boolean
   price?: string
   quantity: number
   status: string
@@ -145,7 +149,7 @@ const stripeSubscription = ({
   // A wire fixture: only the fields the sync reads.
   ({
     cancel_at: null,
-    cancel_at_period_end: false,
+    cancel_at_period_end: cancelAtPeriodEnd,
     customer: 'cus_test',
     id: 'sub_test',
     items: {
@@ -323,14 +327,23 @@ test('overlapping deliveries store the state Stripe returned last', async () => 
   expect(rows).toEqual([{ seats: 2 }])
 })
 
-test('an event for a subscription whose owner deleted the account changes nothing', async () => {
-  const owner = await createTeam({ quantity: 2 })
-  await db.delete(users).where(eq(users.id, owner.id))
+test.each([
+  ['has ended', { status: 'canceled' }, false],
+  ['is set to cancel', { cancelAtPeriodEnd: true, status: 'active' }, false],
+  ['still bills', { status: 'active' }, true],
+])(
+  'an event for a subscription that %s after its owner deleted the account stores nothing and cancels only a live one',
+  async (_, change, cancels) => {
+    const owner = await createUser('owner@tamery.test')
+    await db.delete(users).where(eq(users.id, owner.id))
+    retrieve.mockResolvedValue(
+      stripeSubscription({ ...change, quantity: 1, userId: owner.id })
+    )
+    cancel.mockResolvedValue({} as never)
 
-  retrieve.mockResolvedValue(
-    stripeSubscription({ quantity: 2, status: 'canceled', userId: owner.id })
-  )
-  await syncSubscription('sub_test')
+    await syncSubscription('sub_test')
 
-  expect(await db.select().from(subscriptions)).toEqual([])
-})
+    expect(cancel.mock.calls).toEqual(cancels ? [['sub_test']] : [])
+    expect(await db.select().from(subscriptions)).toEqual([])
+  }
+)

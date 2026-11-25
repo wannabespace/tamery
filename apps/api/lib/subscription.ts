@@ -146,8 +146,18 @@ export const syncSubscription = (stripeSubscriptionId: string) =>
         .select({ id: users.id })
         .from(users)
         .where(eq(users.id, userId))
+        .for('key share')
 
       if (!owner) {
+        // A checkout finished or a renewal after the deletion would keep billing an account that no longer exists.
+        if (
+          !ENDED_STATUSES.has(subscription.status) &&
+          !subscription.cancel_at_period_end &&
+          !subscription.cancel_at
+        ) {
+          await stripe.subscriptions.cancel(subscription.id)
+        }
+
         return
       }
 
