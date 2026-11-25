@@ -25,7 +25,7 @@ locals {
     "Encryption key used directly"                  = "protoPayload.serviceName=\"cloudkms.googleapis.com\" protoPayload.methodName=~\"Decrypt|Encrypt\" NOT protoPayload.authenticationInfo.principalEmail=~\"@gcp-sa-secretmanager\\.\""
     "Secret or encryption key changed"              = "${local.admin_activity} (protoPayload.serviceName=\"secretmanager.googleapis.com\" OR protoPayload.serviceName=\"cloudkms.googleapis.com\") protoPayload.methodName=~\"AddSecretVersion|Destroy|Disable|Delete|UpdateCryptoKey\""
     "Access rights changed"                         = "${local.admin_activity} protoPayload.methodName=~\"(?i)setIamPolicy|CreateServiceAccount|WorkloadIdentity\""
-    "Deploy outside GitHub Actions"                 = "${local.admin_activity} protoPayload.serviceName=\"run.googleapis.com\" protoPayload.methodName=~\"(Service|Job)$\" NOT protoPayload.authenticationInfo.principalEmail=~\"^tamery-(deploy|scheduler)@\""
+    "Deploy outside the Deploy workflow"            = "${local.admin_activity} protoPayload.serviceName=\"run.googleapis.com\" protoPayload.methodName=~\"(Service|Job)$\" NOT protoPayload.authenticationInfo.principalEmail=~\"^tamery-(deploy|scheduler)@\""
     "Network or load balancer changed"              = "${local.admin_activity} protoPayload.methodName=~\"(?i)compute\\.(firewalls|networks|subnetworks|routes|addresses|globalAddresses|forwardingRules|globalForwardingRules|targetHttpsProxies|urlMaps|backendServices)\\.|ServerTlsPolicies\" NOT protoPayload.authenticationInfo.principalEmail=~\"@serverless-robot-prod\\.iam\\.gserviceaccount\\.com$\""
     "Database or Redis changed or exported"         = "${local.admin_activity} (protoPayload.serviceName=\"sqladmin.googleapis.com\" OR protoPayload.serviceName=\"redis.googleapis.com\") NOT protoPayload.methodName=~\"(?i)\\.(get|list)\""
     "Logging, alerts or an API turned off"          = "${local.admin_activity} protoPayload.methodName=~\"(Delete|Update)(Sink|Exclusion|Bucket)|CreateExclusion|(AlertPolicyService|NotificationChannelService|UptimeCheckService)\\.(Delete|Update)|DisableService\""
@@ -44,6 +44,11 @@ locals {
     "Database disk"       = { filter = "metric.type=\"cloudsql.googleapis.com/database/disk/utilization\" resource.type=\"cloudsql_database\"", aligner = "ALIGN_MEAN", threshold = 0.8 }
     "Redis memory"        = { filter = "metric.type=\"redis.googleapis.com/stats/memory/usage_ratio\" resource.type=\"redis_instance\"", aligner = "ALIGN_MEAN", threshold = 0.8 }
   }
+}
+
+moved {
+  from = google_monitoring_alert_policy.audit["Deploy outside GitHub Actions"]
+  to   = google_monitoring_alert_policy.audit["Deploy outside the Deploy workflow"]
 }
 
 resource "google_monitoring_alert_policy" "audit" {
