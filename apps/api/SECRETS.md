@@ -4,7 +4,7 @@ Rules and reasons: `.agents/rules/api.md` → Secrets / environment. The key, th
 
 `ENCRYPTION_SECRET` encrypts every `encryptedText`/`encryptedJson` column. `USER_KEY_SECRET` encrypts the per-workspace keys in `workspace_encryption_keys`, which are the inner layer of connection strings. In dev both are plaintext in `apps/api/.env`. In prod both are Secret Manager secrets, encrypted by the Cloud KMS key `secrets`.
 
-Either secret may be a comma-separated keyring, current key first. A key must never contain a comma.
+Either secret may be a comma-separated keyring, current key first. A key must never contain a comma and must be at least 32 characters, or the api refuses to start.
 
 **Back up both values in a password manager.** Without that backup, losing the KMS key loses all data.
 
