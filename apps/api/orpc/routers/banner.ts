@@ -20,7 +20,10 @@ export const banner = orpc
 
     const items: typeof bannerType.infer = []
 
-    if (subscription?.status === 'past_due') {
+    if (
+      subscription?.status === 'past_due' &&
+      subscription.userId === context.user?.id
+    ) {
       items.push({
         dismissible: false,
         text: SUBSCRIPTION_PAST_DUE_MESSAGE,

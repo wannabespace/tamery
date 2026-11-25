@@ -5,6 +5,7 @@ import type Stripe from 'stripe'
 
 import { env } from '~/env'
 import { sendEmail } from '~/lib/resend'
+import { stripePrices } from '~/lib/stripe'
 import { tamerySubscriptions } from '~/lib/subscription'
 import { orpc } from '~/orpc'
 
@@ -22,14 +23,11 @@ const eventMap = new Map<
   ['customer.subscription.updated', subscriptionUpdated],
 ])
 
-const prices = new Set([
-  env.STRIPE_PRO_MONTH_PRICE_ID,
-  env.STRIPE_PRO_ANNUAL_PRICE_ID,
-])
-
 // A subscription moved to a custom price in the Stripe dashboard is still ours once we track it.
 const isTamerySubscription = async (subscription: Stripe.Subscription) => {
-  if (subscription.items.data.some((item) => prices.has(item.price.id))) {
+  if (
+    subscription.items.data.some((item) => stripePrices.getPlan(item.price.id))
+  ) {
     return true
   }
 

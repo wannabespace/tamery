@@ -1,4 +1,5 @@
 import { ACTIVE_SUBSCRIPTION_STATUSES } from '@tamery/shared/constants'
+import type { SubscriptionPlan } from '@tamery/shared/permissions'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 
@@ -46,10 +47,17 @@ export const useUpgradeSubscription = (
 
   const { mutate: upgrade, isPending: isUpgrading } = useMutation({
     meta: { event: 'subscription_checkout_started' },
-    mutationFn: async (isYearly: boolean) => {
+    mutationFn: async ({
+      isYearly,
+      plan,
+    }: {
+      isYearly: boolean
+      plan: SubscriptionPlan
+    }) => {
       const result = await orpc.account.subscription.upgrade.call({
         cancelUrl: location.origin + cancelHref,
         isYearly,
+        plan,
         returnUrl: location.origin + returnHref,
         successUrl: location.origin + successHref,
       })
@@ -76,8 +84,9 @@ export const useBillingPortal = ({ returnHref }: { returnHref: string }) => {
     })
   )
 
-  const openBillingPortal = () => {
+  const openBillingPortal = ({ changePlan = false } = {}) => {
     mutate({
+      changePlan,
       returnUrl: location.origin + returnHref,
     })
   }

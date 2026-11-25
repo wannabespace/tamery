@@ -45,13 +45,14 @@ locals {
     "PROXY_SHARED_SECRET",
     "REDIS_URL",
     "RESEND_API_KEY",
-    "STRIPE_PRO_ANNUAL_PRICE_ID",
-    "STRIPE_PRO_MONTH_PRICE_ID",
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",
     "TODESKTOP_WEBHOOK_SECRET",
     "USER_KEY_SECRET",
   ]
+
+  # Plain env in run.tf now; retire once no running revision mounts them (SECRETS.md).
+  retired_secrets = ["STRIPE_PRO_ANNUAL_PRICE_ID", "STRIPE_PRO_MONTH_PRICE_ID"]
 
   secret_access = merge([
     for workload in values(merge(local.services, local.jobs)) : {
@@ -62,7 +63,7 @@ locals {
 
 # Containers only: secret values are added with `gcloud secrets versions add`, so they stay out of the state.
 resource "google_secret_manager_secret" "this" {
-  for_each = toset(concat(local.api_secrets, ["sql-postgres-password", "sql-tamery-app-password"]))
+  for_each = toset(concat(local.api_secrets, local.retired_secrets, ["sql-postgres-password", "sql-tamery-app-password"]))
 
   secret_id = each.value
 

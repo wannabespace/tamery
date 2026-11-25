@@ -1,25 +1,26 @@
-import { db } from '@tamery/db'
-import { subscriptions } from '@tamery/db/schema'
-import { and, eq } from 'drizzle-orm'
+import { pick } from '@tamery/shared/utils'
 
-import { tamerySubscriptions } from '~/lib/subscription'
+import { getSubscriptions } from '~/lib/subscription'
 import { authMiddleware, orpc } from '~/orpc'
 
-export const list = orpc.use(authMiddleware).handler(({ context }) =>
-  db
-    .select({
-      cancelAt: subscriptions.cancelAt,
-      cancelAtPeriodEnd: subscriptions.cancelAtPeriodEnd,
-      id: subscriptions.id,
-      period: subscriptions.period,
-      periodEnd: subscriptions.periodEnd,
-      periodStart: subscriptions.periodStart,
-      plan: subscriptions.plan,
-      price: subscriptions.price,
-      status: subscriptions.status,
-      trialEnd: subscriptions.trialEnd,
-      trialStart: subscriptions.trialStart,
-    })
-    .from(subscriptions)
-    .where(and(eq(subscriptions.userId, context.user.id), tamerySubscriptions))
-)
+export const list = orpc.use(authMiddleware).handler(async ({ context }) => {
+  const subscriptions = await getSubscriptions(context.user.id)
+
+  return subscriptions.map((subscription) => ({
+    ...pick(subscription, [
+      'cancelAt',
+      'cancelAtPeriodEnd',
+      'id',
+      'period',
+      'periodEnd',
+      'periodStart',
+      'plan',
+      'price',
+      'seats',
+      'status',
+      'trialEnd',
+      'trialStart',
+    ]),
+    isOwner: subscription.userId === context.user.id,
+  }))
+})

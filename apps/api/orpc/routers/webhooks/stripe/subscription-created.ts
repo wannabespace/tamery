@@ -4,6 +4,8 @@ import { eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
 import { v7 } from 'uuid'
 
+import { getPlanAndSeats } from './plan'
+
 export const subscriptionCreated = async (event: Stripe.Event) => {
   if (event.type !== 'customer.subscription.created') {
     return
@@ -18,7 +20,7 @@ export const subscriptionCreated = async (event: Stripe.Event) => {
   }
 
   const [existing] = await db
-    .select({ id: subscriptions.id })
+    .select({ id: subscriptions.id, plan: subscriptions.plan })
     .from(subscriptions)
     .where(eq(subscriptions.stripeSubscriptionId, subscription.id))
     .limit(1)
@@ -40,6 +42,7 @@ export const subscriptionCreated = async (event: Stripe.Event) => {
     : null
 
   const subscriptionData = {
+    ...getPlanAndSeats(item, existing?.plan ?? null),
     cancelAt: subscription.cancel_at
       ? new Date(subscription.cancel_at * 1000)
       : null,
@@ -47,7 +50,6 @@ export const subscriptionCreated = async (event: Stripe.Event) => {
     period,
     periodEnd,
     periodStart,
-    plan: 'pro',
     price,
     status: subscription.status,
     stripePriceId: item.price.id,

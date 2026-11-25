@@ -25,7 +25,10 @@ import {
   useSubscription,
   useUpgradeSubscription,
 } from '~/hooks/use-subscription'
-import { HOBBY_PLAN, PRO_PLAN } from '~/utils/pricing'
+import type { PricingPlan } from '~/utils/pricing'
+import { getPriceUnit, HOBBY_PLAN, PRO_PLAN, TEAM_PLAN } from '~/utils/pricing'
+
+import { TeamSeats } from './team-seats'
 
 const { useSearch } = getRouteApi('/account/')
 
@@ -37,6 +40,19 @@ const formatCurrency = (amount: number) =>
     minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
     style: 'currency',
   }).format(amount)
+
+const getPlanDescription = (
+  plan: PricingPlan,
+  subscription: ReturnType<typeof useSubscription>
+) => {
+  if (!subscription) {
+    return `${plan.description}. Starts with a 7-day free trial.`
+  }
+  if (plan.id === subscription.plan && !subscription.isOwner) {
+    return 'Your team pays for your seat.'
+  }
+  return plan.description
+}
 
 const getStatus = (
   subscription: NonNullable<ReturnType<typeof useSubscription>>,
@@ -79,13 +95,10 @@ export const Subscription = () => {
   )
 
   const shownPeriod = subscription?.period ?? (isYearly ? 'yearly' : 'monthly')
-  const proPrice = subscription
-    ? subscription.price
-    : PRO_PLAN.price[shownPeriod]
 
   return (
     <>
-      {subscription?.status === 'past_due' && (
+      {subscription?.isOwner && subscription.status === 'past_due' && (
         <Alert variant="destructive">
           <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
           <AlertTitle>Payment issue with your subscription</AlertTitle>
@@ -99,37 +112,52 @@ export const Subscription = () => {
         >
           {!subscription && <Badge variant="secondary">Current</Badge>}
         </SettingsRow>
-        <SettingsRow
-          title={
-            <span className="flex items-baseline gap-2">
-              {PRO_PLAN.name}
-              <span className="text-muted-foreground text-xs font-normal">
-                {`${formatCurrency(proPrice)}${shownPeriod === 'yearly' ? '/year' : '/month'}`}
-              </span>
-            </span>
-          }
-          description={
-            subscription
-              ? PRO_PLAN.description
-              : `${PRO_PLAN.description}. Starts with a 7-day free trial.`
-          }
-        >
-          {subscription ? (
-            <Badge variant="secondary">Current</Badge>
-          ) : (
-            <Button
-              size="sm"
-              disabled={isUpgrading}
-              onClick={() => upgrade(isYearly)}
+        {[PRO_PLAN, TEAM_PLAN].map((plan) => {
+          const current = subscription?.plan === plan.id ? subscription : null
+
+          return (
+            <SettingsRow
+              key={plan.id}
+              title={
+                <span className="flex items-baseline gap-2">
+                  {plan.name}
+                  <span className="text-muted-foreground text-xs font-normal">
+                    {`${formatCurrency(current?.price ?? plan.price[shownPeriod])} ${getPriceUnit(plan, shownPeriod)}`}
+                  </span>
+                </span>
+              }
+              description={getPlanDescription(plan, subscription)}
             >
-              <LoadingContent loading={isUpgrading}>Upgrade</LoadingContent>
-            </Button>
-          )}
-        </SettingsRow>
+              {current && <Badge variant="secondary">Current</Badge>}
+              {!subscription && (
+                <Button
+                  size="sm"
+                  variant={plan === PRO_PLAN ? 'default' : 'outline'}
+                  disabled={isUpgrading}
+                  onClick={() => upgrade({ isYearly, plan: plan.id })}
+                >
+                  Upgrade
+                </Button>
+              )}
+              {plan === TEAM_PLAN &&
+                subscription?.isOwner &&
+                subscription.plan === 'pro' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={isOpening}
+                    onClick={() => openBillingPortal({ changePlan: true })}
+                  >
+                    Switch to Team
+                  </Button>
+                )}
+            </SettingsRow>
+          )
+        })}
         {!subscription && (
           <SettingsRow
             title="Billing period"
-            description={`Yearly costs ${formatCurrency(PRO_PLAN.price.yearly)} instead of ${formatCurrency(PRO_PLAN.price.monthly * 12)}.`}
+            description="Yearly gives you 2 months free."
           >
             <Tabs
               value={isYearly ? 'yearly' : 'monthly'}
@@ -143,7 +171,14 @@ export const Subscription = () => {
           </SettingsRow>
         )}
       </SettingsGroup>
-      {subscription && (
+      {subscription?.isOwner && subscription.plan === 'team' && (
+        <TeamSeats
+          seats={subscription.seats}
+          isChangingSeats={isOpening}
+          onChangeSeats={() => openBillingPortal({ changePlan: true })}
+        />
+      )}
+      {subscription?.isOwner && (
         <SettingsGroup title="Billing">
           <SettingsRow
             title={getStatus(subscription, trialEndsLater)}

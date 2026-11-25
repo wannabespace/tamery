@@ -7,7 +7,7 @@ import { Chapter } from '~/components/chapter'
 import { Reveal } from '~/components/reveal'
 import { useSubscription } from '~/hooks/use-subscription'
 import { authClient } from '~/lib/auth'
-import { HOBBY_PLAN, PRO_PLAN } from '~/utils/pricing'
+import { HOBBY_PLAN, PRO_PLAN, TEAM_PLAN } from '~/utils/pricing'
 
 import { ContactSalesDialog } from './contact-sales-dialog'
 import { PlanCard } from './plan-card'
@@ -15,7 +15,7 @@ import type { Period } from './price'
 import { Price } from './price'
 
 const ENTERPRISE_FEATURES = [
-  'Volume pricing on one invoice',
+  'Volume pricing and custom terms',
   'Priority support from the people who build it',
   'Self-hosting help (AGPL-3.0)',
 ]
@@ -40,7 +40,7 @@ export const Pricing = () => {
         </Tabs>
       }
     >
-      <Reveal className="mt-16 grid gap-4 lg:grid-cols-3">
+      <Reveal className="mt-16 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <PlanCard
           name={HOBBY_PLAN.name}
           description={HOBBY_PLAN.description}
@@ -56,38 +56,40 @@ export const Pricing = () => {
             </Button>
           }
         />
-        <PlanCard
-          highlighted
-          name={PRO_PLAN.name}
-          description={PRO_PLAN.description}
-          features={PRO_PLAN.features}
-          includes={HOBBY_PLAN.name}
-          price={<Price period={period} plan={PRO_PLAN} />}
-          action={
-            subscription ? (
-              <Button size="lg" render={<Link to="/account" />}>
-                Manage plan
-              </Button>
-            ) : (
+        {[PRO_PLAN, TEAM_PLAN].map((plan) => (
+          <PlanCard
+            key={plan.id}
+            highlighted={plan === PRO_PLAN}
+            name={plan.name}
+            description={plan.description}
+            features={plan.features}
+            includes={(plan === PRO_PLAN ? HOBBY_PLAN : PRO_PLAN).name}
+            price={<Price period={period} plan={plan} />}
+            action={
               <Button
                 size="lg"
+                variant={plan === PRO_PLAN ? 'default' : 'outline'}
                 render={
-                  <Link
-                    to={session ? '/account' : '/sign-in'}
-                    search={{ period }}
-                  />
+                  subscription ? (
+                    <Link to="/account" />
+                  ) : (
+                    <Link
+                      to={session ? '/account' : '/sign-in'}
+                      search={{ period }}
+                    />
+                  )
                 }
               >
-                Try free for 7 days
+                {subscription ? 'Manage plan' : 'Try free for 7 days'}
               </Button>
-            )
-          }
-        />
+            }
+          />
+        ))}
         <PlanCard
           name="Enterprise"
-          description="Tamery for your whole team, on your terms"
+          description="Tamery across your company, on your terms"
           features={ENTERPRISE_FEATURES}
-          includes={PRO_PLAN.name}
+          includes={TEAM_PLAN.name}
           price={<span className="text-4xl leading-none">Custom</span>}
           action={<ContactSalesDialog />}
         />

@@ -1,6 +1,8 @@
+import type { SubscriptionPlan } from '@tamery/shared/permissions'
 import { FREE_SHARE_LIMIT, FREE_WEEKLY_LIMITS } from '@tamery/shared/usage'
 
-export interface PricingPlan {
+export interface PricingPlan<Id = SubscriptionPlan | 'free'> {
+  id: Id
   name: string
   price: {
     monthly: number
@@ -20,6 +22,7 @@ export const HOBBY_PLAN: PricingPlan = {
     `${FREE_WEEKLY_LIMITS.mcp} MCP agent queries a week`,
     `${FREE_SHARE_LIMIT} shared table links`,
   ],
+  id: 'free',
   name: 'Free',
   price: {
     monthly: 0,
@@ -27,7 +30,7 @@ export const HOBBY_PLAN: PricingPlan = {
   },
 }
 
-export const PRO_PLAN: PricingPlan = {
+export const PRO_PLAN: PricingPlan<SubscriptionPlan> = {
   description: 'The full AI assistant, without limits',
   features: [
     'Schema-aware AI assistant',
@@ -36,9 +39,31 @@ export const PRO_PLAN: PricingPlan = {
     'Extra workspaces',
     'Unlimited shared table links',
   ],
+  id: 'pro',
   name: 'Pro',
   price: {
-    monthly: 10,
-    yearly: 100,
+    monthly: 15,
+    yearly: 150,
   },
 }
+
+export const TEAM_PLAN: PricingPlan<SubscriptionPlan> = {
+  description: 'Pro for everyone you work with',
+  features: [
+    'Pro for every seat',
+    'One subscription and one invoice',
+    'Assign and move seats by email',
+  ],
+  id: 'team',
+  name: 'Team',
+  price: {
+    monthly: 20,
+    yearly: 200,
+  },
+}
+
+export const getPriceUnit = (
+  { id }: PricingPlan,
+  period: keyof PricingPlan['price']
+) =>
+  `${id === 'team' ? '/ seat ' : ''}/ ${period === 'monthly' ? 'month' : 'year'}`

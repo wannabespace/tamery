@@ -3,9 +3,10 @@ import { users } from '@tamery/db/schema'
 import { type } from 'arktype'
 import { eq } from 'drizzle-orm'
 
-import { env } from '~/env'
-import { stripe } from '~/lib/stripe'
+import { stripe, stripePrices } from '~/lib/stripe'
 import { accountMiddleware, orpc } from '~/orpc'
+
+const DEFAULT_TEAM_SEATS = 2
 
 export const upgrade = orpc
   .use(accountMiddleware)
@@ -13,6 +14,7 @@ export const upgrade = orpc
     type({
       cancelUrl: 'string',
       isYearly: 'boolean?',
+      plan: '"pro" | "team" = "pro"',
       returnUrl: 'string',
       successUrl: 'string',
     })
@@ -26,7 +28,7 @@ export const upgrade = orpc
       throw errors.INTERNAL_SERVER_ERROR()
     }
 
-    const { successUrl, cancelUrl, isYearly } = input
+    const { successUrl, cancelUrl, isYearly, plan } = input
 
     const [user] = await db
       .select()
@@ -56,9 +58,7 @@ export const upgrade = orpc
         .where(eq(users.id, user.id))
     }
 
-    const priceId = isYearly
-      ? env.STRIPE_PRO_ANNUAL_PRICE_ID
-      : env.STRIPE_PRO_MONTH_PRICE_ID
+    const priceId = stripePrices.getId(plan, isYearly ? 'yearly' : 'monthly')
 
     if (!priceId) {
       throw errors.INTERNAL_SERVER_ERROR({
@@ -72,7 +72,12 @@ export const upgrade = orpc
       line_items: [
         {
           price: priceId,
-          quantity: 1,
+          ...(plan === 'team'
+            ? {
+                adjustable_quantity: { enabled: true, minimum: 1 },
+                quantity: DEFAULT_TEAM_SEATS,
+              }
+            : { quantity: 1 }),
         },
       ],
       metadata: {

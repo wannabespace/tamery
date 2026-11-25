@@ -96,9 +96,15 @@ export const Route = createFileRoute('/account/')({
   }),
   component: RouteComponent,
   loader: async ({ context }) => {
-    await context.queryClient.query({
-      ...orpc.account.subscription.list.queryOptions(),
-      staleTime: 'static',
-    })
+    await Promise.all([
+      context.queryClient.query({
+        ...orpc.account.subscription.list.queryOptions(),
+        staleTime: 'static',
+      }),
+      context.queryClient.query({
+        ...orpc.account.subscription.seats.list.queryOptions(),
+        staleTime: 'static',
+      }),
+    ])
   },
 })
