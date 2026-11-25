@@ -72,8 +72,11 @@ export const proxy = {
         throw errors.FORBIDDEN()
       }
 
-      return resource
-        ? resourceConnectionString(connectionString, resource.name)
-        : connectionString
+      return {
+        connectionString: resource
+          ? resourceConnectionString(connectionString, resource.name)
+          : connectionString,
+        userId: context.user.id,
+      }
     }),
 }

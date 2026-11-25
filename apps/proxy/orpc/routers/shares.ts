@@ -14,7 +14,7 @@ import { type } from 'arktype'
 import { Result } from 'better-result'
 
 import { createApiClient } from '~/api-client'
-import { authMiddleware, orpc } from '~/orpc'
+import { orpc, originMiddleware } from '~/orpc'
 import { readCachedShareRows, readShareRows } from '~/share-rows'
 
 const proxyApi = createApiClient({})
@@ -26,7 +26,7 @@ const shareAccess = type({
 
 export const shares = {
   check: orpc
-    .use(authMiddleware)
+    .use(originMiddleware)
     .input(shareCheckInput)
     .errors({
       PRIVATE_HOST: {
@@ -37,10 +37,11 @@ export const shares = {
     })
     .handler(async ({ context, errors, input }) => {
       const { dialect, resourceId, ...view } = input
-      const connectionString = await createApiClient({
+      const { connectionString, userId } = await createApiClient({
         authorization: context.headers.get('authorization'),
         cookie: context.headers.get('cookie'),
       }).internal.proxy.resolveConnectionString({ resourceId })
+      context.addLogData({ userId })
 
       const read = await Result.tryPromise(() =>
         readShareRows({

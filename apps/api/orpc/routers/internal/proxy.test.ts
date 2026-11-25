@@ -73,15 +73,18 @@ const resolve = (
   })
 
 test('resource resolution selects the resource database and preserves credentials and SSL', async () => {
-  expect(await resolve()).toBe(
-    'postgres://user:p@ss@host/other%20database?sslmode=require'
-  )
+  expect(await resolve()).toEqual({
+    connectionString:
+      'postgres://user:p@ss@host/other%20database?sslmode=require',
+    userId: 'user',
+  })
 })
 
 test('connection resolution returns the stored string unchanged', async () => {
-  expect(await resolve({ connectionId: 'connection' })).toBe(
-    stored.connectionString
-  )
+  expect(await resolve({ connectionId: 'connection' })).toEqual({
+    connectionString: stored.connectionString,
+    userId: 'user',
+  })
 })
 
 test('refuses a connection synced without secrets whose password was stripped', async () => {

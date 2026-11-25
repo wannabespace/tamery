@@ -12,7 +12,7 @@ import { type } from '@orpc/server'
 import type { QueryExecutor } from '@tamery/connection/queries'
 import { executors } from '@tamery/connection/queries/executors'
 import { Dialect } from '@tamery/shared/enums/connection-type'
-import type { AnyFunction, Prettify } from '@tamery/shared/utils'
+import type { AnyFunction, MaybePromise, Prettify } from '@tamery/shared/utils'
 
 type Params<
   T extends AnyFunction,
@@ -31,15 +31,16 @@ export type ConnectionInput =
 interface Resolvers<TContext, TErrors extends ErrorMap> {
   /**
    * `dialect` is the executor that will run the string, which may not be the one its connection names; `errors` builds the
-   * errors the caller's builder declares.
+   * errors the caller's builder declares. Returns the query's owner too, so a resolver that learns the caller while resolving
+   * needs no separate `owner` lookup.
    */
-  connectionString: (
+  connection: (
     input: ConnectionInput,
     context: TContext,
     dialect: Dialect,
     errors: ORPCErrorConstructorMap<TErrors>
-  ) => string | Promise<string>
-  owner: (context: TContext) => string
+  ) => MaybePromise<{ connectionString: string; ownerId: string }>
+  owner: (context: TContext) => MaybePromise<string>
 }
 
 const getScopedQueryId = (ownerId: string, queryId: string) =>
@@ -66,55 +67,54 @@ const createQueryDialect = <
       .handler(async ({ context, errors, input }) =>
         dialect.beginTransaction({
           ...input,
-          connectionString: await resolve.connectionString(
-            input,
-            context,
-            name,
-            errors
-          ),
-          ownerId: resolve.owner(context),
+          ...(await resolve.connection(input, context, name, errors)),
         })
       ),
     cancel: orpc
       .input(type<Params<typeof dialect.cancel>>())
-      .handler(async ({ context, errors, input }) =>
-        dialect.cancel({
+      .handler(async ({ context, errors, input }) => {
+        const { connectionString, ownerId } = await resolve.connection(
+          input,
+          context,
+          name,
+          errors
+        )
+        return dialect.cancel({
           ...input,
-          connectionString: await resolve.connectionString(
-            input,
-            context,
-            name,
-            errors
-          ),
-          queryId: getScopedQueryId(resolve.owner(context), input.queryId),
+          connectionString,
+          queryId: getScopedQueryId(ownerId, input.queryId),
         })
-      ),
+      }),
     commitTransaction: orpc
       .input(type<Params<typeof dialect.commitTransaction>>())
-      .handler(({ input, context }) =>
-        dialect.commitTransaction({ ...input, ownerId: resolve.owner(context) })
+      .handler(async ({ input, context }) =>
+        dialect.commitTransaction({
+          ...input,
+          ownerId: await resolve.owner(context),
+        })
       ),
     execute: orpc
       .input(type<Params<typeof dialect.execute>>())
-      .handler(async ({ context, errors, input }) =>
-        dialect.execute({
+      .handler(async ({ context, errors, input }) => {
+        const { connectionString, ownerId } = await resolve.connection(
+          input,
+          context,
+          name,
+          errors
+        )
+        return dialect.execute({
           ...input,
-          connectionString: await resolve.connectionString(
-            input,
-            context,
-            name,
-            errors
-          ),
+          connectionString,
           maxRows: Math.min(input.maxRows ?? MAX_ROWS, MAX_ROWS),
           queryId: input.queryId
-            ? getScopedQueryId(resolve.owner(context), input.queryId)
+            ? getScopedQueryId(ownerId, input.queryId)
             : undefined,
         })
-      ),
+      }),
     executeTransaction: orpc
       .input(type<Params<typeof dialect.executeTransaction>>())
-      .handler(({ input, context }) => {
-        const ownerId = resolve.owner(context)
+      .handler(async ({ input, context }) => {
+        const ownerId = await resolve.owner(context)
         return dialect.executeTransaction({
           ...input,
           maxRows: Math.min(input.maxRows ?? MAX_ROWS, MAX_ROWS),
@@ -129,27 +129,24 @@ const createQueryDialect = <
       .handler(async ({ context, errors, input }) =>
         dialect.openSession({
           ...input,
-          connectionString: await resolve.connectionString(
-            input,
-            context,
-            name,
-            errors
-          ),
-          ownerId: resolve.owner(context),
+          ...(await resolve.connection(input, context, name, errors)),
         })
       ),
     rollbackTransaction: orpc
       .input(type<Params<typeof dialect.rollbackTransaction>>())
-      .handler(({ input, context }) =>
+      .handler(async ({ input, context }) =>
         dialect.rollbackTransaction({
           ...input,
-          ownerId: resolve.owner(context),
+          ownerId: await resolve.owner(context),
         })
       ),
     transactionStatus: orpc
       .input(type<Params<typeof dialect.transactionStatus>>())
-      .handler(({ input, context }) =>
-        dialect.transactionStatus({ ...input, ownerId: resolve.owner(context) })
+      .handler(async ({ input, context }) =>
+        dialect.transactionStatus({
+          ...input,
+          ownerId: await resolve.owner(context),
+        })
       ),
   } satisfies Record<keyof QueryExecutor, unknown>
 }
