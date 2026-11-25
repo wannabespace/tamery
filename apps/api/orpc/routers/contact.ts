@@ -6,7 +6,7 @@ import { type } from 'arktype'
 import { redis } from '~/lib/redis'
 import { resend } from '~/lib/resend'
 import { ContactReceived } from '~/lib/resend/templates'
-import { authMiddleware, orpc } from '~/orpc'
+import { authMiddleware, callerRateLimitKey, orpc } from '~/orpc'
 
 const limiter = new RedisRateLimiter(redis, {
   maxRequests: 5,
@@ -16,7 +16,7 @@ const limiter = new RedisRateLimiter(redis, {
 
 export const contact = orpc
   .use(authMiddleware)
-  .use(ratelimit({ key: ({ context }) => context.user.id, limiter }))
+  .use(ratelimit({ key: callerRateLimitKey, limiter }))
   .input(
     type({
       message: '0 < string <= 4000',

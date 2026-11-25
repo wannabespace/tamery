@@ -8,7 +8,7 @@ import { type } from 'arktype'
 
 import { aiUsage } from '~/lib/ai-usage'
 import { redis } from '~/lib/redis'
-import { authMiddleware, orpc } from '~/orpc'
+import { authMiddleware, callerRateLimitKey, orpc } from '~/orpc'
 
 const limiter = new RedisRateLimiter(redis, {
   maxRequests: 30,
@@ -22,7 +22,7 @@ const redacted = (length: number) =>
 
 export const diagnoseConnection = orpc
   .use(authMiddleware)
-  .use(ratelimit({ key: ({ context }) => context.user.id, limiter }))
+  .use(ratelimit({ key: callerRateLimitKey, limiter }))
   .input(
     type({
       error: redacted(4000),
