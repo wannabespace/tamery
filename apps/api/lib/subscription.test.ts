@@ -1,0 +1,323 @@
+import { beforeAll, beforeEach, expect, mock, spyOn, test } from 'bun:test'
+import process from 'node:process'
+
+import { call, os } from '@orpc/server'
+import { Client } from 'pg'
+import { v7 } from 'uuid'
+
+import type { Context } from '~/orpc/context'
+
+const DATABASE_URL =
+  process.env.TEST_DATABASE_URL ??
+  'postgres://postgres:postgres@localhost:5432/tamery_test'
+
+Object.assign(process.env, {
+  DATABASE_URL,
+  ENCRYPTION_SECRET: 'test',
+  NODE_ENV: 'test',
+  USER_KEY_SECRET: 'test',
+})
+
+const PRICES = {
+  pro: 'price_pro_month',
+  team: 'price_team_month',
+}
+
+mock.module('~/env', () => ({
+  env: {
+    MAIN_URL: 'https://tamery.test',
+    STRIPE_PRO_ANNUAL_PRICE_ID: 'price_pro_annual',
+    STRIPE_PRO_MONTH_PRICE_ID: PRICES.pro,
+    STRIPE_SECRET_KEY: 'sk_test',
+    STRIPE_TEAM_ANNUAL_PRICE_ID: 'price_team_annual',
+    STRIPE_TEAM_MONTH_PRICE_ID: PRICES.team,
+  },
+}))
+const redisClient = {
+  connect: () => Promise.resolve(),
+  duplicate: () => redisClient,
+  on: () => redisClient,
+}
+mock.module('redis', () => ({ createClient: () => redisClient }))
+mock.module('@orpc/ratelimit/redis', () => ({
+  RedisRateLimiter: mock(() => ({
+    limit: () => Promise.resolve({ success: true }),
+  })),
+}))
+mock.module('~/lib/resend', () => ({ sendEmail: () => Promise.resolve(true) }))
+
+let signedIn = { email: '', id: '' }
+const orpc = os.$context<Context>()
+const asSignedIn = orpc.middleware(({ next }) =>
+  next({ context: { user: signedIn } })
+)
+mock.module('~/orpc', () => ({
+  accountMiddleware: asSignedIn,
+  authMiddleware: asSignedIn,
+  orpc,
+}))
+
+const database = new URL(DATABASE_URL)
+const admin = new Client({
+  connectionString: Object.assign(new URL(DATABASE_URL), {
+    pathname: '/postgres',
+  }).href,
+})
+await admin.connect()
+const { rowCount } = await admin.query(
+  'SELECT 1 FROM pg_database WHERE datname = $1',
+  [database.pathname.slice(1)]
+)
+if (!rowCount) {
+  await admin.query(`CREATE DATABASE "${database.pathname.slice(1)}"`)
+}
+await admin.end()
+
+const { db } = await import('@tamery/db')
+const { subscriptions, subscriptionSeats, users } =
+  await import('@tamery/db/schema')
+const { migrate } = await import('drizzle-orm/node-postgres/migrator')
+const { stripe } = await import('~/lib/stripe')
+const { getSubscription, syncSubscription } = await import('~/lib/subscription')
+const { seats } = await import('~/orpc/routers/account/subscription/seats')
+const { list } = await import('~/orpc/routers/account/subscription/list')
+
+if (!stripe) {
+  throw new Error('Stripe is not configured')
+}
+
+const retrieve = spyOn(stripe.subscriptions, 'retrieve')
+
+beforeAll(async () => {
+  await migrate(db, {
+    migrationsFolder: new URL(
+      '../../../packages/db/migrations',
+      import.meta.url
+    ).pathname,
+  })
+})
+
+beforeEach(async () => {
+  retrieve.mockReset()
+  await db.execute('TRUNCATE users, subscriptions CASCADE')
+})
+
+const context: Context = {
+  addLogData: mock(),
+  clientId: undefined,
+  headers: new Headers(),
+  isAppOutdated: false,
+  isDesktop: false,
+  parsedAppVersion: null,
+  request: new Request('https://api.tamery.test/rpc'),
+  setHeader: mock(),
+  userAgent: null,
+}
+
+const createUser = async (
+  email: string,
+  { emailVerified = true, normalizedEmail = email } = {}
+) => {
+  const [user] = await db
+    .insert(users)
+    .values({ email, emailVerified, id: v7(), name: email, normalizedEmail })
+    .returning({ email: users.email, id: users.id })
+
+  if (!user) {
+    throw new Error('User not created')
+  }
+
+  return user
+}
+
+const stripeSubscription = ({
+  price = PRICES.team,
+  quantity,
+  status,
+  userId,
+}: {
+  price?: string
+  quantity: number
+  status: string
+  userId: string
+}) =>
+  // A wire fixture: only the fields the sync reads.
+  ({
+    cancel_at: null,
+    cancel_at_period_end: false,
+    customer: 'cus_test',
+    id: 'sub_test',
+    items: {
+      data: [
+        {
+          current_period_end: 1_800_000_000,
+          current_period_start: 1_790_000_000,
+          price: {
+            id: price,
+            recurring: { interval: 'month' },
+            unit_amount: 2000,
+          },
+          quantity,
+        },
+      ],
+    },
+    metadata: { userId },
+    status,
+    trial_end: null,
+    trial_start: null,
+  }) as never
+
+const createTeam = async ({
+  quantity,
+  status = 'active',
+}: {
+  quantity: number
+  status?: string
+}) => {
+  const owner = await createUser('owner@tamery.test')
+  retrieve.mockResolvedValue(
+    stripeSubscription({ quantity, status, userId: owner.id })
+  )
+  await syncSubscription('sub_test')
+
+  return owner
+}
+
+const assign = (owner: { email: string; id: string }, email: string) => {
+  signedIn = owner
+  return call(seats.add, { email }, { context })
+}
+
+const assignedEmails = async () => {
+  const rows = await db
+    .select({ email: subscriptionSeats.email })
+    .from(subscriptionSeats)
+    .orderBy(subscriptionSeats.id)
+
+  return rows.map(({ email }) => email)
+}
+
+test('a seat gives Pro to the verified account its normalized email names', async () => {
+  const owner = await createTeam({ quantity: 3 })
+  const holder = await createUser('janedoe@gmail.com')
+  const unverified = await createUser('bob@tamery.test', {
+    emailVerified: false,
+  })
+
+  await assign(owner, 'Jane.Doe+work@gmail.com')
+  await assign(owner, 'bob@tamery.test')
+
+  expect(await getSubscription(holder.id)).toMatchObject({
+    plan: 'team',
+    userId: owner.id,
+  })
+  expect(await getSubscription(unverified.id)).toBeNull()
+})
+
+test('a seat holder sees the plan and none of the payer billing', async () => {
+  const owner = await createTeam({ quantity: 2 })
+  const holder = await createUser('holder@tamery.test')
+  await assign(owner, holder.email)
+
+  signedIn = holder
+  expect(await call(list, undefined, { context })).toEqual([
+    { isOwner: false, plan: 'team', status: 'active' },
+  ])
+})
+
+test('the last seat goes to one of two concurrent assignments', async () => {
+  const owner = await createTeam({ quantity: 3 })
+  await assign(owner, 'first@tamery.test')
+
+  const results = await Promise.allSettled([
+    assign(owner, 'second@tamery.test'),
+    assign(owner, 'third@tamery.test'),
+  ])
+
+  expect(results.map(({ status }) => status).toSorted()).toEqual([
+    'fulfilled',
+    'rejected',
+  ])
+  expect(await assignedEmails()).toHaveLength(2)
+})
+
+test('a trial gives one seat besides the owner whatever count it will bill', async () => {
+  const owner = await createTeam({ quantity: 5, status: 'trialing' })
+
+  await assign(owner, 'first@tamery.test')
+
+  await expect(assign(owner, 'second@tamery.test')).rejects.toThrow(
+    'During the trial'
+  )
+  expect(await assignedEmails()).toEqual(['first@tamery.test'])
+})
+
+test("an owner cannot remove another team's seat", async () => {
+  const owner = await createTeam({ quantity: 2 })
+  await assign(owner, 'holder@tamery.test')
+  const [seat] = await db
+    .select({ id: subscriptionSeats.id })
+    .from(subscriptionSeats)
+  const stranger = await createUser('stranger@tamery.test')
+
+  signedIn = stranger
+  await call(seats.remove, { id: seat?.id ?? '' }, { context })
+
+  expect(await assignedEmails()).toEqual(['holder@tamery.test'])
+})
+
+test('a lower seat count in Stripe drops the newest seats', async () => {
+  const owner = await createTeam({ quantity: 4 })
+  await assign(owner, 'a@tamery.test')
+  await assign(owner, 'b@tamery.test')
+  await assign(owner, 'c@tamery.test')
+
+  retrieve.mockResolvedValue(
+    stripeSubscription({ quantity: 2, status: 'active', userId: owner.id })
+  )
+  await syncSubscription('sub_test')
+
+  expect(await assignedEmails()).toEqual(['a@tamery.test'])
+})
+
+test.each([
+  ['moves to Pro', { price: PRICES.pro, status: 'active' }],
+  ['is cancelled', { price: PRICES.team, status: 'canceled' }],
+])('a Team that %s drops every seat', async (_, change) => {
+  const owner = await createTeam({ quantity: 3 })
+  const holder = await createUser('holder@tamery.test')
+  await assign(owner, holder.email)
+
+  retrieve.mockResolvedValue(
+    stripeSubscription({ ...change, quantity: 1, userId: owner.id })
+  )
+  await syncSubscription('sub_test')
+
+  expect(await assignedEmails()).toEqual([])
+  expect(await getSubscription(holder.id)).toBeNull()
+})
+
+test('overlapping deliveries store the state Stripe returned last', async () => {
+  const owner = await createUser('owner@tamery.test')
+  retrieve
+    .mockImplementationOnce(async () => {
+      await Bun.sleep(100)
+      return stripeSubscription({
+        quantity: 5,
+        status: 'active',
+        userId: owner.id,
+      })
+    })
+    .mockResolvedValueOnce(
+      stripeSubscription({ quantity: 2, status: 'active', userId: owner.id })
+    )
+
+  const older = syncSubscription('sub_test')
+  await Bun.sleep(20)
+  await Promise.all([older, syncSubscription('sub_test')])
+
+  const rows = await db
+    .select({ seats: subscriptions.seats })
+    .from(subscriptions)
+  expect(rows).toEqual([{ seats: 2 }])
+})
