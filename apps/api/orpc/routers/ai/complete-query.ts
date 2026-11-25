@@ -19,15 +19,9 @@ export const completeQuery = orpc
       type: type.valueOf(ConnectionType),
     })
   )
-  .errors({
-    TOO_MANY_REQUESTS: {
-      message:
-        'Weekly AI autocomplete limit reached. Upgrade to Pro for unlimited suggestions.',
-    },
-  })
-  .handler(({ context, errors, input, signal }) => {
+  .handler(({ context, input, signal }) => {
     const scope = { feature: AiFeature.CompleteQuery, userId: context.user.id }
-    return usage.metered(context, 'complete', errors.TOO_MANY_REQUESTS, () =>
+    return usage.metered(context, 'complete', () =>
       runCompleteQuery({
         connectionType: input.type,
         context: input.context,

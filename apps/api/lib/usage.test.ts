@@ -38,7 +38,6 @@ const context = {
 } as unknown as Parameters<typeof usage.get>[0]
 const feature = 'filters'
 const max = FREE_WEEKLY_LIMITS[feature]
-const limitReached = () => new Error('limit reached') as never
 const used = async () => {
   const quota = await usage.get(context, feature)
   return quota?.used
@@ -59,35 +58,33 @@ test('parallel calls at the limit run only the one unit left', async () => {
   })
 
   const results = await Promise.allSettled(
-    Array.from({ length: 5 }, () =>
-      usage.metered(context, feature, limitReached, run)
-    )
+    Array.from({ length: 5 }, () => usage.metered(context, feature, run))
   )
 
   expect(results.filter(({ status }) => status === 'fulfilled')).toHaveLength(1)
+  expect(
+    results.flatMap((result) =>
+      result.status === 'rejected' ? [result.reason.code] : []
+    )
+  ).toEqual(Array.from({ length: 4 }, () => 'TOO_MANY_REQUESTS'))
   expect(run).toHaveBeenCalledTimes(1)
   expect(await used()).toBe(max)
 })
 
-test('a call that fails or returns nothing to count gives its unit back', async () => {
+test('a call that fails or skips its count gives its unit back', async () => {
   await fillTo(max - 1)
 
   await expect(
-    usage.metered(context, feature, limitReached, () =>
+    usage.metered(context, feature, () =>
       Promise.reject(new Error('provider failed'))
     )
   ).rejects.toThrow('provider failed')
-  await usage.metered(
-    context,
-    feature,
-    limitReached,
-    () => Promise.resolve([]),
-    (result) => result.length > 0
-  )
+  await usage.metered(context, feature, (skipCount) => {
+    skipCount()
+    return Promise.resolve([])
+  })
   expect(await used()).toBe(max - 1)
 
-  await usage.metered(context, feature, limitReached, () =>
-    Promise.resolve('done')
-  )
+  await usage.metered(context, feature, () => Promise.resolve('done'))
   expect(await used()).toBe(max)
 })

@@ -26,28 +26,23 @@ export const filters = orpc
       prompt: `string <= ${AI_QUERY_LIMITS.prompt}`,
     })
   )
-  .errors({
-    TOO_MANY_REQUESTS: {
-      message:
-        'You have reached the free AI usage limit. Please subscribe to a Pro plan to continue using AI features.',
-    },
-  })
-  .handler(({ input, signal, context, errors }) =>
-    usage.metered(
-      context,
-      'filters',
-      errors.TOO_MANY_REQUESTS,
-      () =>
-        generateFilters({
-          context: input.context,
-          prompt: input.prompt,
-          signal,
-          telemetry: aiUsage.telemetry({
-            feature: AiFeature.Filters,
-            userId: context.user.id,
-          }),
+  .handler(({ input, signal, context }) =>
+    usage.metered(context, 'filters', async (skipCount) => {
+      const result = await generateFilters({
+        context: input.context,
+        prompt: input.prompt,
+        signal,
+        telemetry: aiUsage.telemetry({
+          feature: AiFeature.Filters,
+          userId: context.user.id,
         }),
-      (result) =>
-        result.filters.length > 0 || Object.keys(result.orderBy).length > 0
-    )
+      })
+      if (
+        result.filters.length === 0 &&
+        Object.keys(result.orderBy).length === 0
+      ) {
+        skipCount()
+      }
+      return result
+    })
   )

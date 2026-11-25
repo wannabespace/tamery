@@ -1,4 +1,4 @@
-import type { ORPCError } from '@orpc/server'
+import { ORPCError } from '@orpc/server'
 import type { MeteredFeature } from '@tamery/shared/usage'
 import { FREE_WEEKLY_LIMITS, usageResetsAt } from '@tamery/shared/usage'
 
@@ -11,6 +11,13 @@ const unlimitedPermission = {
   filters: 'ai.filter.unlimited',
   mcp: 'mcp.unlimited',
 } as const satisfies Record<MeteredFeature, typeof permix.$inferPath>
+
+const limitReachedMessage = {
+  complete:
+    'Weekly AI autocomplete limit reached. Upgrade to Pro for unlimited suggestions.',
+  filters:
+    'You have reached the free AI usage limit. Please subscribe to a Pro plan to continue using AI features.',
+} as const satisfies Partial<Record<MeteredFeature, string>>
 
 type UsageContext = ReturnType<typeof permix.setupContext> & {
   user: { id: string }
@@ -44,27 +51,31 @@ export const usage = {
           feature,
           Number(await redis.get(getKey(user.id, feature, usageResetsAt())))
         ),
-  /** Takes the unit before `run` starts, so parallel calls cannot pass the limit, and gives it back when `run` throws or `counts` refuses its result. */
+  /** Takes the unit before `run` starts, so parallel calls cannot pass the limit, and gives it back when `run` throws or calls `skipCount`. */
   metered: async <T>(
     { permissions, user }: UsageContext,
-    feature: MeteredFeature,
-    limitReached: () => ORPCError<string, unknown>,
-    run: () => Promise<T>,
-    counts: (result: T) => boolean = () => true
+    feature: keyof typeof limitReachedMessage,
+    run: (skipCount: () => void) => Promise<T>
   ) => {
+    let counts = true
+    const skipCount = () => {
+      counts = false
+    }
     if (permissions.check(unlimitedPermission[feature])) {
-      return run()
+      return run(skipCount)
     }
     const { release, used } = await increment(user.id, feature)
     if (used > FREE_WEEKLY_LIMITS[feature]) {
       await release()
-      throw limitReached()
+      throw new ORPCError('TOO_MANY_REQUESTS', {
+        message: limitReachedMessage[feature],
+      })
     }
-    const result = await run().catch(async (error: unknown) => {
+    const result = await run(skipCount).catch(async (error: unknown) => {
       await release()
       throw error
     })
-    if (!counts(result)) {
+    if (!counts) {
       await release()
     }
     return result
