@@ -4,7 +4,6 @@ import { asyncIteratorObject } from '@orpc/server'
 import { db } from '@tamery/db'
 import type { Type } from 'arktype'
 import { type } from 'arktype'
-import { addSeconds } from 'date-fns'
 import { and, eq, getColumns, sql } from 'drizzle-orm'
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core'
 
@@ -60,7 +59,8 @@ export const syncDiff = async <TItem extends { id: string }>(opts: {
   const changedIds = versions
     .filter(({ id, updatedAt }) => {
       const known = clientVersions.get(id)
-      return !known || updatedAt >= addSeconds(known, 1)
+      // Both sides hold the millisecond Date the driver read, so any slack added here hides edits made inside it.
+      return !known || updatedAt.getTime() > known.getTime()
     })
     .map(({ id }) => id)
   const changed =
