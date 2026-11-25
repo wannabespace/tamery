@@ -82,6 +82,7 @@ const { stripe } = await import('~/lib/stripe')
 const { getSubscription, syncSubscription } = await import('~/lib/subscription')
 const { seats } = await import('~/orpc/routers/account/subscription/seats')
 const { list } = await import('~/orpc/routers/account/subscription/list')
+const { upgrade } = await import('~/orpc/routers/account/subscription/upgrade')
 
 if (!stripe) {
   throw new Error('Stripe is not configured')
@@ -89,6 +90,8 @@ if (!stripe) {
 
 const retrieve = spyOn(stripe.subscriptions, 'retrieve')
 const cancel = spyOn(stripe.subscriptions, 'cancel')
+const createCustomer = spyOn(stripe.customers, 'create')
+const createCheckout = spyOn(stripe.checkout.sessions, 'create')
 
 beforeAll(async () => {
   await migrate(db, {
@@ -102,6 +105,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   retrieve.mockReset()
   cancel.mockReset()
+  createCustomer.mockReset()
+  createCheckout.mockReset()
   await db.execute('TRUNCATE users, subscriptions CASCADE')
 })
 
@@ -372,3 +377,50 @@ test.each([
     expect(await db.select().from(subscriptions)).toEqual([])
   }
 )
+
+const startCheckout = (user: { email: string; id: string }) => {
+  signedIn = user
+  return call(
+    upgrade,
+    {
+      cancelUrl: 'https://tamery.test/account',
+      returnUrl: 'https://tamery.test/account',
+      successUrl: 'https://tamery.test/account',
+    },
+    { context }
+  )
+}
+
+test('a checkout waiting on another one for the account gives up with a retryable error', async () => {
+  const buyer = await createUser('buyer@tamery.test')
+  const { promise: stripeAnswer, resolve } = Promise.withResolvers<never>()
+  createCustomer.mockResolvedValue({ id: 'cus_test' } as never)
+  const { promise: lockHeld, resolve: holdLock } =
+    Promise.withResolvers<undefined>()
+  createCheckout.mockImplementationOnce(() => {
+    holdLock(undefined)
+    return stripeAnswer
+  })
+
+  const first = startCheckout(buyer)
+  await lockHeld
+
+  await expect(startCheckout(buyer)).rejects.toMatchObject({
+    code: 'GATEWAY_TIMEOUT',
+  })
+  resolve({ url: 'https://checkout.stripe.test' } as never)
+  expect(await first).toEqual({ url: 'https://checkout.stripe.test' })
+}, 10_000)
+
+test('a Stripe call that times out under the lock answers a retryable error', async () => {
+  const buyer = await createUser('buyer@tamery.test')
+  createCustomer.mockRejectedValue(
+    new stripe.errors.StripeConnectionError({
+      message: 'Request aborted due to timeout being reached (15000ms)',
+    })
+  )
+
+  await expect(startCheckout(buyer)).rejects.toMatchObject({
+    code: 'GATEWAY_TIMEOUT',
+  })
+})
