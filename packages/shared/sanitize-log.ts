@@ -13,6 +13,8 @@ const AUTHORIZATION =
 /** `Server=h;Password=p` and the like, outside a URL. */
 const KEY_VALUE = /(?<key>(?<name>[\w%-]+)\s*=\s*)[^\s;&'"]+/gu
 const MAY_HOLD_SECRET = /[:=]/u
+/** A failed Drizzle query lists its bound values, session tokens among them, on a `params:` line. */
+const QUERY_PARAMS = /^(?<key>params: ).*$/gmu
 
 /** The name is decoded first: a driver reads `%73sh_key` as `ssh_key`. */
 const redactWhenSecret = (match: string, key: string, name: string) =>
@@ -20,6 +22,7 @@ const redactWhenSecret = (match: string, key: string, name: string) =>
 
 export const redactSecrets = (text: string) =>
   text
+    .replaceAll(QUERY_PARAMS, '$<key>[REDACTED]')
     .replaceAll(URL_PASSWORD, '$<user>[REDACTED]@')
     .replaceAll(QUERY_PARAM, redactWhenSecret)
     // Before `KEY_VALUE`, which would stop at the space in `Basic abc` and leave `abc`.
@@ -45,7 +48,10 @@ const redactor = deepRedact({
     /credentials?/iu,
     /connectionString?/iu,
     /invalidData/iu,
+    /^params$/iu,
   ],
+  // Without it, a matched key holding an object or array is walked unredacted.
+  retainStructure: true,
   serialise: false,
   // One test runs every pattern: deep-redact applies only the first test that matches a string.
   stringTests: [{ pattern: MAY_HOLD_SECRET, replacer: redactSecrets }],

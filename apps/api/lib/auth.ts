@@ -15,6 +15,7 @@ import {
   formatDeviceLabel,
 } from '@tamery/shared/device-label'
 import { ORIGINS } from '@tamery/shared/origins'
+import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import {
   invitableRole,
   isDefaultWorkspaceMetadata,
@@ -341,6 +342,11 @@ export const auth = betterAuth({
       }
     }),
   },
+  logger: {
+    log: (level, message, ...args) => {
+      console[level](...sanitizeLogData([message, ...args]))
+    },
+  },
   onAPIError: {
     onError: async (error) => {
       if (isAPIError(error) && error.statusCode < 500) {
@@ -349,7 +355,7 @@ export const auth = betterAuth({
 
       const text =
         typeof error === 'object' && error !== null
-          ? JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+          ? JSON.stringify(sanitizeLogData(error), null, 2)
           : String(error)
 
       if (env.ALERTS_EMAIL) {

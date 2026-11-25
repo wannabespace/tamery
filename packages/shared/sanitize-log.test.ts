@@ -69,6 +69,18 @@ describe('sanitizeLogData', () => {
     expect(logged({ error })).not.toContain('SECRET')
   })
 
+  it('redacts the bound values of a failed query, wrapped errors included', () => {
+    const query = Object.assign(
+      new Error(
+        'Failed query: select "id" from "session" where "token" = $1\nparams: SESSIONTOKEN'
+      ),
+      { params: ['SESSIONTOKEN'] }
+    )
+    const text = logged(new Error('Failed to get session', { cause: query }))
+    expect(text).not.toContain('SESSIONTOKEN')
+    expect(text).toContain('Failed query: select')
+  })
+
   it('keeps an email after a connection string', () => {
     const text = logged({
       error: 'postgres://u:pw@h failed for me@example.com',
