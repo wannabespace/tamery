@@ -1,9 +1,9 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "caed42dd-d42c-4a9a-9f5d-b37130756dee",
+  "id": "90698d29-6421-4a96-ab74-10d032e4c806",
   "prevIds": [
-    "b6c1c501-abdf-4b22-87cb-e709c03e98a9"
+    "69b72884-3296-4493-bbc0-a9def30dcddb"
   ],
   "ddl": [
     {
@@ -176,6 +176,12 @@
     {
       "isRlsEnabled": false,
       "name": "shares",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "subscription_seats",
       "entityType": "tables",
       "schema": "public"
     },
@@ -2072,6 +2078,84 @@
       "name": "created_at",
       "entityType": "columns",
       "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "email",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "normalized_email",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "subscription_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
       "table": "subscriptions"
     },
     {
@@ -2187,6 +2271,19 @@
       "generated": null,
       "identity": null,
       "name": "price",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscriptions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "seats",
       "entityType": "columns",
       "schema": "public",
       "table": "subscriptions"
@@ -2816,48 +2913,6 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "chat_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "ai_usage_chat_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "ai_usage"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "workspace_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "ai_usage_workspace_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "ai_usage"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
           "value": "user_id",
           "isExpression": false,
           "asc": true,
@@ -2960,27 +3015,6 @@
       "table": "chats_messages_parts"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "connection_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "connection_machines_connection_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "connection_machines"
-    },
-    {
       "nameExplicit": true,
       "columns": [
         {
@@ -2997,27 +3031,6 @@
       "method": "btree",
       "concurrently": false,
       "name": "connections_workspaceId_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "connections"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "user_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "connections_user_id_index",
       "entityType": "indexes",
       "schema": "public",
       "table": "connections"
@@ -3170,48 +3183,6 @@
       "table": "passkeys"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "user_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "queries_user_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "queries"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "connection_resource_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "queries_connection_resource_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "queries"
-    },
-    {
       "nameExplicit": true,
       "columns": [
         {
@@ -3273,6 +3244,27 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "shares"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "normalized_email",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "subscription_seats_normalized_email_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "subscription_seats"
     },
     {
       "nameExplicit": false,
@@ -3790,6 +3782,23 @@
     {
       "nameExplicit": false,
       "columns": [
+        "subscription_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "subscriptions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "subscription_seats_subscription_id_subscriptions_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "user_id"
       ],
       "schemaTo": "public",
@@ -4014,6 +4023,16 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "subscription_seats_pkey",
+      "schema": "public",
+      "table": "subscription_seats",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "subscriptions_pkey",
       "schema": "public",
       "table": "subscriptions",
@@ -4092,6 +4111,18 @@
       "entityType": "uniques",
       "schema": "public",
       "table": "connections_resources"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "subscription_id",
+        "normalized_email"
+      ],
+      "nullsNotDistinct": false,
+      "name": "subscription_seats_subscription_id_normalized_email_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "subscription_seats"
     },
     {
       "nameExplicit": false,

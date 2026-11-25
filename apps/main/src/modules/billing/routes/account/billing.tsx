@@ -49,7 +49,7 @@ const RouteComponent = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => openBillingPortal()}
+          onClick={() => openBillingPortal('invoices')}
           disabled={isOpening}
         >
           <LoadingContent loading={isOpening}>Manage billing</LoadingContent>

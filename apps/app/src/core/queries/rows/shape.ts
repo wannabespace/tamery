@@ -1,5 +1,5 @@
 import type { ColumnTypes } from '@tamery/connection/queries/value-binding'
-import { clickhouseDateTime } from '@tamery/connection/queries/value-binding'
+import { clickhouseBindValue } from '@tamery/connection/queries/value-binding'
 import { fromWire, toWire } from '@tamery/mongo/values'
 import type { SqlDialect } from '@tamery/shared/enums/connection-type'
 import { Dialect } from '@tamery/shared/enums/connection-type'
@@ -74,7 +74,7 @@ const clickhouseBind =
     if (clickhouseJsonColumnType.test(columnType)) {
       return parseJson(columnType, `{"v":${JSON.stringify(value)}}`)
     }
-    return clickhouseDateTime(columnType, value)
+    return clickhouseBindValue(columnType, value)
   }
 
 const bindOracleJson = bindJsonAsText(Dialect.Oracle)
@@ -199,6 +199,25 @@ export const mongodbMatch = (
 export const mongodbTextContains = (column: string, term: string) => ({
   [column]: { $options: 'i', $regex: likeToRegex(`%${term}%`) },
 })
+
+/** A column's unique constraint, unless one of that constraint's columns carries another: `rowIdentity` takes the columns sharing a name as the whole key. */
+export const uniqueKeyOf = (
+  constraints: { column: string | null; name: string; type: string }[],
+  column: string
+) => {
+  const unique = constraints.filter(
+    (constraint) => constraint.type === 'unique'
+  )
+  const firstOf = (id: string | null) =>
+    unique.find((constraint) => constraint.column === id)?.name
+  const name = firstOf(column)
+  return unique.every(
+    (constraint) =>
+      constraint.name !== name || firstOf(constraint.column) === name
+  )
+    ? name
+    : undefined
+}
 
 type IdentityColumn = Pick<
   Column,
