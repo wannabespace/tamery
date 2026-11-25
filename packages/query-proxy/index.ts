@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 import type {
   BuilderWithMiddlewares,
   Context,
@@ -37,9 +39,13 @@ interface Resolvers<TContext, TErrors extends ErrorMap> {
     dialect: Dialect,
     errors: ORPCErrorConstructorMap<TErrors>
   ) => string | Promise<string>
-  /** Who a transaction belongs to, so a leaked `txId` cannot drive another user's transaction. */
   owner: (context: TContext) => string
 }
+
+const getScopedQueryId = (ownerId: string, queryId: string) =>
+  createHash('sha256')
+    .update(JSON.stringify([ownerId, queryId]))
+    .digest('hex')
 
 // A proxy serves many users at once; one unbounded result would hold its memory for all of them.
 const MAX_ROWS = 100_000
@@ -80,6 +86,7 @@ const createQueryDialect = <
             name,
             errors
           ),
+          queryId: getScopedQueryId(resolve.owner(context), input.queryId),
         })
       ),
     commitTransaction: orpc
@@ -99,17 +106,24 @@ const createQueryDialect = <
             errors
           ),
           maxRows: Math.min(input.maxRows ?? MAX_ROWS, MAX_ROWS),
+          queryId: input.queryId
+            ? getScopedQueryId(resolve.owner(context), input.queryId)
+            : undefined,
         })
       ),
     executeTransaction: orpc
       .input(type<Params<typeof dialect.executeTransaction>>())
-      .handler(({ input, context }) =>
-        dialect.executeTransaction({
+      .handler(({ input, context }) => {
+        const ownerId = resolve.owner(context)
+        return dialect.executeTransaction({
           ...input,
           maxRows: Math.min(input.maxRows ?? MAX_ROWS, MAX_ROWS),
-          ownerId: resolve.owner(context),
+          ownerId,
+          queryId: input.queryId
+            ? getScopedQueryId(ownerId, input.queryId)
+            : undefined,
         })
-      ),
+      }),
     openSession: orpc
       .input(type<Params<typeof dialect.openSession>>())
       .handler(async ({ context, errors, input }) =>

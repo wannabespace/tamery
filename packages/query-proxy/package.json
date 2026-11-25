@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check-types": "bun check"
+    "check-types": "bun check",
+    "test": "bun test"
   },
   "dependencies": {
     "@orpc/client": "catalog:",

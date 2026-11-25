@@ -47,7 +47,8 @@ const redisClient = {
   on: () => redisClient,
 }
 mock.module('redis', () => ({ createClient: () => redisClient }))
-mock.module('~/lib/resend', () => ({ resend: null, sendEmail: mock() }))
+const sendEmail = mock()
+mock.module('~/lib/resend', () => ({ resend: null, sendEmail }))
 
 const createRelease = mock(() =>
   Promise.resolve({
@@ -65,6 +66,7 @@ const { db } = await import('@tamery/db')
 
 beforeEach(() => {
   createRelease.mockClear()
+  sendEmail.mockClear()
 })
 
 const post = (procedure: string, body: string, headers: HeadersInit) =>
@@ -136,6 +138,12 @@ test('ToDesktop: a signed build drafts a GitHub release for its version', async 
   expect(createRelease).toHaveBeenCalledWith(
     expect.objectContaining({ draft: true, tag_name: 'v1.2.3' })
   )
+  expect(sendEmail).toHaveBeenCalledWith(
+    expect.objectContaining({
+      template: 'ReleaseDrafted',
+      to: 'alerts@tamery.test',
+    })
+  )
 })
 
 test('ToDesktop: a build signed with another secret is refused', async () => {
@@ -143,4 +151,5 @@ test('ToDesktop: a build signed with another secret is refused', async () => {
 
   expect(response.status).toBe(401)
   expect(createRelease).not.toHaveBeenCalled()
+  expect(sendEmail).not.toHaveBeenCalled()
 })

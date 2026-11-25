@@ -64,7 +64,8 @@ const ReleasesPage = () => {
         {releases.map((release, index) => (
           <li
             key={release.id}
-            className="grid gap-3 md:grid-cols-[12rem_1fr] md:gap-12"
+            id={release.tagName}
+            className="grid scroll-mt-24 gap-3 md:grid-cols-[12rem_1fr] md:gap-12"
           >
             <div className="flex items-center gap-2 md:sticky md:top-24 md:flex-col md:items-start md:self-start md:pt-1.5">
               {release.publishedAt && (
