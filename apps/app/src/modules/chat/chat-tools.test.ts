@@ -118,6 +118,7 @@ test('Run on a change left pending before a reload runs it once and sends the an
     chatToolRuns.write({
       approved: true,
       chat,
+      connectionResourceId: 'resource',
       input,
       toolCallId: 'ship',
       transcript,
@@ -187,6 +188,7 @@ test('a change aimed at another connection fails before Run can reach it', async
   await chatToolRuns.write({
     approved: true,
     chat,
+    connectionResourceId: 'resource',
     input: {
       connectionId: 'prod',
       resource: null,
@@ -221,6 +223,7 @@ test('a call another window claimed neither reads nor runs here', async () => {
   await chatToolRuns.write({
     approved: true,
     chat,
+    connectionResourceId: 'resource',
     input: { ...target, statement: 'delete from orders' },
     toolCallId: 'elsewhere-write',
     transcript: [],
@@ -234,4 +237,38 @@ test('a call another window claimed neither reads nor runs here', async () => {
     'elsewhere-read': true,
     'elsewhere-write': true,
   })
+})
+
+test('Run rechecks the connection of a restored pending statement', async () => {
+  write.mockClear()
+  const input = {
+    connectionId: 'other-connection',
+    resource: null,
+    statement: 'insert into fixtures (id) values (1)',
+  }
+  const { chat } = createChat([])
+
+  await chatToolRuns.write({
+    approved: true,
+    chat,
+    connectionResourceId: 'resource',
+    input,
+    toolCallId: 'restored',
+    transcript: [
+      {
+        id: 'restored-message',
+        parts: [
+          {
+            input,
+            state: 'input-available',
+            toolCallId: 'restored',
+            type: 'tool-execute',
+          },
+        ],
+        role: 'assistant',
+      },
+    ],
+  })
+
+  expect(write).not.toHaveBeenCalled()
 })

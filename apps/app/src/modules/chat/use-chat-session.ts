@@ -231,7 +231,12 @@ export const useChatSession = ({
         input: ChatTools['execute']['input']
         toolCallId: string
       }) =>
-        autoApprove({ ...data, chat: instance, transcript: displayMessages }),
+        autoApprove({
+          ...data,
+          chat: instance,
+          connectionResourceId,
+          transcript: displayMessages,
+        }),
       write: ({
         approved,
         input,
@@ -244,6 +249,7 @@ export const useChatSession = ({
         chatToolRuns.write({
           approved,
           chat: instance,
+          connectionResourceId,
           input,
           toolCallId,
           transcript: displayMessages,

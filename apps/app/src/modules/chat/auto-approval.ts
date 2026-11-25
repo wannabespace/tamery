@@ -44,11 +44,13 @@ const forget = (toolCallId: string) =>
 /** Auto mode for one change: the judge reads it against the user's request and it runs when the judge is sure enough, more so for a change to existing data; otherwise it is skipped, so the agent goes on and the user can run it from its card. It runs where the window answers the call, so a chat out of view or a subagent's closed panel still runs it, and again from a card for a call no window judged yet (after a reload, or Auto switched on). Once per call. */
 export const autoApprove = async ({
   chat,
+  connectionResourceId,
   input,
   toolCallId,
   transcript,
 }: {
   chat: Chat<AppUIMessage>
+  connectionResourceId: string
   input: ChatTools['execute']['input']
   toolCallId: string
   transcript: AppUIMessage[]
@@ -74,6 +76,7 @@ export const autoApprove = async ({
       chatToolRuns.write({
         approved: true,
         chat,
+        connectionResourceId,
         input,
         toolCallId,
         transcript,
