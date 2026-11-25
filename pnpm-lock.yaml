@@ -407,6 +407,9 @@ catalogs:
     '@types/ssh2':
       specifier: ^1.15.6
       version: 1.15.6
+    '@types/validator':
+      specifier: ^13.15.10
+      version: 13.15.10
     '@upstash/context7-tools-ai-sdk':
       specifier: ^1.0.4
       version: 1.0.4
@@ -683,6 +686,9 @@ catalogs:
     uuid:
       specifier: ^14.0.3
       version: 14.0.3
+    validator:
+      specifier: ^13.15.35
+      version: 13.15.35
     vite:
       specifier: ^8.3.8
       version: 8.3.8
@@ -871,6 +877,9 @@ importers:
       uuid:
         specifier: 'catalog:'
         version: 14.0.3
+      validator:
+        specifier: 'catalog:'
+        version: 13.15.35
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -890,6 +899,9 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
+      '@types/validator':
+        specifier: 'catalog:'
+        version: 13.15.10
       drizzle-kit:
         specifier: 'catalog:'
         version: 1.0.0-rc.5-ab785fc
@@ -6484,6 +6496,9 @@ packages:
 
   '@types/validate-npm-package-name@4.0.2':
     resolution: {integrity: sha512-lrpDziQipxCEeK5kWxvljWYhUvOiB2A9izZd9B2AFarYAkqZshb4lPbRs7zKEic6eGtH8V/2qJW+dPp9OtF6bw==}
+
+  '@types/validator@13.15.10':
+    resolution: {integrity: sha512-T8L6i7wCuyoK8A/ZeLYt1+q0ty3Zb9+qbSSvrIVitzT3YjZqkTZ40IbRsPanlB4h1QB3JVL1SYCdR6ngtFYcuA==}
 
   '@types/webidl-conversions@7.0.3':
     resolution: {integrity: sha512-CiJJvcRtIgzadHCYXw7dqEnMNRjhGZlYK05Mj9OyktqV8uVT8fD2BFOB7S1uwBE3Kj2Z+4UyPmFw/Ixgw/LAlA==}
@@ -16072,6 +16087,8 @@ snapshots:
   '@types/use-sync-external-store@0.0.6': {}
 
   '@types/validate-npm-package-name@4.0.2': {}
+
+  '@types/validator@13.15.10': {}
 
   '@types/webidl-conversions@7.0.3': {}
 

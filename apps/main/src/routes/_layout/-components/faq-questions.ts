@@ -1,5 +1,5 @@
 import { PRO_TRIAL_DAYS } from '@tamery/shared/credits'
-import { PRO_PLAN } from '@tamery/shared/plans'
+import { PRO_PLAN, TEAM_PLAN } from '@tamery/shared/plans'
 import { FREE_WEEKLY_LIMITS } from '@tamery/shared/usage'
 
 export const FAQ_QUESTIONS = [
@@ -19,7 +19,7 @@ export const FAQ_QUESTIONS = [
     question: 'Can I connect to localhost and private databases?',
   },
   {
-    answer: `Every database feature, unlimited synced connections, AI diagnosis of a failed connection, ${FREE_WEEKLY_LIMITS.filters} AI filters and ${FREE_WEEKLY_LIMITS.mcp} MCP agent queries a week. With your own Anthropic, OpenAI, Google or OpenRouter key, the AI chat works on Free too, billed by your provider. Pro is $${PRO_PLAN.price.monthly} a month or $${PRO_PLAN.price.yearly} a year and starts with a ${PRO_TRIAL_DAYS}-day free trial.`,
+    answer: `Every database feature, unlimited synced connections, AI diagnosis of a failed connection, ${FREE_WEEKLY_LIMITS.filters} AI filters and ${FREE_WEEKLY_LIMITS.mcp} MCP agent queries a week. With your own Anthropic, OpenAI, Google or OpenRouter key, the AI chat works on Free too, billed by your provider. Pro is $${PRO_PLAN.price.monthly} a month or $${PRO_PLAN.price.yearly} a year, Team is $${TEAM_PLAN.price.monthly} a month or $${TEAM_PLAN.price.yearly} a year for each person, and both start with a ${PRO_TRIAL_DAYS}-day free trial.`,
     question: 'What does the free plan include?',
   },
   {

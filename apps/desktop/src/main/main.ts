@@ -282,8 +282,6 @@ app.on('ready', () => {
 
   void restoreMcpServer()
   void restoreMachine()
-
-  setInterval(() => autoUpdater?.checkForUpdates(), 1000 * 60 * 10)
 })
 
 app.on('window-all-closed', () => {

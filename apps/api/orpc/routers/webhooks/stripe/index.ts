@@ -5,33 +5,24 @@ import type Stripe from 'stripe'
 
 import { env } from '~/env'
 import { sendEmail } from '~/lib/resend'
-import { tamerySubscriptions } from '~/lib/subscription'
+import { stripePrices } from '~/lib/stripe'
+import { syncSubscription, tamerySubscriptions } from '~/lib/subscription'
 import { orpc } from '~/orpc'
 
 import { creditsPaid } from './credits-paid'
-import { subscriptionCreated } from './subscription-created'
-import { subscriptionDeleted } from './subscription-deleted'
-import { subscriptionUpdated } from './subscription-updated'
 import { validateRequest } from './validate'
 
-const eventMap = new Map<
-  Stripe.Event.Type,
-  (event: Stripe.Event) => Promise<void>
->([
-  ['customer.subscription.created', subscriptionCreated],
-  ['customer.subscription.deleted', subscriptionDeleted],
-  ['customer.subscription.updated', subscriptionUpdated],
-  ['payment_intent.succeeded', creditsPaid],
-])
-
-const prices = new Set([
-  env.STRIPE_PRO_MONTH_PRICE_ID,
-  env.STRIPE_PRO_ANNUAL_PRICE_ID,
+const SUBSCRIPTION_EVENTS = new Set<Stripe.Event.Type>([
+  'customer.subscription.created',
+  'customer.subscription.deleted',
+  'customer.subscription.updated',
 ])
 
 // A subscription moved to a custom price in the Stripe dashboard is still ours once we track it.
 const isTamerySubscription = async (subscription: Stripe.Subscription) => {
-  if (subscription.items.data.some((item) => prices.has(item.price.id))) {
+  if (
+    subscription.items.data.some((item) => stripePrices.getPlan(item.price.id))
+  ) {
     return true
   }
 
@@ -62,23 +53,26 @@ export const stripe = orpc
       throw errors.UNAUTHORIZED()
     }
 
-    const handler = eventMap.get(event.type)
+    const { object } = event.data
+    const subscription =
+      SUBSCRIPTION_EVENTS.has(event.type) && object.object === 'subscription'
+        ? object
+        : null
 
-    if (!handler) {
+    if (!subscription && event.type !== 'payment_intent.succeeded') {
       throw errors.BAD_REQUEST()
     }
 
     try {
-      const subscription = event.data.object
-
-      if (
-        subscription.object === 'subscription' &&
-        !(await isTamerySubscription(subscription))
-      ) {
+      if (subscription && !(await isTamerySubscription(subscription))) {
         return true
       }
 
-      await handler(event).catch(async (error) => {
+      const handled: Promise<unknown> = subscription
+        ? syncSubscription(subscription.id)
+        : creditsPaid(event)
+
+      await handled.catch(async (error) => {
         if (env.ALERTS_EMAIL) {
           await sendEmail({
             props: {

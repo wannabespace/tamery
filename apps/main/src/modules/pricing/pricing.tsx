@@ -1,4 +1,4 @@
-import { HOBBY_PLAN, PRO_PLAN } from '@tamery/shared/plans'
+import { HOBBY_PLAN, PAID_PLANS, TEAM_PLAN } from '@tamery/shared/plans'
 import { Button } from '@tamery/ui/components/button'
 import { Tabs, TabsList, TabsTrigger } from '@tamery/ui/components/tabs'
 import { Link } from '@tanstack/react-router'
@@ -17,7 +17,7 @@ import { Price } from './price'
 const PLAN_SETTINGS_URL = `${import.meta.env.VITE_PUBLIC_WEB_URL}/settings/plan`
 
 const ENTERPRISE_FEATURES = [
-  'Volume pricing on one invoice',
+  'Volume pricing and custom terms',
   'Priority support from the people who build it',
   'Self-hosting help (AGPL-3.0)',
 ]
@@ -42,11 +42,12 @@ export const Pricing = () => {
         </Tabs>
       }
     >
-      <Reveal className="mt-16 grid gap-4 lg:grid-cols-3">
+      <Reveal className="mt-16 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <PlanCard
           name={HOBBY_PLAN.name}
           description={HOBBY_PLAN.description}
           features={HOBBY_PLAN.features}
+          includes={HOBBY_PLAN.includes}
           price={<Price period={period} plan={HOBBY_PLAN} />}
           action={
             <Button
@@ -58,45 +59,42 @@ export const Pricing = () => {
             </Button>
           }
         />
-        <PlanCard
-          highlighted
-          name={PRO_PLAN.name}
-          description={PRO_PLAN.description}
-          features={PRO_PLAN.features}
-          includes={HOBBY_PLAN.name}
-          price={<Price period={period} plan={PRO_PLAN} />}
-          action={
-            subscription ? (
+        {PAID_PLANS.map((plan) => (
+          <PlanCard
+            key={plan.id}
+            highlighted={plan.highlighted}
+            name={plan.name}
+            description={plan.description}
+            features={plan.features}
+            includes={plan.includes}
+            price={<Price period={period} plan={plan} />}
+            action={
               <Button
                 size="lg"
-                render={<a href={PLAN_SETTINGS_URL} aria-label="Manage plan" />}
-              >
-                Manage plan
-              </Button>
-            ) : (
-              <Button
-                size="lg"
+                variant={plan.highlighted ? 'default' : 'outline'}
                 render={
                   session ? (
                     <a
                       href={PLAN_SETTINGS_URL}
-                      aria-label="Try free for 7 days"
+                      aria-label={
+                        subscription ? 'Manage plan' : 'Try free for 7 days'
+                      }
                     />
                   ) : (
                     <Link to="/sign-in" />
                   )
                 }
               >
-                Try free for 7 days
+                {subscription ? 'Manage plan' : 'Try free for 7 days'}
               </Button>
-            )
-          }
-        />
+            }
+          />
+        ))}
         <PlanCard
           name="Enterprise"
-          description="Tamery for your whole team, on your terms"
+          description="Tamery across your company, on your terms"
           features={ENTERPRISE_FEATURES}
-          includes={PRO_PLAN.name}
+          includes={TEAM_PLAN.name}
           price={<span className="text-4xl leading-none">Custom</span>}
           action={<ContactSalesDialog />}
         />

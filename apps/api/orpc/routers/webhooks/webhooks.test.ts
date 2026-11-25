@@ -30,9 +30,12 @@ Object.assign(process.env, {
   REDIS_CA: '',
   REDIS_URL: 'redis://127.0.0.1:1',
   RESEND_API_KEY: 'test',
+  STRIPE_PORTAL_CONFIGURATION_ID: 'bpc_test',
   STRIPE_PRO_ANNUAL_PRICE_ID: 'price_pro_annual',
   STRIPE_PRO_MONTH_PRICE_ID: 'price_pro_month',
   STRIPE_SECRET_KEY: 'sk_test',
+  STRIPE_TEAM_ANNUAL_PRICE_ID: 'price_team_annual',
+  STRIPE_TEAM_MONTH_PRICE_ID: 'price_team_month',
   STRIPE_WEBHOOK_SECRET,
   TODESKTOP_WEBHOOK_SECRET,
   USER_KEY_SECRET: 'test',
@@ -44,7 +47,8 @@ const redisClient = {
   on: () => redisClient,
 }
 mock.module('redis', () => ({ createClient: () => redisClient }))
-mock.module('~/lib/resend', () => ({ resend: null, sendEmail: mock() }))
+const sendEmail = mock()
+mock.module('~/lib/resend', () => ({ resend: null, sendEmail }))
 
 const createRelease = mock(() =>
   Promise.resolve({
@@ -62,6 +66,7 @@ const { db } = await import('@tamery/db')
 
 beforeEach(() => {
   createRelease.mockClear()
+  sendEmail.mockClear()
 })
 
 const post = (procedure: string, body: string, headers: HeadersInit) =>
@@ -133,6 +138,12 @@ test('ToDesktop: a signed build drafts a GitHub release for its version', async 
   expect(createRelease).toHaveBeenCalledWith(
     expect.objectContaining({ draft: true, tag_name: 'v1.2.3' })
   )
+  expect(sendEmail).toHaveBeenCalledWith(
+    expect.objectContaining({
+      template: 'ReleaseDrafted',
+      to: 'alerts@tamery.test',
+    })
+  )
 })
 
 test('ToDesktop: a build signed with another secret is refused', async () => {
@@ -140,4 +151,5 @@ test('ToDesktop: a build signed with another secret is refused', async () => {
 
   expect(response.status).toBe(401)
   expect(createRelease).not.toHaveBeenCalled()
+  expect(sendEmail).not.toHaveBeenCalled()
 })

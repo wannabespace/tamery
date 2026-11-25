@@ -49,6 +49,9 @@ export const settingsSections = [
     needsAccount: true,
     keywords: [
       'Pro',
+      'Team',
+      'Seats',
+      'Assign a seat',
       'Free',
       'Subscription',
       'Upgrade',

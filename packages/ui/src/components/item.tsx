@@ -32,7 +32,7 @@ const ItemSeparator = ({
 const smallItemInsetClassName = 'px-3.5'
 
 const itemVariants = cva(
-  `group/item focus-visible:focus-ring [a]:hover:bg-accent [a]:text-foreground [button]:hover:bg-accent flex w-full flex-wrap items-center rounded-2xl border text-sm transition-colors duration-100 outline-none [a]:transition-colors [button]:text-left`,
+  `group/item focus-visible:focus-ring [a]:hover:bg-accent has-[[data-slot=item-link]:hover]:bg-accent has-[[data-slot=item-link]:focus-visible]:focus-ring [a]:text-foreground [button]:hover:bg-accent flex w-full flex-wrap items-center rounded-2xl border text-sm transition-colors duration-100 outline-none has-data-[slot=item-link]:relative [a]:transition-colors [button]:text-left`,
   {
     defaultVariants: {
       size: 'default',
@@ -46,7 +46,7 @@ const itemVariants = cva(
         '2xs': 'min-h-7 gap-2 rounded-lg py-0.5 pr-0.5 pl-2.5 text-xs',
       },
       variant: {
-        card: `bg-popover ring-foreground/4 [a]:hover:ring-foreground/12 [button]:hover:ring-foreground/12 rounded-xl border-transparent shadow-xs ring transition-[color,background-color,box-shadow]`,
+        card: `bg-popover ring-foreground/4 [a]:hover:ring-foreground/12 [button]:hover:ring-foreground/12 has-[[data-slot=item-link]:hover]:ring-foreground/12 rounded-xl border-transparent shadow-xs ring transition-[color,background-color,box-shadow]`,
         default: 'border-transparent',
         grouped: `border-foreground/6 rounded-none border-0 border-b last:border-b-0`,
         muted: 'bg-muted/50 border-transparent',
@@ -131,6 +131,23 @@ const ItemTitle = ({ className, ...props }: React.ComponentProps<'div'>) => (
   />
 )
 
+const ItemLink = ({
+  children,
+  className,
+  ...props
+}: React.ComponentProps<'a'>) => (
+  <a
+    data-slot="item-link"
+    className={cn(
+      'text-foreground cursor-default outline-none after:absolute after:inset-0',
+      className
+    )}
+    {...props}
+  >
+    {children}
+  </a>
+)
+
 const ItemDescription = ({
   className,
   ...props
@@ -138,7 +155,7 @@ const ItemDescription = ({
   <p
     data-slot="item-description"
     className={cn(
-      `text-muted-foreground [&>a:hover]:text-primary line-clamp-2 text-left text-sm font-normal [&>a]:underline [&>a]:underline-offset-4`,
+      `text-muted-foreground [&>a:hover]:text-primary line-clamp-2 text-left text-sm font-normal group-data-[size=xs]/item:line-clamp-1 [&>a]:underline [&>a]:underline-offset-4`,
       className
     )}
     {...props}
@@ -183,6 +200,7 @@ export {
   ItemFooter,
   ItemGroup,
   ItemHeader,
+  ItemLink,
   ItemMedia,
   ItemSeparator,
   ItemTitle,

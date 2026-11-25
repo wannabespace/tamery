@@ -17,6 +17,7 @@ const TABLES_NOT_KEPT = [
   'invitations',
   'passkeys',
   'sessions',
+  'subscription_seats',
   'subscriptions',
   'two_factors',
   'verifications',

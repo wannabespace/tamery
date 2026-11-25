@@ -45,12 +45,14 @@ import {
   ownerAc,
 } from 'better-auth/plugins/organization/access'
 import { eq } from 'drizzle-orm'
+import normalizeEmail from 'validator/lib/normalizeEmail.js'
 
 import { env, nodeEnv } from '~/env'
 import { locateIp } from '~/lib/geo-ip'
 import { posthog } from '~/lib/posthog'
 import { resend, sendEmail } from '~/lib/resend'
 import { safeEqual } from '~/lib/safe-equal'
+import { getSubscription } from '~/lib/subscription'
 
 import { redis, redisMemoize } from './redis'
 import {
@@ -658,7 +660,7 @@ export const auth = betterAuth({
       },
     },
     lastLoginMethod(),
-    emailHarmony(),
+    emailHarmony({ normalizer: normalizeEmail }),
     anonymous(),
   ],
   rateLimit: {
@@ -724,6 +726,20 @@ export const auth = betterAuth({
       },
       // Not the database delete hook: Better Auth deletes the user's sessions and accounts before that one runs, so refusing there would sign them out of an account it keeps.
       beforeDelete: async (user) => {
+        const subscription = await getSubscription(user.id)
+
+        if (
+          subscription?.userId === user.id &&
+          !subscription.cancelAtPeriodEnd &&
+          !subscription.cancelAt
+        ) {
+          throw APIError.from('BAD_REQUEST', {
+            code: 'ACTIVE_SUBSCRIPTION',
+            message:
+              'Cancel your subscription in the billing portal before deleting your account.',
+          })
+        }
+
         const lastOwned = await getLastOwnedSharedWorkspaceName(user.id)
 
         if (lastOwned) {
