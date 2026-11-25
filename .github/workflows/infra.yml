@@ -69,7 +69,7 @@ jobs:
           echo "changes=$([ "$code" = 2 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           [ "$code" != 1 ]
 
-  # Approving the infra environment is what lets this job sign in as the owner account: review the plan job's log first.
+  # Approving the infra environment is what lets this job change Cloud Run: review the plan job's log first, and reject a plan that changes anything else, since tamery-tofu may not (monorepo.md).
   apply:
     needs: plan
     if: needs.plan.outputs.changes == 'true'
