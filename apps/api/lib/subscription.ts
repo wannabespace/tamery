@@ -52,18 +52,18 @@ export const getSubscriptions = (userId: string) =>
           and(
             eq(subscriptions.plan, 'team'),
             inArray(subscriptions.status, [...ACTIVE_SUBSCRIPTION_STATUSES]),
-            inArray(
-              subscriptions.id,
-              db
-                .select({ id: subscriptionSeats.subscriptionId })
-                .from(subscriptionSeats)
-                .innerJoin(
-                  users,
-                  eq(users.normalizedEmail, subscriptionSeats.normalizedEmail)
-                )
-                // An unverified email would let anyone claim a seat meant for its owner.
-                .where(and(eq(users.id, userId), eq(users.emailVerified, true)))
-            )
+            // ARRAY() runs the seat lookup once, so both sides of the OR use an index; `IN (subquery)` becomes a hashed subplan that scans every subscription on each request.
+            sql`${subscriptions.id} = ANY(ARRAY(${db
+              .select({ id: subscriptionSeats.subscriptionId })
+              .from(subscriptionSeats)
+              .innerJoin(
+                users,
+                eq(users.normalizedEmail, subscriptionSeats.normalizedEmail)
+              )
+              // An unverified email would let anyone claim a seat meant for its owner.
+              .where(
+                and(eq(users.id, userId), eq(users.emailVerified, true))
+              )}))`
           )
         )
       )
