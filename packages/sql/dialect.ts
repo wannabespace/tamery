@@ -7,6 +7,7 @@ export interface DialectSpec {
   identifierQuotes: readonly string[]
   dollarQuotes: boolean
   backslashEscapes: boolean
+  /** Words an END takes to close a block of their own, as MySQL's `END IF` and `END LOOP`; matched by text, since LOOP, WHILE and REPEAT are keywords in no dialect's list. An END closes one only while such a block is open, so an alias or label spelled the same still ends a CASE or BEGIN. */
   blockEndQualifiers: readonly string[]
   hashComments: boolean
   /** MySQL: `--` starts a comment only before whitespace or a control character, so `1--1` is `1 - -1`. */

@@ -23,8 +23,6 @@ A MongoDB connection's Query tab takes mongosh calls instead of SQL. See [MongoD
 
 You can also click the play button next to a statement, or **Run all** in the toolbar. Click **Stop** to cancel a query you started if the engine allows it.
 
-In SQLite, separate SQL statements with semicolons. A column alias after `CASE … END` is still part of the current statement.
-
 Each statement gets its own result tab with the row count, duration, search, and export. Hover a tab to see which statement it belongs to. A result keeps up to **10,000 rows**. A `+` after the row count means there were more.
 
 If a statement fails, the ones after it are skipped and marked as not run. Fix it and run again.
