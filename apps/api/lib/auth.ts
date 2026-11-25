@@ -247,7 +247,8 @@ export const auth = betterAuth({
             await ensureDefaultWorkspace(session.userId)
           } catch (error) {
             console.error(
-              `Failed to ensure default workspace on session create: ${error instanceof Error ? error.message : error}`
+              'Failed to ensure default workspace on session create',
+              sanitizeLogData(error)
             )
           }
 
@@ -344,7 +345,7 @@ export const auth = betterAuth({
   },
   logger: {
     log: (level, message, ...args) => {
-      console[level](...sanitizeLogData([message, ...args]))
+      console[level]('[Better Auth]', ...sanitizeLogData([message, ...args]))
     },
   },
   onAPIError: {
@@ -353,10 +354,7 @@ export const auth = betterAuth({
         return
       }
 
-      const text =
-        typeof error === 'object' && error !== null
-          ? JSON.stringify(sanitizeLogData(error), null, 2)
-          : String(error)
+      const text = JSON.stringify(sanitizeLogData(error), null, 2)
 
       if (env.ALERTS_EMAIL) {
         await sendEmail({

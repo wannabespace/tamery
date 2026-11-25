@@ -82,10 +82,7 @@ export const stripe = orpc
           await sendEmail({
             props: {
               service: 'Stripe',
-              text:
-                typeof error === 'object' && error !== null
-                  ? JSON.stringify(sanitizeLogData(error), null, 2)
-                  : String(error),
+              text: JSON.stringify(sanitizeLogData(error), null, 2),
             },
             subject: `Alert from Stripe: ${event.type}`,
             template: 'Alert',

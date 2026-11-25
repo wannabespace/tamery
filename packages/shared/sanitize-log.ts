@@ -13,8 +13,11 @@ const AUTHORIZATION =
 /** `Server=h;Password=p` and the like, outside a URL. */
 const KEY_VALUE = /(?<key>(?<name>[\w%-]+)\s*=\s*)[^\s;&'"]+/gu
 const MAY_HOLD_SECRET = /[:=]/u
-/** A failed Drizzle query lists its bound values, session tokens among them, on a `params:` line. */
-const QUERY_PARAMS = /^(?<key>params: ).*$/gmu
+/**
+ * A failed Drizzle query ends its message with its bound values, session tokens among them, which may span lines; in a
+ * stack they run up to the first frame.
+ */
+const QUERY_PARAMS = /^(?<key>params: )[\s\S]*?(?=\n {4}at |$(?![\s\S]))/gmu
 
 /** The name is decoded first: a driver reads `%73sh_key` as `ssh_key`. */
 const redactWhenSecret = (match: string, key: string, name: string) =>
@@ -49,6 +52,8 @@ const redactor = deepRedact({
     /connectionString?/iu,
     /invalidData/iu,
     /^params$/iu,
+    // Postgres puts the offending values here: `Key (token)=(…) already exists`, `Failing row contains (…)`.
+    /^detail$/iu,
   ],
   // Without it, a matched key holding an object or array is walked unredacted.
   retainStructure: true,

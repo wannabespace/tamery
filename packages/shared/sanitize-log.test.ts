@@ -70,15 +70,20 @@ describe('sanitizeLogData', () => {
   })
 
   it('redacts the bound values of a failed query, wrapped errors included', () => {
+    const driver = Object.assign(new Error('duplicate key value'), {
+      detail: 'Key (token)=(SESSIONTOKEN) already exists.',
+    })
     const query = Object.assign(
       new Error(
-        'Failed query: select "id" from "session" where "token" = $1\nparams: SESSIONTOKEN'
+        'Failed query: insert into "session" values ($1, $2)\nparams: SESSIONTOKEN,first line\nSECONDLINE',
+        { cause: driver }
       ),
-      { params: ['SESSIONTOKEN'] }
+      { params: ['SESSIONTOKEN', 'first line\nSECONDLINE'] }
     )
     const text = logged(new Error('Failed to get session', { cause: query }))
     expect(text).not.toContain('SESSIONTOKEN')
-    expect(text).toContain('Failed query: select')
+    expect(text).not.toContain('SECONDLINE')
+    expect(text).toContain('Failed query: insert')
   })
 
   it('keeps an email after a connection string', () => {
