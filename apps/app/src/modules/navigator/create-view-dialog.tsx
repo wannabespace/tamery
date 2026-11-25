@@ -11,13 +11,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import type { editor } from 'monaco-editor'
 import type { RefObject } from 'react'
-import {
-  createRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from 'react'
+import { useEffect, useImperativeHandle, useRef, useState } from 'react'
 
 import { OptionField } from '~/components/option-field'
 import { getCapabilities } from '~/core/catalog/capabilities'
@@ -33,15 +27,13 @@ import { openTab } from '~/core/tabs/actions'
 import { tableTabId } from '~/core/tabs/ids'
 import { queryClient } from '~/lib/query-client'
 
+import { createViewDialogRef } from './stores'
+
 const QUERY_EDITOR_OPTIONS = {
   ...QUERY_COMPLETION_OPTIONS,
   ...FIELD_EDITOR_OPTIONS,
   ariaLabel: 'Query',
 }
-
-export const createViewDialogRef = createRef<{
-  create: (schema?: string) => void
-}>()
 
 const QueryField = ({
   editorRef,
