@@ -18,7 +18,7 @@ export const PlanCard = ({
   description: string
   features: string[]
   highlighted?: boolean
-  includes?: string
+  includes: string | null
   name: string
   price: ReactNode
 }) => (

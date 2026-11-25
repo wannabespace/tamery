@@ -7,7 +7,7 @@ import { Chapter } from '~/components/chapter'
 import { Reveal } from '~/components/reveal'
 import { useSubscription } from '~/hooks/use-subscription'
 import { authClient } from '~/lib/auth'
-import { HOBBY_PLAN, PRO_PLAN, TEAM_PLAN } from '~/utils/pricing'
+import { HOBBY_PLAN, PAID_PLANS, TEAM_PLAN } from '~/utils/pricing'
 
 import { ContactSalesDialog } from './contact-sales-dialog'
 import { PlanCard } from './plan-card'
@@ -45,6 +45,7 @@ export const Pricing = () => {
           name={HOBBY_PLAN.name}
           description={HOBBY_PLAN.description}
           features={HOBBY_PLAN.features}
+          includes={HOBBY_PLAN.includes}
           price={<Price period={period} plan={HOBBY_PLAN} />}
           action={
             <Button
@@ -56,26 +57,28 @@ export const Pricing = () => {
             </Button>
           }
         />
-        {[PRO_PLAN, TEAM_PLAN].map((plan) => (
+        {PAID_PLANS.map((plan) => (
           <PlanCard
             key={plan.id}
-            highlighted={plan === PRO_PLAN}
+            highlighted={plan.highlighted}
             name={plan.name}
             description={plan.description}
             features={plan.features}
-            includes={(plan === PRO_PLAN ? HOBBY_PLAN : PRO_PLAN).name}
+            includes={plan.includes}
             price={<Price period={period} plan={plan} />}
             action={
               <Button
                 size="lg"
-                variant={plan === PRO_PLAN ? 'default' : 'outline'}
+                variant={plan.highlighted ? 'default' : 'outline'}
                 render={
-                  subscription ? (
-                    <Link to="/account" />
+                  session ? (
+                    <Link to="/account" search={{ period, plan: plan.id }} />
                   ) : (
                     <Link
-                      to={session ? '/account' : '/sign-in'}
-                      search={{ period }}
+                      to="/sign-in"
+                      search={{
+                        redirectPath: `/account?${new URLSearchParams({ period, plan: plan.id })}`,
+                      }}
                     />
                   )
                 }

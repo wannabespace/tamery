@@ -6,21 +6,15 @@ import type Stripe from 'stripe'
 import { env } from '~/env'
 import { sendEmail } from '~/lib/resend'
 import { stripePrices } from '~/lib/stripe'
-import { tamerySubscriptions } from '~/lib/subscription'
+import { syncSubscription, tamerySubscriptions } from '~/lib/subscription'
 import { orpc } from '~/orpc'
 
-import { subscriptionCreated } from './subscription-created'
-import { subscriptionDeleted } from './subscription-deleted'
-import { subscriptionUpdated } from './subscription-updated'
 import { validateRequest } from './validate'
 
-const eventMap = new Map<
-  Stripe.Event.Type,
-  (event: Stripe.Event) => Promise<void>
->([
-  ['customer.subscription.created', subscriptionCreated],
-  ['customer.subscription.deleted', subscriptionDeleted],
-  ['customer.subscription.updated', subscriptionUpdated],
+const SUBSCRIPTION_EVENTS = new Set<Stripe.Event.Type>([
+  'customer.subscription.created',
+  'customer.subscription.deleted',
+  'customer.subscription.updated',
 ])
 
 // A subscription moved to a custom price in the Stripe dashboard is still ours once we track it.
@@ -58,23 +52,21 @@ export const stripe = orpc
       throw errors.UNAUTHORIZED()
     }
 
-    const handler = eventMap.get(event.type)
+    const subscription = event.data.object
 
-    if (!handler) {
+    if (
+      !SUBSCRIPTION_EVENTS.has(event.type) ||
+      subscription.object !== 'subscription'
+    ) {
       throw errors.BAD_REQUEST()
     }
 
     try {
-      const subscription = event.data.object
-
-      if (
-        subscription.object === 'subscription' &&
-        !(await isTamerySubscription(subscription))
-      ) {
+      if (!(await isTamerySubscription(subscription))) {
         return true
       }
 
-      await handler(event).catch(async (error) => {
+      await syncSubscription(subscription.id).catch(async (error) => {
         if (env.ALERTS_EMAIL) {
           await sendEmail({
             props: {

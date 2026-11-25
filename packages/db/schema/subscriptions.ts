@@ -38,13 +38,14 @@ export const subscriptionSeats = d.snakeCase.table(
   {
     ...baseTable,
     email: d.text().notNull(),
+    normalizedEmail: d.text().notNull(),
     subscriptionId: d
       .uuid()
       .notNull()
       .references(() => subscriptions.id, { onDelete: 'cascade' }),
   },
   (table) => [
-    d.unique().on(table.subscriptionId, table.email),
-    d.index().on(table.email),
+    d.unique().on(table.subscriptionId, table.normalizedEmail),
+    d.index().on(table.normalizedEmail),
   ]
 )

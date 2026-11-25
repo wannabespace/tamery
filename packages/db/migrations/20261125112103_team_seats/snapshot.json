@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "7628a7b1-be4b-4f60-b9d4-61afc12078c4",
+  "id": "69b72884-3296-4493-bbc0-a9def30dcddb",
   "prevIds": [
     "b6c1c501-abdf-4b22-87cb-e709c03e98a9"
   ],
@@ -2120,6 +2120,19 @@
       "table": "subscription_seats"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "normalized_email",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -3236,7 +3249,7 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "email",
+          "value": "normalized_email",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -3248,7 +3261,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "subscription_seats_email_index",
+      "name": "subscription_seats_normalized_email_index",
       "entityType": "indexes",
       "schema": "public",
       "table": "subscription_seats"
@@ -4082,10 +4095,10 @@
       "nameExplicit": false,
       "columns": [
         "subscription_id",
-        "email"
+        "normalized_email"
       ],
       "nullsNotDistinct": false,
-      "name": "subscription_seats_subscription_id_email_unique",
+      "name": "subscription_seats_subscription_id_normalized_email_unique",
       "entityType": "uniques",
       "schema": "public",
       "table": "subscription_seats"

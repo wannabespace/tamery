@@ -51,19 +51,21 @@ locals {
     "USER_KEY_SECRET",
   ]
 
-  # Plain env in run.tf now; retire once no running revision mounts them (SECRETS.md).
-  retired_secrets = ["STRIPE_PRO_ANNUAL_PRICE_ID", "STRIPE_PRO_MONTH_PRICE_ID"]
+  # Their bindings predate create_before_destroy, so dropping them in the change that unmounts them would still revoke them before the api's new revision is up.
+  retired_api_secrets = ["STRIPE_PRO_ANNUAL_PRICE_ID", "STRIPE_PRO_MONTH_PRICE_ID"]
 
-  secret_access = merge([
+  secret_access = merge(concat([
     for workload in values(merge(local.services, local.jobs)) : {
       for secret in workload.secrets : "${workload.account}/${secret}" => { account = workload.account, secret = secret }
     }
-  ]...)
+    ], [{
+      for secret in local.retired_api_secrets : "${local.services.api.account}/${secret}" => { account = local.services.api.account, secret = secret }
+  }])...)
 }
 
 # Containers only: secret values are added with `gcloud secrets versions add`, so they stay out of the state.
 resource "google_secret_manager_secret" "this" {
-  for_each = toset(concat(local.api_secrets, local.retired_secrets, ["sql-postgres-password", "sql-tamery-app-password"]))
+  for_each = toset(concat(local.api_secrets, local.retired_api_secrets, ["sql-postgres-password", "sql-tamery-app-password"]))
 
   secret_id = each.value
 
@@ -92,4 +94,9 @@ resource "google_secret_manager_secret_iam_member" "access" {
   secret_id = google_secret_manager_secret.this[each.value.secret].id
   role      = "roles/secretmanager.secretAccessor"
   member    = google_service_account.this[each.value.account].member
+
+  # Makes OpenTofu revoke a dropped binding only after the services that mounted it are updated, instead of first. Recorded per binding in the state by the apply that creates or next touches it.
+  lifecycle {
+    create_before_destroy = true
+  }
 }

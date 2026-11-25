@@ -1,59 +1,89 @@
-import { UserRemove01Icon } from '@hugeicons/core-free-icons'
 import { Button } from '@tamery/ui/components/button'
-import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
 import {
   SettingsGroup,
   SettingsRow,
 } from '@tamery/ui/components/custom/settings-group'
 import { Input } from '@tamery/ui/components/input'
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { orpc } from '~/lib/orpc'
+import { ConfirmAction } from '~/modules/settings/components/confirm-action'
 
 const { useRouteContext } = getRouteApi('/account')
 
 export const TeamSeats = ({
+  assignableSeats,
   isChangingSeats,
+  isTrial,
   onChangeSeats,
   seats,
 }: {
+  assignableSeats: number
   isChangingSeats: boolean
+  isTrial: boolean
   onChangeSeats: () => void
   seats: number
 }) => {
   const { user } = useRouteContext()
-  const { data: assigned, refetch } = useSuspenseQuery(
-    orpc.account.subscription.seats.list.queryOptions()
-  )
+  const {
+    data: assigned,
+    isError,
+    refetch,
+  } = useQuery(orpc.account.subscription.seats.list.queryOptions())
   const [email, setEmail] = useState('')
-  const usedSeats = assigned.length + 1
 
   const { mutate: assign, isPending: isAssigning } = useMutation(
     orpc.account.subscription.seats.add.mutationOptions({
       meta: { event: 'team_seat_assigned' },
       onSettled: () => refetch(),
-      onSuccess: () => {
+      onSuccess: ({ emailed }) => {
         setEmail('')
-        toast.success('Seat assigned')
+        if (emailed) {
+          toast.success('Seat assigned')
+        } else {
+          toast.warning(
+            "Seat assigned, but the email didn't go out. Ask them to sign in with this address."
+          )
+        }
       },
     })
   )
-  const { mutate: remove, isPending: isRemoving } = useMutation(
+  const {
+    mutate: remove,
+    isPending: isRemoving,
+    variables: removing,
+  } = useMutation(
     orpc.account.subscription.seats.remove.mutationOptions({
       meta: { event: 'team_seat_removed' },
       onSettled: () => refetch(),
     })
   )
 
+  if (isError) {
+    return (
+      <SettingsGroup title="Seats">
+        <SettingsRow title="Seats didn't load">
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </SettingsRow>
+      </SettingsGroup>
+    )
+  }
+
   return (
     <SettingsGroup title="Seats">
       <SettingsRow
-        title={`${usedSeats} of ${seats} used`}
-        description="If you lower the count, the people you added last lose their seats."
+        title={`${(assigned?.length ?? 0) + 1} of ${seats} used`}
+        description={
+          isTrial
+            ? 'During the trial you can give one seat. The rest open once your plan is paid.'
+            : 'If you lower the count, the people you added last lose their seats.'
+        }
       >
         <Button
           variant="outline"
@@ -67,19 +97,18 @@ export const TeamSeats = ({
       <SettingsRow title={<span data-mask>{user.email}</span>}>
         <span className="text-muted-foreground text-xs">You</span>
       </SettingsRow>
-      {assigned.map((seat) => (
+      {assigned?.map((seat) => (
         <SettingsRow key={seat.id} title={<span data-mask>{seat.email}</span>}>
-          <IconButton
-            icon={UserRemove01Icon}
-            label="Remove from team"
-            size="icon-xs"
-            variant="ghost-destructive"
-            disabled={isRemoving}
-            onClick={() => remove({ id: seat.id })}
+          <ConfirmAction
+            action="Remove"
+            title={`Remove ${seat.email}?`}
+            description="They lose the Pro features this Team gives them right away."
+            isPending={isRemoving && removing?.id === seat.id}
+            onConfirm={(close) => remove({ id: seat.id }, { onSuccess: close })}
           />
         </SettingsRow>
       ))}
-      {usedSeats < seats && (
+      {assigned && assigned.length < assignableSeats && (
         <SettingsRow
           title="Assign a seat"
           description="They get an email and sign in with this address."

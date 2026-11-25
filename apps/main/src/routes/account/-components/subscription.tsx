@@ -26,11 +26,16 @@ import {
   useUpgradeSubscription,
 } from '~/hooks/use-subscription'
 import type { PricingPlan } from '~/utils/pricing'
-import { getPriceUnit, HOBBY_PLAN, PRO_PLAN, TEAM_PLAN } from '~/utils/pricing'
+import { getPriceUnit, HOBBY_PLAN, PAID_PLANS, PRO_PLAN } from '~/utils/pricing'
 
 import { TeamSeats } from './team-seats'
 
 const { useSearch } = getRouteApi('/account/')
+
+type OwnSubscription = Extract<
+  NonNullable<ReturnType<typeof useSubscription>>,
+  { isOwner: true }
+>
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', {
@@ -54,10 +59,7 @@ const getPlanDescription = (
   return plan.description
 }
 
-const getStatus = (
-  subscription: NonNullable<ReturnType<typeof useSubscription>>,
-  trialEndsLater: boolean
-) => {
+const getStatus = (subscription: OwnSubscription, trialEndsLater: boolean) => {
   if (subscription.cancelAt) {
     return `Cancels on ${format(subscription.cancelAt, 'MMM d, yyyy')}`
   }
@@ -78,27 +80,30 @@ const getStatus = (
 }
 
 export const Subscription = () => {
-  const { period, type: clientType } = useSearch()
+  const { period, plan: chosenPlan, type: clientType } = useSearch()
   const subscription = useSubscription()
+  const ownSubscription = subscription?.isOwner ? subscription : null
   const router = useRouter()
   const returnHref = router.buildLocation({
     search: { type: clientType },
     to: '/account',
   }).href
   const { openBillingPortal, isOpening } = useBillingPortal({ returnHref })
-  const { upgrade, isUpgrading } = useUpgradeSubscription(clientType)
+  const { upgrade, upgradingPlan } = useUpgradeSubscription(clientType)
   const [isYearly, setIsYearly] = useState(period === 'yearly')
   // oxlint-disable-next-line react/hook-use-state -- frozen at mount, never set
   const [mountedAt] = useState(() => Date.now())
   const trialEndsLater = Boolean(
-    subscription?.trialEnd && subscription.trialEnd.getTime() > mountedAt
+    ownSubscription?.trialEnd && ownSubscription.trialEnd.getTime() > mountedAt
   )
 
-  const shownPeriod = subscription?.period ?? (isYearly ? 'yearly' : 'monthly')
+  const shownPeriod =
+    ownSubscription?.period ?? (isYearly ? 'yearly' : 'monthly')
+  const primaryPlan = chosenPlan ?? PRO_PLAN.id
 
   return (
     <>
-      {subscription?.isOwner && subscription.status === 'past_due' && (
+      {ownSubscription?.status === 'past_due' && (
         <Alert variant="destructive">
           <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
           <AlertTitle>Payment issue with your subscription</AlertTitle>
@@ -112,8 +117,8 @@ export const Subscription = () => {
         >
           {!subscription && <Badge variant="secondary">Current</Badge>}
         </SettingsRow>
-        {[PRO_PLAN, TEAM_PLAN].map((plan) => {
-          const current = subscription?.plan === plan.id ? subscription : null
+        {PAID_PLANS.map((plan) => {
+          const isCurrent = subscription?.plan === plan.id
 
           return (
             <SettingsRow
@@ -122,35 +127,35 @@ export const Subscription = () => {
                 <span className="flex items-baseline gap-2">
                   {plan.name}
                   <span className="text-muted-foreground text-xs font-normal">
-                    {`${formatCurrency(current?.price ?? plan.price[shownPeriod])} ${getPriceUnit(plan, shownPeriod)}`}
+                    {`${formatCurrency(isCurrent && ownSubscription ? ownSubscription.price : plan.price[shownPeriod])} ${getPriceUnit(plan, shownPeriod)}`}
                   </span>
                 </span>
               }
               description={getPlanDescription(plan, subscription)}
             >
-              {current && <Badge variant="secondary">Current</Badge>}
+              {isCurrent && <Badge variant="secondary">Current</Badge>}
               {!subscription && (
                 <Button
                   size="sm"
-                  variant={plan === PRO_PLAN ? 'default' : 'outline'}
-                  disabled={isUpgrading}
+                  variant={plan.id === primaryPlan ? 'default' : 'outline'}
+                  disabled={upgradingPlan !== null}
                   onClick={() => upgrade({ isYearly, plan: plan.id })}
                 >
-                  Upgrade
+                  <LoadingContent loading={upgradingPlan === plan.id}>
+                    Upgrade
+                  </LoadingContent>
                 </Button>
               )}
-              {plan === TEAM_PLAN &&
-                subscription?.isOwner &&
-                subscription.plan === 'pro' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={isOpening}
-                    onClick={() => openBillingPortal({ changePlan: true })}
-                  >
-                    Switch to Team
-                  </Button>
-                )}
+              {plan.perSeat && ownSubscription?.plan === 'pro' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isOpening}
+                  onClick={() => openBillingPortal('switch_to_team')}
+                >
+                  Switch to Team
+                </Button>
+              )}
             </SettingsRow>
           )
         })}
@@ -171,24 +176,26 @@ export const Subscription = () => {
           </SettingsRow>
         )}
       </SettingsGroup>
-      {subscription?.isOwner && subscription.plan === 'team' && (
+      {ownSubscription?.plan === 'team' && (
         <TeamSeats
-          seats={subscription.seats}
+          assignableSeats={ownSubscription.assignableSeats}
+          isTrial={ownSubscription.status === 'trialing'}
+          seats={ownSubscription.seats}
           isChangingSeats={isOpening}
-          onChangeSeats={() => openBillingPortal({ changePlan: true })}
+          onChangeSeats={() => openBillingPortal('change_seats')}
         />
       )}
-      {subscription?.isOwner && (
+      {ownSubscription && (
         <SettingsGroup title="Billing">
           <SettingsRow
-            title={getStatus(subscription, trialEndsLater)}
+            title={getStatus(ownSubscription, trialEndsLater)}
             description="Change your plan or payment method, or cancel, in the billing portal."
           >
             <Button
               variant="outline"
               size="sm"
               disabled={isOpening}
-              onClick={() => openBillingPortal()}
+              onClick={() => openBillingPortal('manage')}
             >
               <LoadingContent loading={isOpening}>Manage</LoadingContent>
             </Button>
