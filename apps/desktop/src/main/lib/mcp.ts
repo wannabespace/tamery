@@ -21,25 +21,6 @@ import { Result } from 'better-result'
 
 import { createPrivateStore } from './private-store'
 
-// Stays lazy so the SDK and its zod schemas, most of main's bundle, don't load at startup.
-const loadSdk = async () => {
-  const [
-    { StreamableHTTPServerTransport },
-    { isInitializeRequest, isJSONRPCRequest },
-    { createMcpServer },
-  ] = await Promise.all([
-    import('@modelcontextprotocol/sdk/server/streamableHttp.js'),
-    import('@modelcontextprotocol/sdk/types.js'),
-    import('./mcp-tools'),
-  ])
-  return {
-    createMcpServer,
-    isInitializeRequest,
-    isJSONRPCRequest,
-    StreamableHTTPServerTransport,
-  }
-}
-
 const newToken = () => randomBytes(32).toString('base64url')
 
 const store = createPrivateStore<{
@@ -124,12 +105,24 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
     res.writeHead(401).end()
     return
   }
-  const {
-    createMcpServer,
-    isInitializeRequest,
-    isJSONRPCRequest,
-    StreamableHTTPServerTransport,
-  } = await loadSdk()
+  // Stays lazy so the SDK and its zod schemas, most of main's bundle, don't load at startup.
+  const sdk = await Result.tryPromise(() =>
+    Promise.all([
+      import('@modelcontextprotocol/sdk/server/streamableHttp.js'),
+      import('@modelcontextprotocol/sdk/types.js'),
+      import('./mcp-tools'),
+    ])
+  )
+  if (sdk.isErr()) {
+    console.error('[MCP]', sanitizeLogData(sdk.error.cause))
+    jsonRpcError(res, 500, 'Internal error')
+    return
+  }
+  const [
+    { StreamableHTTPServerTransport },
+    { isInitializeRequest, isJSONRPCRequest },
+    { createMcpServer },
+  ] = sdk.value
   const parsed = await Result.tryPromise(() =>
     req.method === 'POST' ? json(req) : Promise.resolve()
   )
