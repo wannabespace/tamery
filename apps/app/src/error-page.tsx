@@ -12,10 +12,12 @@ import { ThemeObserver } from '@tamery/ui/theme-observer'
 import type { ErrorComponentProps } from '@tanstack/react-router'
 import { useRouter } from '@tanstack/react-router'
 import { TraversalError } from 'arktype'
+import { Result } from 'better-result'
 import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
-import { fullSignOut } from '~/lib/auth'
+import { authClient, fullSignOut } from '~/lib/auth'
 import { restartToUnlock } from '~/lib/device-encryption'
 import { posthog } from '~/lib/posthog'
 import { isSessionExpiredError } from '~/utils/error'
@@ -73,9 +75,22 @@ export const ErrorPage = ({ error: thrown }: ErrorComponentProps) => {
 
   const retryAction = isSessionLost ? (
     <Button
-      onClick={() => {
+      onClick={async () => {
         posthog.capture('session_sign_in_retried')
-        void router.navigate({ to: '/auth' })
+        // The /auth guard trusts the locally cached session, so only the server can tell a revoked session from a transient failure.
+        const response = await Result.tryPromise(() => authClient.getSession())
+        const session = response.unwrapOr(null)
+        if (!session || session.error) {
+          toast.error(
+            "Tamery couldn't reach the server. Try again in a moment."
+          )
+          return
+        }
+        if (session.data) {
+          await router.navigate({ to: '/auth' })
+          return
+        }
+        await fullSignOut()
       }}
     >
       Sign in
