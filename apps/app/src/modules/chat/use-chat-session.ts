@@ -171,8 +171,8 @@ export const useChatSession = ({
   const deliver = async ({
     files,
     mentions,
+    skipped,
     text,
-    toolCallId,
   }: Omit<QueuedMessage, 'id'>) => {
     const statement = sqlOf(text)
     await sendMessage({
@@ -182,8 +182,8 @@ export const useChatSession = ({
             await runSql({
               connectionResourceId,
               signal: chatToolRuns.signal(chatId),
+              skipped,
               statement,
-              toolCallId,
             }),
           ]
         : await messageParts(text, mentions, files),
@@ -380,12 +380,15 @@ export const useChatSession = ({
       await deliver({ files, mentions, text })
     },
     /** Runs a change Auto skipped as the user's own statement, after the turn if the agent still works. */
-    runSkipped: (statement: string, toolCallId: string) => {
+    runSkipped: (
+      { statement, ...target }: ChatTools['execute']['input'],
+      toolCallId: string
+    ) => {
       const message = {
         files: [],
         mentions: [],
+        skipped: { target, toolCallId },
         text: `!${statement}`,
-        toolCallId,
       }
       if (isWorking || isWaitingOnUser) {
         enqueue(message)

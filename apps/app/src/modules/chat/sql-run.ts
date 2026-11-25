@@ -9,6 +9,7 @@ import { getCollections } from '~/core/collections'
 import { posthog } from '~/lib/posthog'
 
 import { getJudgedProbability } from './auto-approval'
+import type { QueuedMessage } from './stores'
 
 export const sqlRuns = (message: AppUIMessage) =>
   message.parts.flatMap((part) => (part.type === 'data-sql' ? [part.data] : []))
@@ -21,22 +22,25 @@ export const sqlOf = (text: string) =>
 export const runSql = async ({
   connectionResourceId,
   signal,
+  skipped,
   statement,
-  toolCallId = null,
 }: {
   connectionResourceId: string
   signal: AbortSignal
+  skipped?: QueuedMessage['skipped']
   statement: string
-  /** The change Auto skipped that the user runs from its card. */
-  toolCallId?: string | null
 }): Promise<DataUIPart<ChatDataParts>> => {
   const resource =
     getCollections().connectionsResourcesCollection.get(connectionResourceId)
-  const target = {
+  const target = skipped?.target ?? {
     connectionId: resource?.connectionId ?? '',
     resource: resource?.name ?? null,
   }
+  const toolCallId = skipped?.toolCallId ?? null
   const result = await Result.tryPromise(async () => {
+    if (target.connectionId !== resource?.connectionId) {
+      throw new Error('This chat can only run changes on its own connection.')
+    }
     const write = await agentDatabase.prepareWrite({ ...target, statement })
     return { kind: write.kind, output: await write.run(signal) }
   })

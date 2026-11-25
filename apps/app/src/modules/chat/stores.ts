@@ -1,3 +1,4 @@
+import type { ChatTools } from '@tamery/ai/tools'
 import type { FileUIPart } from 'ai'
 import { type } from 'arktype'
 import { memoize } from 'memoza'
@@ -118,8 +119,10 @@ export interface QueuedMessage {
   id: string
   mentions: PromptMention[]
   text: string
-  /** Set when it runs a change Auto skipped. */
-  toolCallId?: string
+  skipped?: {
+    target: Omit<ChatTools['execute']['input'], 'statement'>
+    toolCallId: string
+  }
 }
 
 /** Messages sent while the agent was still working, oldest first; each goes out once the turn ends. */
