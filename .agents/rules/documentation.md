@@ -9,3 +9,5 @@ Product docs = MDX under `docs/`, rendered by `apps/docs` (Fumadocs). `docs/docs
 ## Release notes
 
 The ToDesktop webhook prepares GitHub release drafts with AI-written user-facing highlights only. AI failure keeps the original notes so it cannot block a release. The website and Discord render the same body. Publication remains manual. A draft gets its git tag only when published, so its notes cover everything since the last published version: publish drafts in version order or they repeat each other's changes.
+
+**A version's what's-new card comes from its release.** The app asks the API for the published release tagged `v<its version>` and shows a card in the Navigator only when that release's body holds an image: the first image (Markdown or the `<img>` GitHub inserts on drop) is the card's picture and the first prose paragraph, the AI summary, its one line. To announce a version, drop a 16:9 picture (1600×900, a close-up of the feature, since the card shows it about 250px wide) at the top of the draft before publishing; a release without one shows no card. Each user sees a version's card until they open or dismiss it, per device.

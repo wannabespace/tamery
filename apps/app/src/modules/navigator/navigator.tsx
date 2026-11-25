@@ -8,6 +8,7 @@ import { useSubscription } from 'seitu/react'
 
 import { useConnectionContext } from '~/core/connection/route'
 import { QueryLoggerToggle } from '~/modules/query-logger/query-logger-toggle'
+import { ReleaseAnnouncement } from '~/modules/release-announcement/release-announcement'
 import { newQueryAction } from '~/modules/runner/lib/new-query'
 import { pressNavProps } from '~/utils/press-nav'
 
@@ -81,6 +82,7 @@ export const Navigator = () => {
           </motion.div>
         </AnimatePresence>
       </div>
+      <ReleaseAnnouncement />
       <NavigatorFooter />
       <CreateTableDialog />
       <CreateSchemaDialog />
