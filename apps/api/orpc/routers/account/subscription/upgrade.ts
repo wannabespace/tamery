@@ -2,22 +2,21 @@ import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
 import { type } from 'arktype'
 import { Result } from 'better-result'
-import { eq, sql } from 'drizzle-orm'
-import { DrizzleQueryError } from 'drizzle-orm/errors'
-import { Stripe } from 'stripe'
+import { eq } from 'drizzle-orm'
 
-import { stripe, stripePrices } from '~/lib/stripe'
+import {
+  LOCK_TIMEOUT,
+  STRIPE_UNDER_LOCK,
+  stripe,
+  stripePrices,
+  timedOutUnderLock,
+} from '~/lib/stripe'
 import { getSubscription } from '~/lib/subscription'
 import { accountMiddleware, orpc } from '~/orpc'
 
 import { billingDestination } from './billing-destination'
 
 const DEFAULT_TEAM_SEATS = 2
-
-// The users row stays locked while these run, so they get far less than the client's 80 s and 2 retries.
-const STRIPE_UNDER_LOCK = { maxNetworkRetries: 1, timeout: 15_000 }
-
-const LOCK_NOT_AVAILABLE = '55P03'
 
 export const upgrade = orpc
   .use(accountMiddleware)
@@ -59,7 +58,7 @@ export const upgrade = orpc
 
     // Serializes a user's checkouts, so two tabs cannot each open one and pay for two plans.
     const checkout = db.transaction(async (tx) => {
-      await tx.execute(sql`SET LOCAL lock_timeout = '5s'`)
+      await tx.execute(LOCK_TIMEOUT)
 
       const [user] = await tx
         .select()
@@ -157,15 +156,5 @@ export const upgrade = orpc
 
     const { cause } = result.error
 
-    if (
-      cause instanceof Stripe.errors.StripeConnectionError ||
-      (cause instanceof DrizzleQueryError &&
-        cause.cause &&
-        'code' in cause.cause &&
-        cause.cause.code === LOCK_NOT_AVAILABLE)
-    ) {
-      throw errors.GATEWAY_TIMEOUT()
-    }
-
-    throw cause
+    throw timedOutUnderLock(cause) ? errors.GATEWAY_TIMEOUT() : cause
   })
