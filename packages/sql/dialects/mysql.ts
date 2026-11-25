@@ -3,6 +3,7 @@ import { spec } from '../dialect'
 export const mysql = spec({
   atVariables: true,
   backslashEscapes: true,
+  blockEndQualifiers: ['IF', 'LOOP', 'WHILE', 'REPEAT'],
   functions: [
     'CEIL',
     'DATE_FORMAT',

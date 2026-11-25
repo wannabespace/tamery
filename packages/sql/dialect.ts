@@ -7,6 +7,7 @@ export interface DialectSpec {
   identifierQuotes: readonly string[]
   dollarQuotes: boolean
   backslashEscapes: boolean
+  blockEndQualifiers: readonly string[]
   hashComments: boolean
   /** MySQL: `--` starts a comment only before whitespace or a control character, so `1--1` is `1 - -1`. */
   spacedDashComments: boolean
@@ -36,6 +37,7 @@ export const spec = (
   alternativeQuotes: false,
   atVariables: false,
   backslashEscapes: false,
+  blockEndQualifiers: [],
   dollarQuotes: false,
   goBatches: false,
   hashComments: false,

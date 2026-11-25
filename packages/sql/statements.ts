@@ -25,7 +25,6 @@ const TRANSACTION_OPENERS = new Set([
   'WORK',
 ])
 const WHOLE_STATEMENT_ENDINGS = new Set([undefined, 'TRANSACTION', 'WORK'])
-const END_QUALIFIERS = new Set(['IF', 'LOOP', 'WHILE', 'REPEAT'])
 const ACCESS_MODES = ['read only', 'read write'] as const
 const ISOLATION_LEVELS = [
   'read uncommitted',
@@ -152,11 +151,6 @@ const namesColumn = (tokens: Token[], index: number) => {
   )
 }
 
-// Matched by text: LOOP, WHILE and REPEAT are not keywords in any dialect's list. SQL Server has no END IF: an END there may be followed by the next statement's IF.
-const closesNamedBlock = (next: Token | undefined, dialect: DialectSpec) =>
-  !dialect.separatorFreeStatements &&
-  END_QUALIFIERS.has(next?.text.toUpperCase() ?? '')
-
 /** `END CASE` closes the CASE its END already counted. */
 const blockDepthChange = (
   tokens: Token[],
@@ -175,7 +169,9 @@ const blockDepthChange = (
     return 1
   }
   return isKeyword(token, 'END') &&
-    !closesNamedBlock(tokens[index + 1], dialect)
+    !dialect.blockEndQualifiers.includes(
+      tokens[index + 1]?.text.toUpperCase() ?? ''
+    )
     ? -1
     : 0
 }

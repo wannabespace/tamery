@@ -197,6 +197,13 @@ describe('readsOnly', () => {
     expect(readsOnly('SELECT 1 /* note */', mysql)).toBe(true)
   })
 
+  it('rejects a second SQLite read after a CASE expression with an alias', () => {
+    const sqlite = dialects[Dialect.SQLite]
+    const read = 'SELECT CASE WHEN 1 = 1 THEN 2 END repeat'
+    expect(readsOnly(read, sqlite)).toBe(true)
+    expect(readsOnly(`${read}; SELECT 3`, sqlite)).toBe(false)
+  })
+
   it('rejects writes hidden in or after a read', () => {
     expect(readsOnly('select 1; delete from users', pg)).toBe(false)
     expect(
