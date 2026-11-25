@@ -1,6 +1,6 @@
 import { Dialect } from '@tamery/shared/enums/connection-type'
+import type { ResponseSlots } from '@tamery/ui/components/response'
 import { useQuery } from '@tanstack/react-query'
-import type { ReactElement } from 'react'
 
 import { tableTypeIcon } from '~/core/catalog/table-type'
 import { useConnectionContext } from '~/core/connection/route'
@@ -14,7 +14,7 @@ import { ToolCard } from './tool-card'
 const unquote = (name: string) => name.replaceAll(/["`[\]]/gu, '')
 
 /** What an answer's Markdown can do in this connection: peek a table it names in code, and draw its tables as the results grid. */
-export const useResponseSlots = () => {
+export const useResponseSlots = (): ResponseSlots => {
   const { connectionResource } = useConnectionContext()
   const { data } = useQuery(
     resourceTablesAndSchemasQueryOptions({ connectionResource })
@@ -37,9 +37,10 @@ export const useResponseSlots = () => {
 
   return {
     linkPreview: true,
-    table: ({ columns, rows }: { columns: string[]; rows: string[][] }) => (
+    table: ({ aligns, columns, rows }) => (
       <ToolCard>
         <ResultGrid
+          aligns={aligns}
           chart={null}
           dialect={Dialect.SQLite}
           grid={resultGrid(
@@ -49,14 +50,12 @@ export const useResponseSlots = () => {
         />
       </ToolCard>
     ),
-    inlineCodeAction: (text: string) => {
+    inlineCodeAction: (text) => {
       const target = findTable(text)
       return (
         target && {
           icon: tableTypeIcon[target.type],
-          render: (button: ReactElement) => (
-            <TablePeek target={target} trigger={button} />
-          ),
+          render: (button) => <TablePeek target={target} trigger={button} />,
         }
       )
     },

@@ -1,5 +1,6 @@
 import type { Dialect } from '@tamery/shared/enums/connection-type'
 import { valueToText } from '@tamery/shared/value-text'
+import type { ColumnAlign } from '@tamery/ui/components/response'
 
 import type { Column } from '~/core/table/cell/utils'
 import { DataGrid } from '~/core/table/data-grid'
@@ -29,17 +30,23 @@ const columnWidth = (
 }
 
 export const ResultsTable = ({
+  aligns,
   columns,
   rows,
   dialect,
 }: {
+  aligns?: ColumnAlign[]
   columns: string[]
   rows: Record<string, unknown>[]
   dialect: Dialect
 }) => (
   <DataGrid
     rows={rows}
-    columns={columns.map((id): Column => ({ id, uiType: 'raw' }))}
+    columns={columns.map((id, index): Column => ({
+      align: aligns?.[index],
+      id,
+      uiType: 'raw',
+    }))}
     dialect={dialect}
     getSize={(column) =>
       columnWidth(column.id, rows, column.id === columns.at(-1))

@@ -19,7 +19,10 @@ import type { ExtraProps } from 'streamdown'
 
 import { responseVariants } from './response.utils'
 
-interface ResponseSlots {
+/** A Markdown column's alignment; undefined is the start edge. */
+export type ColumnAlign = 'center' | 'right' | undefined
+
+export interface ResponseSlots {
   /** Turns an inline code span into a button led by `icon`, such as a table name the app can peek; `render` places that button, as a popover's trigger for one. Null keeps the plain span. */
   inlineCodeAction?: (text: string) => {
     icon: IconSvgElement
@@ -27,8 +30,12 @@ interface ResponseSlots {
   } | null
   /** Web links lead with their site's favicon, read at full ink, and show their address on hover; unset keeps plain links. */
   linkPreview?: boolean
-  /** Draws a Markdown table from its header cells and body rows as plain text; unset keeps the HTML table. */
-  table?: (table: { columns: string[]; rows: string[][] }) => React.ReactNode
+  /** Draws a Markdown table from its header cells and body rows as plain text, with each column's alignment; unset keeps the HTML table. */
+  table?: (table: {
+    aligns: ColumnAlign[]
+    columns: string[]
+    rows: string[][]
+  }) => React.ReactNode
 }
 
 type HastNode = NonNullable<ExtraProps['node']>
@@ -41,19 +48,20 @@ const textOf = (node: HastChild): string => {
   return node.type === 'element' ? node.children.map(textOf).join('') : ''
 }
 
-const rowsOf = (node: HastNode): string[][] =>
+const rowsOf = (node: HastNode): HastNode[][] =>
   node.children.flatMap((child) => {
     if (child.type !== 'element') {
       return []
     }
     return child.tagName === 'tr'
-      ? [
-          child.children
-            .filter((cell) => cell.type === 'element')
-            .map((cell) => textOf(cell).trim()),
-        ]
+      ? [child.children.filter((cell) => cell.type === 'element')]
       : rowsOf(child)
   })
+
+const textsOf = (cells: HastNode[]) => cells.map((cell) => textOf(cell).trim())
+
+const alignOf = ({ properties: { align } }: HastNode): ColumnAlign =>
+  align === 'center' || align === 'right' ? align : undefined
 
 // A context, not per-render `components`: Streamdown remounts every block whose component identity changes, so a streaming answer would lose collapsed states each chunk.
 const ResponseSlotsContext = createContext<ResponseSlots>({})
@@ -153,9 +161,17 @@ const Table = ({
   ...props
 }: React.ComponentProps<'table'> & ExtraProps) => {
   const { table } = use(ResponseSlotsContext)
-  const [columns, ...rows] = table && node ? rowsOf(node) : []
-  if (table && columns) {
-    return <div className="my-4">{table({ columns, rows })}</div>
+  const [header, ...rows] = table && node ? rowsOf(node) : []
+  if (table && header) {
+    return (
+      <div className="my-4">
+        {table({
+          aligns: header.map(alignOf),
+          columns: textsOf(header),
+          rows: rows.map(textsOf),
+        })}
+      </div>
+    )
   }
   return (
     <div className="bg-background ring-foreground/4 my-4 overflow-x-auto rounded-xl ring">

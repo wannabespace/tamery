@@ -7,6 +7,7 @@ import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 import { CopyIconButton } from '@tamery/ui/components/custom/copy-button'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
+import type { ColumnAlign } from '@tamery/ui/components/response'
 import { cn } from '@tamery/ui/lib/utils'
 import type { CSSProperties, ReactNode } from 'react'
 import { useState } from 'react'
@@ -51,10 +52,12 @@ export const summarize = (sets: ResultSets) => {
 }
 
 export const ResultGrid = ({
+  aligns,
   chart,
   dialect,
   grid,
 }: {
+  aligns?: ColumnAlign[]
   /** Set while the result shows as its chart. */
   chart: ResultChart | null
   dialect: Dialect
@@ -74,7 +77,12 @@ export const ResultGrid = ({
     {chart ? (
       <LazyResultsChart chart={chart} />
     ) : (
-      <ResultsTable columns={grid.columns} rows={grid.rows} dialect={dialect} />
+      <ResultsTable
+        aligns={aligns}
+        columns={grid.columns}
+        rows={grid.rows}
+        dialect={dialect}
+      />
     )}
   </div>
 )
