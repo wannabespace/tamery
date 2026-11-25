@@ -9,12 +9,12 @@ import { useObjectNames } from '~/core/catalog/names'
 import { useConnectionContext } from '~/core/connection/route'
 
 import { createSchemaDialogRef } from './create-schema-dialog'
-import { createViewDialogRef } from './create-view-dialog'
 import type { DropSchemaDialog } from './drop-schema-dialog'
 import type { DropTableDialog } from './drop-table-dialog'
 import type { RenameSchemaDialog } from './rename-schema-dialog'
 import type { RenameTableDialog } from './rename-table-dialog'
 import { SchemaRow } from './schema-row'
+import { createViewDialogRef } from './stores'
 import { TableRow } from './table-row'
 import type { TreeRow } from './tree-row'
 

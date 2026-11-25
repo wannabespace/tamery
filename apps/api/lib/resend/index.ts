@@ -1,4 +1,5 @@
 import { CONTACT_EMAIL } from '@tamery/shared/constants'
+import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import type { ComponentProps } from 'react'
 import type { CreateEmailOptions } from 'resend'
 import { Resend } from 'resend'
@@ -37,7 +38,7 @@ export const sendEmail = async <
       template,
       to,
     })
-    return
+    return false
   }
 
   // Never throws: auth database hooks send mid-operation, and a Redis or Resend failure must not leave e.g. 2FA half-disabled.
@@ -49,7 +50,7 @@ export const sendEmail = async <
         await redis.expire(key, 60)
       }
       if (sent > ALERTS_PER_MINUTE) {
-        return
+        return false
       }
     }
 
@@ -74,11 +75,11 @@ export const sendEmail = async <
       `resend:${new Bun.CryptoHasher('sha256', env.BETTER_AUTH_SECRET).update(JSON.stringify(options)).digest('hex')}`,
       10 * 60
     )
+
+    return true
   } catch (error) {
-    console.error(
-      'Resend email service error:',
-      error instanceof Error ? error.message : 'Unknown error',
-      error
-    )
+    console.error('Resend email service error:', sanitizeLogData(error))
+
+    return false
   }
 }

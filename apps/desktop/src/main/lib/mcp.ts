@@ -4,12 +4,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { createServer, Server } from 'node:http'
 import { json } from 'node:stream/consumers'
 
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
+import type { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js'
-import {
-  isInitializeRequest,
-  isJSONRPCRequest,
-} from '@modelcontextprotocol/sdk/types.js'
 import { hasErrnoCode } from '@tamery/shared/errno'
 import type {
   McpAccess,
@@ -23,7 +19,6 @@ import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { omit, silently, toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
-import { createMcpServer } from './mcp-tools'
 import { createPrivateStore } from './private-store'
 
 const newToken = () => randomBytes(32).toString('base64url')
@@ -110,6 +105,24 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
     res.writeHead(401).end()
     return
   }
+  // Stays lazy so the SDK and its zod schemas, most of main's bundle, don't load at startup.
+  const sdk = await Result.tryPromise(() =>
+    Promise.all([
+      import('@modelcontextprotocol/sdk/server/streamableHttp.js'),
+      import('@modelcontextprotocol/sdk/types.js'),
+      import('./mcp-tools'),
+    ])
+  )
+  if (sdk.isErr()) {
+    console.error('[MCP]', sanitizeLogData(sdk.error.cause))
+    jsonRpcError(res, 500, 'Internal error')
+    return
+  }
+  const [
+    { StreamableHTTPServerTransport },
+    { isInitializeRequest, isJSONRPCRequest },
+    { createMcpServer },
+  ] = sdk.value
   const parsed = await Result.tryPromise(() =>
     req.method === 'POST' ? json(req) : Promise.resolve()
   )

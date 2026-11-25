@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, jest, test } from 'bun:test'
 
 import type { TransactionStatus } from '.'
 import type { TxHandle } from './transactions'
@@ -99,4 +99,34 @@ describe('transactionQueries', () => {
       transactionQueries.commitTransaction({ ownerId: 'owner-a', txId })
     ).rejects.toThrow('no longer open')
   })
+})
+
+test('a statement running past the idle timeout keeps its transaction', async () => {
+  jest.useFakeTimers()
+  try {
+    const { calls, handle } = spyHandle()
+    const finished = Promise.withResolvers<null>()
+    const txId = registerTransaction({
+      ...handle,
+      execute: async (query) => {
+        calls.push(`execute:${query}`)
+        await finished.promise
+        return { duration: 0, result: [] }
+      },
+    })
+
+    const running = transactionQueries.executeTransaction({
+      query: 'UPDATE big',
+      txId,
+      values: [],
+    })
+    jest.advanceTimersByTime(60 * 60_000)
+    finished.resolve(null)
+    await running
+    await transactionQueries.commitTransaction({ txId })
+
+    expect(calls).toEqual(['execute:UPDATE big', 'commit', 'release'])
+  } finally {
+    jest.useRealTimers()
+  }
 })

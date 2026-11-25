@@ -37,7 +37,7 @@ export const connectionMachines = d.snakeCase.table(
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),
   },
-  (t) => [d.unique().on(t.userId, t.connectionId)]
+  (t) => [d.unique().on(t.userId, t.connectionId), d.index().on(t.connectionId)]
 )
 
 export const connectionMachinesSelectSchema =

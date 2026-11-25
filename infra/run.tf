@@ -48,8 +48,15 @@ locals {
       cpu_idle    = false
       timeout     = "3600s"
       egress      = "PRIVATE_RANGES_ONLY"
-      env         = merge(local.public_urls, { REDIS_CA = google_redis_instance.tamery.server_ca_certs[0].cert })
-      secrets     = local.api_secrets
+      env = merge(local.public_urls, {
+        REDIS_CA                       = google_redis_instance.tamery.server_ca_certs[0].cert
+        STRIPE_PORTAL_CONFIGURATION_ID = "bpc_1UfdKRBNQiD0zfT7h52RP9NK"
+        STRIPE_PRO_ANNUAL_PRICE_ID     = "price_1UOi2SBNQiD0zfT79r0o1trp"
+        STRIPE_PRO_MONTH_PRICE_ID      = "price_1UOi1EBNQiD0zfT79jFdATUS"
+        STRIPE_TEAM_ANNUAL_PRICE_ID    = "price_1UfdFfBNQiD0zfT7xKF0U1W6"
+        STRIPE_TEAM_MONTH_PRICE_ID     = "price_1UfdF2BNQiD0zfT74gAY8S3a"
+      })
+      secrets = local.api_secrets
       # A revision that cannot reach its database must never take traffic.
       health = "/health"
     })
