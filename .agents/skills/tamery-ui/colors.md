@@ -39,6 +39,8 @@ Transactional emails use the sRGB equivalents of the app's primary accent (butto
 
 `destructive` / `success` share one recipe — `border-<token>/25 bg-<token>/10 text-<token>`, description at `/90`. The surface is the signal, so it has to read as tinted at a glance.
 
+**A global banner's text stays `foreground`.** Only its icon, tint and hairline carry the type colour: the type tokens do not reach 4.5:1 as text on the light canvas (`warning` least of all), and the banner's buttons, spinner and counters inherit that text colour.
+
 **An invalid field states its problem once**: the message carries `text-destructive` and the control carries the `aria-invalid` ring; the label stays `foreground`. Tinting the whole field cascades into every descendant without a colour of its own and makes one error shout three times.
 
 ## Cell highlights (data table)
