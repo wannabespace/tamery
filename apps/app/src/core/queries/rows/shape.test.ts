@@ -12,6 +12,7 @@ import {
   matchesPrimaryKeys,
   mongodbDocument,
   rowIdentity,
+  uniqueKeyOf,
 } from './shape'
 
 const clickhouse = coldDialect(Dialect.ClickHouse).withTables<
@@ -117,6 +118,25 @@ test('a row without a primary key is found by a NOT NULL unique key, else by eve
       Dialect.Postgres
     )
   ).toEqual({ columns: ['email', 'score', 'name'], unique: false })
+})
+
+test('a column of two unique keys does not make the wider key a row identity on its own', () => {
+  const constraints = [
+    { column: 'email', name: 'users_email_key', type: 'unique' },
+    { column: 'tenant_id', name: 'users_tenant_email_key', type: 'unique' },
+    { column: 'email', name: 'users_tenant_email_key', type: 'unique' },
+  ]
+  expect(
+    rowIdentity(
+      ['tenant_id', 'email', 'name'].map((id) => ({
+        id,
+        isNullable: false,
+        type: 'text',
+        unique: uniqueKeyOf(constraints, id),
+      })),
+      Dialect.Postgres
+    )
+  ).toEqual({ columns: ['email'], unique: true })
 })
 
 test('a NULL in a row identity matches with IS NULL', () => {
