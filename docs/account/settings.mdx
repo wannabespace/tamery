@@ -17,17 +17,17 @@ keywords:
 
 ## App preferences
 
-Click the gear in the title bar, or press **Cmd+,** (**Ctrl+,**). The sidebar groups the sections under **Account**, **App** and **Workspace**, and Settings opens on **Account** once you are signed in. **Search** above them finds a section by its name or by a setting on it: type `google` and **Security** and **AI** show up, each with the match beside it. Search has focus when Settings opens: **↑** and **↓** move through the results, and **Enter** opens the highlighted one.
+Pick **Settings** in the avatar menu, or press **Cmd+,** (**Ctrl+,**). The sidebar groups the sections under **Account**, **App** and **Workspace**, and Settings opens on **Account** once you are signed in. **Search** above them finds a section by its name or by a setting on it: type `google` and **Security** and **AI** show up, each with the match beside it. Search has focus when Settings opens: **↑** and **↓** move through the results, and **Enter** opens the highlighted one.
 
 | Section | What you can change |
 | --- | --- |
-| **General** | Desktop only. Start Tamery at login (macOS and Windows), and open database links in Tamery. |
+| **General** | [Usage analytics](#usage-analytics). On desktop, also start Tamery at login (macOS and Windows), and open database links in Tamery. |
 | **Appearance** | Light, dark, or system theme. Transparent windows on macOS. On desktop, a light, blue, or dark app icon for the Dock (taskbar). |
 | **Keyboard** | Shortcut hints while holding **Cmd** (**Ctrl**), and a searchable list of every shortcut. |
-| **AI** | Your own Anthropic, OpenAI, Google or OpenRouter key, which runs the AI chat on your account. Saved to your account, not just this device; the **Dictation model** you pick for it applies to this device. See [Your own AI key](/account/ai-key). Below it, your [AI credits](/account/ai-credits) and AI usage. |
+| **AI** | Your own Anthropic, OpenAI, Google and OpenRouter keys, which run the AI chat on your accounts with them. Saved to your account, not just this device; the **Dictation model** you pick applies to this device. See [Your own AI key](/account/ai-key). Below it, your [AI credits](/account/ai-credits) and AI usage. |
 | **Schema notes** | Edit or delete the notes the AI reads about each database. They sync to your account, not just this device. See [Schema notes](/features/ai-assistant#schema-notes). |
 | **MCP** | Desktop only. Agent access, client setup, and activity. See [MCP](/mcp/overview). |
-| **Machines** | The machines signed in to your account. Connect this app to one, disconnect it, or remove it. On desktop, also let your other devices use this computer. See [Tamery CLI](/cli/overview). |
+| **Machines** | The machines signed in to your account. Connect this app to one, disconnect it, or remove it. On desktop, also this computer's own machine and the address other computers reach it at. See [Tamery CLI](/cli/overview). |
 | **Account** | Your signed-in sessions, and deleting your account. |
 | **Plan** | Upgrade to or manage [Pro](/account/plans), and your invoices. |
 | **Security** | How you sign in: email, [passkeys](#passkeys), [Google and GitHub](#google-and-github), and [two-factor authentication](#two-factor-authentication). |
@@ -36,11 +36,17 @@ Preferences apply to this device. **Account**, **Plan** and **Security** show on
 
 The avatar menu opens the [release notes](https://tamery.app/releases), and has **Support** for writing to us.
 
-**Clear cache** in the avatar menu wipes what Tamery keeps on this device and reloads. Synced connections and saved queries come back. Query history, layouts, preferences, passwords of **No password** connections, and changes made offline that haven't synced yet do not.
+**Clear cache** in the avatar menu wipes what Tamery keeps on this device and reloads. Synced connections and saved queries come back. Query history, layouts, preferences, passwords of **No password** connections, and changes made offline that haven't synced yet do not. Your **Share usage analytics** choice is kept.
+
+## Usage analytics
+
+Tamery sends usage events, error reports, and session recordings with your data masked. To stop all three on this device, open **Settings → General** and turn off **Share usage analytics**. It also stays off after you sign out.
+
+The switch covers the app. For the CLI, set [`DO_NOT_TRACK=1`](/cli/overview#usage-data).
 
 ## Your account
 
-Everything about your account is in Settings, in the desktop app and the web app alike. The avatar menu's **Account** opens **Settings → Account**.
+Everything about your account is in Settings, in the desktop app and the web app alike.
 
 On desktop, two steps continue in your browser, in the web app's **Settings → Security**: adding a passkey, and connecting Google or GitHub, which goes straight on to Google's or GitHub's sign-in. Their buttons show an arrow. Payments and the billing portal open in your browser too.
 

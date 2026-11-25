@@ -25,6 +25,7 @@ import {
 } from '~/core/runtime/machine/status'
 import { posthog } from '~/lib/posthog'
 
+import { OnlineStatus } from './online-status'
 import { useConnectMachine } from './use-connect-machine'
 
 /** A machine that registered within this long reads as running to a browser not paired with it. */
@@ -33,7 +34,7 @@ const CLOCK_MS = 60 * 1000
 
 export interface ListedMachine {
   id: string
-  /** `false` for a pairing whose machine the account does not list, such as one reached only by its URL: no connection runs on it. */
+  /** `false` for a pairing whose machine was removed from the account: no connection runs on it. */
   isListed: boolean
   name: string
   seenAt: Date | null
@@ -64,7 +65,7 @@ const UnpairedStatus = ({
     return 'Not connected.'
   }
   return now - seenAt.getTime() < RUNNING_WITHIN_MS
-    ? 'Running. Connect this browser to run queries on it.'
+    ? 'Running. Choose it under Runs on in a connection.'
     : `Last seen ${formatDistanceStrict(seenAt, now, { addSuffix: true })}.`
 }
 
@@ -95,10 +96,7 @@ export const MachineRow = ({
   } else if (pairing) {
     description =
       status?.state === 'connected' ? (
-        <span className="flex items-center gap-2">
-          <span className="bg-success size-1.5 rounded-full" />
-          Connected
-        </span>
+        <OnlineStatus>Connected</OnlineStatus>
       ) : (
         <FetchingReason
           reason={status ? getMachineStatusMessage(status) : 'Checking…'}
@@ -140,6 +138,7 @@ export const MachineRow = ({
           </Button>
         ) : (
           <Button
+            variant="outline"
             size="sm"
             disabled={connect.isPending || listed.urls.length === 0}
             onClick={() => connect.connect()}

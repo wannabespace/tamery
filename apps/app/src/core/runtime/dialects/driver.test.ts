@@ -22,7 +22,10 @@ const pairing = {
   secret: 'secret',
   url: 'http://127.0.0.1:26380',
 }
-const state: { route: MachineRoute | null } = { route: null }
+const state: { inCloud: boolean; route: MachineRoute | null } = {
+  inCloud: false,
+  route: null,
+}
 
 mock.module('~/core/collections', () => ({
   getCollections: () => ({
@@ -44,7 +47,9 @@ mock.module('~/core/runtime/machine/machine', () => ({
   machine: { client: () => ({ query: { postgres: machine } }) },
 }))
 mock.module('~/core/runtime/machine/pairing', () => ({
-  getConnectionMachineId: () => state.route?.machineId ?? null,
+  CLOUD: 'cloud',
+  getConnectionRunsOn: () =>
+    state.inCloud ? 'cloud' : (state.route?.machineId ?? null),
   getMachineRoute: (connectionId: string | null) =>
     connectionId === null ? null : state.route,
 }))
@@ -63,6 +68,7 @@ const paired: MachineRoute = {
 const select = { query: 'SELECT 1', values: [] }
 
 beforeEach(() => {
+  state.inCloud = false
   state.route = null
   for (const call of [...Object.values(machine), ...Object.values(cloud)]) {
     call.mockClear()
@@ -93,6 +99,7 @@ test('the form tests no string on a machine, which runs saved connections only',
     fetchingConfig(null, {
       connectionString: null,
       draft: true,
+      inCloud: false,
       machine: paired,
     }).reason
   ).toStartWith('Saved connections run on valerii-mbp')
@@ -168,5 +175,47 @@ test('without a machine, the web app never sends an SSH connection string anywhe
     }).execute(select)
   ).toThrow('SSH tunnels run in the Tamery desktop app or through')
   expect(machine.execute).not.toHaveBeenCalled()
+  expect(cloud.execute).not.toHaveBeenCalled()
+})
+
+const publicString = 'postgres://user:password@db.example.com/shop'
+const onDesktop = async (run: () => Promise<unknown>) => {
+  const execute = machineCall()
+  Object.assign(window, { electron: { query: { postgres: { execute } } } })
+  try {
+    await run()
+  } finally {
+    Reflect.deleteProperty(window, 'electron')
+  }
+  return execute
+}
+
+const testOnDesktop = (inCloud: boolean) =>
+  onDesktop(() =>
+    createDialectProvider(Dialect.Postgres, {
+      connectionString: publicString,
+      inCloud,
+    }).execute(select)
+  )
+
+test('on desktop a string under test runs in the cloud only when Runs on says so', async () => {
+  expect(await testOnDesktop(false)).toHaveBeenCalledTimes(1)
+  expect(cloud.execute).not.toHaveBeenCalled()
+  expect(await testOnDesktop(true)).not.toHaveBeenCalled()
+  expect(cloud.execute).toHaveBeenCalledTimes(1)
+})
+
+test('on desktop a connection the cloud cannot reach fails there instead of running on this computer', async () => {
+  state.inCloud = true
+  const execute = await onDesktop(async () => {
+    expect(() =>
+      createDialectProvider(Dialect.Postgres, {
+        connectionId: 'connection',
+        connectionString: publicString,
+      }).execute(select)
+    ).toThrow('Tamery Cloud cannot reach this connection')
+    await Promise.resolve()
+  })
+  expect(execute).not.toHaveBeenCalled()
   expect(cloud.execute).not.toHaveBeenCalled()
 })

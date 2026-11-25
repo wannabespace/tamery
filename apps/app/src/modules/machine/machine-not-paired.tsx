@@ -11,17 +11,10 @@ import { useMachines } from '~/core/runtime/machine/pairing'
 
 import { useConnectMachine } from './use-connect-machine'
 
-export const MachineNotPaired = ({
-  retry,
-  route,
-}: {
-  retry?: () => void
-  route: MachineRoute
-}) => {
+export const MachineNotPaired = ({ route }: { route: MachineRoute }) => {
   const listed = useMachines().find(({ id }) => id === route.machineId)
   const connect = useConnectMachine({
     machineId: route.machineId,
-    onConnected: retry,
     urls: listed?.urls ?? [],
   })
   const name = <span data-mask>{route.name}</span>

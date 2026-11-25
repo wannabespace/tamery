@@ -24,10 +24,10 @@ export const ConnectionFields = ({
 }: {
   form: ConnectionForm
   locked: (field: string) => boolean
-  values: Pick<ConnectionFormValues, 'host' | 'machineId' | 'provider' | 'type'>
+  values: Pick<ConnectionFormValues, 'host' | 'provider' | 'runsOn' | 'type'>
 }) => {
   const fileType = getFileType(values)
-  const machine = useMachineRouteById(values.machineId)
+  const machine = useMachineRouteById(values.runsOn)
 
   return (
     <>

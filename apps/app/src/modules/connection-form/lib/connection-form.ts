@@ -17,7 +17,8 @@ import { Result } from 'better-result'
 import { useState } from 'react'
 
 import type { Connection } from '~/core/connection/sync'
-import { getConnectionMachineId } from '~/core/runtime/machine/pairing'
+import type { RunsOn } from '~/core/runtime/machine/pairing'
+import { getConnectionRunsOn } from '~/core/runtime/machine/pairing'
 import { posthog } from '~/lib/posthog'
 import { generateRandomName } from '~/utils/faker'
 
@@ -33,9 +34,8 @@ export interface ConnectionFormValues extends Omit<
   /** A database the machine found with its password, which stays on the machine: the form leaves the password empty. */
   foundDatabase: { connectionString: string; source: string } | null
   label: string
-  /** The machine it runs on, `null` for here: the cloud proxy on the web, this computer on desktop. */
-  machineId: string | null
   name: string
+  runsOn: RunsOn
   ssh: SshTunnel
   sshEnabled: boolean
   syncType: SyncType
@@ -49,12 +49,12 @@ const DEFAULT_VALUES: ConnectionFormValues = {
   host: '',
   https: null,
   label: '',
-  machineId: null,
   name: '',
   options: '',
   password: '',
   port: '',
   provider: null,
+  runsOn: null,
   ssh: EMPTY_SSH_TUNNEL,
   sshEnabled: false,
   syncType: SyncType.Cloud,
@@ -135,9 +135,9 @@ export const getFormValues = (
     ...(parts && pick(parts, [...SERVER_FIELDS, 'https'])),
     color: connection.color,
     label: connection.label ?? '',
-    machineId: getConnectionMachineId(connection.id),
     name: connection.name,
     provider: parts ? parts.provider : connection.provider,
+    runsOn: getConnectionRunsOn(connection.id),
     ssh: parts?.ssh ?? EMPTY_SSH_TUNNEL,
     sshEnabled: !!parts?.ssh,
     syncType: connection.syncType,

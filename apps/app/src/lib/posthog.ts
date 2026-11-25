@@ -1,6 +1,16 @@
 import { POSTHOG_API_HOST, POSTHOG_UI_HOST } from '@tamery/shared/posthog'
 import { type } from 'arktype'
 import type { PostHog } from 'posthog-js'
+import { createWebStorageValue } from 'seitu/web'
+
+export const ANALYTICS_STORAGE_KEY = 'analytics-enabled'
+
+export const analyticsStore = createWebStorageValue({
+  defaultValue: true,
+  key: ANALYTICS_STORAGE_KEY,
+  schema: type('boolean'),
+  type: 'localStorage',
+})
 
 let instance: Promise<PostHog> | null = null
 let identity: Parameters<PostHog['identify']> | null = null
@@ -29,6 +39,14 @@ export const getAppProperties = () => ({
   channel: import.meta.env.DEV ? 'development' : 'production',
   platform: window.electron ? 'desktop' : 'web',
 })
+
+const applyAnalyticsChoice = (client: PostHog) => {
+  if (analyticsStore.get()) {
+    client.opt_in_capturing({ captureEventName: false })
+  } else {
+    client.opt_out_capturing()
+  }
+}
 
 const init = async () => {
   const [
@@ -94,8 +112,9 @@ const init = async () => {
     ui_host: POSTHOG_UI_HOST,
   })
   client.register({ app: 'app', ...getAppProperties() })
-  // PostHog stores an opt-out on its own. Without this, the removed Settings switch stays in effect.
-  client.opt_in_capturing({ captureEventName: false })
+  // Applied once here too: PostHog persists an opt-out across reloads, and the choice may have changed during the import.
+  applyAnalyticsChoice(client)
+  analyticsStore.subscribe(() => applyAnalyticsChoice(client))
   if (identity) {
     client.identify(...identity)
   }
@@ -105,8 +124,12 @@ const init = async () => {
   return client
 }
 
+// A loaded client keeps receiving identify/reset while opted out, or the next opt-in sends events under the previous user's id.
 const withClient = async (run: (client: PostHog) => void) => {
-  if (import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN) {
+  if (
+    import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN &&
+    (analyticsStore.get() || instance)
+  ) {
     run(await (instance ??= init()))
   }
 }
@@ -122,6 +145,10 @@ export const posthog = {
   },
   reset: (...args: Parameters<PostHog['reset']>) => {
     identity = null
-    return withClient((client) => client.reset(...args))
+    return withClient((client) => {
+      client.reset(...args)
+      // `reset` also clears PostHog's stored opt-out, which would turn capturing back on at sign-out.
+      applyAnalyticsChoice(client)
+    })
   },
 }

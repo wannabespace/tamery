@@ -9,7 +9,7 @@ const SidebarContent = ({ className, ...props }: ComponentProps<'div'>) => (
   <div
     data-slot="sidebar-content"
     className={cn(
-      'no-scrollbar -mt-0.5 -mr-0.5 flex min-h-0 flex-1 flex-col gap-2 overflow-auto pt-0.5 pr-0.5',
+      'no-scrollbar -mt-0.5 -mr-0.5 flex min-h-0 flex-1 flex-col gap-2 overflow-auto pt-0.5 pr-0.5 outline-none',
       className
     )}
     {...props}
@@ -33,12 +33,10 @@ const SidebarMenuButton = ({
   render,
   isActive = false,
   className,
-  variant = 'default',
   ...props
 }: useRender.ComponentProps<'button'> &
   ComponentProps<'button'> & {
     isActive?: boolean
-    variant?: 'default' | 'muted'
   }) =>
   useRender({
     defaultTagName: 'button',
@@ -46,7 +44,6 @@ const SidebarMenuButton = ({
       {
         className: cn(
           `peer/menu-button text-foreground hover:bg-foreground/5 group-data-highlighted/menu-item:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 active:bg-foreground/10 active:text-accent-foreground aria-pressed:bg-foreground/10 data-active:bg-foreground/5 group-data-highlighted/menu-item:data-active:bg-foreground/10 data-active:focus-visible:bg-foreground/10 flex h-7 w-full cursor-default items-center gap-2 overflow-hidden rounded-md px-2 py-2 text-left text-sm whitespace-nowrap outline-hidden select-none disabled:pointer-events-none disabled:opacity-50 data-active:font-[550] [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate`,
-          variant === 'muted' && 'text-muted-foreground',
           className
         ),
       },

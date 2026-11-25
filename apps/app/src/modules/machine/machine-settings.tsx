@@ -1,23 +1,26 @@
-import { SettingsGroup } from '@tamery/ui/components/custom/settings-group'
+import {
+  SettingsGroup,
+  SettingsRow,
+} from '@tamery/ui/components/custom/settings-group'
+import { smallItemInsetClassName } from '@tamery/ui/components/item'
+import { cn } from '@tamery/ui/lib/utils'
 import { useSubscription } from 'seitu/react'
 
-import { parseMachineUrl } from '~/core/runtime/machine/client'
 import {
   machinePairings,
   useMachines,
   useThisMachineId,
 } from '~/core/runtime/machine/pairing'
-import { pairingLink } from '~/lib/pairing-link'
 
 import { InstallMachine } from './install-machine'
 import type { ListedMachine } from './machine-row'
 import { MachineRow } from './machine-row'
-import { PairForm } from './pair-form'
-import { ThisComputer } from './this-computer'
+import { ThisComputerAddress, ThisComputerRow } from './this-computer'
 
 export const MachineSettings = () => {
   const ownId = useThisMachineId()
-  const machines = useMachines().filter(({ id }) => id !== ownId)
+  const all = useMachines()
+  const machines = all.filter(({ id }) => id !== ownId)
   const pairings = useSubscription(machinePairings)
   const listed: ListedMachine[] = [
     ...machines.map((item) => ({ ...item, isListed: true })),
@@ -31,28 +34,39 @@ export const MachineSettings = () => {
         urls: [pairing.url],
       })),
   ]
-  // Once paired with the machine it names, the link has been used: a later visit must not offer it again.
-  const linkOrigin = pairingLink === null ? null : parseMachineUrl(pairingLink)
-  const link = Object.values(pairings).some(({ url }) => url === linkOrigin)
-    ? null
-    : pairingLink
-
   return (
     <>
-      {window.electron && <ThisComputer />}
-      {listed.length > 0 && (
-        <SettingsGroup title="Your machines">
-          {listed.map((item) => (
-            <MachineRow
-              key={item.id}
-              listed={item}
-              pairing={pairings[item.id] ?? null}
+      <p
+        className={cn(smallItemInsetClassName, 'text-muted-foreground text-sm')}
+      >
+        A machine is one of your computers that runs queries for your other
+        devices, so they reach its localhost databases, private network and
+        database files. Choose one under Runs on in a connection’s settings.
+      </p>
+      <SettingsGroup title="Your machines">
+        {window.electron && (
+          <>
+            <ThisComputerRow
+              name={all.find(({ id }) => id === ownId)?.name ?? null}
             />
-          ))}
-        </SettingsGroup>
-      )}
+            <ThisComputerAddress />
+          </>
+        )}
+        {listed.map((item) => (
+          <MachineRow
+            key={item.id}
+            listed={item}
+            pairing={pairings[item.id] ?? null}
+          />
+        ))}
+        {!window.electron && listed.length === 0 && (
+          <SettingsRow
+            title="No machines yet"
+            description="Add the computer that reaches your databases."
+          />
+        )}
+      </SettingsGroup>
       <InstallMachine />
-      <PairForm link={link} />
     </>
   )
 }

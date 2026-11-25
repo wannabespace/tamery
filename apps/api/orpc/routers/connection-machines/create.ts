@@ -3,7 +3,6 @@ import {
   connectionMachines,
   connectionMachinesInsertSchema,
   connections,
-  machines,
 } from '@tamery/db/schema'
 import { and, eq } from 'drizzle-orm'
 
@@ -11,6 +10,7 @@ import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
+import { canRunOn } from './machine'
 
 export const create = orpc
   .use(authMiddleware)
@@ -28,17 +28,11 @@ export const create = orpc
           inMemberWorkspace(context.user.id)(connections)
         )
       )
-    const [machine] = await db
-      .select({ id: machines.id })
-      .from(machines)
-      .where(
-        and(
-          eq(machines.id, input.machineId),
-          eq(machines.userId, context.user.id)
-        )
-      )
 
-    if (!connection || !machine) {
+    if (
+      !connection ||
+      !(await canRunOn(context.user.id, input.machineId ?? null))
+    ) {
       throw errors.NOT_FOUND()
     }
 
@@ -46,7 +40,7 @@ export const create = orpc
       .insert(connectionMachines)
       .values({ ...input, userId: context.user.id })
       .onConflictDoUpdate({
-        set: { machineId: input.machineId, updatedAt: new Date() },
+        set: { machineId: input.machineId ?? null, updatedAt: new Date() },
         target: [connectionMachines.userId, connectionMachines.connectionId],
       })
       .returning()

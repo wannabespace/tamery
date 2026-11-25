@@ -2,6 +2,7 @@ import { isMac } from '@tamery/ui/lib/os'
 import { useSubscription } from 'seitu/react'
 
 import { machine } from '~/core/runtime/machine/machine'
+import type { RunsOn } from '~/core/runtime/machine/pairing'
 import {
   MACHINE_QUERY_KEY,
   machinePairings,
@@ -9,9 +10,9 @@ import {
   useMachines,
 } from '~/core/runtime/machine/pairing'
 
-/** The computer a connection running on `machineId` can reach, with its databases and skill files: this desktop when `null`, else a paired machine. */
-export const useLocalMachine = (machineId: string | null) => {
-  const route = useMachineRouteById(machineId)
+/** The computer whose databases and skill files a connection uses: a paired machine it runs on, else this desktop. */
+export const useLocalMachine = (runsOn: RunsOn) => {
+  const route = useMachineRouteById(runsOn)
   if (route?.pairing) {
     const client = machine.client(route.pairing)
     return {

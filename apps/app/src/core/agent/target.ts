@@ -1,7 +1,11 @@
 import { getCollections } from '~/core/collections'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import type { Connection } from '~/core/connection/sync'
-import { getMachineRoute } from '~/core/runtime/machine/pairing'
+import {
+  CLOUD,
+  getConnectionRunsOn,
+  getMachineRoute,
+} from '~/core/runtime/machine/pairing'
 import { queryClient } from '~/lib/query-client'
 
 const AGENT_STALE_TIME = 5000
@@ -47,6 +51,7 @@ export const resolveTarget = ({
 
   const connectionString = connectionStringsCollection.get(connectionId) ?? null
   const { canSend, reason } = fetchingConfig(connection, {
+    inCloud: getConnectionRunsOn(connectionId) === CLOUD,
     machine: getMachineRoute(connectionId),
     connectionString,
   })

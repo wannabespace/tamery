@@ -17,7 +17,7 @@ import {
 import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 
-import type { Machine } from './sync'
+import type { ConnectionMachine, Machine } from './sync'
 
 export const MACHINE_QUERY_KEY = 'machine'
 
@@ -44,7 +44,8 @@ const STARTING_POLL_MS = 1000
 
 /**
  * Desktop only: main's state of this computer's own machine. Kept for the session, never collected: its id routes a
- * connection on it here, never over HTTP to itself.
+ * connection on it here, never over HTTP to itself. Never starts the machine: sign-out drops this query while the session
+ * still lives, so a mounted observer's refetch would start it again for the account leaving.
  */
 export const thisMachineQuery = queryOptions({
   gcTime: Infinity,
@@ -90,28 +91,52 @@ export interface MachineRoute {
   pairing: MachinePairing | null
 }
 
-export const getConnectionMachineId = (connectionId: string) =>
+export const CLOUD = 'cloud'
+
+/**
+ * A machine's id, `CLOUD`, or `null` for here: the cloud proxy on the web, where `CLOUD` never appears, and this computer on
+ * desktop, which its own machine's id reads as too.
+ */
+export type RunsOn = string | null
+
+const toRunsOn = (
+  row: ConnectionMachine | null,
+  ownId: string | null
+): RunsOn => {
+  if (!row) {
+    return null
+  }
+  if (row.machineId === null) {
+    return window.electron ? CLOUD : null
+  }
+  return row.machineId === ownId ? null : row.machineId
+}
+
+const findRow = (connectionId: string) =>
   getCollections().connectionMachinesCollection.toArray.find(
     (row) => row.connectionId === connectionId
-  )?.machineId ?? null
+  ) ?? null
+
+export const getConnectionRunsOn = (connectionId: string) =>
+  toRunsOn(findRow(connectionId), getThisMachineId())
 
 export const getMachineRouteById = (
-  machineId: string | null,
+  runsOn: RunsOn,
   connectionId: string | null = null
 ): MachineRoute | null =>
-  machineId === null || machineId === getThisMachineId()
+  runsOn === null || runsOn === CLOUD
     ? null
     : toRoute({
         asks: (connectionId && machineAsks.get()[connectionId]) || null,
-        machine: getCollections().machinesCollection.get(machineId) ?? null,
-        machineId,
-        pairing: machinePairings.get()[machineId] ?? null,
+        machine: getCollections().machinesCollection.get(runsOn) ?? null,
+        machineId: runsOn,
+        pairing: machinePairings.get()[runsOn] ?? null,
       })
 
 export const getMachineRoute = (connectionId: string | null) =>
   connectionId === null
     ? null
-    : getMachineRouteById(getConnectionMachineId(connectionId), connectionId)
+    : getMachineRouteById(getConnectionRunsOn(connectionId), connectionId)
 
 export const useMachines = () => {
   const { machinesCollection } = useCollections()
@@ -124,39 +149,39 @@ export const useMachines = () => {
 }
 
 export const useMachineRouteById = (
-  machineId: string | null,
+  runsOn: RunsOn,
   connectionId: string | null = null
 ): MachineRoute | null => {
   const machines = useMachines()
   const pairing = useSubscription(machinePairings, {
-    selector: (all) => (machineId && all[machineId]) || null,
+    selector: (all) => (runsOn && all[runsOn]) || null,
   })
   const asks = useSubscription(machineAsks, {
     selector: (all) => (connectionId && all[connectionId]) || null,
   })
-  const ownId = useThisMachineId()
-  return machineId === null || machineId === ownId
+  return runsOn === null || runsOn === CLOUD
     ? null
     : toRoute({
         asks,
-        machine: machines.find((machine) => machine.id === machineId) ?? null,
-        machineId,
+        machine: machines.find((machine) => machine.id === runsOn) ?? null,
+        machineId: runsOn,
         pairing,
       })
 }
 
-export const useConnectionMachineId = (connectionId: string | null) => {
+export const useConnectionRunsOn = (connectionId: string | null) => {
   const { connectionMachinesCollection } = useCollections()
   const { data = [] } = useLiveQuery((q) =>
     q.from({ row: connectionMachinesCollection })
   )
-  return (
-    data.find((row) => row.connectionId === connectionId)?.machineId ?? null
+  return toRunsOn(
+    data.find((row) => row.connectionId === connectionId) ?? null,
+    useThisMachineId()
   )
 }
 
 export const useMachineRoute = (connectionId: string | null) =>
-  useMachineRouteById(useConnectionMachineId(connectionId), connectionId)
+  useMachineRouteById(useConnectionRunsOn(connectionId), connectionId)
 
 /** Query keys name the connection, not the computer, so a connection that moves must not keep what the previous one answered. */
 export const useDropQueriesOnMachineChange = () => {
@@ -187,20 +212,17 @@ export const clearMachinePairing = (pairing: MachinePairing) => {
 }
 
 /** Its own `mutateOffline`, after the connection's: the server checks the connection exists, and a refusal must not undo it. */
-export const writeConnectionMachine = (
-  connectionId: string,
-  machineId: string | null
-) => {
-  const { connectionMachinesCollection } = getCollections()
-  const row = connectionMachinesCollection.toArray.find(
-    (item) => item.connectionId === connectionId
-  )
-  if ((row?.machineId ?? null) === machineId) {
+export const writeRunsOn = (connectionId: string, runsOn: RunsOn) => {
+  // As this app reads it: a save on the web must not drop the desktop's `CLOUD`, nor one on desktop its own machine's row.
+  if (getConnectionRunsOn(connectionId) === runsOn) {
     return
   }
+  const { connectionMachinesCollection } = getCollections()
+  const row = findRow(connectionId)
+  const machineId = runsOn === CLOUD ? null : runsOn
   const now = new Date()
   mutateOffline(() => {
-    if (machineId === null) {
+    if (runsOn === null) {
       if (row) {
         connectionMachinesCollection.delete(row.id)
       }
@@ -219,5 +241,8 @@ export const writeConnectionMachine = (
       })
     }
   })
-  posthog.capture('connection_machine_set', { on_machine: machineId !== null })
+  posthog.capture('connection_machine_set', {
+    on_cloud: runsOn === CLOUD,
+    on_machine: machineId !== null,
+  })
 }

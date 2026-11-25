@@ -1,7 +1,9 @@
-import { LayoutThreeColumnIcon } from '@hugeicons/core-free-icons'
+import { AiChat02Icon, LayoutThreeColumnIcon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import { enabledFilters } from '@tamery/shared/filters'
 import { uppercaseFirst, pick } from '@tamery/shared/utils'
 import { TableSkeleton } from '@tamery/table'
+import { Button } from '@tamery/ui/components/button'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { useMountedEffect } from '@tamery/ui/hookas/use-mounted-effect'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
@@ -18,7 +20,7 @@ import { isSaving, useTableSessionStore } from '~/core/table/session'
 import { TableError } from '~/core/table/table-error'
 import { tableTabId } from '~/core/tabs/ids'
 import { posthog } from '~/lib/posthog'
-import { askAboutRow } from '~/modules/chat/open-chat'
+import { askAboutError, askAboutRow } from '~/modules/chat/open-chat'
 
 import { useTableColumnsContext, withRowFieldColumns } from '../../lib/columns'
 import { tableGridRef } from '../../lib/grid-ref'
@@ -167,7 +169,32 @@ export const Table = ({
     )
   }
   if (error) {
-    return <TableError error={error} />
+    return (
+      <TableError
+        error={error}
+        title={
+          <>
+            Couldn’t load <span data-mask>{table}</span>
+          </>
+        }
+      >
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            askAboutError({
+              message: error.message,
+              resourceId: connectionResource.id,
+              schema,
+              table,
+            })
+          }
+        >
+          <HugeiconsIcon icon={AiChat02Icon} strokeWidth={2} />
+          Ask AI
+        </Button>
+      </TableError>
+    )
   }
   if (visible.length === 0) {
     return (

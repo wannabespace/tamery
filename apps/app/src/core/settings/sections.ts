@@ -86,9 +86,9 @@ export const settingsSections = [
     icon: AiMagicIcon,
     label: 'AI',
     keywords: [
+      'Providers',
       'Your own key',
       'API key',
-      'Provider',
       'Anthropic',
       'OpenAI',
       'Google',
@@ -102,18 +102,20 @@ export const settingsSections = [
     ],
     slug: 'ai',
   },
-  ...(window.electron
-    ? [
-        {
-          component: GeneralSettings,
-          group: 'App',
-          icon: Settings02Icon,
-          label: 'General',
-          keywords: ['Start at login', 'Open database links in Tamery'],
-          slug: 'general',
-        },
-      ]
-    : []),
+  {
+    component: GeneralSettings,
+    group: 'App',
+    icon: Settings02Icon,
+    label: 'General',
+    keywords: [
+      ...(window.electron
+        ? ['Start at login', 'Open database links in Tamery']
+        : []),
+      'Share usage analytics',
+      'Telemetry',
+    ],
+    slug: 'general',
+  },
   {
     component: AppearanceSettings,
     group: 'App',
@@ -164,8 +166,10 @@ export const settingsSections = [
     keywords: [
       'This computer',
       'Your machines',
-      'Connect by URL',
-      'Machine URL',
+      'Add a machine',
+      'Address for your other computers',
+      'Tailscale',
+      'Tunnel',
       'Tamery CLI',
     ],
     slug: 'machines',

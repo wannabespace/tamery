@@ -243,7 +243,7 @@ export const Tab = ({
           {...pressNavProps(goToTab)}
         >
           {icon}
-          <span className="group-hover:row-action-fade group-has-data-popup-open:row-action-fade min-w-0 flex-1 truncate">
+          <span className="group-hover:row-action-fade group-has-data-popup-open:row-action-fade min-w-0 flex-1 truncate text-left">
             {label}
           </span>
           <Tooltip

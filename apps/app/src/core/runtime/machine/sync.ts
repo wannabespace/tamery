@@ -12,10 +12,11 @@ export interface Machine extends BaseTable {
   urls: string[]
 }
 
-/** Where a connection runs for this user; no row means here, the cloud proxy on the web or this computer on desktop. */
+/** Where a connection runs for this user; no row means here, the cloud proxy on the web or this computer on desktop. Read it as `RunsOn`. */
 export interface ConnectionMachine extends BaseTable {
   connectionId: string
-  machineId: string
+  /** `null` is Tamery Cloud. */
+  machineId: string | null
 }
 
 export const createMachinesCollection = () =>

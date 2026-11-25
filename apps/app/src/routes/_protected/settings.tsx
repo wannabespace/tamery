@@ -134,7 +134,7 @@ const SettingsPage = () => {
                   <HugeiconsIcon
                     icon={icon}
                     strokeWidth={2}
-                    className="text-primary/75"
+                    className="text-muted-foreground"
                   />
                   {label}
                   {hit && (

@@ -41,7 +41,7 @@ const VisualizerTab = () => {
   if (!tables || !constraints || !columns) {
     const error = tablesError ?? columnsError ?? constraintsError
     if (error) {
-      return <TableError error={error} />
+      return <TableError error={error} title="Couldn’t load the schema" />
     }
     return (
       <VisualizerSkeleton

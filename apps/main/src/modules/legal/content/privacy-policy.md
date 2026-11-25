@@ -20,7 +20,7 @@ AI conversation history is stored both locally on your device and synced to our 
 
 ### Analytics
 
-Usage events collected via PostHog (EU servers), linked to your account's ID, email and name. Events carry counts and categories only, never passwords, connection strings, query text or database contents. In the app, session recording is enabled with all database inputs and data masked. The command-line tool (`tamery`) sends usage events too, without session recording, and sends none while the `DO_NOT_TRACK` environment variable is set. Our website sends page views and account actions (such as sign-in, downloads and plan changes) to PostHog without cookies or device storage and without session recording, and additionally uses DataFast for aggregated traffic analytics (page views, referrers, campaign sources).
+Usage events collected via PostHog (EU servers), linked to your account's ID, email and name. Events carry counts and categories only, never passwords, connection strings, query text or database contents. In the app, session recording is enabled with all database inputs and data masked. You can turn off the app's usage events, error reports and session recording on a device under **Settings → General**. The command-line tool (`tamery`) sends usage events too, without session recording, and sends none while the `DO_NOT_TRACK` environment variable is set. Our website sends page views and account actions (such as sign-in, downloads and plan changes) to PostHog without cookies or device storage and without session recording, and additionally uses DataFast for aggregated traffic analytics (page views, referrers, campaign sources).
 
 ## 3. What We Never Store
 
@@ -68,6 +68,7 @@ We implement reasonable security measures, but no system is fully secure. **We d
 - **Update**: Modify your profile at any time
 - **Delete**: Delete your account and all associated data (erased permanently after 90 days, see Data Retention)
 - **Remove connections**: Delete individual connection entries
+- **Opt out**: Turn off the app's analytics on a device under **Settings → General**
 - **Password sync**: Control whether connection passwords are synced to cloud
 
 ## 9. Data Retention

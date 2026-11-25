@@ -9,7 +9,7 @@ import {
   ItemTitle,
 } from '@tamery/ui/components/item'
 import { cn } from '@tamery/ui/lib/utils'
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 
 export const SettingsGroup = ({
   action,
@@ -47,7 +47,8 @@ export const SettingsRow = ({
   icon,
   iconVariant,
   title,
-}: {
+  ...props
+}: Omit<ComponentProps<'div'>, 'title'> & {
   children?: ReactNode
   dense?: boolean
   description?: ReactNode
@@ -59,6 +60,7 @@ export const SettingsRow = ({
   <Item
     size="sm"
     variant="grouped"
+    {...props}
     className={cn(dense && 'py-2')}
     // oxlint-disable-next-line jsx-a11y/label-has-associated-control -- Item renders the title and description into this label
     render={htmlFor ? <label htmlFor={htmlFor} /> : undefined}
