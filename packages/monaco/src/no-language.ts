@@ -1,0 +1,1 @@
+export const noLanguage = null

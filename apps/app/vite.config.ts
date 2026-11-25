@@ -76,6 +76,13 @@ export default defineConfig(({ mode }) => ({
       : null,
   ],
   resolve: {
+    alias: [
+      {
+        // monaco-editor's entry registers every language and worker; the app's editors only use SQL, MongoDB (its own languages), JSON and XML.
+        find: /^\.\/languages\/(?:features\/(?:css|html|typescript)|definitions\/(?!xml\/)[^/]+)\/register\.js$/u,
+        replacement: '@tamery/monaco/no-language',
+      },
+    ],
     tsconfigPaths: true,
   },
 }))
