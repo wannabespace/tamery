@@ -18,12 +18,14 @@ const { useRouteContext } = getRouteApi('/account')
 export const TeamSeats = ({
   assignableSeats,
   isChangingSeats,
+  isOpeningPortal,
   isTrial,
   onChangeSeats,
   seats,
 }: {
   assignableSeats: number
   isChangingSeats: boolean
+  isOpeningPortal: boolean
   isTrial: boolean
   onChangeSeats: () => void
   seats: number
@@ -88,10 +90,12 @@ export const TeamSeats = ({
         <Button
           variant="outline"
           size="sm"
-          disabled={isChangingSeats}
+          disabled={isOpeningPortal}
           onClick={onChangeSeats}
         >
-          Change seats
+          <LoadingContent loading={isChangingSeats}>
+            Change seats
+          </LoadingContent>
         </Button>
       </SettingsRow>
       <SettingsRow title={<span data-mask>{user.email}</span>}>
