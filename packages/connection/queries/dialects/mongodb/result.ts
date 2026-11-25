@@ -4,15 +4,20 @@ import type { ResultSet } from '../..'
 import { resultSet } from '../..'
 import { mongodb } from './client'
 
-const { EJSON, Long } = mongodb.BSON
+const { Double, EJSON, Long } = mongodb.BSON
 
-// Relaxed Extended JSON turns a 64-bit Long into a double, so an `_id` past 2^53 reads back changed and an edit or delete would hit the wrong document. Pre-wrapping each Long keeps it exact; other BSON types are left for the serializer.
-const keepLongs = (value: unknown): unknown => {
-  if (value instanceof Long) {
+// Rows are read with `promoteValues: false`, and relaxed Extended JSON writes an integral Double and a Long as plain numbers:
+// `toShell` would write the Double back as Int32, and a Long past 2^53 would read back changed, so an edit or delete
+// would hit the wrong document. Both stay typed; every other value goes out relaxed.
+const keepTypes = (value: unknown): unknown => {
+  if (value instanceof Long && !Number.isSafeInteger(value.toNumber())) {
     return { $numberLong: value.toString() }
   }
+  if (value instanceof Double && Number.isInteger(value.value)) {
+    return EJSON.serialize(value, { relaxed: false })
+  }
   if (Array.isArray(value)) {
-    return value.map(keepLongs)
+    return value.map(keepTypes)
   }
   if (
     value !== null &&
@@ -20,14 +25,14 @@ const keepLongs = (value: unknown): unknown => {
     value.constructor === Object
   ) {
     return Object.fromEntries(
-      Object.entries(value).map(([key, inner]) => [key, keepLongs(inner)])
+      Object.entries(value).map(([key, inner]) => [key, keepTypes(inner)])
     )
   }
   return value
 }
 
 const toWire = (value: unknown) =>
-  EJSON.serialize({ value: keepLongs(value) }, { relaxed: true }).value
+  EJSON.serialize({ value: keepTypes(value) }, { relaxed: true }).value
 
 export const value = (column: string, result: unknown): ResultSet => ({
   affectedRows: null,
@@ -37,7 +42,8 @@ export const value = (column: string, result: unknown): ResultSet => ({
 })
 
 export const affected = (count: number): ResultSet => ({
-  affectedRows: count,
+  // Under `promoteValues: false` a delete's count arrives as an Int32, whatever its type says.
+  affectedRows: Number(count),
   columns: [],
   rows: [],
   truncated: false,
