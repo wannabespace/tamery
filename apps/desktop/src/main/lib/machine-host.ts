@@ -104,6 +104,10 @@ const start = async (account: VaultAccount | null) => {
   )
   child = forked
   forked.on('message', async (reply: MachineProcessReply) => {
+    // A reply that lands after this process exited or was stopped would overwrite the state of the one that replaced it.
+    if (child !== forked) {
+      return
+    }
     if (reply.type === 'approval') {
       send(forked, {
         allowed: await askApproval(reply),
