@@ -252,6 +252,31 @@ test('a trial gives one seat besides the owner whatever count it will bill', asy
   expect(await assignedEmails()).toEqual(['first@tamery.test'])
 })
 
+test('new Team seats wait for payment while existing seats stay assigned', async () => {
+  const owner = await createTeam({ quantity: 4, status: 'trialing' })
+  const holder = await createUser('holder@tamery.test')
+  await assign(owner, holder.email)
+
+  retrieve.mockResolvedValue(
+    stripeSubscription({ quantity: 4, status: 'past_due', userId: owner.id })
+  )
+  await syncSubscription('sub_test')
+
+  expect(await getSubscription(holder.id)).toMatchObject({ plan: 'team' })
+  await expect(assign(owner, 'next@tamery.test')).rejects.toThrow(
+    'Update your payment method'
+  )
+  expect(await assignedEmails()).toEqual([holder.email])
+
+  retrieve.mockResolvedValue(
+    stripeSubscription({ quantity: 4, status: 'active', userId: owner.id })
+  )
+  await syncSubscription('sub_test')
+
+  await assign(owner, 'next@tamery.test')
+  expect(await assignedEmails()).toEqual([holder.email, 'next@tamery.test'])
+})
+
 test("an owner cannot remove another team's seat", async () => {
   const owner = await createTeam({ quantity: 2 })
   await assign(owner, 'holder@tamery.test')

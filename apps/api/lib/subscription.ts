@@ -2,7 +2,6 @@ import { db } from '@tamery/db'
 import type { SubscriptionStatus } from '@tamery/db/schema'
 import { subscriptions, subscriptionSeats, users } from '@tamery/db/schema'
 import { ACTIVE_SUBSCRIPTION_STATUSES } from '@tamery/shared/constants'
-import type { SubscriptionPlan } from '@tamery/shared/permissions'
 import { and, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import { v7 } from 'uuid'
 
@@ -19,16 +18,12 @@ const ENDED_STATUSES = new Set<SubscriptionStatus>([
   'incomplete_expired',
 ])
 
-/** Seats the owner may hand out: one during a trial whatever count it will bill, none once the Team ended or became Pro. */
-export const getAssignableSeats = ({
-  plan,
-  seats,
-  status,
-}: {
-  plan: SubscriptionPlan
-  seats: number
-  status: SubscriptionStatus | null
-}) => {
+type SeatPlan = Pick<
+  typeof subscriptions.$inferSelect,
+  'plan' | 'seats' | 'status'
+>
+
+const getSeatCapacity = ({ plan, seats, status }: SeatPlan) => {
   if (plan !== 'team' || !status || ENDED_STATUSES.has(status)) {
     return 0
   }
@@ -38,6 +33,11 @@ export const getAssignableSeats = ({
     OWNER_SEATS
   )
 }
+
+export const getAssignableSeats = (subscription: SeatPlan) =>
+  subscription.status === 'active' || subscription.status === 'trialing'
+    ? getSeatCapacity(subscription)
+    : 0
 
 /** The user's own subscriptions first, then the active Teams that gave their verified email a seat. */
 export const getSubscriptions = (userId: string) =>
@@ -168,7 +168,7 @@ export const syncSubscription = (stripeSubscriptionId: string) =>
             .from(subscriptionSeats)
             .where(eq(subscriptionSeats.subscriptionId, id))
             .orderBy(subscriptionSeats.id)
-            .offset(getAssignableSeats(values))
+            .offset(getSeatCapacity(values))
         )
       )
   })
