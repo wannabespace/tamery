@@ -192,6 +192,10 @@ const start = async () => {
   const opened = await Result.tryPromise(() => once(listening, 'listening'))
   if (opened.isErr()) {
     server = toError(opened.error.cause)
+    // Whatever holds the port may have received the token from an agent configured for Tamery.
+    if (hasErrnoCode(server, 'EADDRINUSE')) {
+      store.set('token', newToken())
+    }
   }
 }
 
@@ -209,7 +213,7 @@ const status = (): McpStatus => {
     const portTaken = hasErrnoCode(server, 'EADDRINUSE')
     return {
       error: portTaken
-        ? `The server could not start because port ${PORTS.MCP} is taken, most likely by another copy of Tamery. Quit it, then turn the server off and on again.`
+        ? `The server could not start because port ${PORTS.MCP} is taken, most likely by another copy of Tamery. Quit it, then turn the server off and on again and add Tamery to your agents again: the access token has changed.`
         : `The server could not start: ${server.message}`,
       state: 'failed',
     }
