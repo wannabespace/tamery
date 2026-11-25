@@ -1,3 +1,4 @@
+import { APICallError } from 'ai'
 import { type } from 'arktype'
 
 import { env } from '../env'
@@ -45,7 +46,12 @@ export const askJev = async (data: {
     ]),
   })
   if (!response.ok) {
-    throw new Error(`Jev answered ${response.status}`)
+    throw new APICallError({
+      message: `Jev answered ${response.status}`,
+      requestBodyValues: {},
+      statusCode: response.status,
+      url: DECISIONS_URL,
+    })
   }
   const jev = jevResponse.assert(await response.json())
   await data.onUsage({

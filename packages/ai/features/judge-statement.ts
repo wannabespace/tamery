@@ -4,6 +4,7 @@ import { type } from 'arktype'
 
 import type { AiKey } from '../models/own-key'
 import { modelsFor } from '../models/own-key'
+import { logProviderError } from '../provider-error'
 import type { JevUsage } from './jev'
 import { askJev } from './jev'
 import { section } from './prompt'
@@ -81,8 +82,8 @@ const askJevToAutoRun = async (
       judge: 'jev',
       probability,
     }
-  } catch {
-    console.error('jev judge failed')
+  } catch (error) {
+    logProviderError('jev judge', error)
     return null
   }
 }
@@ -107,8 +108,8 @@ export const judgeStatement = async (
       judge: 'fallback',
       probability: null,
     }
-  } catch {
-    console.error('fallback judge failed')
+  } catch (error) {
+    logProviderError('fallback judge', error)
     return null
   }
 }

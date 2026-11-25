@@ -6,6 +6,7 @@ import { v7 } from 'uuid'
 
 import { env } from '../env'
 import { CHAT_LIMITS } from '../limits'
+import { logProviderError } from '../provider-error'
 import type { ChatStepInput } from './chat-step'
 import { streamChatStep } from './chat-step'
 
@@ -91,8 +92,8 @@ export const chatStream = {
         messages: data.messages,
         model: data.model,
         onEnd: data.onFinish,
-        onError: () => {
-          console.error(`chat stream ${streamId} failed`)
+        onError: (error) => {
+          logProviderError(`chat stream ${streamId}`, error)
           return 'Something went wrong while generating the answer.'
         },
         summary: data.summary,
