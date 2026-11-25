@@ -111,7 +111,7 @@
 
 ## Filter field
 
-Suggestion order is JSX order (`shouldFilter={false}`) — the literal answer first, `Ask AI` last. Chips scroll in a capped row so the field never grows forever, and read as prose (`Is not null`), never raw SQL. AI results report as the input's placeholder behind a check icon, never a toast and never inside the scrolling list. A JSON column adds `Filter inside <column>`, which browses the sampled keys one level at a time by writing the dotted path into the input, so a typed path and a browsed one are the same text; a typed path into a JSON column takes the highlight from `Ask AI`. Quota exhaustion disables the `Ask AI` item alone, never the input. Blur keeps the in-progress stage; only Escape steps back.
+Suggestion order is JSX order (`shouldFilter={false}`) — the literal answer first, `Ask AI` last. Chips scroll in a capped row so the field never grows forever, and read as prose (`Is not null`), never raw SQL. AI results report as the input's placeholder behind a check icon, never a toast and never inside the scrolling list. A JSON column adds `Filter inside <column>`, which browses the sampled keys one level at a time by writing the dotted path into the input, so a typed path and a browsed one are the same text; a typed path into a JSON column takes the highlight from `Ask AI`. Quota exhaustion disables the `Ask AI` item alone, never the input. Blur keeps the in-progress stage; only Escape steps back. The field keeps a usable minimum width: in a narrow pane the toolbar wraps its action group onto a second, right-aligned row instead of squeezing the field until its hint spills over the buttons.
 
 ## Panes
 
