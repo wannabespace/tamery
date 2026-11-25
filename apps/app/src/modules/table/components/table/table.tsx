@@ -44,6 +44,9 @@ import { TableFieldLabel, TableHeaderCell } from './table-header-cell'
 import { keysInRange } from './table-selection'
 import { DocumentsSkeleton } from './table-skeleton'
 
+// A fresh `[]` default here stops the compiler from memoizing everything derived from `rows`, so every Table render re-renders every grid cell.
+const NO_ROWS: Record<string, unknown>[] = []
+
 export const Table = ({
   onAddColumn,
   schema,
@@ -89,7 +92,7 @@ export const Table = ({
   })
   const filters = enabledFilters(activeFilters)
   const {
-    data: rows = [],
+    data: rows = NO_ROWS,
     error,
     fetchNextPage,
     hasNextPage,

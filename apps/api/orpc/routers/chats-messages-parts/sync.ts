@@ -6,10 +6,10 @@ import {
   chatsMessagesPartsSelectSchema,
 } from '@tamery/db/schema'
 import { type } from 'arktype'
-import { and, eq, getColumns, inArray, notInArray } from 'drizzle-orm'
+import { and, eq, getColumns } from 'drizzle-orm'
 
 import { authMiddleware, orpc } from '~/orpc'
-import { createSyncOutputSchema, syncDiff } from '~/orpc/lib/sync'
+import { createSyncOutputSchema, idIn, syncDiff } from '~/orpc/lib/sync'
 
 const output = createSyncOutputSchema(chatsMessagesPartsSelectSchema).array()
 
@@ -33,32 +33,25 @@ export const sync = orpc
   )
   .output(output)
   .handler(async ({ input, context }) => {
+    const owned = eq(chats.userId, context.user.id)
     const { newItems, missingIds } = await syncDiff({
       input,
       queries: {
-        existing: (includeIds) =>
+        rows: (ids) =>
+          userParts().where(and(owned, idIn(chatsMessagesParts.id, ids))),
+        versions: () =>
           db
-            .select({ id: chatsMessagesParts.id })
+            .select({
+              id: chatsMessagesParts.id,
+              updatedAt: chatsMessagesParts.updatedAt,
+            })
             .from(chatsMessagesParts)
             .innerJoin(
               chatsMessages,
               eq(chatsMessagesParts.messageId, chatsMessages.id)
             )
             .innerJoin(chats, eq(chatsMessages.chatId, chats.id))
-            .where(
-              and(
-                eq(chats.userId, context.user.id),
-                inArray(chatsMessagesParts.id, includeIds)
-              )
-            )
-            .then((r) => r.map((i) => i.id)),
-        new: (excludeIds) =>
-          userParts().where(
-            and(
-              eq(chats.userId, context.user.id),
-              notInArray(chatsMessagesParts.id, excludeIds)
-            )
-          ),
+            .where(owned),
       },
     })
 

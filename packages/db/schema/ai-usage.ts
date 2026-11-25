@@ -27,5 +27,9 @@ export const aiUsage = d.snakeCase.table(
       .uuid()
       .references(() => workspaces.id, { onDelete: 'set null' }),
   },
-  (t) => [d.index().on(t.userId, t.createdAt)]
+  (t) => [
+    d.index().on(t.userId, t.createdAt),
+    d.index().on(t.chatId),
+    d.index().on(t.workspaceId),
+  ]
 )

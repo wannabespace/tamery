@@ -1,7 +1,12 @@
-import { expect, test } from 'bun:test'
+import { expect, mock, test } from 'bun:test'
 
 import { call, os } from '@orpc/server'
-import { transactionQueries } from '@tamery/connection/queries/transactions'
+import { cancellable } from '@tamery/connection/queries/cancellation'
+import {
+  registerTransaction,
+  transactionQueries,
+} from '@tamery/connection/queries/transactions'
+import { noop } from '@tamery/shared/utils'
 
 import { createQueryRouter } from '.'
 
@@ -10,6 +15,61 @@ const orpc = builder.use(builder.middleware(({ next }) => next()))
 const router = createQueryRouter(orpc, {
   connectionString: () => '',
   owner: (context) => context.userId,
+})
+
+test('only the query owner can cancel a running query', async () => {
+  const owner = { userId: 'owner-a' }
+  const otherUser = { userId: 'owner-b' }
+  const connectionString = 'postgres://db.example.test/test'
+  const queryId = 'test-query'
+  const caller = createQueryRouter(orpc, {
+    connectionString: () => connectionString,
+    owner: (context) => context.userId,
+  }).postgres
+  const started = Promise.withResolvers<null>()
+  const finished = Promise.withResolvers<null>()
+  const cancel = mock(() => Promise.resolve())
+  const txId = registerTransaction(
+    {
+      commit: noop,
+      execute: (_query, _values, options) =>
+        cancellable(
+          {
+            cancel,
+            connectionString,
+            queryId: options.queryId,
+          },
+          async () => {
+            started.resolve(null)
+            await finished.promise
+            return { duration: 0, result: [] }
+          }
+        ),
+      release: noop,
+      rollback: noop,
+    },
+    owner.userId
+  )
+  const running = call(
+    caller.executeTransaction,
+    { query: 'SELECT 1', queryId, txId, values: [] },
+    { context: owner }
+  )
+  try {
+    await Promise.race([started.promise, running])
+    const input = { connectionString, queryId }
+    await call(caller.cancel, input, { context: otherUser })
+    expect(cancel).not.toHaveBeenCalled()
+    await call(caller.cancel, input, { context: owner })
+    expect(cancel).toHaveBeenCalledTimes(1)
+  } finally {
+    finished.resolve(null)
+    await running
+    await transactionQueries.rollbackTransaction({
+      ownerId: owner.userId,
+      txId,
+    })
+  }
 })
 
 test('cloud transactions ignore a forged client owner for execute, commit and rollback', async () => {

@@ -173,6 +173,8 @@ catalog:
   ssh-config: ^5.3.1
   '@tanstack/react-router-ssr-query': 1.167.3
   ini: ^7.0.0
+  validator: ^13.15.35
+  '@types/validator': ^13.15.10
   fast-xml-parser: ^5.12.1
   fumadocs-core: ^16.19.5
   fumadocs-mdx: ^15.6.4

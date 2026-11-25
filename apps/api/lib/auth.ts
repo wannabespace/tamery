@@ -15,6 +15,7 @@ import {
   formatDeviceLabel,
 } from '@tamery/shared/device-label'
 import { ORIGINS } from '@tamery/shared/origins'
+import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import {
   invitableRole,
   isDefaultWorkspaceMetadata,
@@ -45,12 +46,14 @@ import {
   ownerAc,
 } from 'better-auth/plugins/organization/access'
 import { eq } from 'drizzle-orm'
+import normalizeEmail from 'validator/lib/normalizeEmail.js'
 
 import { env, nodeEnv } from '~/env'
 import { locateIp } from '~/lib/geo-ip'
 import { posthog } from '~/lib/posthog'
 import { resend, sendEmail } from '~/lib/resend'
 import { safeEqual } from '~/lib/safe-equal'
+import { getSubscription } from '~/lib/subscription'
 
 import { redis, redisMemoize } from './redis'
 import {
@@ -246,7 +249,8 @@ export const auth = betterAuth({
             await ensureDefaultWorkspace(session.userId)
           } catch (error) {
             console.error(
-              `Failed to ensure default workspace on session create: ${error instanceof Error ? error.message : error}`
+              'Failed to ensure default workspace on session create',
+              sanitizeLogData(error)
             )
           }
 
@@ -341,16 +345,18 @@ export const auth = betterAuth({
       }
     }),
   },
+  logger: {
+    log: (level, message, ...args) => {
+      console[level]('[Better Auth]', ...sanitizeLogData([message, ...args]))
+    },
+  },
   onAPIError: {
     onError: async (error) => {
       if (isAPIError(error) && error.statusCode < 500) {
         return
       }
 
-      const text =
-        typeof error === 'object' && error !== null
-          ? JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
-          : String(error)
+      const text = JSON.stringify(sanitizeLogData(error), null, 2)
 
       if (env.ALERTS_EMAIL) {
         await sendEmail({
@@ -658,7 +664,7 @@ export const auth = betterAuth({
       },
     },
     lastLoginMethod(),
-    emailHarmony(),
+    emailHarmony({ normalizer: normalizeEmail }),
     anonymous(),
   ],
   rateLimit: {
@@ -724,6 +730,20 @@ export const auth = betterAuth({
       },
       // Not the database delete hook: Better Auth deletes the user's sessions and accounts before that one runs, so refusing there would sign them out of an account it keeps.
       beforeDelete: async (user) => {
+        const subscription = await getSubscription(user.id)
+
+        if (
+          subscription?.userId === user.id &&
+          !subscription.cancelAtPeriodEnd &&
+          !subscription.cancelAt
+        ) {
+          throw APIError.from('BAD_REQUEST', {
+            code: 'ACTIVE_SUBSCRIPTION',
+            message:
+              'Cancel your subscription in the billing portal before deleting your account.',
+          })
+        }
+
         const lastOwned = await getLastOwnedSharedWorkspaceName(user.id)
 
         if (lastOwned) {

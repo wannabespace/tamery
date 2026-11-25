@@ -21,7 +21,7 @@ export const KeyboardSettings = () => {
           htmlFor="shortcut-reveal"
           title={
             <>
-              Show shortcuts while holding
+              Show shortcuts while holding{' '}
               <Ctrl userAgent={navigator.userAgent} />
             </>
           }

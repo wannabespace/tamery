@@ -16,7 +16,7 @@ const getErrorMessage = (error: unknown) =>
   (error as Error)?.message ||
   UNKNOWN_ERROR_MESSAGE
 
-const isSessionExpiredError = (error: unknown) =>
+export const isSessionExpiredError = (error: unknown) =>
   (typeof error === 'object' &&
     error !== null &&
     'status' in error &&

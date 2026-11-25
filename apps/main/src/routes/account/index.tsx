@@ -1,5 +1,6 @@
 import { FavouriteIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { silently } from '@tamery/shared/utils'
 import {
   Alert,
   AlertAction,
@@ -14,6 +15,7 @@ import { useEffect, useState } from 'react'
 
 import { AccountPage } from '~/components/account-page'
 import { orpc } from '~/lib/orpc'
+import { PAID_PLANS, PRO_PLAN } from '~/utils/pricing'
 
 import { Subscription } from './-components/subscription'
 
@@ -33,10 +35,15 @@ const getReturnUrl = (clientType: 'web' | 'desktop' | 'cli' | undefined) => {
 }
 
 const RouteComponent = () => {
-  const { subscription, type: clientType } = useSearch()
+  const { plan, subscription, type: clientType } = useSearch()
   const router = useRouter()
   // oxlint-disable-next-line react/hook-use-state
-  const [isSuccess] = useState(() => subscription === 'success')
+  const [paidPlan] = useState(() =>
+    subscription === 'success'
+      ? (PAID_PLANS.find(({ id }) => id === plan) ?? PRO_PLAN)
+      : null
+  )
+  const isSuccess = paidPlan !== null
   // oxlint-disable-next-line react/hook-use-state
   const [returnUrl] = useState(() => getReturnUrl(clientType))
 
@@ -63,10 +70,10 @@ const RouteComponent = () => {
 
   return (
     <AccountPage title="Subscription">
-      {isSuccess && (
+      {paidPlan && (
         <Alert variant="success">
           <HugeiconsIcon icon={FavouriteIcon} strokeWidth={2} />
-          <AlertTitle>Welcome to Tamery Pro</AlertTitle>
+          <AlertTitle>{`Welcome to Tamery ${paidPlan.name}`}</AlertTitle>
           <AlertDescription>
             Your subscription is active. Thank you for supporting Tamery.
           </AlertDescription>
@@ -92,13 +99,23 @@ export const Route = createFileRoute('/account/')({
   validateSearch: type({
     'subscription?': '"success" | "cancel"',
     'period?': '"monthly" | "yearly"',
+    'plan?': '"pro" | "team"',
     'type?': '"web" | "desktop" | "cli"',
   }),
   component: RouteComponent,
   loader: async ({ context }) => {
-    await context.queryClient.query({
+    const subscriptions = await context.queryClient.query({
       ...orpc.account.subscription.list.queryOptions(),
       staleTime: 'static',
     })
+
+    if (subscriptions.some((s) => s.isOwner && s.plan === 'team')) {
+      await silently(() =>
+        context.queryClient.query({
+          ...orpc.account.subscription.seats.list.queryOptions(),
+          staleTime: 'static',
+        })
+      )
+    }
   },
 })

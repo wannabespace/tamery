@@ -3,6 +3,7 @@ import { connections, queries } from '@tamery/db/schema'
 import { challenge } from '@tamery/shared/challenge'
 import { CLIENT_IP_HEADER } from '@tamery/shared/constants'
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
+import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { type } from 'arktype'
 import { eq } from 'drizzle-orm'
 
@@ -96,7 +97,7 @@ export const exchange = orpc
       await adoptAnonymousUser(current.user.id, data.userId).catch((error) => {
         console.error(
           `Failed to adopt anonymous user ${current.user.id} into ${data.userId}`,
-          error
+          sanitizeLogData(error)
         )
         throw errors.INTERNAL_SERVER_ERROR({ cause: error })
       })
