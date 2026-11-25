@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 
 import { toShell } from '@tamery/mongo/shell'
+import { toWire } from '@tamery/mongo/values'
 
 import { mongodb, parseShellValue } from './client'
 
@@ -36,4 +37,13 @@ describe('values the app writes as mongosh', () => {
       }).value
     )
   })
+})
+
+it('stores a whole number typed into a double field as a double', () => {
+  const parsed = parseShellValue(toShell(toWire('double', '5')), {
+    mode: 'loose',
+  })
+  expect(
+    EJSON.serialize({ value: parsed }, { legacy: false, relaxed: false }).value
+  ).toStrictEqual({ $numberDouble: '5.0' })
 })
