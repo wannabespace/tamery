@@ -81,8 +81,8 @@ const askJevToAutoRun = async (
       judge: 'jev',
       probability,
     }
-  } catch (error) {
-    console.error('jev judge failed', error)
+  } catch {
+    console.error('jev judge failed')
     return null
   }
 }
@@ -107,8 +107,8 @@ export const judgeStatement = async (
       judge: 'fallback',
       probability: null,
     }
-  } catch (error) {
-    console.error('fallback judge failed', error)
+  } catch {
+    console.error('fallback judge failed')
     return null
   }
 }

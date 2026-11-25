@@ -52,8 +52,8 @@ const rate = async (
       state: { request },
     })
     return Math.round(difficultyAnswer.assert(answers.difficulty).score)
-  } catch (error) {
-    console.error('jev difficulty failed', error)
+  } catch {
+    console.error('jev difficulty failed')
     return STANDARD_TIER
   }
 }

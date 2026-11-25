@@ -20,8 +20,8 @@ export const set = orpc
     },
   })
   .handler(async ({ context, errors, input }) => {
-    await verifyAiKey(input).catch((error: unknown) => {
-      console.error('ai key verification failed', error)
+    await verifyAiKey(input).catch(() => {
+      console.error('ai key verification failed')
       throw errors.BAD_REQUEST()
     })
     await aiKey.set(context.user.id, input)

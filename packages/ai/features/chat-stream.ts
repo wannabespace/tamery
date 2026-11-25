@@ -91,8 +91,8 @@ export const chatStream = {
         messages: data.messages,
         model: data.model,
         onEnd: data.onFinish,
-        onError: (error) => {
-          console.error(`chat stream ${streamId} failed`, error)
+        onError: () => {
+          console.error(`chat stream ${streamId} failed`)
           return 'Something went wrong while generating the answer.'
         },
         summary: data.summary,

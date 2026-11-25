@@ -70,8 +70,8 @@ export const chatPersist = {
       messages: older,
       previous: previous?.summary,
       telemetry: data.telemetry,
-    }).catch((error: unknown) => {
-      console.error('chat compaction failed', error)
+    }).catch(() => {
+      console.error('chat compaction failed')
       return null
     })
     if (!next) {
