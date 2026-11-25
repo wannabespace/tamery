@@ -63,10 +63,17 @@ const start = async ({
   publicUrl,
 }: Extract<MachineProcessRequest, { type: 'start' }>) => {
   vault.useKey(key)
-  if (account) {
-    await localAccount.set(account)
+  const saved = await Result.tryPromise(async () => {
+    if (account) {
+      await localAccount.set(account)
+    }
+    return vault.account()
+  })
+  if (saved.isErr()) {
+    reply({ message: toError(saved.error.cause).message, type: 'failed' })
+    return
   }
-  const signedIn = await vault.account()
+  const signedIn = saved.value
   if (!signedIn) {
     reply({
       message: 'Sign in again to let other devices use this computer.',

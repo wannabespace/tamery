@@ -131,7 +131,11 @@ const start = async (account: VaultAccount | null) => {
     }
     child = null
     if (state.status !== 'failed') {
-      state = { status: 'off' }
+      state = {
+        message:
+          'This computer’s machine stopped unexpectedly. Turn it off and on again.',
+        status: 'failed',
+      }
     }
   })
   send(forked, {
