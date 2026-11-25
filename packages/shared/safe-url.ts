@@ -106,15 +106,13 @@ export class SafeURL implements URL {
     let href = url.toString()
 
     if (originalUsername !== encodedUsername) {
-      href = href.replace(
-        encodedUsername,
+      href = href.replace(encodedUsername, () =>
         originalUsername.replaceAll(' ', '%20')
       )
     }
 
     if (originalPassword !== encodedPassword) {
-      href = href.replace(
-        encodedPassword,
+      href = href.replace(encodedPassword, () =>
         originalPassword.replaceAll(' ', '%20')
       )
     }

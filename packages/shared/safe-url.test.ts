@@ -207,6 +207,10 @@ describe('new SafeURL', () => {
       'postgres://u:123/x?k=v@host/db',
       { hostname: 'host', password: '123/x?k=v', username: 'u' },
     ],
+    [
+      "mongodb://u$$s$&r:pa$$w$&r$'d@host/db",
+      { hostname: 'host', password: "pa$$w$&r$'d", username: 'u$$s$&r' },
+    ],
   ])('splits the credentials of %s before its query', (conn, expected) => {
     const parsed = new SafeURL(conn)
 
