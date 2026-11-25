@@ -141,6 +141,16 @@ export const syncSubscription = (stripeSubscriptionId: string) =>
         throw new Error('No userId found in subscription metadata')
       }
 
+      // Deleting the account deleted its row, and Stripe keeps sending events until the subscription ends.
+      const [owner] = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, userId))
+
+      if (!owner) {
+        return
+      }
+
       await tx.insert(subscriptions).values({
         ...values,
         id,

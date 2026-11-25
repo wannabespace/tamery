@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, expect, mock, spyOn, test } from 'bun:test'
 import process from 'node:process'
 
 import { call, os } from '@orpc/server'
+import { eq } from 'drizzle-orm'
 import { Client } from 'pg'
 import { v7 } from 'uuid'
 
@@ -320,4 +321,16 @@ test('overlapping deliveries store the state Stripe returned last', async () => 
     .select({ seats: subscriptions.seats })
     .from(subscriptions)
   expect(rows).toEqual([{ seats: 2 }])
+})
+
+test('an event for a subscription whose owner deleted the account changes nothing', async () => {
+  const owner = await createTeam({ quantity: 2 })
+  await db.delete(users).where(eq(users.id, owner.id))
+
+  retrieve.mockResolvedValue(
+    stripeSubscription({ quantity: 2, status: 'canceled', userId: owner.id })
+  )
+  await syncSubscription('sub_test')
+
+  expect(await db.select().from(subscriptions)).toEqual([])
 })
