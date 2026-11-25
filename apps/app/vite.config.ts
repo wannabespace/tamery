@@ -1,6 +1,7 @@
 import posthog from '@posthog/rollup-plugin'
 import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
+import { dropUnusedMonacoLanguages } from '@tamery/monaco/vite'
 import { setupPortlessEnvs } from '@tamery/shared/portless-env'
 import { POSTHOG_API_HOST, POSTHOG_UI_HOST } from '@tamery/shared/posthog'
 import { inlineHtml } from '@tamery/vite-inline-html'
@@ -34,7 +35,13 @@ export default defineConfig(({ mode }) => ({
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageJson.version),
     'import.meta.env.VITE_TEST': mode === 'test',
   },
+  optimizeDeps: {
+    rolldownOptions: {
+      plugins: [dropUnusedMonacoLanguages()],
+    },
+  },
   plugins: [
+    dropUnusedMonacoLanguages(),
     tailwindcss(),
     tanstackRouter({
       autoCodeSplitting: true,
