@@ -30,7 +30,7 @@ Every name in `api_secrets` (`infra/secrets.tf`) is a secret the api mounts at `
 
 1. **Add:** push the name. The Infra apply creates the secret, then stops at the `api` service, which cannot mount a secret with no value: set it (above) and re-run the workflow.
 2. **Rename:** add the new name beside the old one, set its value, and ship the code that reads it. The old name keeps the running revision booting until the new one takes over.
-3. **Retire** only once no running revision reads the name: drop it and the `prevent_destroy` in one change, approve the apply only if the plan destroys just that secret, and put `prevent_destroy` back in the next change.
+3. **Retire:** drop the name and the `prevent_destroy` in one change, approve the apply only if the plan destroys just that secret and its bindings, and put `prevent_destroy` back in the next change. The bindings are `create_before_destroy`, so the apply updates every service and job that mounted the name before it revokes the binding and deletes the secret, and the running revision keeps booting until the new one is up. A binding created before that flag was added has it in the state only after one more apply: keep such a name in `retired_api_secrets`, which keeps the secret and the api's binding without mounting it, for one apply first.
 
 ## Rotation
 
@@ -43,7 +43,7 @@ gcloud run jobs execute api-rotate --region=europe-west3 --wait --args=run,rotat
 
 The output is in the execution's logs.
 
-Each run, like any job you execute by hand, sends the "Deploy outside GitHub Actions" alert.
+Each run, like any job you execute by hand, sends the "Deploy outside the Deploy workflow" alert, and so does an Infra apply that changes a Cloud Run service or job.
 
 **New key value:**
 

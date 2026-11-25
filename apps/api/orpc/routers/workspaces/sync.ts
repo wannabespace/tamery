@@ -1,12 +1,11 @@
 import { db } from '@tamery/db'
 import { members, workspaces } from '@tamery/db/schema'
 import { type } from 'arktype'
-import { addSeconds } from 'date-fns'
 import type { SQL } from 'drizzle-orm'
-import { and, eq, gte, inArray, notInArray, or, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 
 import { authMiddleware, orpc } from '~/orpc'
-import { syncDiff } from '~/orpc/lib/sync'
+import { idIn, syncDiff } from '~/orpc/lib/sync'
 
 import { output as eventOutput } from './events'
 
@@ -47,32 +46,13 @@ export const sync = orpc
     const { updatedItems, newItems, missingIds } = await syncDiff({
       input,
       queries: {
-        existing: (includeIds) =>
+        rows: (ids) => workspaceRows(userId, idIn(workspaces.id, ids)),
+        versions: () =>
           db
-            .select({ id: workspaces.id })
+            .select({ id: workspaces.id, updatedAt })
             .from(workspaces)
             .innerJoin(members, eq(members.workspaceId, workspaces.id))
-            .where(
-              and(
-                eq(members.userId, userId),
-                inArray(workspaces.id, includeIds)
-              )
-            )
-            .then((rows) => rows.map((row) => row.id)),
-        new: (excludeIds) =>
-          workspaceRows(userId, notInArray(workspaces.id, excludeIds)),
-        updated: (items) =>
-          workspaceRows(
-            userId,
-            or(
-              ...items.map((item) =>
-                and(
-                  eq(workspaces.id, item.id),
-                  gte(updatedAt, addSeconds(item.updatedAt, 1))
-                )
-              )
-            )
-          ),
+            .where(eq(members.userId, userId)),
       },
     })
     const syncResult: typeof output.infer = []

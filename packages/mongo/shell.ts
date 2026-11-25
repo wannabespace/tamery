@@ -1,4 +1,5 @@
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/u
+const INTEGER = /^-?\d+$/u
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -32,7 +33,9 @@ const SHAPED_CONSTRUCTORS: Record<string, (inner: unknown) => string | null> = {
       return `ISODate(${JSON.stringify(inner)})`
     }
     const millis = isRecord(inner) ? inner.$numberLong : null
-    return typeof millis === 'string' ? `new Date(${millis})` : null
+    return typeof millis === 'string' && INTEGER.test(millis)
+      ? `new Date(${millis})`
+      : null
   },
   $maxKey: () => 'MaxKey()',
   $minKey: () => 'MinKey()',
