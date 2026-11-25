@@ -20,6 +20,9 @@ env:
   TF_IN_AUTOMATION: 'true'
   TF_VAR_alerts_email: ${{ secrets.TF_VAR_ALERTS_EMAIL }}
   TF_VAR_sql_authorized_networks: ${{ secrets.TF_VAR_SQL_AUTHORIZED_NETWORKS }}
+  # tamery-tofu may only update existing Cloud Run services and jobs (monorepo.md), and the apply job runs only on the changes the plan job showed.
+  BEYOND_CLOUD_RUN: '.resource_changes[] | select(.change.actions != ["no-op"] and .change.actions != ["read"]) | select((.type | IN("google_cloud_run_v2_service", "google_cloud_run_v2_job")) and .change.actions == ["update"] | not) | .address'
+  CHANGES: '[.resource_changes[] | select(.change.actions != ["no-op"]) | {address, change: (.change | {actions, before, after, after_unknown})}] | sort_by(.address)'
 
 defaults:
   run:
@@ -29,7 +32,8 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
-      changes: ${{ steps.plan.outputs.changes }}
+      apply: ${{ steps.plan.outputs.apply }}
+      digest: ${{ steps.plan.outputs.digest }}
     env:
       ACCOUNT: tamery-tofu-plan
     steps:
@@ -60,19 +64,27 @@ jobs:
         id: plan
         run: |
           code=0
-          tofu plan -input=false -lock=false -no-color -detailed-exitcode > plan.txt || code=$?
+          tofu plan -input=false -lock=false -no-color -detailed-exitcode -out=tfplan > plan.txt || code=$?
           cat plan.txt
           {
             echo "### $(grep -E '^(Plan:|No changes)' plan.txt || echo 'Plan failed')"
             grep -E '^  # [^(]' plan.txt | sed -E 's/^  # (.*)$/- `\1`/; /destroyed|replaced/s/^- /- ⚠️ /' || true
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "changes=$([ "$code" = 2 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           [ "$code" != 1 ]
+          [ "$code" = 2 ] || exit 0
+          tofu show -json tfplan > plan.json
+          beyond=$(jq -r "$BEYOND_CLOUD_RUN" plan.json)
+          if [ -n "$beyond" ]; then
+            echo "**Not applied here:** it changes more than Cloud Run service and job updates (`$(echo $beyond)`). Apply it from Cloud Shell (`.agents/rules/monorepo.md` → Deploys)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "apply=true" >> "$GITHUB_OUTPUT"
+          echo "digest=$(jq -cS "$CHANGES" plan.json | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
-  # Approving the infra environment is what lets this job change Cloud Run: review the plan job's log first, and reject a plan that changes anything else, since tamery-tofu may not (monorepo.md).
+  # Approving the infra environment is what lets this job sign in as tamery-tofu: review the plan job's log first.
   apply:
     needs: plan
-    if: needs.plan.outputs.changes == 'true'
+    if: needs.plan.outputs.apply == 'true'
     runs-on: ubuntu-latest
     environment: infra
     env:
@@ -84,5 +96,15 @@ jobs:
       - *setup-tofu
       - *init
 
+      - name: Plan
+        run: tofu plan -input=false -no-color -out=tfplan
+
+      - name: Check it is the approved plan
+        env:
+          APPROVED: ${{ needs.plan.outputs.digest }}
+        run: |
+          digest=$(tofu show -json tfplan | jq -cS "$CHANGES" | sha256sum | cut -d' ' -f1)
+          [ "$digest" = "$APPROVED" ] || { echo "::error::The plan changed since it was approved. Re-run the workflow to plan again."; exit 1; }
+
       - name: Apply
-        run: tofu apply -input=false -auto-approve -no-color
+        run: tofu apply -input=false -no-color tfplan

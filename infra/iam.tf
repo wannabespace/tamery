@@ -37,8 +37,8 @@ locals {
 
   project_roles = {
     tamery-deploy = ["roles/run.developer"]
-    # Never a role that sets IAM policies, reads secrets or edits alerts: any of them is a way back to owner, or to acting unseen.
-    tamery-tofu      = concat(local.plan_roles, ["roles/run.developer"])
+    # Never a role that sets project IAM or edits alerts: either is a way back to owner, or to acting unseen.
+    tamery-tofu      = concat(local.plan_roles, ["roles/run.developer", google_project_iam_custom_role.run_service_iam_setter.id])
     tamery-tofu-plan = local.plan_roles
     viewer           = concat(local.read_roles, ["roles/iam.securityReviewer"])
   }
@@ -103,6 +103,13 @@ resource "google_project_iam_custom_role" "tofu_plan_refresh" {
     "redis.instances.getAuthString",
     "storage.buckets.getIamPolicy",
   ]
+}
+
+# A service update sends invoker_iam_disabled, which needs this, and run.developer lacks it.
+resource "google_project_iam_custom_role" "run_service_iam_setter" {
+  role_id     = "runServiceIamSetter"
+  title       = "Cloud Run service IAM setter"
+  permissions = ["run.services.setIamPolicy"]
 }
 
 resource "google_project_iam_member" "this" {

@@ -6,7 +6,6 @@ variable "alerts_email" {
 variable "sql_authorized_networks" {
   description = "CIDRs allowed on Cloud SQL's public address, by name. Keep it to services outside the VPC that still need the database."
   type        = map(string)
-  default     = {}
   sensitive   = true
 }
 
