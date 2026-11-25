@@ -1,13 +1,6 @@
-import { BestEffortPublisher, redis, redisSubscriber } from '~/lib/redis'
+import { redis } from '~/lib/redis'
 
-export const codeChallengePublisher = new BestEffortPublisher<
-  Record<string, { ready: boolean }>
->(redis, {
-  prefix: 'orpc:publisher:code-challenge:',
-  subscriber: redisSubscriber,
-})
-
-const TTL_S = 60 * 5
+export const TTL_S = 60 * 5
 
 const key = (codeChallenge: string) => `code-challenge:${codeChallenge}`
 

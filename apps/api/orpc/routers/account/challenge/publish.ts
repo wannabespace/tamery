@@ -2,11 +2,7 @@ import { type } from 'arktype'
 
 import { accountMiddleware, orpc } from '~/orpc'
 
-import {
-  challengeDeviceRedis,
-  codeChallengePublisher,
-  codeChallengeRedis,
-} from './code-challenge'
+import { challengeDeviceRedis, codeChallengeRedis } from './code-challenge'
 
 const NEW_USER_WINDOW_MS = 10 * 60 * 1000
 
@@ -30,5 +26,4 @@ export const publish = orpc
         Date.now() - context.user.createdAt.getTime() < NEW_USER_WINDOW_MS,
       userId: context.user.id,
     })
-    codeChallengePublisher.publish(input.codeChallenge, { ready: true })
   })
