@@ -84,36 +84,29 @@ export const useUpgradeSubscription = (
 }
 
 export const useBillingPortal = ({ returnHref }: { returnHref: string }) => {
-  const { mutate, isPending: isOpening } = useMutation(
-    orpc.account.subscription.billingPortal.mutationOptions({
-      mutationKey: ['subscription', 'billingPortal'],
-      onSuccess(result) {
-        location.assign(result.url)
-      },
-    })
-  )
-
-  const openBillingPortal = (
-    intent: 'manage' | 'invoices' | 'switch_to_team' | 'change_seats'
-  ) => {
-    mutate(
-      {
-        changePlan: intent !== 'manage',
+  const { mutate, isPending, variables } = useMutation({
+    mutationFn: (
+      intent: 'manage' | 'invoices' | 'switch_to_team' | 'change_seats'
+    ) =>
+      orpc.account.subscription.billingPortal.call({
+        changePlan: intent === 'switch_to_team' || intent === 'change_seats',
         returnUrl: location.origin + returnHref,
-      },
-      {
-        onSettled: (_data, error) => {
-          void posthog.capture('billing_portal_opened', {
-            intent,
-            success: !error,
-          })
-        },
-      }
-    )
-  }
+      }),
+    mutationKey: ['subscription', 'billingPortal'],
+    onSettled: (_data, error, intent) => {
+      void posthog.capture('billing_portal_opened', {
+        intent,
+        success: !error,
+      })
+    },
+    onSuccess: (result) => {
+      location.assign(result.url)
+    },
+  })
 
   return {
-    isOpening,
-    openBillingPortal,
+    isOpening: isPending,
+    openBillingPortal: mutate,
+    openingIntent: (isPending && variables) || null,
   }
 }

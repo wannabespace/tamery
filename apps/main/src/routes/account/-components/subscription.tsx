@@ -88,7 +88,9 @@ export const Subscription = () => {
     search: { type: clientType },
     to: '/account',
   }).href
-  const { openBillingPortal, isOpening } = useBillingPortal({ returnHref })
+  const { openBillingPortal, isOpening, openingIntent } = useBillingPortal({
+    returnHref,
+  })
   const { upgrade, upgradingPlan } = useUpgradeSubscription(clientType)
   const [isYearly, setIsYearly] = useState(period === 'yearly')
   // oxlint-disable-next-line react/hook-use-state -- frozen at mount, never set
@@ -153,7 +155,9 @@ export const Subscription = () => {
                   disabled={isOpening}
                   onClick={() => openBillingPortal('switch_to_team')}
                 >
-                  Switch to Team
+                  <LoadingContent loading={openingIntent === 'switch_to_team'}>
+                    Switch to Team
+                  </LoadingContent>
                 </Button>
               )}
             </SettingsRow>
@@ -181,7 +185,8 @@ export const Subscription = () => {
           assignableSeats={ownSubscription.assignableSeats}
           isTrial={ownSubscription.status === 'trialing'}
           seats={ownSubscription.seats}
-          isChangingSeats={isOpening}
+          isChangingSeats={openingIntent === 'change_seats'}
+          isOpeningPortal={isOpening}
           onChangeSeats={() => openBillingPortal('change_seats')}
         />
       )}
@@ -197,7 +202,9 @@ export const Subscription = () => {
               disabled={isOpening}
               onClick={() => openBillingPortal('manage')}
             >
-              <LoadingContent loading={isOpening}>Manage</LoadingContent>
+              <LoadingContent loading={openingIntent === 'manage'}>
+                Manage
+              </LoadingContent>
             </Button>
           </SettingsRow>
         </SettingsGroup>
