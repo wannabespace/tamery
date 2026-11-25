@@ -1,19 +1,17 @@
 import { verifyAiKey } from '@tamery/ai/models'
-import { AI_KEY_PROVIDERS } from '@tamery/shared/ai-key'
-import { objectEntries } from '@tamery/shared/utils'
 import { type } from 'arktype'
 
 import { aiKey } from '~/lib/ai-key'
 import { accountMiddleware, orpc } from '~/orpc'
+
+import { aiKeyProvider } from './provider'
 
 export const set = orpc
   .use(accountMiddleware)
   .input(
     type({
       key: type('string.trim').to('0 < string <= 500'),
-      provider: type.enumerated(
-        ...objectEntries(AI_KEY_PROVIDERS).map(([provider]) => provider)
-      ),
+      provider: aiKeyProvider,
     })
   )
   .errors({

@@ -14,7 +14,7 @@ import { authClient, getSessionUser, isAnonymous } from '~/lib/auth'
 import { API_QUERY_KEY, queryClient } from '~/lib/query-client'
 import { promptSignIn, setIsSubscriptionDialogOpen } from '~/store'
 
-import { aiKeyQueryOptions, useAiKey } from './ai-key'
+import { aiKeysQueryOptions, useAiKeys } from './ai-key'
 import {
   isActiveSubscription,
   subscriptionsQueryOptions,
@@ -62,7 +62,7 @@ export const checkOrUpgrade = (...args: Parameters<typeof permix.check>) => {
 
 export const loadPermissions = async () => {
   const user = await getSessionUser()
-  const [subscriptions, aiKey] = user?.isAnonymous
+  const [subscriptions, aiKeys] = user?.isAnonymous
     ? [null, null]
     : await Promise.all([
         Result.tryPromise(() =>
@@ -71,12 +71,12 @@ export const loadPermissions = async () => {
             staleTime: 'static',
           })
         ),
-        Result.tryPromise(() => queryClient.query(aiKeyQueryOptions)),
+        Result.tryPromise(() => queryClient.query(aiKeysQueryOptions)),
       ])
 
   permix.setup(
     getPermissions({
-      hasAiKey: !!aiKey?.unwrapOr(null),
+      hasAiKey: !!aiKeys?.unwrapOr([]).some(({ enabled }) => enabled),
       subscription:
         subscriptions?.unwrapOr(null)?.find(isActiveSubscription) ?? null,
       user: user ?? {},
@@ -99,11 +99,12 @@ export const resetGuestState = async () => {
 export const usePermissionsSync = () => {
   const user = authClient.useSession().data?.user
   const { isLoading, subscription } = useSubscription()
-  const { aiKey, isLoading: isAiKeyLoading } = useAiKey()
+  const { aiKeys, isLoading: isAiKeyLoading } = useAiKeys()
+  const hasAiKey = aiKeys.some(({ enabled }) => enabled)
 
   useEffect(() => {
     if (user && !isLoading && !isAiKeyLoading) {
-      permix.setup(getPermissions({ hasAiKey: !!aiKey, subscription, user }))
+      permix.setup(getPermissions({ hasAiKey, subscription, user }))
     }
-  }, [user, isLoading, isAiKeyLoading, aiKey, subscription])
+  }, [user, isLoading, isAiKeyLoading, hasAiKey, subscription])
 }

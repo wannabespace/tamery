@@ -1,9 +1,11 @@
-import { get } from './get'
+import { list } from './list'
 import { remove } from './remove'
 import { set } from './set'
+import { setEnabled } from './set-enabled'
 
 export const aiKey = {
-  get,
+  list,
   remove,
   set,
+  setEnabled,
 }

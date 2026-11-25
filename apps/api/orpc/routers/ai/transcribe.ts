@@ -27,7 +27,7 @@ export const transcribe = orpc
       audio: type
         .instanceOf(File)
         .narrow((audio) => audio.size <= MAX_AUDIO_BYTES),
-      /** The own key's dictation model; one its provider does not offer falls back to its default. */
+      /** The own keys' dictation model; one their providers do not offer falls back to the default. */
       'model?': 'string',
     })
   )
@@ -43,11 +43,11 @@ export const transcribe = orpc
     if (!(await isWav(input.audio))) {
       throw errors.BAD_REQUEST()
     }
-    const { key, telemetry } = await payForAi(
+    const { keys, telemetry } = await payForAi(
       context.user.id,
       errors.TOO_MANY_REQUESTS
     )
-    const dictation = dictationFor(key, input.model ?? null)
+    const dictation = dictationFor(keys, input.model ?? null)
     if (!dictation) {
       throw errors.NOT_SUPPORTED()
     }

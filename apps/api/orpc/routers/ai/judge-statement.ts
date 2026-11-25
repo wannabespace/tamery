@@ -55,7 +55,7 @@ export const judgeStatement = orpc
       feature: AiFeature.ApprovalJudge,
       userId: context.user.id,
     }
-    const key = await aiKey.get(context.user.id)
+    const [key = null] = await aiKey.enabled(context.user.id)
     return judge({
       additive: input.additive,
       dialect: input.dialect,

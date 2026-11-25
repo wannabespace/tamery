@@ -5,7 +5,7 @@ import { createWebStorageValue } from 'seitu/web'
 import { useHasAccount } from '~/lib/auth'
 import { orpc } from '~/lib/orpc'
 
-/** The dictation model picked on this device for the saved key; the API takes its provider's default for one it does not offer. */
+/** The dictation model picked on this device for the connected keys; the API takes the default for one their providers do not offer. */
 export const dictationModelValue = createWebStorageValue({
   defaultValue: null,
   key: 'dictation-model',
@@ -13,13 +13,13 @@ export const dictationModelValue = createWebStorageValue({
   type: 'localStorage',
 })
 
-export const aiKeyQueryOptions = orpc.account.aiKey.get.queryOptions()
+export const aiKeysQueryOptions = orpc.account.aiKey.list.queryOptions()
 
-export const useAiKey = () => {
+export const useAiKeys = () => {
   const hasAccount = useHasAccount()
   const { data, isLoading } = useQuery({
-    ...aiKeyQueryOptions,
+    ...aiKeysQueryOptions,
     enabled: hasAccount,
   })
-  return { aiKey: data ?? null, isLoading }
+  return { aiKeys: data ?? [], isLoading }
 }

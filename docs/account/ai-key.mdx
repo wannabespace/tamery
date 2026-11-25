@@ -1,6 +1,6 @@
 ---
 title: 'Your own AI key'
-description: 'Run the AI chat on your Anthropic, OpenAI, Google or OpenRouter account, on any plan.'
+description: 'Run the AI chat on your Anthropic, OpenAI, Google and OpenRouter accounts, on any plan.'
 keywords:
   [
     'byok',
@@ -13,23 +13,27 @@ keywords:
   ]
 ---
 
-Add an API key from Anthropic, OpenAI, Google or OpenRouter, and the [AI chat](/features/ai-assistant), dictation included, runs on that account. Your provider bills you for it directly. The chat then works on Free as well as Pro and doesn't spend the included $5 or your [AI credits](/account/ai-credits).
+Connect Anthropic, OpenAI, Google or OpenRouter with an API key, one or several of them, and the [AI chat](/features/ai-assistant), dictation included, runs on those accounts. Your providers bill you for it directly. The chat then works on Free as well as Pro and doesn't spend the included $5 or your [AI credits](/account/ai-credits).
 
-The key is for the chat only. AI edits and fixes, completions in the Query editor, AI filters and connection diagnosis keep running on Tamery, with your plan's limits.
+The keys are for the chat only. AI edits and fixes, completions in the Query editor, AI filters and connection diagnosis keep running on Tamery, with your plan's limits.
 
-## Add a key
+## Connect a provider
 
-1. Open **Settings** with the gear in the title bar, or press **Cmd+,** (**Ctrl+,**).
+1. Pick **Settings** in the avatar menu, or press **Cmd+,** (**Ctrl+,**).
 2. Pick **AI**.
-3. Choose the **Provider** and paste the **API key**.
-4. Click **Save**. Tamery sends the provider one short request to check the key, billed to it, and saves it if the provider accepts it.
+3. Under **Your providers**, click **Add provider** (the **+** once you have one) and pick the provider.
+4. Paste the **API key** and click **Connect**. Tamery sends the provider one short request to check the key, billed to it, and saves it if the provider accepts it.
 
-The key is stored encrypted with your account, so it works on every device you sign in on. Settings shows only its last 4 characters. To stop using it, click **Remove**; the chat goes back to your plan.
+Keys are stored encrypted with your account, so they work on every device you sign in on. Settings shows only a key's last 4 characters. Each provider holds one key: **Replace key** in its **⋯** menu changes it and **Remove** deletes it. The switch turns a provider off without removing its key. With every provider off or removed, the chat goes back to your plan.
+
+## Several providers
+
+A model you pick runs on its own provider's key, or on OpenRouter's when that provider isn't connected. **Auto**, chat titles, suggestions, compaction, web search and the check **Auto** approvals run before a change use the first provider that's on, in the order you connected them.
 
 ## What changes with a key
 
 |  | With your key |
 | --- | --- |
-| Models | The chat's model picker lists your provider's models, or every model with an OpenRouter key. **Auto** uses Claude Sonnet, GPT-6.1 Sol or Gemini 4 Argon; with an OpenRouter key it picks a model for each message, as without a key. |
-| Dictation | Works with a Google, OpenAI or OpenRouter key; Anthropic keys can't transcribe audio. **Dictation model** in **Settings → AI** picks the model on this device: GPT-4o Transcribe (the default), GPT-4o mini Transcribe or Whisper on OpenAI, Gemini 3.8 Flash (the default) or Gemini 4 Argon on Google and OpenRouter. |
-| Cost | [Usage](/account/ai-credits#usage) in **Settings → AI** lists chat calls made with your key on their own row per month, marked **Your key**, with their tokens and a cost estimated from the model's list price. Your provider's bill is what you pay. |
+| Models | The chat's model picker lists your providers' models, or every model with an OpenRouter key. **Auto** uses Claude Sonnet, GPT-6.1 Sol or Gemini 4 Argon; with an OpenRouter key it picks a model for each message, as without a key. |
+| Dictation | Works with a Google, OpenAI or OpenRouter key; Anthropic keys can't transcribe audio. **Dictation model** in **Settings → AI** picks the model on this device: GPT-4o Transcribe (the default), GPT-4o mini Transcribe or Whisper on OpenAI, Gemini 3.8 Flash (the default) or Gemini 4 Argon on Google and OpenRouter. Until you pick one, it's the default of the first provider that can transcribe. |
+| Cost | [Usage](/account/ai-credits#usage) in **Settings → AI** lists chat calls made with your key on their own row per month, marked **Your key**, with their tokens and a cost estimated from the model's list price. Your providers' bills are what you pay. |

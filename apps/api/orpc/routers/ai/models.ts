@@ -13,7 +13,7 @@ export const models = orpc
   .handler(async ({ context }) => ({
     defaultEffort: DEFAULT_CHAT_EFFORT,
     efforts: CHAT_EFFORTS,
-    models: chatModelsFor(await aiKey.get(context.user.id)).map(
+    models: chatModelsFor(await aiKey.enabled(context.user.id)).map(
       ({ id, name, provider }) => ({
         contexts: chatContexts(id),
         id,

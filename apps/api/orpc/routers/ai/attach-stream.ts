@@ -58,9 +58,9 @@ export const attachStream = orpc
       feature: AiFeature.Chat,
       userId: context.user.id,
     }
-    const { auto, effort, model } = await pickChatModel({
+    const { auto, effort, key, model } = await pickChatModel({
       effort: input.effort,
-      key: payer.key,
+      keys: payer.keys,
       messages,
       model: input.model,
       onJevUsage: payer.recordJev(scope),
@@ -80,7 +80,7 @@ export const attachStream = orpc
       effort,
       fast: input.fast,
       isSubagent: !!owned.parentChatId,
-      key: payer.key,
+      key,
       model,
       onFinish: (message) =>
         chatPersist.persistMessage({

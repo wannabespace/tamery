@@ -137,9 +137,9 @@ export const stream = orpc
       feature: AiFeature.Chat,
       userId: context.user.id,
     }
-    const { auto, effort, model } = await pickChatModel({
+    const { auto, effort, key, model } = await pickChatModel({
       effort: input.effort,
-      key: payer.key,
+      keys: payer.keys,
       messages: history,
       model: input.model,
       onJevUsage: payer.recordJev(scope),
@@ -169,7 +169,7 @@ export const stream = orpc
       effort,
       fast: input.fast,
       isSubagent,
-      key: payer.key,
+      key,
       model,
       onFinish: async (message) => {
         await chatPersist.persistMessage({

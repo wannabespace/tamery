@@ -92,7 +92,9 @@ const AddCreditsDialog = () => {
 
   return (
     <Dialog>
-      <DialogTrigger render={<Button size="sm" />}>Add credits</DialogTrigger>
+      <DialogTrigger render={<Button size="sm" variant="outline" />}>
+        Add credits
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add Credits</DialogTitle>
@@ -289,13 +291,6 @@ const ProCredits = () => {
 
 const formatTokens = (value: number) => value.toLocaleString('en-US')
 
-const formatCost = (value: number) =>
-  new Intl.NumberFormat('en-US', {
-    currency: 'USD',
-    maximumFractionDigits: 4,
-    style: 'currency',
-  }).format(value)
-
 const formatMonth = (month: string) =>
   format(parse(month, 'yyyy-MM', new Date()), 'MMMM yyyy')
 
@@ -389,10 +384,10 @@ const Usage = () => {
                   )}
                   {row.cost !== null && row.ownKey && (
                     <span className="text-muted-foreground">
-                      ≈ {formatCost(row.cost)}
+                      ≈ {formatDollars(row.cost)}
                     </span>
                   )}
-                  {row.cost !== null && !row.ownKey && formatCost(row.cost)}
+                  {row.cost !== null && !row.ownKey && formatDollars(row.cost)}
                 </TableCell>
               </TableRow>
             ))}

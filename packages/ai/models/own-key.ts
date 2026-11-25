@@ -26,7 +26,7 @@ export type Dictation =
 interface ProviderModels {
   /** Takes a chat model's OpenRouter id; `fast` only reaches OpenRouter. */
   chat: (id: ChatModelId, fast: boolean, auto: boolean) => LanguageModel
-  /** Takes an id from the provider's `DICTATION_MODELS`. */
+  /** Takes an id from the provider's dictation models (`getDictationModels`). */
   dictation: ((id: string) => Dictation) | null
   models: FixedModels
   /** `null` on OpenRouter, whose search is a server tool `searchWeb` asks for in its provider options. */
@@ -104,12 +104,16 @@ export const OWN_KEY_AUTO_MODELS = {
   openai: 'openai/gpt-6.1-sol',
 } as const satisfies Record<Exclude<AiKeyProvider, 'openrouter'>, ChatModelId>
 
-/** The chat models a key can run: its provider's, or every one on an OpenRouter account. */
-export const chatModelsFor = (key?: AiKey | null) =>
-  key && key.provider !== 'openrouter'
-    ? chatModels.filter(
-        (model) => model.provider === AI_KEY_PROVIDERS[key.provider]
-      )
+/** The key a chat model runs on: its provider's own, else OpenRouter's, which serves every one. */
+export const chatKeyFor = (keys: AiKey[], model: (typeof chatModels)[number]) =>
+  keys.find(({ provider }) => AI_KEY_PROVIDERS[provider] === model.provider) ??
+  keys.find(({ provider }) => provider === 'openrouter') ??
+  null
+
+/** The chat models the keys can run; every one without a key. */
+export const chatModelsFor = (keys: AiKey[]) =>
+  keys.length > 0
+    ? chatModels.filter((model) => chatKeyFor(keys, model))
     : chatModels
 
 /** The chat's helper models (titles, suggestions, compaction, web search, dictation) on the user's key; Tamery's otherwise. */
@@ -126,17 +130,25 @@ export const chatModelFor = (
     ? providerModels[key.provider](key.key).chat(id, fast, auto)
     : chatModel(id, fast, auto)
 
-/** How a call dictates: on Tamery's model without a key, else on the key's pick of its provider's models; null when the provider takes no audio. */
+/** How a call dictates: on Tamery's model without a key, else on the pick of the keys' models; null when none of their providers takes audio. */
 export const dictationFor = (
-  key: AiKey | null,
+  keys: AiKey[],
   picked: string | null
 ): Dictation | null => {
-  if (!key) {
+  if (keys.length === 0) {
     return { kind: 'prompt', model: models.transcribe }
   }
-  const id = getDictationModel(key.provider, picked)
-  const { dictation } = providerModels[key.provider](key.key)
-  return id && dictation ? dictation(id) : null
+  const model = getDictationModel(
+    keys.map(({ provider }) => provider),
+    picked
+  )
+  const key = keys.find(({ provider }) => provider === model?.provider)
+  return (
+    (model &&
+      key &&
+      providerModels[key.provider](key.key).dictation?.(model.id)) ??
+    null
+  )
 }
 
 export const ownKeyWebSearchTools = (
