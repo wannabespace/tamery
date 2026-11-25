@@ -6,6 +6,7 @@ import { GITHUB_REPO_NAME, GITHUB_REPO_OWNER } from '@tamery/shared/constants'
 import { silently } from '@tamery/shared/utils'
 
 import { env } from '~/env'
+import { sendEmail } from '~/lib/resend'
 import { safeEqual } from '~/lib/safe-equal'
 import { orpc } from '~/orpc'
 
@@ -118,6 +119,15 @@ export const todesktop = orpc
             // and the next release's notes then start from an older version.
             tag_name: release.tag_name,
           })
+        })
+      }
+
+      if (env.ALERTS_EMAIL) {
+        await sendEmail({
+          props: { url: release.html_url, version: releaseName },
+          subject: `Release ${releaseName} is drafted`,
+          template: 'ReleaseDrafted',
+          to: env.ALERTS_EMAIL,
         })
       }
 
