@@ -103,10 +103,10 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
-  retrieve.mockReset()
-  cancel.mockReset()
   createCustomer.mockReset()
   createCheckout.mockReset()
+  retrieve.mockReset()
+  cancel.mockReset()
   await db.execute('TRUNCATE users, subscriptions CASCADE')
 })
 
