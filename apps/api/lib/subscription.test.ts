@@ -352,6 +352,41 @@ test('overlapping deliveries store the state Stripe returned last', async () => 
   expect(rows).toEqual([{ seats: 2 }])
 })
 
+test('a sync waiting on another sync of the same subscription gives up with a retryable error', async () => {
+  const owner = await createUser('owner@tamery.test')
+  const { promise: stripeAnswer, resolve } = Promise.withResolvers<never>()
+  const { promise: lockHeld, resolve: holdLock } =
+    Promise.withResolvers<undefined>()
+  retrieve.mockImplementationOnce(() => {
+    holdLock(undefined)
+    return stripeAnswer
+  })
+
+  const first = syncSubscription('sub_test')
+  await lockHeld
+
+  await expect(syncSubscription('sub_test')).rejects.toThrow(
+    'Stripe retries the event'
+  )
+  resolve(
+    stripeSubscription({ quantity: 1, status: 'active', userId: owner.id })
+  )
+  await first
+  expect(await db.select().from(subscriptions)).toHaveLength(1)
+}, 10_000)
+
+test('a Stripe read that times out during a sync answers a retryable error', async () => {
+  retrieve.mockRejectedValue(
+    new stripe.errors.StripeConnectionError({
+      message: 'Request aborted due to timeout being reached (15000ms)',
+    })
+  )
+
+  await expect(syncSubscription('sub_test')).rejects.toThrow(
+    'Stripe retries the event'
+  )
+})
+
 test.each([
   ['has ended', { status: 'canceled' }, false],
   ['is set to cancel', { cancelAtPeriodEnd: true, status: 'active' }, false],
@@ -368,7 +403,9 @@ test.each([
 
     await syncSubscription('sub_test')
 
-    expect(cancel.mock.calls).toEqual(cancels ? [['sub_test']] : [])
+    expect(cancel.mock.calls.map(([id]) => id)).toEqual(
+      cancels ? ['sub_test'] : []
+    )
     expect(await db.select().from(subscriptions)).toEqual([])
   }
 )
