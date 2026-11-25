@@ -1,3 +1,5 @@
+import { ratelimit } from '@orpc/ratelimit'
+import { RedisRateLimiter } from '@orpc/ratelimit/redis'
 import { diagnoseConnection as diagnose } from '@tamery/ai/features'
 import { AiFeature } from '@tamery/ai/usage'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
@@ -5,7 +7,14 @@ import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { type } from 'arktype'
 
 import { aiUsage } from '~/lib/ai-usage'
+import { redis } from '~/lib/redis'
 import { authMiddleware, orpc } from '~/orpc'
+
+const limiter = new RedisRateLimiter(redis, {
+  maxRequests: 30,
+  prefix: 'ai-diagnose-connection:',
+  window: 60 * 60 * 1000,
+})
 
 /** The client already swaps secrets for placeholders; this keeps any client from sending one on to the model provider. */
 const redacted = (length: number) =>
@@ -13,6 +22,7 @@ const redacted = (length: number) =>
 
 export const diagnoseConnection = orpc
   .use(authMiddleware)
+  .use(ratelimit({ key: ({ context }) => context.user.id, limiter }))
   .input(
     type({
       error: redacted(4000),
