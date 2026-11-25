@@ -25,7 +25,7 @@ const TRANSACTION_OPENERS = new Set([
   'WORK',
 ])
 const WHOLE_STATEMENT_ENDINGS = new Set([undefined, 'TRANSACTION', 'WORK'])
-const END_QUALIFIERS = ['IF', 'LOOP', 'WHILE', 'REPEAT']
+const END_QUALIFIERS = new Set(['IF', 'LOOP', 'WHILE', 'REPEAT'])
 const ACCESS_MODES = ['read only', 'read write'] as const
 const ISOLATION_LEVELS = [
   'read uncommitted',
@@ -140,18 +140,42 @@ export const endsTransaction = (text: string, dialect: DialectSpec) =>
     tokenize(text, dialect).tokens.filter((token) => token.kind !== 'comment')
   )
 
+const namesColumn = (tokens: Token[], index: number) => {
+  const previous = tokens[index - 1]
+  const next = tokens[index + 1]
+  return (
+    isColumnPosition(previous) ||
+    isKeyword(previous, 'BY') ||
+    next?.kind === 'operator' ||
+    isPunctuation(next, ',') ||
+    isPunctuation(next, ')')
+  )
+}
+
+// Matched by text: LOOP, WHILE and REPEAT are not keywords in any dialect's list. SQL Server has no END IF: an END there may be followed by the next statement's IF.
+const closesNamedBlock = (next: Token | undefined, dialect: DialectSpec) =>
+  !dialect.separatorFreeStatements &&
+  END_QUALIFIERS.has(next?.text.toUpperCase() ?? '')
+
 /** `END CASE` closes the CASE its END already counted. */
-const blockDepthChange = (tokens: Token[], index: number) => {
+const blockDepthChange = (
+  tokens: Token[],
+  index: number,
+  dialect: DialectSpec
+) => {
   const token = tokens[index]
   const previous = tokens[index - 1]
+  if (isPunctuation(previous, '.')) {
+    return 0
+  }
   if (
     (isKeyword(token, 'CASE') && !isKeyword(previous, 'END')) ||
-    (isKeyword(token, 'BEGIN') && !isColumnPosition(previous))
+    (isKeyword(token, 'BEGIN') && !namesColumn(tokens, index))
   ) {
     return 1
   }
   return isKeyword(token, 'END') &&
-    !isKeyword(tokens[index + 1], ...END_QUALIFIERS)
+    !closesNamedBlock(tokens[index + 1], dialect)
     ? -1
     : 0
 }
@@ -218,7 +242,7 @@ export const statementsFromTokens = (
     } else if (opensTransactionAt(significant, index)) {
       inTransaction = groups
     } else {
-      depth = Math.max(0, depth + blockDepthChange(significant, index))
+      depth = Math.max(0, depth + blockDepthChange(significant, index, dialect))
     }
 
     if (isPunctuation(token, ';') && depth === 0 && !inPlsqlUnit) {

@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, expect, mock, spyOn, test } from 'bun:test'
 import process from 'node:process'
 
 import { call, os } from '@orpc/server'
+import { eq } from 'drizzle-orm'
 import { Client } from 'pg'
 import { v7 } from 'uuid'
 
@@ -87,6 +88,7 @@ if (!stripe) {
 }
 
 const retrieve = spyOn(stripe.subscriptions, 'retrieve')
+const cancel = spyOn(stripe.subscriptions, 'cancel')
 
 beforeAll(async () => {
   await migrate(db, {
@@ -99,6 +101,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   retrieve.mockReset()
+  cancel.mockReset()
   await db.execute('TRUNCATE users, subscriptions CASCADE')
 })
 
@@ -131,11 +134,13 @@ const createUser = async (
 }
 
 const stripeSubscription = ({
+  cancelAtPeriodEnd = false,
   price = PRICES.team,
   quantity,
   status,
   userId,
 }: {
+  cancelAtPeriodEnd?: boolean
   price?: string
   quantity: number
   status: string
@@ -144,7 +149,7 @@ const stripeSubscription = ({
   // A wire fixture: only the fields the sync reads.
   ({
     cancel_at: null,
-    cancel_at_period_end: false,
+    cancel_at_period_end: cancelAtPeriodEnd,
     customer: 'cus_test',
     id: 'sub_test',
     items: {
@@ -252,6 +257,31 @@ test('a trial gives one seat besides the owner whatever count it will bill', asy
   expect(await assignedEmails()).toEqual(['first@tamery.test'])
 })
 
+test('new Team seats wait for payment while existing seats stay assigned', async () => {
+  const owner = await createTeam({ quantity: 4, status: 'trialing' })
+  const holder = await createUser('holder@tamery.test')
+  await assign(owner, holder.email)
+
+  retrieve.mockResolvedValue(
+    stripeSubscription({ quantity: 4, status: 'past_due', userId: owner.id })
+  )
+  await syncSubscription('sub_test')
+
+  expect(await getSubscription(holder.id)).toMatchObject({ plan: 'team' })
+  await expect(assign(owner, 'next@tamery.test')).rejects.toThrow(
+    'Update your payment method'
+  )
+  expect(await assignedEmails()).toEqual([holder.email])
+
+  retrieve.mockResolvedValue(
+    stripeSubscription({ quantity: 4, status: 'active', userId: owner.id })
+  )
+  await syncSubscription('sub_test')
+
+  await assign(owner, 'next@tamery.test')
+  expect(await assignedEmails()).toEqual([holder.email, 'next@tamery.test'])
+})
+
 test("an owner cannot remove another team's seat", async () => {
   const owner = await createTeam({ quantity: 2 })
   await assign(owner, 'holder@tamery.test')
@@ -321,3 +351,24 @@ test('overlapping deliveries store the state Stripe returned last', async () => 
     .from(subscriptions)
   expect(rows).toEqual([{ seats: 2 }])
 })
+
+test.each([
+  ['has ended', { status: 'canceled' }, false],
+  ['is set to cancel', { cancelAtPeriodEnd: true, status: 'active' }, false],
+  ['still bills', { status: 'active' }, true],
+])(
+  'an event for a subscription that %s after its owner deleted the account stores nothing and cancels only a live one',
+  async (_, change, cancels) => {
+    const owner = await createUser('owner@tamery.test')
+    await db.delete(users).where(eq(users.id, owner.id))
+    retrieve.mockResolvedValue(
+      stripeSubscription({ ...change, quantity: 1, userId: owner.id })
+    )
+    cancel.mockResolvedValue({} as never)
+
+    await syncSubscription('sub_test')
+
+    expect(cancel.mock.calls).toEqual(cancels ? [['sub_test']] : [])
+    expect(await db.select().from(subscriptions)).toEqual([])
+  }
+)

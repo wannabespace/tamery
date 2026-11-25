@@ -1,5 +1,6 @@
 import { db } from '@tamery/db'
 import { subscriptions } from '@tamery/db/schema'
+import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { and, eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
 
@@ -71,10 +72,7 @@ export const stripe = orpc
           await sendEmail({
             props: {
               service: 'Stripe',
-              text:
-                typeof error === 'object' && error !== null
-                  ? JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
-                  : String(error),
+              text: JSON.stringify(sanitizeLogData(error), null, 2),
             },
             subject: `Alert from Stripe: ${event.type}`,
             template: 'Alert',

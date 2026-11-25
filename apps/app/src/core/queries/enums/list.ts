@@ -1,6 +1,7 @@
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import { queryOptions } from '@tanstack/react-query'
 import { type } from 'arktype'
+import { sql } from 'kysely'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import type { ConnectionResource } from '~/core/connection/sync'
@@ -120,6 +121,18 @@ const resourceEnumsQuery = createQuery({
     },
     oracle: () => Promise.resolve([]),
     postgres: async (db) => {
+      // A hardened role may lack SELECT on pg_enum, and naming it anywhere in a statement fails the whole read.
+      const { readable } = await db
+        .selectNoFrom(
+          sql<boolean>`has_table_privilege('pg_catalog.pg_enum', 'select')`.as(
+            'readable'
+          )
+        )
+        .executeTakeFirstOrThrow()
+      if (!readable) {
+        return []
+      }
+
       const query = await db
         .selectFrom('pg_type')
         .innerJoin('pg_enum', 'pg_type.oid', 'pg_enum.enumtypid')

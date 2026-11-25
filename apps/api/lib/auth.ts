@@ -15,6 +15,7 @@ import {
   formatDeviceLabel,
 } from '@tamery/shared/device-label'
 import { ORIGINS } from '@tamery/shared/origins'
+import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import {
   invitableRole,
   isDefaultWorkspaceMetadata,
@@ -248,7 +249,8 @@ export const auth = betterAuth({
             await ensureDefaultWorkspace(session.userId)
           } catch (error) {
             console.error(
-              `Failed to ensure default workspace on session create: ${error instanceof Error ? error.message : error}`
+              'Failed to ensure default workspace on session create',
+              sanitizeLogData(error)
             )
           }
 
@@ -343,16 +345,18 @@ export const auth = betterAuth({
       }
     }),
   },
+  logger: {
+    log: (level, message, ...args) => {
+      console[level]('[Better Auth]', ...sanitizeLogData([message, ...args]))
+    },
+  },
   onAPIError: {
     onError: async (error) => {
       if (isAPIError(error) && error.statusCode < 500) {
         return
       }
 
-      const text =
-        typeof error === 'object' && error !== null
-          ? JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
-          : String(error)
+      const text = JSON.stringify(sanitizeLogData(error), null, 2)
 
       if (env.ALERTS_EMAIL) {
         await sendEmail({

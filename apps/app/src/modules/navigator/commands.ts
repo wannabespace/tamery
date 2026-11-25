@@ -14,8 +14,7 @@ import type {
 
 import { createSchemaDialogRef } from './create-schema-dialog'
 import { createTableDialogRef } from './create-table-dialog'
-import { createViewDialogRef } from './create-view-dialog'
-import { toggleNavigator } from './stores'
+import { createViewDialogRef, toggleNavigator } from './stores'
 
 export const navigatorCommands = ({
   current,

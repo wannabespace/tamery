@@ -23,7 +23,6 @@ export const MACHINE_INSTALL_COMMANDS = {
 }
 
 export const MACHINE_PAIR_PATH = '/settings/machines'
-export const MACHINE_RPC_PATH = '/rpc'
 
 /** `origin` is the machine's URL as the browser calls it, which both sides name, so a relay elsewhere never matches. */
 export const machineAttestationInput = type({
