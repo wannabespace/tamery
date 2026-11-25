@@ -256,6 +256,11 @@ END;`
       procedure,
       'SELECT 1 FROM dual',
     ])
+    const labeled = '<<l>> BEGIN LOOP EXIT; END LOOP; END;'
+    expect(texts(`${labeled}\n/\nSELECT 1 FROM dual`, oracle)).toEqual([
+      labeled,
+      'SELECT 1 FROM dual',
+    ])
     expect(texts('DECLARE n NUMBER; BEGIN n := 1; END;', oracle)).toEqual([
       'DECLARE n NUMBER; BEGIN n := 1; END;',
     ])
@@ -273,8 +278,9 @@ END;`
     ])
   })
 
-  it('closes MySQL loops at END LOOP, END WHILE and END REPEAT', () => {
+  it('closes MySQL blocks at END IF, END LOOP, END WHILE and END REPEAT', () => {
     for (const loop of [
+      'IF i > 3 THEN SET i = 0; END IF',
       'l: LOOP LEAVE l; END LOOP',
       'WHILE i < 3 DO SET i = i + 1; END WHILE',
       'REPEAT SET i = i + 1; UNTIL i > 3 END REPEAT',
@@ -285,6 +291,20 @@ END;`
         'SELECT 2',
       ])
     }
+  })
+
+  it('ends a CASE or BEGIN at an END followed by an alias or label named like a block', () => {
+    for (const dialect of Object.values(dialects)) {
+      for (const word of ['if', 'loop', 'while', 'repeat']) {
+        const read = `SELECT CASE WHEN 1 = 1 THEN 2 END ${word}`
+        expect(texts(`${read}; SELECT 3`, dialect)).toEqual([read, 'SELECT 3'])
+      }
+    }
+    const procedure = 'CREATE PROCEDURE p() loop: BEGIN SELECT 1; END loop'
+    expect(texts(`${procedure}; SELECT 2`, mysql)).toEqual([
+      procedure,
+      'SELECT 2',
+    ])
   })
 
   it('ends a SQL Server block before the next statement IF', () => {
