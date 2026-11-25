@@ -1,5 +1,5 @@
 /** The Pro subscription. */
-export const PRO_PRICE_USD = { monthly: 10, yearly: 100 } as const
+export const PRO_PRICE_USD = { monthly: 15, yearly: 150 } as const
 
 export const PRO_TRIAL_DAYS = 7
 

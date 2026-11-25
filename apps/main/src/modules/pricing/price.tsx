@@ -1,4 +1,5 @@
 import type { PricingPlan } from '@tamery/shared/plans'
+import { getPriceUnit } from '@tamery/shared/plans'
 import { NumberFlow } from '@tamery/ui/components/custom/number-flow'
 
 export type Period = keyof PricingPlan['price']
@@ -22,7 +23,7 @@ export const Price = ({
       }}
     />
     <span className="text-muted-foreground text-sm">
-      {period === 'monthly' ? '/ month' : '/ year'}
+      {getPriceUnit(plan, period)}
     </span>
   </>
 )

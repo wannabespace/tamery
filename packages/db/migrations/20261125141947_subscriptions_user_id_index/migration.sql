@@ -1,0 +1,1 @@
+CREATE INDEX "subscriptions_user_id_index" ON "subscriptions" ("user_id");

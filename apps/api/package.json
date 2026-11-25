@@ -49,6 +49,7 @@
     "stripe": "catalog:",
     "ua-parser-js": "catalog:",
     "uuid": "catalog:",
+    "validator": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -57,6 +58,7 @@
     "@tamery/configs": "workspace:*",
     "@types/pg": "catalog:",
     "@types/react": "catalog:",
+    "@types/validator": "catalog:",
     "drizzle-kit": "catalog:"
   },
   "portless": "api.local.tamery"

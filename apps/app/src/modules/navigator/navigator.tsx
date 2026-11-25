@@ -5,6 +5,7 @@ import { useSubscription } from 'seitu/react'
 
 import { useConnectionContext } from '~/core/connection/route'
 import { ChatList } from '~/modules/chat/chat-list'
+import { ReleaseAnnouncement } from '~/modules/release-announcement/release-announcement'
 
 import { CreateSchemaDialog } from './create-schema-dialog'
 import { CreateTableDialog, createTableDialogRef } from './create-table-dialog'
@@ -51,6 +52,7 @@ export const Navigator = () => {
           <ChatList />
         </div>
       </Activity>
+      <ReleaseAnnouncement />
       <CreateTableDialog />
       <CreateSchemaDialog />
       {isSqlDialect(dialect) && <CreateViewDialog dialect={dialect} />}

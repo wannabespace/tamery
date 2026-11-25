@@ -2,6 +2,8 @@ import type { Rules } from 'permix'
 
 import { FREE_SHARE_LIMIT } from './usage'
 
+export type SubscriptionPlan = 'pro' | 'team'
+
 // oxlint-disable-next-line typescript/consistent-type-definitions -- permix's Definition needs an index signature, which an interface lacks
 export type Permissions = {
   ai: {
@@ -24,7 +26,7 @@ export const getPermissions = ({
   user,
 }: {
   hasAiKey: boolean
-  subscription: { plan: 'pro' } | null
+  subscription: { plan: SubscriptionPlan } | null
   user: { isAnonymous?: boolean | null }
 }): Rules<Permissions> => {
   const member = !user.isAnonymous

@@ -187,23 +187,18 @@ export const chatPersist = {
   }) => {
     const connection = await chatPersist.connection(data)
 
-    const existing = await db.query.chats.findFirst({
-      columns: { parentChatId: true, title: true, userId: true },
-      where: { id: { eq: data.chatId } },
-    })
+    const findOwnedChat = () =>
+      db.query.chats.findFirst({
+        columns: { parentChatId: true, title: true },
+        where: {
+          connectionResourceId: { eq: data.connectionResourceId },
+          id: { eq: data.chatId },
+          userId: { eq: data.userId },
+        },
+      })
+    const existing = await findOwnedChat()
 
-    if (existing) {
-      if (existing.userId !== data.userId) {
-        throw new ORPCError('NOT_FOUND', { message: 'Chat not found' })
-      }
-      return {
-        connection,
-        isSubagent: !!existing.parentChatId,
-        title: existing.title,
-      }
-    }
-
-    if (data.subagent) {
+    if (!existing && data.subagent) {
       // A subagent hangs off a top-level chat of the same user and resource, never off another subagent.
       const parent = await db.query.chats.findFirst({
         columns: { connectionResourceId: true, parentChatId: true },
@@ -221,26 +216,31 @@ export const chatPersist = {
       }
     }
 
-    const [inserted] = await db
-      .insert(chats)
-      .values({
-        connectionResourceId: data.connectionResourceId,
-        id: data.chatId,
-        parentChatId: data.subagent?.parentChatId,
-        title: data.subagent?.title,
-        userId: data.userId,
-      })
-      .onConflictDoNothing()
-      .returning()
+    const [inserted] = existing
+      ? []
+      : await db
+          .insert(chats)
+          .values({
+            connectionResourceId: data.connectionResourceId,
+            id: data.chatId,
+            parentChatId: data.subagent?.parentChatId,
+            title: data.subagent?.title,
+            userId: data.userId,
+          })
+          .onConflictDoNothing()
+          .returning()
+    const chat = existing ?? inserted ?? (await findOwnedChat())
+    if (!chat) {
+      throw new ORPCError('NOT_FOUND', { message: 'Chat not found' })
+    }
 
     if (inserted) {
       chatsPublisher.publish(data.userId, { type: 'insert', value: inserted })
     }
-
     return {
       connection,
-      isSubagent: !!data.subagent,
-      title: data.subagent?.title ?? null,
+      isSubagent: !!chat.parentChatId,
+      title: chat.title,
     }
   },
   loadMessages: async (data: { chatId: string; userId: string }) => {

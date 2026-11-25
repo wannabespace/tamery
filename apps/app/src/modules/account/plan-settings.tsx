@@ -2,7 +2,9 @@ import { Alert02Icon, ArrowUpRight01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { SUBSCRIPTION_PAST_DUE_MESSAGE } from '@tamery/shared/constants'
 import { PRO_TRIAL_DAYS } from '@tamery/shared/credits'
-import { HOBBY_PLAN, PRO_PLAN } from '@tamery/shared/plans'
+import type { SubscriptionPlan } from '@tamery/shared/permissions'
+import type { PricingPlan } from '@tamery/shared/plans'
+import { getPriceUnit, HOBBY_PLAN, PAID_PLANS } from '@tamery/shared/plans'
 import { uppercaseFirst } from '@tamery/shared/utils'
 import {
   Alert,
@@ -37,10 +39,13 @@ import {
 } from '~/core/user/use-subscription'
 import type { ORPCOutputs } from '~/lib/orpc'
 import { orpc } from '~/lib/orpc'
+import { posthog } from '~/lib/posthog'
 
 import { openStripe, stripeReturnUrl } from './browser'
+import { TeamSeats } from './team-seats'
 
 type Subscription = ORPCOutputs['account']['subscription']['list'][number]
+type OwnSubscription = Extract<Subscription, { isOwner: true }>
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', {
@@ -51,7 +56,7 @@ const formatCurrency = (amount: number) =>
     style: 'currency',
   }).format(amount)
 
-const getStatus = (subscription: Subscription, trialEndsLater: boolean) => {
+const getStatus = (subscription: OwnSubscription, trialEndsLater: boolean) => {
   if (subscription.cancelAt) {
     return `Cancels on ${format(subscription.cancelAt, 'MMM d, yyyy')}`
   }
@@ -71,40 +76,66 @@ const getStatus = (subscription: Subscription, trialEndsLater: boolean) => {
   return 'No upcoming payment'
 }
 
+const getPlanDescription = (
+  plan: PricingPlan,
+  subscription: Subscription | null,
+  offersTrial: boolean
+) => {
+  if (offersTrial) {
+    return `${plan.description}. Starts with a ${PRO_TRIAL_DAYS}-day free trial.`
+  }
+  if (subscription?.plan === plan.id && !subscription.isOwner) {
+    return 'Your team pays for your seat.'
+  }
+  return plan.description
+}
+
 const Plan = () => {
   const { subscription } = useSubscription()
+  const ownSubscription = subscription?.isOwner ? subscription : null
   const { data: subscriptions } = useQuery(subscriptionsQueryOptions)
   const [isYearly, setIsYearly] = useState(false)
   const upgrade = useMutation({
-    meta: { event: 'subscription_checkout_started' },
-    mutationFn: (yearly: boolean) =>
+    mutationFn: (plan: SubscriptionPlan) =>
       orpc.account.subscription.upgrade.call({
         cancelUrl: stripeReturnUrl('plan'),
-        isYearly: yearly,
+        isYearly,
+        plan,
         returnUrl: stripeReturnUrl('plan'),
         successUrl: stripeReturnUrl('plan'),
       }),
+    onSettled: (_data, error, plan) => {
+      posthog.capture('subscription_checkout_started', {
+        plan,
+        success: !error,
+      })
+    },
     onSuccess: openStripe,
   })
-  const portal = useMutation(
-    orpc.account.subscription.billingPortal.mutationOptions({
-      meta: { event: 'billing_portal_opened' },
-      onSuccess: openStripe,
-    })
-  )
+  const portal = useMutation({
+    mutationFn: (intent: 'change_seats' | 'manage' | 'switch_to_team') =>
+      orpc.account.subscription.billingPortal.call({
+        changePlan: intent !== 'manage',
+        returnUrl: stripeReturnUrl('plan'),
+      }),
+    onSettled: (_data, error, intent) => {
+      posthog.capture('billing_portal_opened', { intent, success: !error })
+    },
+    onSuccess: openStripe,
+  })
   // oxlint-disable-next-line react/hook-use-state -- frozen at mount, never set
   const [mountedAt] = useState(() => Date.now())
   const trialEndsLater = Boolean(
-    subscription?.trialEnd && subscription.trialEnd.getTime() > mountedAt
+    ownSubscription?.trialEnd && ownSubscription.trialEnd.getTime() > mountedAt
   )
-  const shownPeriod = subscription?.period ?? (isYearly ? 'yearly' : 'monthly')
-  const proPrice = subscription
-    ? subscription.price
-    : PRO_PLAN.price[shownPeriod]
+  const shownPeriod =
+    ownSubscription?.period ?? (isYearly ? 'yearly' : 'monthly')
+  const offersTrial =
+    !subscription && subscriptions?.some((s) => s.isOwner) === false
 
   return (
     <>
-      {subscription?.status === 'past_due' && (
+      {ownSubscription?.status === 'past_due' && (
         <Alert variant="destructive">
           <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
           <AlertTitle>Payment issue with your subscription</AlertTitle>
@@ -118,39 +149,54 @@ const Plan = () => {
         >
           {!subscription && <Badge variant="secondary">Current</Badge>}
         </SettingsRow>
-        <SettingsRow
-          title={
-            <span className="flex items-baseline gap-2">
-              {PRO_PLAN.name}
-              <span className="text-muted-foreground text-xs font-normal">
-                {`${formatCurrency(proPrice)}${shownPeriod === 'yearly' ? '/year' : '/month'}`}
-              </span>
-            </span>
-          }
-          description={
-            subscriptions?.length === 0
-              ? `${PRO_PLAN.description}. Starts with a ${PRO_TRIAL_DAYS}-day free trial.`
-              : PRO_PLAN.description
-          }
-        >
-          {subscription ? (
-            <Badge variant="secondary">Current</Badge>
-          ) : (
-            <Button
-              size="sm"
-              disabled={upgrade.isPending}
-              onClick={() => upgrade.mutate(isYearly)}
+        {PAID_PLANS.map((plan) => {
+          const isCurrent = subscription?.plan === plan.id
+
+          return (
+            <SettingsRow
+              key={plan.id}
+              title={
+                <span className="flex items-baseline gap-2">
+                  {plan.name}
+                  <span className="text-muted-foreground text-xs font-normal">
+                    {`${formatCurrency(isCurrent && ownSubscription ? ownSubscription.price : plan.price[shownPeriod])} ${getPriceUnit(plan, shownPeriod)}`}
+                  </span>
+                </span>
+              }
+              description={getPlanDescription(plan, subscription, offersTrial)}
             >
-              <LoadingContent loading={upgrade.isPending}>
-                Upgrade
-              </LoadingContent>
-            </Button>
-          )}
-        </SettingsRow>
+              {isCurrent && <Badge variant="secondary">Current</Badge>}
+              {!subscription && (
+                <Button
+                  size="sm"
+                  variant={plan.highlighted ? 'default' : 'outline'}
+                  disabled={upgrade.isPending}
+                  onClick={() => upgrade.mutate(plan.id)}
+                >
+                  <LoadingContent
+                    loading={upgrade.isPending && upgrade.variables === plan.id}
+                  >
+                    Upgrade
+                  </LoadingContent>
+                </Button>
+              )}
+              {plan.perSeat && ownSubscription?.plan === 'pro' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={portal.isPending}
+                  onClick={() => portal.mutate('switch_to_team')}
+                >
+                  Switch to Team
+                </Button>
+              )}
+            </SettingsRow>
+          )
+        })}
         {!subscription && (
           <SettingsRow
             title="Billing period"
-            description={`Yearly costs ${formatCurrency(PRO_PLAN.price.yearly)} instead of ${formatCurrency(PRO_PLAN.price.monthly * 12)}.`}
+            description="Yearly gives you 2 months free."
           >
             <Tabs
               value={isYearly ? 'yearly' : 'monthly'}
@@ -164,21 +210,32 @@ const Plan = () => {
           </SettingsRow>
         )}
       </SettingsGroup>
-      {subscription && (
+      {ownSubscription?.plan === 'team' && (
+        <TeamSeats
+          assignableSeats={ownSubscription.assignableSeats}
+          isTrial={ownSubscription.status === 'trialing'}
+          seats={ownSubscription.seats}
+          isChangingSeats={portal.isPending}
+          onChangeSeats={() => portal.mutate('change_seats')}
+        />
+      )}
+      {ownSubscription && (
         <SettingsGroup title="Billing">
           <SettingsRow
-            title={getStatus(subscription, trialEndsLater)}
+            title={getStatus(ownSubscription, trialEndsLater)}
             description="Change your plan or payment method, or cancel, in the billing portal."
           >
             <Button
               variant="outline"
               size="sm"
               disabled={portal.isPending}
-              onClick={() =>
-                portal.mutate({ returnUrl: stripeReturnUrl('plan') })
-              }
+              onClick={() => portal.mutate('manage')}
             >
-              <LoadingContent loading={portal.isPending}>Manage</LoadingContent>
+              <LoadingContent
+                loading={portal.isPending && portal.variables === 'manage'}
+              >
+                Manage
+              </LoadingContent>
             </Button>
           </SettingsRow>
         </SettingsGroup>

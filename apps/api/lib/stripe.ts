@@ -1,5 +1,6 @@
 import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
+import type { SubscriptionPlan } from '@tamery/shared/permissions'
 import { eq } from 'drizzle-orm'
 import { Stripe } from 'stripe'
 
@@ -15,9 +16,13 @@ export const stripe = env.STRIPE_SECRET_KEY
     })
   : null
 
-/** The user's Stripe customer, created on their first checkout and kept on the user row. */
-export const getStripeCustomerId = async (client: Stripe, userId: string) => {
-  const [user] = await db.select().from(users).where(eq(users.id, userId))
+/** The user's Stripe customer, created on their first checkout and kept on the user row. A caller that locked the row passes its transaction. */
+export const getStripeCustomerId = async (
+  client: Stripe,
+  userId: string,
+  tx: Pick<typeof db, 'select' | 'update'> = db
+) => {
+  const [user] = await tx.select().from(users).where(eq(users.id, userId))
   if (!user) {
     throw new Error(`User ${userId} not found`)
   }
@@ -29,9 +34,29 @@ export const getStripeCustomerId = async (client: Stripe, userId: string) => {
     metadata: { userId: user.id },
     name: user.name,
   })
-  await db
+  await tx
     .update(users)
     .set({ stripeCustomerId: customer.id })
     .where(eq(users.id, user.id))
   return customer.id
+}
+
+const PRICE_IDS = {
+  pro: {
+    monthly: env.STRIPE_PRO_MONTH_PRICE_ID,
+    yearly: env.STRIPE_PRO_ANNUAL_PRICE_ID,
+  },
+  team: {
+    monthly: env.STRIPE_TEAM_MONTH_PRICE_ID,
+    yearly: env.STRIPE_TEAM_ANNUAL_PRICE_ID,
+  },
+}
+
+export const stripePrices = {
+  getId: (plan: SubscriptionPlan, period: 'monthly' | 'yearly') =>
+    PRICE_IDS[plan][period] ?? null,
+  getPlan: (priceId: string): SubscriptionPlan | null =>
+    (['pro', 'team'] as const).find((plan) =>
+      Object.values(PRICE_IDS[plan]).includes(priceId)
+    ) ?? null,
 }

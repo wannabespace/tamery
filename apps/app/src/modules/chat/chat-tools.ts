@@ -297,12 +297,14 @@ export const chatToolRuns = {
   write: async ({
     approved,
     chat,
+    connectionResourceId,
     input,
     toolCallId,
     transcript,
   }: {
     approved: boolean
     chat: AppChat
+    connectionResourceId: string
     input: ChatTools['execute']['input']
     toolCallId: string
     transcript: AppUIMessage[]
@@ -314,9 +316,12 @@ export const chatToolRuns = {
       return
     }
     resumeSubagent(chat.id)
-    if (!approved) {
+    if (
+      !approved ||
+      !isOwnConnection(input.connectionId, connectionResourceId)
+    ) {
       void chat.addToolOutput({
-        errorText: DECLINED,
+        errorText: approved ? READ_ONLY : DECLINED,
         state: 'output-error',
         tool: 'execute',
         toolCallId,

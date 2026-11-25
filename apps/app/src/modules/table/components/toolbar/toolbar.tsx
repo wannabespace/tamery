@@ -46,6 +46,7 @@ import { FilterSearchBar } from './filter-search-bar'
 import { TableStats } from './table-stats'
 
 const EXPORT_PAGE_SIZE = 1000
+const NO_ROWS: Record<string, unknown>[] = []
 
 export const TableToolbar = ({
   onAddColumn,
@@ -85,7 +86,7 @@ export const TableToolbar = ({
   })
 
   const {
-    data: rows = [],
+    data: rows = NO_ROWS,
     hasNextPage,
     isError: isRowsError,
     isPending,
@@ -131,14 +132,13 @@ export const TableToolbar = ({
     }
 
     const allRows: Record<string, unknown>[] = []
-    for (let offset = 0; ; offset += EXPORT_PAGE_SIZE) {
+    let page: Record<string, unknown>[]
+    do {
       // oxlint-disable-next-line no-await-in-loop -- a short page is the only end signal
-      const page = await fetchRows(offset, EXPORT_PAGE_SIZE)
+      page = await fetchRows(allRows.length, EXPORT_PAGE_SIZE)
       allRows.push(...page)
-      if (page.length < EXPORT_PAGE_SIZE) {
-        return allRows
-      }
-    }
+    } while (page.length === EXPORT_PAGE_SIZE)
+    return allRows
   }
 
   return (
