@@ -5,11 +5,10 @@ import {
   chatsMessagesSelectSchema,
 } from '@tamery/db/schema'
 import { type } from 'arktype'
-import { addSeconds } from 'date-fns'
-import { and, eq, getColumns, gte, inArray, notInArray, or } from 'drizzle-orm'
+import { and, eq, getColumns, inArray, notInArray, or } from 'drizzle-orm'
 
 import { authMiddleware, orpc } from '~/orpc'
-import { createSyncOutputSchema, syncDiff } from '~/orpc/lib/sync'
+import { createSyncOutputSchema, syncDiff, updatedAfter } from '~/orpc/lib/sync'
 
 const output = createSyncOutputSchema(chatsMessagesSelectSchema).array()
 
@@ -61,7 +60,7 @@ export const sync = orpc
                   ...items.map((m) =>
                     and(
                       eq(chatsMessages.id, m.id),
-                      gte(chatsMessages.updatedAt, addSeconds(m.updatedAt, 1))
+                      updatedAfter(chatsMessages.updatedAt, m.updatedAt)
                     )
                   )
                 )

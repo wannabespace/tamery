@@ -4,7 +4,8 @@ import { asyncIteratorObject } from '@orpc/server'
 import { db } from '@tamery/db'
 import type { Type } from 'arktype'
 import { type } from 'arktype'
-import { addSeconds } from 'date-fns'
+import { addMilliseconds } from 'date-fns'
+import type { SQLWrapper } from 'drizzle-orm'
 import { and, eq, gte, inArray, notInArray, or } from 'drizzle-orm'
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core'
 
@@ -36,6 +37,10 @@ export const createSyncPublisher = <
     prefix,
     subscriber: redisSubscriber,
   })
+
+// Postgres keeps microseconds a device never sees, so a plain `>` resends every `defaultNow()` row; any slack past 1ms drops the edits inside it.
+export const updatedAfter = (updatedAt: SQLWrapper, known: Date) =>
+  gte(updatedAt, addMilliseconds(known, 1))
 
 export const syncDiff = async <TItem>(opts: {
   input: { id: string; updatedAt: Date }[]
@@ -98,7 +103,7 @@ export const createUserScopedSync = <
                     ...items.map((row) =>
                       and(
                         eq(table.id, row.id),
-                        gte(table.updatedAt, addSeconds(row.updatedAt, 1))
+                        updatedAfter(table.updatedAt, row.updatedAt)
                       )
                     )
                   )

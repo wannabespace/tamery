@@ -1,12 +1,11 @@
 import { db } from '@tamery/db'
 import { connections } from '@tamery/db/schema'
 import { type } from 'arktype'
-import { addSeconds } from 'date-fns'
-import { and, eq, gte, inArray, notInArray, or } from 'drizzle-orm'
+import { and, eq, inArray, notInArray, or } from 'drizzle-orm'
 
 import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
-import { syncDiff } from '~/orpc/lib/sync'
+import { syncDiff, updatedAfter } from '~/orpc/lib/sync'
 
 import { output as eventOutput, syncedColumns } from './events'
 
@@ -57,7 +56,7 @@ export const sync = orpc
                   ...items.map((c) =>
                     and(
                       eq(connections.id, c.id),
-                      gte(connections.updatedAt, addSeconds(c.updatedAt, 1))
+                      updatedAfter(connections.updatedAt, c.updatedAt)
                     )
                   )
                 )

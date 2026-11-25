@@ -5,12 +5,11 @@ import {
   connectionsResourcesSelectSchema,
 } from '@tamery/db/schema'
 import { type } from 'arktype'
-import { addSeconds } from 'date-fns'
-import { and, eq, getColumns, gte, inArray, notInArray, or } from 'drizzle-orm'
+import { and, eq, getColumns, inArray, notInArray, or } from 'drizzle-orm'
 
 import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
-import { createSyncOutputSchema, syncDiff } from '~/orpc/lib/sync'
+import { createSyncOutputSchema, syncDiff, updatedAfter } from '~/orpc/lib/sync'
 
 const output = createSyncOutputSchema(connectionsResourcesSelectSchema).array()
 
@@ -71,10 +70,7 @@ export const sync = orpc
                   ...items.map((cr) =>
                     and(
                       eq(connectionsResources.id, cr.id),
-                      gte(
-                        connectionsResources.updatedAt,
-                        addSeconds(cr.updatedAt, 1)
-                      )
+                      updatedAfter(connectionsResources.updatedAt, cr.updatedAt)
                     )
                   )
                 )
