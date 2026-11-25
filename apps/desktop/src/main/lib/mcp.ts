@@ -192,7 +192,8 @@ const start = async () => {
   const opened = await Result.tryPromise(() => once(listening, 'listening'))
   if (opened.isErr()) {
     server = toError(opened.error.cause)
-    // Whatever holds the port may have received the token from an agent configured for Tamery.
+    // Whatever holds the port may have received the token from an agent configured for Tamery. This only catches a holder
+    // still on the port at start: one that took the token while Tamery wasn't listening and left keeps it valid.
     if (hasErrnoCode(server, 'EADDRINUSE')) {
       store.set('token', newToken())
     }

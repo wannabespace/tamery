@@ -20,6 +20,8 @@ Keep a signed-in Tamery window open while the agent works. Tables and schema are
 
 If another copy of Tamery already holds the port, Settings says so. Quit the other copy, then switch the server off and on. The access token changes when this happens, so whatever held the port can't reuse a token your agents sent it: add Tamery to your agents again.
 
+Agents also send the token while Tamery isn't running or the server is off. Another program on this computer that listens on the port at that time can collect it, and Settings can't tell. If another user or program on this computer could have done that, click **Regenerate** under **Server → Access token**.
+
 ## Connection access
 
 In **Settings → MCP → Connection access**, choose what agents may do with each connection:
