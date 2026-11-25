@@ -74,6 +74,9 @@ const ToolPart = ({ part }: { part: DynamicToolUIPart | ToolUIPart }) => (
   </Disclosure>
 )
 
+// A model-written image loads on render, so its URL could carry chat text to any host.
+const MODEL_DISALLOWED_ELEMENTS = ['img']
+
 export const MessagePart = ({ part }: { part: AppMessagePart }) => {
   if (isToolUIPart(part) || isDynamicToolUIPart(part)) {
     return <ToolPart part={part} />
@@ -81,13 +84,19 @@ export const MessagePart = ({ part }: { part: AppMessagePart }) => {
 
   switch (part.type) {
     case 'text': {
-      return part.text.trim() ? <Response>{part.text}</Response> : null
+      return part.text.trim() ? (
+        <Response disallowedElements={MODEL_DISALLOWED_ELEMENTS}>
+          {part.text}
+        </Response>
+      ) : null
     }
     case 'reasoning': {
       return part.text.trim() ? (
         <Disclosure icon={BrainIcon} label="Reasoning">
           <div className="text-muted-foreground">
-            <Response>{part.text}</Response>
+            <Response disallowedElements={MODEL_DISALLOWED_ELEMENTS}>
+              {part.text}
+            </Response>
           </div>
         </Disclosure>
       ) : null

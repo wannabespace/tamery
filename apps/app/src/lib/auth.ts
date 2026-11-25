@@ -68,7 +68,10 @@ const sessionCache = createWebStorageValue({
 
 // Must run before anything subscribes to the session atom; hydrateSession only fills an empty atom.
 authClient.hydrateSession(sessionCache.get())
-authClient.$store.atoms.session?.listen(({ data }) => sessionCache.set(data))
+// The token stays out of localStorage: the web app authenticates with its httpOnly cookie, desktop with `bearerToken`.
+authClient.$store.atoms.session?.listen(({ data }) =>
+  sessionCache.set(data && { ...data, session: { ...data.session, token: '' } })
+)
 
 export const getSessionUser = async () => {
   const user = sessionCache.get()?.user

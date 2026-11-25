@@ -9,8 +9,16 @@ const init = async () => {
   const client = posthogJs.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
     api_host: 'https://eu.i.posthog.com',
     autocapture: false,
+    // Sign-in pages carry an email, a share path or a sign-in challenge in their query.
+    custom_personal_data_properties: [
+      'codeChallenge',
+      'email',
+      'path',
+      'redirectPath',
+    ],
     defaults: '2026-01-30',
     disable_session_recording: true,
+    mask_personal_data_properties: true,
     persistence: 'memory',
   })
   client.register({ app: 'site' })
