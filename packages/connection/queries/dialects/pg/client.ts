@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import { logDriverError } from '@tamery/shared/sanitize-log'
 import { Result } from 'better-result'
 import { memoize } from 'memoza'
-import type { PoolConfig } from 'pg'
+import type { ClientConfig, PoolConfig } from 'pg'
 import type * as PgModule from 'pg'
 
 import { forwarding } from '../../../forwarding'
@@ -36,6 +36,19 @@ for (const [oid, arrayOid] of OIDS_KEPT_AS_POSTGRES_TEXT) {
   pg.types.setTypeParser(arrayOid, asTextArray)
 }
 
+// pg-pool spends its `connectionTimeoutMillis` on the wait for the one pooled client too, failing a query queued behind a
+// long one; set on the client, the limit covers only opening the connection. pg-pool makes `password` non-enumerable,
+// so a spread alone drops it.
+export class TimedClient extends pg.Client {
+  constructor(config?: ClientConfig) {
+    super({
+      ...config,
+      connectionTimeoutMillis: 30_000,
+      password: config?.password,
+    })
+  }
+}
+
 const connect = (options: PoolConfig) =>
   Result.tryPromise({
     catch: (error) => error,
@@ -60,7 +73,7 @@ export const getPool = memoize(async (connectionString: string) => {
   const conf: PoolConfig = {
     ...config,
     ...(tunnel && { stream: tunnel.socket }),
-    connectionTimeoutMillis: 30_000,
+    Client: TimedClient,
     max: 1,
     // Only a function keeps pg from falling back to `PGPASSWORD` and `~/.pgpass`, handing the user's stored password to
     // whatever host the string names (an MCP agent's included).
