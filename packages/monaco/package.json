@@ -6,7 +6,7 @@
     "./editor": "./src/editor.tsx",
     "./monaco.css": "./src/monaco.css",
     "./query-language": "./src/query-language/index.ts",
-    "./no-language": "./src/no-language.ts"
+    "./vite": "./src/vite.ts"
   },
   "scripts": {
     "check-types": "bun check",
