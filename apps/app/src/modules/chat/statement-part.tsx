@@ -73,12 +73,12 @@ export const SqlRunCard = ({ data }: { data: ChatDataParts['sql'] }) => {
 }
 
 const SkippedRun = ({
+  input,
   skipped,
-  statement,
   toolCallId,
 }: {
+  input: ChatTools['execute']['input']
   skipped: NonNullable<ToolPartActions['skipped']>
-  statement: string
   toolCallId: string
 }) =>
   skipped.ran.has(toolCallId) ? (
@@ -91,7 +91,7 @@ const SkippedRun = ({
       <Button
         size="xs"
         variant="default"
-        onClick={() => skipped.run(statement, toolCallId)}
+        onClick={() => skipped.run(input, toolCallId)}
       >
         Run
       </Button>
@@ -137,11 +137,11 @@ export const StatementPart = ({
         toolCallId={part.toolCallId}
       />
     )
-  } else if (isSkipped(part) && input?.statement && actions.skipped) {
+  } else if (isSkipped(part) && target?.statement && actions.skipped) {
     status = (
       <SkippedRun
+        input={target}
         skipped={actions.skipped}
-        statement={input.statement}
         toolCallId={part.toolCallId}
       />
     )
