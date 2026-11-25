@@ -5,7 +5,7 @@ import { db } from '@tamery/db'
 import type { Type } from 'arktype'
 import { type } from 'arktype'
 import { addSeconds } from 'date-fns'
-import { and, eq, gte, inArray, notInArray, or } from 'drizzle-orm'
+import { and, eq, getColumns, sql } from 'drizzle-orm'
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core'
 
 import { redis, redisSubscriber } from '~/lib/redis'
@@ -37,26 +37,43 @@ export const createSyncPublisher = <
     subscriber: redisSubscriber,
   })
 
-export const syncDiff = async <TItem>(opts: {
-  input: { id: string; updatedAt: Date }[]
+interface Version {
+  id: string
+  updatedAt: Date
+}
+
+/** One bound array, not a parameter per id: Postgres refuses a statement with more than 65535 parameters. */
+export const idIn = (column: AnyPgColumn, ids: string[]) =>
+  sql`${column} = any(${sql.param(ids)}::uuid[])`
+
+export const syncDiff = async <TItem extends { id: string }>(opts: {
+  input: Version[]
   queries: {
-    updated?: (
-      inputItems: { id: string; updatedAt: Date }[]
-    ) => Promise<TItem[]>
-    new: (excludeIds: string[]) => Promise<TItem[]>
-    existing: (includeIds: string[]) => Promise<string[]>
+    versions: () => Promise<Version[]>
+    rows: (ids: string[]) => Promise<TItem[]>
   }
 }) => {
-  const inputIds = opts.input.map((i) => i.id)
-  const [updatedItems, newItems, existingIds] = await Promise.all([
-    inputIds.length > 0 && opts.queries.updated
-      ? opts.queries.updated(opts.input)
-      : ([] as TItem[]),
-    opts.queries.new(inputIds),
-    opts.queries.existing(inputIds),
-  ])
-  const missingIds = inputIds.filter((id) => !existingIds.includes(id))
-  return { missingIds, newItems, updatedItems }
+  const clientVersions = new Map(
+    opts.input.map((item) => [item.id, item.updatedAt])
+  )
+  const versions = await opts.queries.versions()
+  const changedIds = versions
+    .filter(({ id, updatedAt }) => {
+      const known = clientVersions.get(id)
+      return !known || updatedAt >= addSeconds(known, 1)
+    })
+    .map(({ id }) => id)
+  const changed =
+    changedIds.length > 0 ? await opts.queries.rows(changedIds) : []
+  const serverIds = new Set(versions.map(({ id }) => id))
+
+  return {
+    missingIds: opts.input
+      .map(({ id }) => id)
+      .filter((id) => !serverIds.has(id)),
+    newItems: changed.filter(({ id }) => !clientVersions.has(id)),
+    updatedItems: changed.filter(({ id }) => clientVersions.has(id)),
+  }
 }
 
 export const createUserScopedSync = <
@@ -76,34 +93,16 @@ export const createUserScopedSync = <
       const { updatedItems, newItems, missingIds } = await syncDiff({
         input,
         queries: {
-          existing: (includeIds) =>
+          rows: (ids) =>
             db
-              .select({ id: table.id })
+              .select({ ...getColumns(table), id: table.id })
               .from(table)
-              .where(and(ownRows, inArray(table.id, includeIds)))
-              .then((rows) => rows.map((row) => row.id)),
-          new: (excludeIds) =>
+              .where(and(ownRows, idIn(table.id, ids))),
+          versions: () =>
             db
-              .select()
+              .select({ id: table.id, updatedAt: table.updatedAt })
               .from(table)
-              .where(and(ownRows, notInArray(table.id, excludeIds))),
-          updated: (items) =>
-            db
-              .select()
-              .from(table)
-              .where(
-                and(
-                  ownRows,
-                  or(
-                    ...items.map((row) =>
-                      and(
-                        eq(table.id, row.id),
-                        gte(table.updatedAt, addSeconds(row.updatedAt, 1))
-                      )
-                    )
-                  )
-                )
-              ),
+              .where(ownRows),
         },
       })
 

@@ -1,12 +1,11 @@
 import { db } from '@tamery/db'
 import { connections } from '@tamery/db/schema'
 import { type } from 'arktype'
-import { addSeconds } from 'date-fns'
-import { and, eq, gte, inArray, notInArray, or } from 'drizzle-orm'
+import { and } from 'drizzle-orm'
 
 import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
-import { syncDiff } from '~/orpc/lib/sync'
+import { idIn, syncDiff } from '~/orpc/lib/sync'
 
 import { output as eventOutput, syncedColumns } from './events'
 
@@ -22,47 +21,20 @@ export const sync = orpc
   )
   .output(output)
   .handler(async ({ input, context }) => {
+    const owned = inMemberWorkspace(context.user.id)(connections)
     const { updatedItems, newItems, missingIds } = await syncDiff({
       input,
       queries: {
-        existing: (includeIds) =>
-          db
-            .select({ id: connections.id })
-            .from(connections)
-            .where(
-              and(
-                inMemberWorkspace(context.user.id)(connections),
-                inArray(connections.id, includeIds)
-              )
-            )
-            .then((r) => r.map((i) => i.id)),
-        new: (excludeIds) =>
+        rows: (ids) =>
           db
             .select(syncedColumns)
             .from(connections)
-            .where(
-              and(
-                inMemberWorkspace(context.user.id)(connections),
-                notInArray(connections.id, excludeIds)
-              )
-            ),
-        updated: (items) =>
+            .where(and(owned, idIn(connections.id, ids))),
+        versions: () =>
           db
-            .select(syncedColumns)
+            .select({ id: connections.id, updatedAt: connections.updatedAt })
             .from(connections)
-            .where(
-              and(
-                inMemberWorkspace(context.user.id)(connections),
-                or(
-                  ...items.map((c) =>
-                    and(
-                      eq(connections.id, c.id),
-                      gte(connections.updatedAt, addSeconds(c.updatedAt, 1))
-                    )
-                  )
-                )
-              )
-            ),
+            .where(owned),
       },
     })
     const syncResult: typeof output.infer = []
