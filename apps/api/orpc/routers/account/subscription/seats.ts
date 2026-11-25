@@ -113,10 +113,17 @@ const add = orpc
         throw errors.NOT_FOUND()
       }
 
+      if (locked.status === 'past_due' && locked.plan === 'team') {
+        throw errors.CONFLICT({
+          message: 'Update your payment method before assigning more seats.',
+        })
+      }
+
       const assignable = getAssignableSeats(locked)
 
       if (assigned.length >= assignable) {
-        throw assignable < locked.seats - OWNER_SEATS
+        throw locked.status === 'trialing' &&
+          assignable < locked.seats - OWNER_SEATS
           ? errors.CONFLICT({
               message:
                 'During the trial you can give one seat. Add more once your plan is paid.',
