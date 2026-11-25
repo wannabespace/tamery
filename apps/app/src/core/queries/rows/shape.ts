@@ -200,6 +200,25 @@ export const mongodbTextContains = (column: string, term: string) => ({
   [column]: { $options: 'i', $regex: likeToRegex(`%${term}%`) },
 })
 
+/** A column's unique constraint, unless one of that constraint's columns carries another: `rowIdentity` takes the columns sharing a name as the whole key. */
+export const uniqueKeyOf = (
+  constraints: { column: string | null; name: string; type: string }[],
+  column: string
+) => {
+  const unique = constraints.filter(
+    (constraint) => constraint.type === 'unique'
+  )
+  const firstOf = (id: string | null) =>
+    unique.find((constraint) => constraint.column === id)?.name
+  const name = firstOf(column)
+  return unique.every(
+    (constraint) =>
+      constraint.name !== name || firstOf(constraint.column) === name
+  )
+    ? name
+    : undefined
+}
+
 type IdentityColumn = Pick<
   Column,
   'id' | 'isArray' | 'isNullable' | 'primaryKey' | 'type' | 'unique'
