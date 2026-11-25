@@ -28,9 +28,9 @@ gcloud run services update api --region=europe-west3 --revision-suffix="secrets-
 
 Every name in `api_secrets` (`infra/secrets.tf`) is a secret the api mounts at `latest`. OpenTofu refuses to destroy one, so a name never disappears together with its value while a revision still reads it.
 
-1. **Add:** push the name. The Infra apply creates the secret, then stops at the `api` service, which cannot mount a secret with no value: set it (above) and re-run the workflow.
+1. **Add:** push the name and apply from Cloud Shell (`.agents/rules/monorepo.md` → Deploys): `tamery-tofu` may not create secrets or bindings. The apply creates the secret, then stops at the `api` service, which cannot mount a secret with no value: set it (above) and apply again.
 2. **Rename:** add the new name beside the old one, set its value, and ship the code that reads it. The old name keeps the running revision booting until the new one takes over.
-3. **Retire:** drop the name and the `prevent_destroy` in one change, approve the apply only if the plan destroys just that secret and its bindings, and put `prevent_destroy` back in the next change. The bindings are `create_before_destroy`, so the apply updates every service and job that mounted the name before it revokes the binding and deletes the secret, and the running revision keeps booting until the new one is up. A binding created before that flag was added has it in the state only after one more apply: keep such a name in `retired_api_secrets`, which keeps the secret and the api's binding without mounting it, for one apply first.
+3. **Retire:** drop the name and the `prevent_destroy` in one change and apply from Cloud Shell, only if the plan destroys just that secret and its bindings, and put `prevent_destroy` back in the next change. The bindings are `create_before_destroy`, so the apply updates every service and job that mounted the name before it revokes the binding and deletes the secret, and the running revision keeps booting until the new one is up. A binding created before that flag was added has it in the state only after one more apply: keep such a name in `retired_api_secrets`, which keeps the secret and the api's binding without mounting it, for one apply first.
 
 ## Rotation
 

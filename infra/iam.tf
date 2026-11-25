@@ -6,7 +6,7 @@ locals {
     tamery-jobs      = "Migrate and purge jobs"
     tamery-scheduler = "Invokes the purge job"
     tamery-deploy    = "GitHub Actions deploys"
-    tamery-tofu      = "Applies infra/ from GitHub Actions after approval"
+    tamery-tofu      = "Applies Cloud Run changes in infra/ from GitHub Actions after approval"
     tamery-tofu-plan = "Plans infra/ from GitHub Actions"
     viewer           = "Read-only for agents"
   }
@@ -32,11 +32,14 @@ locals {
     google_project_iam_custom_role.sql_metadata_viewer.id,
   ]
 
+  # Not iam.securityReviewer: it shows the project's spending, which only viewer and the owner may see.
+  plan_roles = concat(local.read_roles, ["roles/iam.roleViewer", "roles/iam.serviceAccountViewer", google_project_iam_custom_role.tofu_plan_refresh.id])
+
   project_roles = {
     tamery-deploy = ["roles/run.developer"]
-    tamery-tofu   = ["roles/owner"]
-    # Not iam.securityReviewer: it shows the project's spending, which only viewer and the owner may see.
-    tamery-tofu-plan = concat(local.read_roles, ["roles/iam.roleViewer", "roles/iam.serviceAccountViewer", google_project_iam_custom_role.tofu_plan_refresh.id])
+    # Never a role that sets project IAM or edits alerts: either is a way back to owner, or to acting unseen.
+    tamery-tofu      = concat(local.plan_roles, ["roles/run.developer", google_project_iam_custom_role.run_service_iam_setter.id])
+    tamery-tofu-plan = local.plan_roles
     viewer           = concat(local.read_roles, ["roles/iam.securityReviewer"])
   }
 
@@ -63,6 +66,14 @@ resource "google_service_account_iam_member" "deploy_acts_as" {
   service_account_id = google_service_account.this[each.value].name
   role               = "roles/iam.serviceAccountUser"
   member             = google_service_account.this["tamery-deploy"].member
+}
+
+resource "google_service_account_iam_member" "tofu_acts_as" {
+  for_each = local.runtime_accounts
+
+  service_account_id = google_service_account.this[each.value].name
+  role               = "roles/iam.serviceAccountUser"
+  member             = google_service_account.this["tamery-tofu"].member
 }
 
 resource "google_project_iam_custom_role" "sql_metadata_viewer" {
@@ -94,6 +105,13 @@ resource "google_project_iam_custom_role" "tofu_plan_refresh" {
   ]
 }
 
+# A service update sends invoker_iam_disabled, which needs this, and run.developer lacks it.
+resource "google_project_iam_custom_role" "run_service_iam_setter" {
+  role_id     = "runServiceIamSetter"
+  title       = "Cloud Run service IAM setter"
+  permissions = ["run.services.setIamPolicy"]
+}
+
 resource "google_project_iam_member" "this" {
   for_each = merge([
     for account, roles in local.project_roles : { for role in roles : "${account}/${role}" => { account = account, role = role } }
@@ -109,6 +127,12 @@ resource "google_storage_bucket_iam_member" "tofu_plan_reads_state" {
   bucket = "${local.project}-tofu-state"
   role   = "roles/storage.objectViewer"
   member = google_service_account.this["tamery-tofu-plan"].member
+}
+
+resource "google_storage_bucket_iam_member" "tofu_writes_state" {
+  bucket = "${local.project}-tofu-state"
+  role   = "roles/storage.objectUser"
+  member = google_service_account.this["tamery-tofu"].member
 }
 
 # Compute's default account starts as a project editor, and nothing here runs as it.
