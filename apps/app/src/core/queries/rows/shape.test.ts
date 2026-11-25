@@ -12,6 +12,7 @@ import {
   matchesPrimaryKeys,
   mongodbDocument,
   rowIdentity,
+  uniqueKeyOf,
 } from './shape'
 
 const clickhouse = coldDialect(Dialect.ClickHouse).withTables<
@@ -37,6 +38,19 @@ test('ClickHouse parses ISO text for a DateTime column only, in SET and WHERE', 
 
   expect(prepareQuery(query.compile())).toBe(
     `alter table \`events\` update \`note\` = '${iso}' where \`at\` = parseDateTime64BestEffort('${iso}', 3) settings mutations_sync = 1`
+  )
+})
+
+test('a ClickHouse Float32 key matches as Float32, since it reads back rounded', () => {
+  const columns = [{ id: 'ratio', type: 'Nullable(Float32)' }]
+  const query = clickhouse
+    .deleteFrom('events')
+    .where((eb) =>
+      matchesPrimaryKeys(eb, bindValue.clickhouse, columns, { ratio: 0.1 })
+    )
+
+  expect(prepareQuery(query.compile())).toBe(
+    'alter table `events` delete where `ratio` = toFloat32(0.1) settings mutations_sync = 1'
   )
 })
 
@@ -117,6 +131,25 @@ test('a row without a primary key is found by a NOT NULL unique key, else by eve
       Dialect.Postgres
     )
   ).toEqual({ columns: ['email', 'score', 'name'], unique: false })
+})
+
+test('a column of two unique keys does not make the wider key a row identity on its own', () => {
+  const constraints = [
+    { column: 'email', name: 'users_email_key', type: 'unique' },
+    { column: 'tenant_id', name: 'users_tenant_email_key', type: 'unique' },
+    { column: 'email', name: 'users_tenant_email_key', type: 'unique' },
+  ]
+  expect(
+    rowIdentity(
+      ['tenant_id', 'email', 'name'].map((id) => ({
+        id,
+        isNullable: false,
+        type: 'text',
+        unique: uniqueKeyOf(constraints, id),
+      })),
+      Dialect.Postgres
+    )
+  ).toEqual({ columns: ['email'], unique: true })
 })
 
 test('a NULL in a row identity matches with IS NULL', () => {

@@ -5,14 +5,23 @@ import {
   connectionsResourcesSelectSchema,
 } from '@tamery/db/schema'
 import { type } from 'arktype'
-import { addSeconds } from 'date-fns'
-import { and, eq, getColumns, gte, inArray, notInArray, or } from 'drizzle-orm'
+import { and, eq, getColumns } from 'drizzle-orm'
+import type { SelectedFields } from 'drizzle-orm/pg-core'
 
 import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
-import { createSyncOutputSchema, syncDiff } from '~/orpc/lib/sync'
+import { createSyncOutputSchema, idIn, syncDiff } from '~/orpc/lib/sync'
 
 const output = createSyncOutputSchema(connectionsResourcesSelectSchema).array()
+
+const userResources = <TSelection extends SelectedFields>(fields: TSelection) =>
+  db
+    .select(fields)
+    .from(connectionsResources)
+    .innerJoin(
+      connections,
+      eq(connectionsResources.connectionId, connections.id)
+    )
 
 export const sync = orpc
   .use(authMiddleware)
@@ -24,62 +33,19 @@ export const sync = orpc
   )
   .output(output)
   .handler(async ({ input, context }) => {
+    const owned = inMemberWorkspace(context.user.id)(connections)
     const { updatedItems, newItems, missingIds } = await syncDiff({
       input,
       queries: {
-        existing: (includeIds) =>
-          db
-            .select({ id: connectionsResources.id })
-            .from(connectionsResources)
-            .innerJoin(
-              connections,
-              eq(connectionsResources.connectionId, connections.id)
-            )
-            .where(
-              and(
-                inMemberWorkspace(context.user.id)(connections),
-                inArray(connectionsResources.id, includeIds)
-              )
-            )
-            .then((r) => r.map((i) => i.id)),
-        new: (excludeIds) =>
-          db
-            .select(getColumns(connectionsResources))
-            .from(connectionsResources)
-            .innerJoin(
-              connections,
-              eq(connectionsResources.connectionId, connections.id)
-            )
-            .where(
-              and(
-                inMemberWorkspace(context.user.id)(connections),
-                notInArray(connectionsResources.id, excludeIds)
-              )
-            ),
-        updated: (items) =>
-          db
-            .select(getColumns(connectionsResources))
-            .from(connectionsResources)
-            .innerJoin(
-              connections,
-              eq(connectionsResources.connectionId, connections.id)
-            )
-            .where(
-              and(
-                inMemberWorkspace(context.user.id)(connections),
-                or(
-                  ...items.map((cr) =>
-                    and(
-                      eq(connectionsResources.id, cr.id),
-                      gte(
-                        connectionsResources.updatedAt,
-                        addSeconds(cr.updatedAt, 1)
-                      )
-                    )
-                  )
-                )
-              )
-            ),
+        rows: (ids) =>
+          userResources(getColumns(connectionsResources)).where(
+            and(owned, idIn(connectionsResources.id, ids))
+          ),
+        versions: () =>
+          userResources({
+            id: connectionsResources.id,
+            updatedAt: connectionsResources.updatedAt,
+          }).where(owned),
       },
     })
     const result: typeof output.infer = []

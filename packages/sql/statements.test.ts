@@ -107,6 +107,24 @@ COMMIT`
       'SELECT begin, end FROM t',
       'SELECT 2',
     ])
+    for (const statement of [
+      'SELECT e.begin, e.end FROM events e',
+      'SELECT * FROM events WHERE begin > now()',
+      'UPDATE events SET begin = 1',
+      'SELECT * FROM events ORDER BY begin DESC',
+      'SELECT 1 AS begin, 2 AS c',
+    ]) {
+      expect(texts(`${statement}; UPDATE t SET x = 2`, sqlite)).toEqual([
+        statement,
+        'UPDATE t SET x = 2',
+      ])
+    }
+    const procedure =
+      'CREATE PROCEDURE p() BEGIN SELECT e.end FROM events e; END'
+    expect(texts(`${procedure}; SELECT 2`, mysql)).toEqual([
+      procedure,
+      'SELECT 2',
+    ])
   })
 
   it('keeps a rollback to a savepoint inside its transaction', () => {
@@ -253,6 +271,25 @@ END;`
       procedure,
       'SELECT 2',
     ])
+  })
+
+  it('closes MySQL loops at END LOOP, END WHILE and END REPEAT', () => {
+    for (const loop of [
+      'l: LOOP LEAVE l; END LOOP',
+      'WHILE i < 3 DO SET i = i + 1; END WHILE',
+      'REPEAT SET i = i + 1; UNTIL i > 3 END REPEAT',
+    ]) {
+      const procedure = `CREATE PROCEDURE p() BEGIN ${loop}; END`
+      expect(texts(`${procedure}; SELECT 2`, mysql)).toEqual([
+        procedure,
+        'SELECT 2',
+      ])
+    }
+  })
+
+  it('ends a SQL Server block before the next statement IF', () => {
+    const batch = 'IF 1 = 1 BEGIN SELECT 1 END IF 2 = 2 BEGIN SELECT 2 END'
+    expect(texts(`${batch}; SELECT 3`, mssql)).toEqual([batch, 'SELECT 3'])
   })
 
   it('keeps semicolons inside Oracle q-quoted strings', () => {
