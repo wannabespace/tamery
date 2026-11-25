@@ -193,9 +193,14 @@ export const isComparableColumn = (
   dialect: Dialect,
   column: Pick<Column, 'isArray' | 'type'>
 ) => {
-  const { bytes, incomparable } = getCapabilities(dialect).columnTypes
+  const { bytes, incomparable, inexact } = getCapabilities(dialect).columnTypes
   const type = column.type ?? ''
-  return !(column.isArray || bytes?.test(type) || incomparable?.test(type))
+  return !(
+    column.isArray ||
+    bytes?.test(type) ||
+    incomparable?.test(type) ||
+    inexact?.test(type)
+  )
 }
 
 export const hasTabularFigures = (column: Column) =>

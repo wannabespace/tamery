@@ -95,6 +95,7 @@ export const DeleteRowsDialog = ({
     queryKey: ['keyed-rows-count', connectionResource.id, schema, table, rows],
   })
   const counting = !unique && isCounting
+  const nothingMatches = matched === 0
   const reached = Math.max(matched ?? 0, rows.length)
   const sameValueRows = reached - rows.length
 
@@ -167,6 +168,8 @@ export const DeleteRowsDialog = ({
             . This cannot be undone.
             {sameValueRows > 0 &&
               ` ${plural(sameValueRows, `other ${names.row}`)} with the same values ${sameValueRows === 1 ? 'goes' : 'go'} too.`}
+            {nothingMatches &&
+              ` No ${names.row} in the table has these values anymore, so there is nothing to delete.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         {!only && (
@@ -190,7 +193,7 @@ export const DeleteRowsDialog = ({
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogCancel
             variant="destructive"
-            disabled={counting}
+            disabled={counting || nothingMatches}
             onClick={() => deleteRows()}
           >
             <LoadingContent loading={isDeleting || counting}>
