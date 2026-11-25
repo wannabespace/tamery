@@ -372,7 +372,8 @@ export const ChatMessages = ({
     run: runSkipped,
   }
   return (
-    <MessageScrollerProvider autoScroll>
+    // Without the zero peek, visibility ignores the top 64px, where a jump lands: the turn rail would not see a short turn there and repeat the jump.
+    <MessageScrollerProvider autoScroll scrollPreviousItemPeek={0}>
       <MessageScroller ref={transcriptRef}>
         <MessageScrollerViewport>
           <MessageScrollerContent

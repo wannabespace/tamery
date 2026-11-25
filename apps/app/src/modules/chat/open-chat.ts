@@ -72,7 +72,22 @@ export const useIsBlankChatOpen = (resourceId: string, tabId?: string) => {
   return tabId === newChatTabId && !hasDraft && !saved
 }
 
-const ROW_TEXT_LIMIT = 4000
+const DRAFT_TEXT_LIMIT = 4000
+
+const openDraftedChat = (
+  resourceId: string,
+  event: 'ai_chat_error_asked' | 'ai_chat_row_asked',
+  draft: string
+) => {
+  if (!checkOrUpgrade('ai.chat.use')) {
+    return
+  }
+  posthog.capture(event)
+  const chatId = v7()
+  setNewChatId(resourceId, chatId)
+  setChatDraft(chatId, resourceId, draft)
+  openChat(resourceId, chatId)
+}
 
 /** Opens a new chat with the row already in the composer, for the user to finish the question. */
 export const askAboutRow = (data: {
@@ -80,17 +95,22 @@ export const askAboutRow = (data: {
   row: Record<string, unknown>
   schema: string
   table: string
-}) => {
-  if (!checkOrUpgrade('ai.chat.use')) {
-    return
-  }
-  posthog.capture('ai_chat_row_asked')
-  const chatId = v7()
-  setNewChatId(data.resourceId, chatId)
-  setChatDraft(
-    chatId,
+}) =>
+  openDraftedChat(
     data.resourceId,
-    `About this row of ${data.schema}.${data.table}: ${valueToText(data.row).slice(0, ROW_TEXT_LIMIT)}\n`
+    'ai_chat_row_asked',
+    `About this row of ${data.schema}.${data.table}: ${valueToText(data.row).slice(0, DRAFT_TEXT_LIMIT)}\n`
   )
-  openChat(data.resourceId, chatId)
-}
+
+/** Opens a new chat with the failure already in the composer, for the user to send or finish. */
+export const askAboutError = (data: {
+  message: string
+  resourceId: string
+  schema: string
+  table: string
+}) =>
+  openDraftedChat(
+    data.resourceId,
+    'ai_chat_error_asked',
+    `Why does ${data.schema}.${data.table} fail to load? ${data.message.slice(0, DRAFT_TEXT_LIMIT)}\n`
+  )

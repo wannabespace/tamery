@@ -56,6 +56,7 @@ import {
   composerFocusRequestStore,
   setChatDraft,
 } from './stores'
+import { useTypeToFocus } from './use-type-to-focus'
 
 const draftOf = (chatId: string) => {
   const text = standInText() ?? chatDraftsValue.get()[chatId]?.text ?? ''
@@ -135,6 +136,7 @@ export const ChatInput = ({
   const [isSql, setIsSql] = useState(() => draftOf(chatId).isSql)
   const [value, setValue] = useState(() => draftOf(chatId).value)
   const [files, setFiles] = useState<FileUIPart[]>([])
+  const formRef = useRef<HTMLFormElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const sqlEditorRef = useRef<editor.IStandaloneCodeEditor>(null)
   const highlightRef = useRef<HTMLDivElement>(null)
@@ -150,6 +152,12 @@ export const ChatInput = ({
       current.trim() ? `${current.trimEnd()} ${text}` : text
     )
     textareaRef.current?.focus()
+  })
+
+  useTypeToFocus({
+    composerRef: formRef,
+    focus: () => (sqlEditorRef.current ?? textareaRef.current)?.focus(),
+    isActive,
   })
 
   const focusRequest = useSubscription(composerFocusRequestStore)
@@ -228,6 +236,7 @@ export const ChatInput = ({
 
   return (
     <form
+      ref={formRef}
       className={CHAT_COMPOSER_FORM}
       onSubmit={(event) => {
         event.preventDefault()

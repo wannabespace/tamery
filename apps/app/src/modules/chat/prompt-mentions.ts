@@ -15,7 +15,7 @@ import { lastOpenedResourcesStorageValue } from '~/core/connection/last-opened-r
 import { useConnectionContext } from '~/core/connection/route'
 import { useLocalMachine } from '~/core/local-machine'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
-import { useConnectionMachineId } from '~/core/runtime/machine/pairing'
+import { useConnectionRunsOn } from '~/core/runtime/machine/pairing'
 import { posthog } from '~/lib/posthog'
 
 import { escapeRegExp } from './mention-text'
@@ -227,7 +227,7 @@ export const usePromptMentions = ({
           type: connections.type,
         })),
   })
-  const machine = useLocalMachine(useConnectionMachineId(connection.id))
+  const machine = useLocalMachine(useConnectionRunsOn(connection.id))
   const { data: skills = [] } = useQuery({
     enabled: !!machine,
     queryFn: () => machine?.listSkills() ?? [],

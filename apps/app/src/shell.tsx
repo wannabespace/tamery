@@ -12,7 +12,7 @@ export const resourcePanelClassName =
 export const centeredPageClassName =
   'mx-auto flex min-h-full w-full max-w-2xl flex-col px-6 py-12'
 
-export const settingsPageClassName = 'flex min-h-0 flex-1 p-2'
+export const settingsPageClassName = 'flex min-h-0 flex-1 p-2 outline-none'
 
 // w-70 is the navigator panel's defaultSize (modules/navigator/panel.ts): keep them equal or, at the default width, the panel edge jumps entering Settings.
 export const settingsSidebarClassName =

@@ -91,7 +91,10 @@ export const ChatConversation = ({
   const isEmpty = session.messages.length === 0
 
   return (
-    <div className={cn(CHAT_LAYOUT, isEmpty && CHAT_EMPTY_LAYOUT)}>
+    <div
+      data-slot="chat-conversation"
+      className={cn(CHAT_LAYOUT, isEmpty && CHAT_EMPTY_LAYOUT)}
+    >
       {isEmpty ? (
         <ChatIntroHeading />
       ) : (

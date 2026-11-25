@@ -6,6 +6,7 @@ import {
   ArrowUpBigIcon,
   CommandIcon,
   CornerDownLeftIcon,
+  OptionIcon,
 } from '@hugeicons/core-free-icons'
 import type { IconSvgElement } from '@hugeicons/react'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -89,15 +90,16 @@ export const KbdHotkey = ({
   userAgent,
   ...props
 }: ComponentProps<typeof Kbd> & { hotkey: HotkeyChord; userAgent: string }) => {
+  const isMac = getOS(userAgent).type === 'macos'
   const { code, key, modifiers } = parseHotkey(
     hotkey,
-    getOS(userAgent).type === 'macos' ? 'mac' : 'windows'
+    isMac ? 'mac' : 'windows'
   )
 
   return (
     <Kbd {...props}>
       {[...modifiers, key ?? code].map((part) => {
-        const glyph = GLYPHS[part]
+        const glyph = isMac && part === 'Alt' ? OptionIcon : GLYPHS[part]
         return glyph ? (
           // A size class keeps a host's own icon size (a button's, a field's) off the glyph; the kbd still shrinks it in tooltips and menus.
           <HugeiconsIcon

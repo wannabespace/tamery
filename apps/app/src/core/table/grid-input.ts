@@ -5,16 +5,10 @@ import { useSubscription } from 'seitu/react'
 
 import { openContextMenuOn } from '~/components/app-context-menu'
 import { useShortcuts } from '~/core/keyboard/use-shortcuts'
+import { useTypedCharacter } from '~/core/keyboard/use-typed-character'
 
 import type { CellPosition, GridCursor } from './cursor'
 import { inRange } from './cursor'
-
-const isTypedCharacter = (event: KeyboardEvent) =>
-  event.key.length === 1 &&
-  event.key !== ' ' &&
-  !event.ctrlKey &&
-  !event.metaKey &&
-  !event.isComposing
 
 const TO_EDGE = Number.MAX_SAFE_INTEGER
 
@@ -68,8 +62,8 @@ export const useGridHotkeys = ({
       cursor.step(0, 0)
     }
   })
-  const typeOverCell = useEffectEvent((event: KeyboardEvent) => {
-    if (navigating && isTypedCharacter(event)) {
+  useTypedCharacter((event) => {
+    if (navigating) {
       event.preventDefault()
       cursor.edit(event.key)
     }
@@ -77,11 +71,9 @@ export const useGridHotkeys = ({
   useEffect(() => {
     document.addEventListener('focusin', track)
     document.addEventListener('focusout', track)
-    document.addEventListener('keydown', typeOverCell)
     return () => {
       document.removeEventListener('focusin', track)
       document.removeEventListener('focusout', track)
-      document.removeEventListener('keydown', typeOverCell)
     }
   }, [])
 

@@ -17,7 +17,7 @@ import { openChat } from './open-chat'
 import { TablePeek } from './table-peek'
 
 const CHIP =
-  'bg-background text-foreground rounded-md box-decoration-clone px-1 py-0.5 transition-colors [&_svg]:mr-1 [&_svg]:inline [&_svg]:size-3.5 [&_svg]:align-[-2px]'
+  'bg-background text-foreground rounded-md box-decoration-clone px-0.75 text-sm/4.5 transition-colors [&_svg]:mr-1 [&_svg]:inline [&_svg]:size-3 [&_svg]:align-[-2px]'
 
 const CHIP_ACTION = cn(
   CHIP,
@@ -107,7 +107,7 @@ const ChatChip = ({
   return (
     <button
       type="button"
-      className={cn(CHIP_ACTION, 'py-0')}
+      className={CHIP_ACTION}
       onClick={() => {
         posthog.capture('ai_chat_mention_opened', { kind: 'chat' })
         openChat(chat.connectionResourceId, chat.id)
@@ -154,8 +154,7 @@ const messageMentions = (message: AppUIMessage): Mention[] =>
             <TablePeek
               target={{ schema, table, type: 'table' }}
               trigger={
-                // A button is always laid out inline-block, so its line height alone matches the inline chips' padded height.
-                <button type="button" className={cn(CHIP_ACTION, 'py-0')}>
+                <button type="button" className={CHIP_ACTION}>
                   <HugeiconsIcon icon={tableTypeIcon.table} strokeWidth={2} />
                   {text}
                 </button>

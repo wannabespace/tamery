@@ -67,6 +67,7 @@ export const TurnRail = ({
   const { visibleMessageIds } = useMessageScrollerVisibility()
   // oxlint-disable-next-line react/hook-use-state -- a stable handle per mount, never set
   const [preview] = useState(createPopoverHandle<Turn>)
+  const [isPreviewing, setIsPreviewing] = useState(false)
   const turns = toTurns(messages)
   const isOnScreen = (turn: Turn) =>
     turn.messageIds.some((id) => visibleMessageIds.includes(id))
@@ -90,6 +91,12 @@ export const TurnRail = ({
     ],
     { target: transcript }
   )
+  const shortcuts = (
+    <>
+      <ShortcutKbd shortcut="chatPreviousTurn" />
+      <ShortcutKbd shortcut="chatNextTurn" />
+    </>
+  )
   if (turns.length < 2 || !(start || end)) {
     return null
   }
@@ -97,15 +104,10 @@ export const TurnRail = ({
   return (
     // Sized by the scroller, not the viewport, so the rail hides where it would sit over the column's text.
     <div className="@container pointer-events-none absolute inset-0">
-      <Tooltip
-        shortcut={
-          <>
-            <ShortcutKbd shortcut="chatPreviousTurn" />
-            <ShortcutKbd shortcut="chatNextTurn" />
-          </>
-        }
-      >
+      <Tooltip open={isPreviewing ? false : undefined} shortcut={shortcuts}>
+        {/* Holding ⌘ alone opens this tooltip: on hover it would cover the preview, which carries the shortcuts itself. */}
         <TooltipTrigger
+          disabled
           render={
             <nav
               aria-label="Jump to message"
@@ -134,26 +136,32 @@ export const TurnRail = ({
               />
             </PopoverTrigger>
           ))}
-          <Popover handle={preview}>
+          <Popover handle={preview} onOpenChange={setIsPreviewing}>
             {({ payload }) => (
               <PopoverContent side="left" detached className="max-w-72">
                 {payload && (
-                  <div data-mask className="flex flex-col gap-2">
-                    <p className="line-clamp-2 whitespace-pre-wrap">
-                      {payload.question}
-                    </p>
-                    {payload.answer && (
-                      <div className="text-muted-foreground line-clamp-3">
-                        <Response>{payload.answer}</Response>
-                      </div>
-                    )}
+                  <div className="flex flex-col gap-2">
+                    <div data-mask className="flex flex-col gap-2">
+                      <p className="line-clamp-2 whitespace-pre-wrap">
+                        {payload.question}
+                      </p>
+                      {payload.answer && (
+                        <div className="text-muted-foreground line-clamp-3">
+                          <Response>{payload.answer}</Response>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                      Jump to message
+                      {shortcuts}
+                    </div>
                   </div>
                 )}
               </PopoverContent>
             )}
           </Popover>
         </TooltipTrigger>
-        <TooltipContent side="top">Jump to message</TooltipContent>
+        <TooltipContent side="top" />
       </Tooltip>
     </div>
   )
