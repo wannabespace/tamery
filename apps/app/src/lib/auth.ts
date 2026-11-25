@@ -55,6 +55,13 @@ export const authClient = createAuthClient({
         fullSignOut()
       }
     },
+    // The signed token rides only in this header: a sign-in's body carries the raw one.
+    onSuccess({ response }) {
+      const token = response.headers.get('set-auth-token')
+      if (token) {
+        bearerToken.set(token)
+      }
+    },
   },
   plugins: [anonymousClient(), organizationClient()],
 })

@@ -97,8 +97,7 @@ const AuthPage = () => {
     meta: { event: 'signed_in_as_guest' },
     mutationFn: () =>
       authClient.signIn.anonymous({ fetchOptions: { throw: true } }),
-    onSuccess: async ({ token }) => {
-      bearerToken.set(token)
+    onSuccess: async () => {
       await refetch()
       router.navigate({ to: '/' })
     },
