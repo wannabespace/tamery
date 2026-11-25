@@ -15,6 +15,7 @@ import {
   chatModelsFor,
   OWN_KEY_AUTO_MODELS,
 } from '../models/own-key'
+import { logProviderError } from '../provider-error'
 import type { JevUsage } from './jev'
 import { askJev } from './jev'
 
@@ -53,7 +54,7 @@ const rate = async (
     })
     return Math.round(difficultyAnswer.assert(answers.difficulty).score)
   } catch (error) {
-    console.error('jev difficulty failed', error)
+    logProviderError('jev difficulty', error)
     return STANDARD_TIER
   }
 }

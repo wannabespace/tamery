@@ -1,4 +1,5 @@
 import { verifyAiKey } from '@tamery/ai/models'
+import { logProviderError } from '@tamery/ai/provider-error'
 import { type } from 'arktype'
 
 import { aiKey } from '~/lib/ai-key'
@@ -21,7 +22,7 @@ export const set = orpc
   })
   .handler(async ({ context, errors, input }) => {
     await verifyAiKey(input).catch((error: unknown) => {
-      console.error('ai key verification failed', error)
+      logProviderError('ai key verification', error)
       throw errors.BAD_REQUEST()
     })
     await aiKey.set(context.user.id, input)

@@ -8,6 +8,7 @@ import {
 import type { AppUIMessage, ChatCompaction } from '@tamery/ai/message'
 import { messagesFromPartRows } from '@tamery/ai/message'
 import type { AiKey } from '@tamery/ai/models'
+import { logProviderError } from '@tamery/ai/provider-error'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import {
@@ -71,7 +72,7 @@ export const chatPersist = {
       previous: previous?.summary,
       telemetry: data.telemetry,
     }).catch((error: unknown) => {
-      console.error('chat compaction failed', error)
+      logProviderError('chat compaction', error)
       return null
     })
     if (!next) {
