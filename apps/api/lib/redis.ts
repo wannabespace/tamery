@@ -1,4 +1,6 @@
+import { RedisPublisher } from '@orpc/publisher/redis'
 import type { MaybePromise } from '@tamery/shared/utils'
+import { silently } from '@tamery/shared/utils'
 import { createClient } from 'redis'
 
 import { env } from '~/env'
@@ -11,6 +13,18 @@ export const redisSubscriber: typeof redis = redis
   .duplicate()
   .on('error', console.error)
 await redis.connect()
+
+/**
+ * Never rejects: handlers publish without awaiting once their write committed, a dropped Redis connection rejects every
+ * publish in flight, and an unhandled rejection exits the process. A subscriber that misses an event catches up on `sync`.
+ */
+export class BestEffortPublisher<
+  T extends Record<string, object>,
+> extends RedisPublisher<T> {
+  override async publish<K extends keyof T & string>(event: K, payload: T[K]) {
+    await silently(() => super.publish(event, payload))
+  }
+}
 
 export const redisMemoize = async <T>(
   fn: () => MaybePromise<T>,

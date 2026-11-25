@@ -1,8 +1,6 @@
-import { RedisPublisher } from '@orpc/publisher/redis'
+import { BestEffortPublisher, redis, redisSubscriber } from '~/lib/redis'
 
-import { redis, redisSubscriber } from '~/lib/redis'
-
-export const codeChallengePublisher = new RedisPublisher<
+export const codeChallengePublisher = new BestEffortPublisher<
   Record<string, { ready: boolean }>
 >(redis, {
   prefix: 'orpc:publisher:code-challenge:',

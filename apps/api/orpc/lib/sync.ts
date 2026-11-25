@@ -1,4 +1,3 @@
-import { RedisPublisher } from '@orpc/publisher/redis'
 import type { InferSchemaInput } from '@orpc/server'
 import { asyncIteratorObject } from '@orpc/server'
 import { db } from '@tamery/db'
@@ -8,7 +7,7 @@ import { addSeconds } from 'date-fns'
 import { and, eq, gte, inArray, notInArray, or } from 'drizzle-orm'
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core'
 
-import { redis, redisSubscriber } from '~/lib/redis'
+import { BestEffortPublisher, redis, redisSubscriber } from '~/lib/redis'
 import { authMiddleware, orpc } from '~/orpc'
 
 export function createSyncOutputSchema<const T>(
@@ -32,7 +31,7 @@ export const createSyncPublisher = <
   _output: T,
   prefix: string
 ) =>
-  new RedisPublisher<Record<string, T['inferIn']>>(redis, {
+  new BestEffortPublisher<Record<string, T['inferIn']>>(redis, {
     prefix,
     subscriber: redisSubscriber,
   })
