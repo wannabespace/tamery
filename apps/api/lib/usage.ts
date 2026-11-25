@@ -25,17 +25,18 @@ const getQuota = (feature: MeteredFeature, used: number) => ({
   used,
 })
 
+const increment = async (userId: string, feature: MeteredFeature) => {
+  const resetsAt = usageResetsAt()
+  const key = getKey(userId, feature, resetsAt)
+  const [used] = await redis
+    .multi()
+    .incr(key)
+    .expireAt(key, new Date(resetsAt))
+    .exec()
+  return { release: () => redis.decr(key), used: Number(used) }
+}
+
 export const usage = {
-  enforce: async (
-    context: UsageContext,
-    feature: MeteredFeature,
-    limitReached: () => ORPCError<string, unknown>
-  ) => {
-    const quota = await usage.get(context, feature)
-    if (quota && quota.used >= quota.max) {
-      throw limitReached()
-    }
-  },
   get: async ({ permissions, user }: UsageContext, feature: MeteredFeature) =>
     permissions.check(unlimitedPermission[feature])
       ? null
@@ -43,6 +44,31 @@ export const usage = {
           feature,
           Number(await redis.get(getKey(user.id, feature, usageResetsAt())))
         ),
+  /** Takes the unit before `run` starts, so parallel calls cannot pass the limit, and gives it back when `run` throws or `counts` refuses its result. */
+  metered: async <T>(
+    { permissions, user }: UsageContext,
+    feature: MeteredFeature,
+    limitReached: () => ORPCError<string, unknown>,
+    run: () => Promise<T>,
+    counts: (result: T) => boolean = () => true
+  ) => {
+    if (permissions.check(unlimitedPermission[feature])) {
+      return run()
+    }
+    const { release, used } = await increment(user.id, feature)
+    if (used > FREE_WEEKLY_LIMITS[feature]) {
+      await release()
+      throw limitReached()
+    }
+    const result = await run().catch(async (error: unknown) => {
+      await release()
+      throw error
+    })
+    if (!counts(result)) {
+      await release()
+    }
+    return result
+  },
   record: async (
     { permissions, user }: UsageContext,
     feature: MeteredFeature
@@ -50,13 +76,7 @@ export const usage = {
     if (permissions.check(unlimitedPermission[feature])) {
       return null
     }
-    const resetsAt = usageResetsAt()
-    const key = getKey(user.id, feature, resetsAt)
-    const [used] = await redis
-      .multi()
-      .incr(key)
-      .expireAt(key, new Date(resetsAt))
-      .exec()
-    return getQuota(feature, Number(used))
+    const { used } = await increment(user.id, feature)
+    return getQuota(feature, used)
   },
 }

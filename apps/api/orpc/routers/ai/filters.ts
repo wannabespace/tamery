@@ -32,22 +32,22 @@ export const filters = orpc
         'You have reached the free AI usage limit. Please subscribe to a Pro plan to continue using AI features.',
     },
   })
-  .handler(async ({ input, signal, context, errors }) => {
-    await usage.enforce(context, 'filters', errors.TOO_MANY_REQUESTS)
-
-    const result = await generateFilters({
-      context: input.context,
-      prompt: input.prompt,
-      signal,
-      telemetry: aiUsage.telemetry({
-        feature: AiFeature.Filters,
-        userId: context.user.id,
-      }),
-    })
-
-    if (result.filters.length > 0 || Object.keys(result.orderBy).length > 0) {
-      await usage.record(context, 'filters')
-    }
-
-    return result
-  })
+  .handler(({ input, signal, context, errors }) =>
+    usage.metered(
+      context,
+      'filters',
+      errors.TOO_MANY_REQUESTS,
+      () =>
+        generateFilters({
+          context: input.context,
+          prompt: input.prompt,
+          signal,
+          telemetry: aiUsage.telemetry({
+            feature: AiFeature.Filters,
+            userId: context.user.id,
+          }),
+        }),
+      (result) =>
+        result.filters.length > 0 || Object.keys(result.orderBy).length > 0
+    )
+  )
