@@ -36,7 +36,10 @@ export const connections = d.snakeCase.table(
       .references(() => workspaces.id, { onDelete: 'cascade' })
       .notNull(),
   },
-  (t) => [d.index('connections_workspaceId_idx').on(t.workspaceId)]
+  (t) => [
+    d.index('connections_workspaceId_idx').on(t.workspaceId),
+    d.index().on(t.userId),
+  ]
 )
 
 export const connectionsSelectSchema = createSelectSchema(connections)

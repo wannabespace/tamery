@@ -1,4 +1,5 @@
 import { CONTACT_EMAIL } from '@tamery/shared/constants'
+import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import type { ComponentProps } from 'react'
 import type { CreateEmailOptions } from 'resend'
 import { Resend } from 'resend'
@@ -77,11 +78,7 @@ export const sendEmail = async <
 
     return true
   } catch (error) {
-    console.error(
-      'Resend email service error:',
-      error instanceof Error ? error.message : 'Unknown error',
-      error
-    )
+    console.error('Resend email service error:', sanitizeLogData(error))
 
     return false
   }

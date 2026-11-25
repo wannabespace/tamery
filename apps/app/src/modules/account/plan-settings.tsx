@@ -123,6 +123,7 @@ const Plan = () => {
     },
     onSuccess: openStripe,
   })
+  const openingIntent = (portal.isPending && portal.variables) || null
   // oxlint-disable-next-line react/hook-use-state -- frozen at mount, never set
   const [mountedAt] = useState(() => Date.now())
   const trialEndsLater = Boolean(
@@ -187,7 +188,9 @@ const Plan = () => {
                   disabled={portal.isPending}
                   onClick={() => portal.mutate('switch_to_team')}
                 >
-                  Switch to Team
+                  <LoadingContent loading={openingIntent === 'switch_to_team'}>
+                    Switch to Team
+                  </LoadingContent>
                 </Button>
               )}
             </SettingsRow>
@@ -215,7 +218,8 @@ const Plan = () => {
           assignableSeats={ownSubscription.assignableSeats}
           isTrial={ownSubscription.status === 'trialing'}
           seats={ownSubscription.seats}
-          isChangingSeats={portal.isPending}
+          isChangingSeats={openingIntent === 'change_seats'}
+          isOpeningPortal={portal.isPending}
           onChangeSeats={() => portal.mutate('change_seats')}
         />
       )}
@@ -231,9 +235,7 @@ const Plan = () => {
               disabled={portal.isPending}
               onClick={() => portal.mutate('manage')}
             >
-              <LoadingContent
-                loading={portal.isPending && portal.variables === 'manage'}
-              >
+              <LoadingContent loading={openingIntent === 'manage'}>
                 Manage
               </LoadingContent>
             </Button>

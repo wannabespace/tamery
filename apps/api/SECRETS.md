@@ -43,7 +43,7 @@ gcloud run jobs execute api-rotate --region=europe-west3 --wait --args=run,rotat
 
 The output is in the execution's logs.
 
-Each run, like any job you execute by hand, sends the "Deploy outside GitHub Actions" alert.
+Each run, like any job you execute by hand, sends the "Deploy outside the Deploy workflow" alert, and so does an Infra apply that changes a Cloud Run service or job.
 
 **New key value:**
 

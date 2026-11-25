@@ -4,6 +4,7 @@ import { Response } from '@tamery/ui/components/response'
 
 import { ChatDisclosure } from './chat-disclosure'
 import type { ChatToolPart } from './chat-tool-types'
+import { MODEL_DISALLOWED_ELEMENTS } from './model-elements'
 import { getStatus, isRunning } from './tool-status'
 
 type NoteToolPart = Extract<ChatToolPart, { type: 'tool-propose_note' }>
@@ -47,7 +48,9 @@ export const NotePart = ({
     >
       {text && (
         <div data-mask>
-          <Response>{text}</Response>
+          <Response disallowedElements={MODEL_DISALLOWED_ELEMENTS}>
+            {text}
+          </Response>
         </div>
       )}
     </ChatDisclosure>

@@ -26,7 +26,7 @@ describe('grid values', () => {
   })
 
   it('stores text typed into number and boolean fields as their types', () => {
-    expect(toWire('double', '1.5')).toBe(1.5)
+    expect(toWire('double', '1.5')).toStrictEqual({ $numberDouble: '1.5' })
     expect(toWire('bool', 'false')).toBe(false)
     expect(toWire('string', '1.5')).toBe('1.5')
   })

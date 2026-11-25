@@ -142,7 +142,7 @@ export const TableToolbar = ({
   }
 
   return (
-    <div className="flex shrink-0 items-start gap-2 px-3 py-2">
+    <div className="flex shrink-0 flex-wrap items-start gap-2 px-3 py-2">
       <TableStats
         failed={isRowsError}
         filters={filters}
@@ -156,7 +156,7 @@ export const TableToolbar = ({
         table={table}
       />
       <FilterSearchBar rows={rows} table={table} schema={schema} />
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="ml-auto flex shrink-0 items-center gap-1">
         <ActionsColumns />
         <ActionsOrder />
         <ActionsView />

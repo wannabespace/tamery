@@ -7,9 +7,13 @@ import { PARAMETER_PLACEHOLDERS } from './kysely'
 export type ColumnTypes = { id: string; type?: string }[]
 
 const clickhouseDateTimeType = /\bDateTime(?:64\((?<precision>\d))?/u
+const clickhouseFloat32Type = /\bFloat32\b/u
 
-// Reads come back ISO (`date_time_output_format`), which a DateTime comparison or cast cannot parse.
-export const clickhouseDateTime = (columnType: string, value: unknown) => {
+// Reads come back ISO (`date_time_output_format`), which a DateTime comparison or cast cannot parse. A Float32 reads back rounded (0.1), and as a Float64 literal it equals no Float32 value.
+export const clickhouseBindValue = (columnType: string, value: unknown) => {
+  if (typeof value === 'number' && clickhouseFloat32Type.test(columnType)) {
+    return sql`toFloat32(${value})`
+  }
   const dateTime =
     typeof value === 'string' && clickhouseDateTimeType.exec(columnType)
   return dateTime
@@ -44,7 +48,7 @@ export const filterSpellings: Record<
 > = {
   clickhouse: (columns) => ({
     bind: (column, value) =>
-      clickhouseDateTime(getColumnType(columns, column), value),
+      clickhouseBindValue(getColumnType(columns, column), value),
     // JSON_VALUE answers '' for a missing path and 'null' for a JSON null; JSON_QUERY tells both from a real '' or "null".
     jsonText: (column, path) => {
       const args = sql`toJSONString(${sql.id(column)}), ${jsonPathLiteral(path)}`

@@ -5,6 +5,7 @@ import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import type { ConnectionParts } from './connection-parts'
 import { connectionParts } from './connection-parts'
 import { diagnoseConnectionError } from './diagnose'
+import { PRIVATE_HOST_MESSAGE } from './diagnose-network'
 import {
   EMPTY_SSH_TUNNEL,
   SSH_AUTH_ERRORS,
@@ -306,6 +307,13 @@ describe('diagnoseConnectionError', () => {
         { type: ConnectionType.DuckDB }
       )
     ).toMatchObject({ title: 'Your MotherDuck trial has ended' })
+  })
+
+  it('explains the cloud proxy refusing a private host without blaming the password', () => {
+    expect(diagnose(PRIVATE_HOST_MESSAGE, { password: '' })).toStrictEqual({
+      hint: 'The web app reaches databases through a cloud proxy, which only connects to public hosts. Run this connection on a machine (Edit → Runs on), or open it in the desktop app.',
+      title: "The web app can't reach a private host",
+    })
   })
 
   it('returns nothing for an error it does not know', () => {

@@ -15,6 +15,7 @@ import { cn } from '@tamery/ui/lib/utils'
 import type { HotkeyChord } from '@tanstack/react-hotkeys'
 import { parseHotkey } from '@tanstack/react-hotkeys'
 import type { ComponentProps } from 'react'
+import { Fragment } from 'react'
 
 import { Kbd } from '../kbd'
 
@@ -98,18 +99,18 @@ export const KbdHotkey = ({
 
   return (
     <Kbd {...props}>
-      {[...modifiers, key ?? code].map((part) => {
+      {[...modifiers, key ?? code].map((part, index) => {
         const glyph = isMac && part === 'Alt' ? OptionIcon : GLYPHS[part]
-        return glyph ? (
-          // A size class keeps a host's own icon size (a button's, a field's) off the glyph; the kbd still shrinks it in tooltips and menus.
-          <HugeiconsIcon
-            key={part}
-            icon={glyph}
-            strokeWidth={2}
-            className="size-3"
-          />
-        ) : (
-          <span key={part}>{LABELS[part] ?? part}</span>
+        return (
+          <Fragment key={part}>
+            {!isMac && index > 0 && '+'}
+            {glyph ? (
+              // A size class keeps a host's own icon size (a button's, a field's) off the glyph; the kbd still shrinks it in tooltips and menus.
+              <HugeiconsIcon icon={glyph} strokeWidth={2} className="size-3" />
+            ) : (
+              <span>{LABELS[part] ?? part}</span>
+            )}
+          </Fragment>
         )
       })}
     </Kbd>

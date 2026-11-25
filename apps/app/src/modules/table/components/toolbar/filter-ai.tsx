@@ -1,5 +1,6 @@
 import { SparklesIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { AI_QUERY_LIMITS } from '@tamery/ai/limits'
 import { CommandItem, CommandShortcut } from '@tamery/ui/components/command'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -175,8 +176,10 @@ export const useFilterAi = ({
           Enums: ${JSON.stringify(enums, null, 2)}
         `.trim()
         generateFilter({
-          context: schemaNotes.inContext(context, connectionResource.id),
-          prompt,
+          context: schemaNotes
+            .inContext(context, connectionResource.id)
+            .slice(0, AI_QUERY_LIMITS.context),
+          prompt: prompt.slice(0, AI_QUERY_LIMITS.prompt),
         })
       }
     },

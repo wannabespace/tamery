@@ -25,6 +25,7 @@ import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcuts } from '~/core/keyboard/use-shortcuts'
 import { posthog } from '~/lib/posthog'
 
+import { MODEL_DISALLOWED_ELEMENTS } from './model-elements'
 import { sqlRuns } from './sql-run'
 
 interface Turn {
@@ -147,7 +148,11 @@ export const TurnRail = ({
                       </p>
                       {payload.answer && (
                         <div className="text-muted-foreground line-clamp-3">
-                          <Response>{payload.answer}</Response>
+                          <Response
+                            disallowedElements={MODEL_DISALLOWED_ELEMENTS}
+                          >
+                            {payload.answer}
+                          </Response>
                         </div>
                       )}
                     </div>

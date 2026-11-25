@@ -11,6 +11,9 @@ import {
 import type { Diagnosis, DiagnosisContext, DiagnosisRule } from './diagnosis'
 import { getHostHint, getHostKind, isLocalHost, TYPE_OF_PORT } from './hosts'
 
+export const PRIVATE_HOST_MESSAGE =
+  'The cloud proxy reaches only public hosts. Run `tamery machine` or open this connection in the desktop app.'
+
 const SUPABASE_IPV6_ONLY_HINT =
   "Supabase's direct host is IPv6-only. On an IPv4 network, paste the Session pooler string from Supabase → Connect."
 
@@ -128,5 +131,13 @@ export const NETWORK_RULES: DiagnosisRule[] = [
       title: "This network can't reach the server",
     }),
     match: /enetunreach|ehostunreach|no route to host/iu,
+  },
+  {
+    diagnose: () => ({
+      hint: 'The web app reaches databases through a cloud proxy, which only connects to public hosts. Run this connection on a machine (Edit → Runs on), or open it in the desktop app.',
+      title: "The web app can't reach a private host",
+    }),
+    match: /cloud proxy reaches only public hosts/u,
+    tunnel: true,
   },
 ]

@@ -1,3 +1,4 @@
+import { normalizeIP } from '@better-auth/core/utils/ip'
 import { ORPCError, os } from '@orpc/server'
 import {
   CLIENT_IP_HEADER,
@@ -154,6 +155,19 @@ export const authMiddleware = logMiddleware.use(
     }
   })
 )
+
+/** A rate limit key for `authMiddleware` procedures: a guest can mint a new user id at will, so guests are keyed by network. */
+export const callerRateLimitKey = ({
+  context,
+}: {
+  context: {
+    headers: Headers
+    user: { id: string; isAnonymous?: boolean | null }
+  }
+}) =>
+  context.user.isAnonymous
+    ? `ip:${normalizeIP(context.headers.get(CLIENT_IP_HEADER) ?? 'unknown')}`
+    : context.user.id
 
 export const accountMiddleware = authMiddleware.use(({ context, next }) => {
   if (context.user.isAnonymous) {
