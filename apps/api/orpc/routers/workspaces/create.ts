@@ -36,7 +36,7 @@ export const create = orpc
       return { ...row, role: 'owner' as const }
     })
 
-    publisher.publish(context.user.id, {
+    await publisher.publish(context.user.id, {
       type: 'insert',
       value: workspace,
     })

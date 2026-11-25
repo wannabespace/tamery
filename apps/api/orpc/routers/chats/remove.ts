@@ -36,10 +36,9 @@ export const remove = orpc
       )
     )
 
-    for (const item of input) {
-      publisher.publish(context.user.id, {
-        key: item.id,
-        type: 'delete',
-      })
-    }
+    await Promise.all(
+      input.map((item) =>
+        publisher.publish(context.user.id, { key: item.id, type: 'delete' })
+      )
+    )
   })

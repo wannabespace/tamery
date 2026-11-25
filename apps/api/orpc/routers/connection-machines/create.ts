@@ -55,7 +55,7 @@ export const create = orpc
       throw new Error('Failed to set the connection machine')
     }
 
-    publisher.publish(context.user.id, {
+    await publisher.publish(context.user.id, {
       type:
         row.createdAt.getTime() === row.updatedAt.getTime()
           ? 'insert'

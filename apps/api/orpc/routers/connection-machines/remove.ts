@@ -20,5 +20,5 @@ export const remove = orpc
         )
       )
 
-    publisher.publish(context.user.id, { key: id, type: 'delete' })
+    await publisher.publish(context.user.id, { key: id, type: 'delete' })
   })

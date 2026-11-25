@@ -36,7 +36,7 @@ export const register = orpc
       throw errors.CONFLICT()
     }
 
-    publisher.publish(context.user.id, {
+    await publisher.publish(context.user.id, {
       type:
         row.createdAt.getTime() === row.updatedAt.getTime()
           ? 'insert'

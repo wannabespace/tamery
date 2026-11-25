@@ -42,7 +42,7 @@ export const create = orpc
       throw new Error('Failed to create chat message')
     }
 
-    publisher.publish(context.user.id, {
+    await publisher.publish(context.user.id, {
       type: 'insert',
       value: inserted,
     })

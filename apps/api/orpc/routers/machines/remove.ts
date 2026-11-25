@@ -15,5 +15,5 @@ export const remove = orpc
       .delete(machines)
       .where(and(eq(machines.userId, context.user.id), eq(machines.id, id)))
 
-    publisher.publish(context.user.id, { key: id, type: 'delete' })
+    await publisher.publish(context.user.id, { key: id, type: 'delete' })
   })

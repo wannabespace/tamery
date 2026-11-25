@@ -42,5 +42,5 @@ export const update = orpc
       throw errors.NOT_FOUND()
     }
 
-    publisher.publish(context.user.id, { type: 'update', value: updated })
+    await publisher.publish(context.user.id, { type: 'update', value: updated })
   })

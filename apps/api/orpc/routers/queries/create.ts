@@ -36,7 +36,7 @@ export const create = orpc
       .returning()
 
     if (inserted) {
-      publisher.publish(context.user.id, {
+      await publisher.publish(context.user.id, {
         type: 'insert',
         value: inserted,
       })

@@ -44,7 +44,7 @@ export const update = orpc
       throw errors.NOT_FOUND({ message: 'Chat message not found after update' })
     }
 
-    publisher.publish(context.user.id, {
+    await publisher.publish(context.user.id, {
       type: 'update',
       value: message,
     })

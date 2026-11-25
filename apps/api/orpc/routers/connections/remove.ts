@@ -43,5 +43,5 @@ export const remove = orpc
       throw errors.FORBIDDEN()
     }
 
-    publisher.publish(context.user.id, { key: id, type: 'delete' })
+    await publisher.publish(context.user.id, { key: id, type: 'delete' })
   })
