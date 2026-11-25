@@ -1,4 +1,4 @@
-import { MACHINE_RPC_PATH } from '@tamery/shared/machine'
+import { MACHINE_RPC_PATH } from '@tamery/shared/ports'
 
 /**
  * The renderer's machine calls: the packaged app's `file:` page sends `Origin: null`, which the machine refuses, while
