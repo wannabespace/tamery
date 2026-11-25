@@ -1,8 +1,15 @@
 import { Cancel01Icon } from '@hugeicons/core-free-icons'
-import { cardClass } from '@tamery/ui/components/card.utils'
 import { MotionCollapse } from '@tamery/ui/components/collapse.motion'
 import { IconButton } from '@tamery/ui/components/custom/icon-button'
-import { cn } from '@tamery/ui/lib/utils'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemHeader,
+  ItemLink,
+  ItemTitle,
+} from '@tamery/ui/components/item'
 import { useQuery } from '@tanstack/react-query'
 import { type } from 'arktype'
 import { AnimatePresence } from 'motion/react'
@@ -14,75 +21,77 @@ import { posthog } from '~/lib/posthog'
 
 const version = import.meta.env.VITE_APP_VERSION
 
-const dismissedVersion = createWebStorageValue({
-  defaultValue: null,
+const dismissedVersions = createWebStorageValue({
+  defaultValue: [],
   key: 'release-announcement-dismissed',
-  schema: type('string | null'),
+  schema: type('string[]'),
   type: 'localStorage',
 })
 
+const dismiss = (
+  event: 'release_announcement_opened' | 'release_announcement_dismissed'
+) => {
+  posthog.capture(event)
+  dismissedVersions.set((versions) => [...versions, version])
+}
+
 export const ReleaseAnnouncement = () => {
-  const dismissed = useSubscription(dismissedVersion) === version
-  const { data } = useQuery(
-    orpc.releaseAnnouncement.queryOptions({
+  const dismissed = useSubscription(dismissedVersions).includes(version)
+  const { data: announcement } = useQuery(
+    orpc.releases.queryOptions({
       context: { silent: true },
       enabled: !dismissed,
-      input: { version },
-      staleTime: Number.POSITIVE_INFINITY,
+      select: (releases) =>
+        releases.find((release) => release.tagName === `v${version}`)
+          ?.announcement ?? null,
+      staleTime: 10 * 60 * 1000,
     })
   )
-  const announcement = dismissed ? null : data
 
   return (
     <AnimatePresence initial={false}>
-      {announcement && (
+      {announcement && !dismissed && (
         <MotionCollapse className="shrink-0">
           <div className="pt-1.5 pl-2">
-            <div
-              className={cn(
-                cardClass,
-                'hover:ring-foreground/12 has-[a:focus-visible]:focus-ring hover:bg-accent relative flex flex-col gap-2 p-1.5'
-              )}
-            >
-              <img
-                src={announcement.image}
-                alt=""
-                draggable={false}
-                className="bg-muted aspect-video w-full rounded-md object-cover"
-              />
-              <div className="flex items-start gap-1 pb-1 pl-1.5">
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <a
+            <Item variant="card" size="xs">
+              <ItemHeader className="[@media(max-height:40rem)]:hidden">
+                <img
+                  src={announcement.image}
+                  alt=""
+                  draggable={false}
+                  referrerPolicy="no-referrer"
+                  className="bg-muted aspect-video w-full rounded-md object-cover"
+                />
+              </ItemHeader>
+              <ItemContent className="min-w-0">
+                <ItemTitle>
+                  <ItemLink
                     href={`${import.meta.env.VITE_PUBLIC_MAIN_URL}/releases#v${version}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-foreground cursor-default text-sm font-medium outline-none after:absolute after:inset-0"
-                    onClick={() => {
-                      posthog.capture('release_announcement_opened')
-                      dismissedVersion.set(version)
-                    }}
+                    onClick={() => dismiss('release_announcement_opened')}
+                    onAuxClick={(event) =>
+                      event.button === 1 &&
+                      dismiss('release_announcement_opened')
+                    }
                   >
                     Tamery {version}
-                  </a>
-                  {announcement.summary && (
-                    <p className="text-muted-foreground truncate text-xs">
-                      {announcement.summary}
-                    </p>
-                  )}
-                </div>
+                  </ItemLink>
+                </ItemTitle>
+                {announcement.summary && (
+                  <ItemDescription>{announcement.summary}</ItemDescription>
+                )}
+              </ItemContent>
+              <ItemActions className="relative self-start">
                 <IconButton
                   icon={Cancel01Icon}
                   label="Dismiss"
                   size="icon-xs"
                   variant="ghost-muted"
-                  className="relative"
-                  onClick={() => {
-                    posthog.capture('release_announcement_dismissed')
-                    dismissedVersion.set(version)
-                  }}
+                  onClick={() => dismiss('release_announcement_dismissed')}
                 />
-              </div>
-            </div>
+              </ItemActions>
+            </Item>
           </div>
         </MotionCollapse>
       )}

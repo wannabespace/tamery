@@ -19,7 +19,7 @@ import { hasPasskey } from './has-passkey'
 import * as internal from './internal'
 import * as machines from './machines'
 import * as queries from './queries'
-import { releaseAnnouncement, releases } from './releases'
+import { releases } from './releases'
 import { repo } from './repo'
 import * as shares from './shares'
 import * as usage from './usage'
@@ -43,7 +43,6 @@ export const router = {
   internal,
   machines,
   queries,
-  releaseAnnouncement,
   releases,
   repo,
   shares,
