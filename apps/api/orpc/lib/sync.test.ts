@@ -1,5 +1,6 @@
 import { describe, expect, mock, test } from 'bun:test'
 
+mock.module('@tamery/db', () => ({ db: {} }))
 mock.module('~/lib/redis', () => ({ redis: {}, redisSubscriber: {} }))
 mock.module('~/orpc', () => ({ authMiddleware: {}, orpc: {} }))
 
