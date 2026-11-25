@@ -1,15 +1,25 @@
+import { ratelimit } from '@orpc/ratelimit'
+import { RedisRateLimiter } from '@orpc/ratelimit/redis'
 import { CONTACT_EMAIL } from '@tamery/shared/constants'
 import { type } from 'arktype'
 
+import { redis } from '~/lib/redis'
 import { resend } from '~/lib/resend'
 import { ContactReceived } from '~/lib/resend/templates'
-import { authMiddleware, orpc } from '~/orpc'
+import { authMiddleware, callerRateLimitKey, orpc } from '~/orpc'
+
+const limiter = new RedisRateLimiter(redis, {
+  maxRequests: 5,
+  prefix: 'contact:',
+  window: 60 * 60 * 1000,
+})
 
 export const contact = orpc
   .use(authMiddleware)
+  .use(ratelimit({ key: callerRateLimitKey, limiter }))
   .input(
     type({
-      message: 'string',
+      message: '0 < string <= 4000',
     })
   )
   .handler(async ({ input, context }) => {
