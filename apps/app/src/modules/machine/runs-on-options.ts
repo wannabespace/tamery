@@ -8,6 +8,7 @@ import type { RunsOn } from '~/core/runtime/machine/pairing'
 import {
   CLOUD,
   machinePairings,
+  parseRunsOn,
   THIS_COMPUTER,
   useConnectionRunsOn,
   useMachineRouteById,
@@ -98,7 +99,7 @@ export const useRunsOnMenu = (connectionId: string): AppMenuNode | null => {
     icon: ComputerIcon,
     items: [
       {
-        onValueChange: (value) => pickRunsOn(connectionId, value),
+        onValueChange: (value) => pickRunsOn(connectionId, parseRunsOn(value)),
         options: options.map(({ icon, label, value }) => ({
           icon,
           label,

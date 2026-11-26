@@ -10,6 +10,8 @@ import {
 import { useSelector } from '@tanstack/react-form'
 
 import { isReachableFromWeb } from '~/core/connection/fetching-config'
+import type { RunsOn } from '~/core/runtime/machine/pairing'
+import { parseRunsOn } from '~/core/runtime/machine/pairing'
 import { connectPickedMachine } from '~/modules/machine/connect-machine'
 import { useRunsOnOptions } from '~/modules/machine/runs-on-options'
 
@@ -17,8 +19,9 @@ import type { ConnectionForm } from '../lib/connection-form'
 import { getEngineFields } from '../lib/engine-fields'
 
 export const RunsOnField = ({ form }: { form: ConnectionForm }) => {
+  const runsOn = useSelector(form.store, ({ values }) => values.runsOn)
   const items = useRunsOnOptions(
-    useSelector(form.store, ({ values }) => values.runsOn),
+    runsOn,
     useSelector(form.store, ({ values }) =>
       isReachableFromWeb(values, {
         isInternal: isInternalHost(values.host.trim()),
@@ -35,15 +38,16 @@ export const RunsOnField = ({ form }: { form: ConnectionForm }) => {
       {(field) => (
         <field.Field orientation="row">
           <field.Label>Runs on</field.Label>
-          <Select
+          <Select<RunsOn>
             items={items}
-            value={field.state.value}
+            value={runsOn}
             onValueChange={(next) => {
               if (next === null) {
                 return
               }
-              field.handleChange(next)
-              connectPickedMachine(next)
+              const picked = parseRunsOn(next)
+              field.handleChange(picked)
+              connectPickedMachine(picked)
             }}
           >
             <SelectTrigger
