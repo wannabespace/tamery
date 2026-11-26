@@ -1,9 +1,17 @@
-import { ArrowLeft01Icon } from '@hugeicons/core-free-icons'
+import { ArrowLeft01Icon, Search01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { title } from '@tamery/shared/title'
+import { matchesSearch } from '@tamery/shared/utils'
+import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { ScrollArea } from '@tamery/ui/components/custom/scroll-area'
+import { SearchInput } from '@tamery/ui/components/custom/search-input'
 import { smallItemInsetClassName } from '@tamery/ui/components/item'
-import { SidebarMenuButton } from '@tamery/ui/components/sidebar'
+import {
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from '@tamery/ui/components/sidebar'
 import {
   Tooltip,
   TooltipContent,
@@ -17,11 +25,13 @@ import {
   useNavigate,
   useParams,
 } from '@tanstack/react-router'
-import { useRef } from 'react'
+import { Fragment, useRef, useState } from 'react'
 
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { settingsSections } from '~/core/settings/sections'
 import { useGoBack } from '~/hooks/use-go-back'
+import { useHasAccount } from '~/lib/auth'
+import { useNavigatorSearch } from '~/modules/navigator/keyboard'
 import {
   resourcePanelClassName,
   settingsPageClassName,
@@ -33,8 +43,17 @@ const SettingsPage = () => {
   const { section } = useParams({ strict: false })
   const navigate = useNavigate()
   const pageRef = useRef<HTMLDivElement>(null)
-  const navRef = useRef<HTMLElement>(null)
-  const activeIndex = settingsSections.findIndex(({ slug }) => slug === section)
+  const hasAccount = useHasAccount()
+  const sections = settingsSections.filter(
+    ({ needsAccount }) => hasAccount || !needsAccount
+  )
+  const [search, setSearch] = useState('')
+  const results = sections.flatMap((page) => {
+    const hit = matchesSearch(search, page.label, page.group)
+      ? null
+      : page.keywords.find((keyword) => matchesSearch(search, keyword))
+    return hit === undefined ? [] : [{ ...page, hit }]
+  })
   const openSection = (slug: string) => {
     void navigate({
       params: { section: slug },
@@ -42,22 +61,18 @@ const SettingsPage = () => {
       to: '/settings/$section',
     })
   }
-  const stepSection = (step: number) => {
-    const next = settingsSections[activeIndex + step]
-    if (next) {
-      navRef.current
-        ?.querySelector<HTMLElement>(`[data-section="${next.slug}"]`)
-        ?.focus()
-      openSection(next.slug)
-    }
-  }
+  const { highlightedControlId, highlightedId, listId, searchProps } =
+    useNavigatorSearch({
+      activeId: section,
+      nodes: results.map(({ slug }) => ({ id: slug })),
+      onClear: () => setSearch(''),
+      search,
+    })
 
   const leave = useGoBack()
 
   // Scoped to the page so Escape in a portalled popup closes only the popup; the page's tabIndex keeps clicks on empty space in scope.
   useHotkey('Escape', leave, { target: pageRef })
-  useHotkey('ArrowDown', () => stepSection(1), { target: navRef })
-  useHotkey('ArrowUp', () => stepSection(-1), { target: navRef })
 
   return (
     <div ref={pageRef} tabIndex={-1} className={settingsPageClassName}>
@@ -75,32 +90,72 @@ const SettingsPage = () => {
           </TooltipTrigger>
           <TooltipContent side="right">Back to app</TooltipContent>
         </Tooltip>
-        <nav ref={navRef} className="flex flex-col gap-0.5">
-          {settingsSections.map(({ icon, label, slug }, index) => (
-            <SidebarMenuButton
-              key={slug}
-              data-section={slug}
-              isActive={index === activeIndex}
-              autoFocus={index === activeIndex}
-              {...pressNavProps(() => openSection(slug))}
-            >
-              <HugeiconsIcon
-                icon={icon}
-                strokeWidth={2}
-                className="text-primary/75"
-              />
-              {label}
-            </SidebarMenuButton>
+        <SearchInput
+          size="sm"
+          placeholder="Search settings"
+          aria-label="Search settings"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          onClear={() => setSearch('')}
+          start={
+            <HugeiconsIcon
+              icon={Search01Icon}
+              strokeWidth={2}
+              className="text-muted-foreground/70 size-3.5"
+            />
+          }
+          {...searchProps}
+        />
+        {results.length === 0 && (
+          <IconEmpty
+            variant="elevated"
+            icon={Search01Icon}
+            title="Nothing found"
+            description="Search by a page or a setting on it, like Google or Theme."
+          />
+        )}
+        <SidebarMenu id={listId}>
+          {results.map(({ group, hit, icon, label, slug }, index) => (
+            <Fragment key={slug}>
+              {group !== results[index - 1]?.group && (
+                <SidebarGroupLabel className="mt-4 first:mt-0">
+                  {group}
+                </SidebarGroupLabel>
+              )}
+              <SidebarMenuItem
+                data-highlighted={slug === highlightedId || undefined}
+              >
+                <SidebarMenuButton
+                  id={slug === highlightedId ? highlightedControlId : undefined}
+                  tabIndex={-1}
+                  isActive={slug === section}
+                  {...pressNavProps(() => openSection(slug))}
+                >
+                  <HugeiconsIcon
+                    icon={icon}
+                    strokeWidth={2}
+                    className="text-muted-foreground"
+                  />
+                  {label}
+                  {hit && (
+                    <span className="text-muted-foreground ml-auto truncate text-xs">
+                      {hit}
+                    </span>
+                  )}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </Fragment>
           ))}
-        </nav>
+        </SidebarMenu>
       </aside>
       <div className={resourcePanelClassName}>
         <ScrollArea className="min-h-0 flex-1">
-          <section className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-8 py-10">
+          {/* Sync the tables' outer cell padding with `smallItemInsetClassName`. */}
+          <section className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-8 py-10 [&_:is(th,td):first-child]:pl-3.5 [&_:is(th,td):last-child]:pr-3.5">
             <h1
               className={cn(smallItemInsetClassName, 'text-xl font-semibold')}
             >
-              {settingsSections[activeIndex]?.label}
+              {sections.find(({ slug }) => slug === section)?.label}
             </h1>
             <Outlet />
           </section>

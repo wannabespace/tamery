@@ -1,6 +1,5 @@
 import { Section, Text } from '@react-email/components'
-
-import { env } from '~/env'
+import { ORIGINS } from '@tamery/shared/origins'
 
 import { Base } from '../components/base'
 import { Button } from '../components/button'
@@ -20,8 +19,6 @@ export const BackupCodesRegenerated = () => (
         out any device you don&apos;t recognize.
       </Text>
     </Section>
-    <Button href={`${env.MAIN_URL}/account/authentication`}>
-      Review security
-    </Button>
+    <Button href={`${ORIGINS.web}/settings/security`}>Review security</Button>
   </Base>
 )

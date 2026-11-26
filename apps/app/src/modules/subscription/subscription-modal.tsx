@@ -1,5 +1,3 @@
-import { LinkSquare02Icon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
 import { Button } from '@tamery/ui/components/button'
 import {
   Dialog,
@@ -9,22 +7,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@tamery/ui/components/dialog'
+import { Link } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
 import { toast } from 'sonner'
 
 import { useSubscription as useUserSubscription } from '~/core/user/use-subscription'
 import { posthog } from '~/lib/posthog'
-import { accountUrl } from '~/lib/urls'
 import { appStore, setIsSubscriptionDialogOpen } from '~/store'
 
 export const SubscriptionModal = () => {
-  const { isSubscriptionDialogOpen, upgradeHint } = useSubscription(appStore, {
-    selector: (state) => ({
-      isSubscriptionDialogOpen: state.isSubscriptionDialogOpen,
-      upgradeHint: state.upgradeHint,
-    }),
-  })
+  const { isSubscriptionDialogOpen, offerAiKey, upgradeHint } = useSubscription(
+    appStore,
+    {
+      selector: (state) => ({
+        isSubscriptionDialogOpen: state.isSubscriptionDialogOpen,
+        offerAiKey: state.offerAiKey,
+        upgradeHint: state.upgradeHint,
+      }),
+    }
+  )
   const { subscription } = useUserSubscription()
 
   useEffect(() => {
@@ -51,32 +53,37 @@ export const SubscriptionModal = () => {
           </DialogTitle>
           <DialogDescription>
             {upgradeHint ??
-              'Upgrade to unlock this and everything else. Tamery is independent, and your support is what keeps it going.'}
+              (offerAiKey
+                ? 'Upgrade to unlock this and everything else, or add your own Anthropic, OpenAI, Google or OpenRouter key to use the AI chat on the Free plan, billed by your provider.'
+                : 'Upgrade to unlock this and everything else. Tamery is independent, and your support is what keeps it going.')}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setIsSubscriptionDialogOpen(false)}
-          >
-            Maybe Later
-          </Button>
+          {offerAiKey ? (
+            <Button
+              variant="outline"
+              render={
+                <Link to="/settings/$section" params={{ section: 'ai' }} />
+              }
+              onClick={() => setIsSubscriptionDialogOpen(false)}
+            >
+              Add Your Key
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => setIsSubscriptionDialogOpen(false)}
+            >
+              Maybe Later
+            </Button>
+          )}
           <Button
             render={
-              <a
-                href={accountUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Upgrade to Pro"
-              />
+              <Link to="/settings/$section" params={{ section: 'plan' }} />
             }
+            onClick={() => setIsSubscriptionDialogOpen(false)}
           >
             Upgrade to Pro
-            <HugeiconsIcon
-              icon={LinkSquare02Icon}
-              strokeWidth={2}
-              className="size-4"
-            />
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -6,14 +6,13 @@ import {
 } from '@tamery/ui/components/custom/settings-group'
 import { Input } from '@tamery/ui/components/input'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { authClient } from '~/lib/auth'
 import { orpc } from '~/lib/orpc'
-import { ConfirmAction } from '~/modules/settings/components/confirm-action'
 
-const { useRouteContext } = getRouteApi('/account')
+import { ConfirmAction } from './confirm-action'
 
 export const TeamSeats = ({
   assignableSeats,
@@ -30,12 +29,19 @@ export const TeamSeats = ({
   onChangeSeats: () => void
   seats: number
 }) => {
-  const { user } = useRouteContext()
+  const { data: session } = authClient.useSession()
+  // The billing portal, opened outside the app, drops seats too.
   const {
     data: assigned,
     isError,
     refetch,
-  } = useQuery(orpc.account.subscription.seats.list.queryOptions())
+  } = useQuery(
+    orpc.account.subscription.seats.list.queryOptions({
+      refetchOnWindowFocus: 'always',
+      staleTime: 0,
+      throwOnError: false,
+    })
+  )
   const [email, setEmail] = useState('')
 
   const { mutate: assign, isPending: isAssigning } = useMutation(
@@ -67,7 +73,7 @@ export const TeamSeats = ({
     })
   )
 
-  if (isError) {
+  if (isError && !assigned) {
     return (
       <SettingsGroup title="Seats">
         <SettingsRow title="Seats didn't load">
@@ -79,10 +85,14 @@ export const TeamSeats = ({
     )
   }
 
+  if (!assigned) {
+    return null
+  }
+
   return (
     <SettingsGroup title="Seats">
       <SettingsRow
-        title={`${(assigned?.length ?? 0) + 1} of ${seats} used`}
+        title={`${assigned.length + 1} of ${seats} used`}
         description={
           isTrial
             ? 'During the trial you can give one seat. The rest open once your plan is paid.'
@@ -100,21 +110,21 @@ export const TeamSeats = ({
           </LoadingContent>
         </Button>
       </SettingsRow>
-      <SettingsRow title={<span data-mask>{user.email}</span>}>
+      <SettingsRow title={<span data-mask>{session?.user.email}</span>}>
         <span className="text-muted-foreground text-xs">You</span>
       </SettingsRow>
-      {assigned?.map((seat) => (
+      {assigned.map((seat) => (
         <SettingsRow key={seat.id} title={<span data-mask>{seat.email}</span>}>
           <ConfirmAction
             action="Remove"
-            title={`Remove ${seat.email}?`}
+            title={<span data-mask>Remove {seat.email}?</span>}
             description="They lose the Pro features this Team gives them right away."
             isPending={isRemoving && removing?.id === seat.id}
             onConfirm={(close) => remove({ id: seat.id }, { onSuccess: close })}
           />
         </SettingsRow>
       ))}
-      {assigned && assigned.length < assignableSeats && (
+      {assigned.length < assignableSeats && (
         <SettingsRow
           title="Assign a seat"
           description="They get an email and sign in with this address."

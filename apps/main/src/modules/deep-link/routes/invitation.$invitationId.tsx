@@ -2,12 +2,7 @@ import { describeInvitation } from '@tamery/shared/workspace'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
-import {
-  createFileRoute,
-  getRouteApi,
-  Link,
-  redirect,
-} from '@tanstack/react-router'
+import { createFileRoute, getRouteApi, redirect } from '@tanstack/react-router'
 
 import { orpc } from '~/lib/orpc'
 
@@ -40,8 +35,16 @@ const InvitationPage = () => {
         title="This invitation is no longer open"
         description="It was answered, canceled or expired, or it was sent to another email than the one you're signed in with. Ask for a new one if you still need access."
       >
-        <Button variant="outline" render={<Link to="/account" />}>
-          Go to account
+        <Button
+          variant="outline"
+          render={
+            <a
+              href={import.meta.env.VITE_PUBLIC_WEB_URL}
+              aria-label="Open web app"
+            />
+          }
+        >
+          Open web app
         </Button>
       </OpenStatus>
     )
@@ -88,8 +91,16 @@ const InvitationPage = () => {
           </>
         }
       >
-        <Button variant="outline" render={<Link to="/account" />}>
-          Go to account
+        <Button
+          variant="outline"
+          render={
+            <a
+              href={import.meta.env.VITE_PUBLIC_WEB_URL}
+              aria-label="Open web app"
+            />
+          }
+        >
+          Open web app
         </Button>
       </OpenStatus>
     )

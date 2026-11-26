@@ -10,6 +10,7 @@ import {
 } from '@tamery/ui/components/alert-dialog'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
+import type { ReactNode } from 'react'
 import { useState } from 'react'
 
 export const ConfirmAction = ({
@@ -23,7 +24,7 @@ export const ConfirmAction = ({
   description: string
   isPending: boolean
   onConfirm: (close: () => void) => void
-  title: string
+  title: ReactNode
 }) => {
   const [isOpen, setIsOpen] = useState(false)
 

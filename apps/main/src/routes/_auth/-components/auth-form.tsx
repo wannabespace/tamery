@@ -55,14 +55,16 @@ const SocialButton = ({
   provider: (typeof SOCIAL_PROVIDERS)[number]
 }) => {
   const { redirectPath } = useSearch()
-  const router = useRouter()
-  const { href } = router.buildLocation({ to: '/account' })
   const isAnyPending = useIsMutating({ mutationKey: ['sign-in'] }) > 0
   const { mutate, isPending } = useMutation({
     mutationKey: ['sign-in', provider.id],
     mutationFn: async () => {
       void posthog.capture('social_sign_in_started', { provider: provider.id })
-      const callbackUrl = new URL(location.origin + (redirectPath || href))
+      const callbackUrl = new URL(
+        redirectPath
+          ? location.origin + redirectPath
+          : import.meta.env.VITE_PUBLIC_WEB_URL
+      )
       const newUserCallbackUrl = new URL(callbackUrl)
 
       newUserCallbackUrl.searchParams.set('newUser', 'true')
