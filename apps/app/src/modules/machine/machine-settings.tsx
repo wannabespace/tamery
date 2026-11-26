@@ -15,7 +15,8 @@ import {
 import { InstallMachine } from './install-machine'
 import type { ListedMachine } from './machine-row'
 import { MachineRow } from './machine-row'
-import { ThisComputerAddress, ThisComputerRow } from './this-computer'
+import { ThisComputerRow } from './this-computer'
+import { ThisComputerAddress } from './this-computer-address'
 
 export const MachineSettings = () => {
   const ownId = useThisMachineId()
