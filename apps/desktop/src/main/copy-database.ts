@@ -24,10 +24,11 @@ import { Result } from 'better-result'
 
 export interface CopyDatabaseRequest {
   id: string
+  scope:
+    | { kind: 'database' }
+    | { kind: 'tables'; tables: { schema: string; table: string }[] }
   source: string
   target: string
-  /** `null` copies the whole database: every schema, type, function and view, not only tables. */
-  tables: { schema: string; table: string }[] | null
 }
 
 type Tool = 'pg_dump' | 'psql'
@@ -176,7 +177,7 @@ const commitAfter = (dumped: Promise<void>, stripHeader: boolean) => {
 }
 
 export const copyDatabase = async (
-  { source, tables, target }: CopyDatabaseRequest,
+  { scope, source, target }: CopyDatabaseRequest,
   log: (line: string) => void,
   signal: AbortSignal
 ) => {
@@ -187,6 +188,7 @@ export const copyDatabase = async (
       'The target is the source database, reached through another connection. Choose another one.'
     )
   }
+  const tables = scope.kind === 'tables' ? scope.tables : []
   const dump = spawn(
     toolPath('pg_dump'),
     [
@@ -196,7 +198,7 @@ export const copyDatabase = async (
       '--no-privileges',
       '--verbose',
       KEEPALIVES,
-      ...(tables ?? []).map(
+      ...tables.map(
         ({ schema, table }) =>
           `--table-and-children=${quoteIdentifier(schema, Dialect.Postgres)}.${quoteIdentifier(table, Dialect.Postgres)}`
       ),
@@ -217,7 +219,7 @@ export const copyDatabase = async (
       'SET tcp_keepalives_count = 3;',
       'BEGIN;',
       ...Array.from(
-        new Set(tables?.map(({ schema }) => schema)),
+        new Set(tables.map(({ schema }) => schema)),
         (schema) =>
           `CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(schema, Dialect.Postgres)};`
       ),
