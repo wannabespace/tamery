@@ -273,7 +273,7 @@ export const ToolPart = ({
   if (part.type === 'tool-combine') {
     return (
       <StatementCard
-        connection={null}
+        source={{ kind: 'combined' }}
         error={part.state === 'output-error' ? part.errorText : undefined}
         sets={part.state === 'output-available' ? part.output : undefined}
         statement={part.input?.statement}

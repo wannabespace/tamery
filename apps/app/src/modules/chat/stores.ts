@@ -1,3 +1,5 @@
+import type { ChatModelPick } from '@tamery/ai/models/list'
+import { AUTO_MODEL, chatModelPick } from '@tamery/ai/models/list'
 import type { ChatTools } from '@tamery/ai/tools'
 import type { FileUIPart } from 'ai'
 import { type } from 'arktype'
@@ -9,11 +11,13 @@ import { CHAT_DRAFTS_KEY, CHAT_NEW_IDS_KEY } from '~/lib/constants'
 
 import type { PromptMention } from './prompt-mentions'
 
-/** The model the chat answers with; null is Auto, which the API picks per message. */
+/** The model the chat answers with, or Auto, which the API picks per message. Earlier builds stored Auto as null; a model no longer offered reads as Auto. */
 export const chatModelValue = createWebStorageValue({
-  defaultValue: null,
+  defaultValue: AUTO_MODEL as ChatModelPick,
   key: 'chat-model',
-  schema: type('string | null'),
+  schema: type('null')
+    .pipe((): ChatModelPick => AUTO_MODEL)
+    .or(chatModelPick),
   type: 'localStorage',
 })
 

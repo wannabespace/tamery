@@ -100,8 +100,9 @@ export const autoApprove = async ({
       { context: { silent: true }, signal }
     )
     .catch(() => null)
-  if (typeof verdict?.probability === 'number') {
-    probabilities.set(toolCallId, verdict.probability)
+  const probability = verdict?.judge === 'jev' ? verdict.probability : null
+  if (probability !== null) {
+    probabilities.set(toolCallId, probability)
   }
   let outcome = verdict ? 'skip' : 'none'
   if (verdict?.autoRun) {
@@ -113,7 +114,7 @@ export const autoApprove = async ({
     dialect: getDialect(connection.type),
     judge: verdict?.judge ?? null,
     outcome,
-    probability: verdict?.probability ?? null,
+    probability,
   })
   if (signal.aborted) {
     forget(toolCallId)

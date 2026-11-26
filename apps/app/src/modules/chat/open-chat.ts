@@ -56,17 +56,19 @@ export const startNewChat = (resourceId: string) => {
 export const useIsBlankChatOpen = (resourceId: string, tabId?: string) => {
   const { chatsCollection } = useCollections()
   const chatId = useSubscription(newChatIdsValue, {
-    selector: (ids) => ids[resourceId] ?? '',
+    selector: (ids) => ids[resourceId] ?? null,
   })
   const hasDraft = useSubscription(chatDraftsValue, {
-    selector: (drafts) => !!drafts[chatId],
+    selector: (drafts) => chatId !== null && !!drafts[chatId],
   })
   const { data: saved } = useLiveQuery(
     (q) =>
-      q
-        .from({ chat: chatsCollection })
-        .where(({ chat }) => eq(chat.id, chatId))
-        .findOne(),
+      chatId === null
+        ? null
+        : q
+            .from({ chat: chatsCollection })
+            .where(({ chat }) => eq(chat.id, chatId))
+            .findOne(),
     [chatId]
   )
   return tabId === newChatTabId && !hasDraft && !saved

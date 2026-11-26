@@ -32,13 +32,16 @@ export const runSql = async ({
 }): Promise<DataUIPart<ChatDataParts>> => {
   const resource =
     getCollections().connectionsResourcesCollection.get(connectionResourceId)
+  if (!resource) {
+    throw new Error("This chat's database is no longer open.")
+  }
   const target = skipped?.target ?? {
-    connectionId: resource?.connectionId ?? '',
-    resource: resource?.name ?? null,
+    connectionId: resource.connectionId,
+    resource: resource.name,
   }
   const toolCallId = skipped?.toolCallId ?? null
   const result = await Result.tryPromise(async () => {
-    if (target.connectionId !== resource?.connectionId) {
+    if (target.connectionId !== resource.connectionId) {
       throw new Error('This chat can only run changes on its own connection.')
     }
     const write = await agentDatabase.prepareWrite({ ...target, statement })
