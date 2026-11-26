@@ -68,6 +68,7 @@ export const stream = orpc
       chatId: 'string.uuid.v7',
       connectionResourceId: 'string.uuid.v7',
       messages: 'object[]',
+      'agent?': 'true',
       'context?': 'number.integer > 0',
       'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
       'fast?': 'boolean',
@@ -175,6 +176,7 @@ export const stream = orpc
 
     const str = await chatStream.claim({
       ...pick,
+      agent: input.agent ?? false,
       chatId: input.chatId,
       connection,
       messages: afterCompaction(history, compaction),
