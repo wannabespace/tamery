@@ -10,32 +10,53 @@ export interface DefinitionsSort {
   header: string
 }
 
-const isMissing = (value: SortValue): value is null | undefined =>
-  value === null || value === undefined
+const collate = new Intl.Collator(undefined, { numeric: true }).compare
 
-const compare = (left: SortValue, right: SortValue) => {
+const isMissing = (value: SortValue) => value === null || value === undefined
+
+const compare = (left: SortValue, right: SortValue, direction: number) => {
   if (isMissing(left) || isMissing(right)) {
     return Number(isMissing(left)) - Number(isMissing(right))
   }
-  return typeof left === 'number' && typeof right === 'number'
-    ? left - right
-    : String(left).localeCompare(String(right), undefined, { numeric: true })
+  return (
+    direction *
+    (typeof left === 'number' && typeof right === 'number'
+      ? left - right
+      : collate(String(left), String(right)))
+  )
 }
 
-const nextSort = (
-  current: DefinitionsSort | null,
-  header: string,
-  numeric: boolean
-): DefinitionsSort | null => {
-  if (current?.header !== header) {
-    return { descending: numeric, header }
+export const nextSort = <T>(
+  sort: DefinitionsSort | null,
+  { header, numeric = false }: DefinitionsColumn<T>
+) => {
+  const same = sort?.header === header
+  return same && sort.descending !== numeric
+    ? null
+    : { descending: numeric !== same, header }
+}
+
+export const sortRows = <T>(
+  rows: T[],
+  sort: DefinitionsSort | null,
+  columns: DefinitionsColumn<T>[],
+  groupOf?: (item: T) => string
+) => {
+  const sortValue = columns.find(
+    ({ header }) => header === sort?.header
+  )?.sortValue
+  const direction = sort?.descending ? -1 : 1
+  const sorted = sortValue
+    ? rows.toSorted((a, b) => compare(sortValue(a), sortValue(b), direction))
+    : rows
+  if (!groupOf) {
+    return sorted
   }
-  return current.descending === numeric
-    ? { descending: !numeric, header }
-    : null
+  return sortValue
+    ? [...Map.groupBy(sorted, groupOf).values()].flat()
+    : sorted.toSorted((a, b) => groupOf(a).localeCompare(groupOf(b)))
 }
 
-/** Numbers sort largest first, text A to Z; a third click restores the list's own order. Groups keep their rows together, sorted within, and line up by their leading row while sorted (alphabetically otherwise). */
 export const useSort = <T>({
   columns,
   groupOf,
@@ -48,24 +69,9 @@ export const useSort = <T>({
   section: DefinitionsSection
 }) => {
   const [sort, setSort] = useState<DefinitionsSort | null>(null)
-  const sortValue = columns.find(
-    ({ header }) => header === sort?.header
-  )?.sortValue
-  const direction = sort?.descending ? -1 : 1
-  const sorted = sortValue
-    ? rows.toSorted((a, b) => {
-        const order = compare(sortValue(a), sortValue(b))
-        return isMissing(sortValue(a)) || isMissing(sortValue(b))
-          ? order
-          : direction * order
-      })
-    : rows
 
   const toggleSort = (column: DefinitionsColumn<T>) => {
-    const sample = rows
-      .map((item) => column.sortValue?.(item))
-      .find((value) => !isMissing(value))
-    const next = nextSort(sort, column.header, typeof sample === 'number')
+    const next = nextSort(sort, column)
     setSort(next)
     posthog.capture('definitions_sorted', {
       descending: next?.descending,
@@ -74,23 +80,5 @@ export const useSort = <T>({
     })
   }
 
-  const groupRank = new Map<string, number>()
-  for (const item of sorted) {
-    if (groupOf && !groupRank.has(groupOf(item))) {
-      groupRank.set(groupOf(item), groupRank.size)
-    }
-  }
-
-  return {
-    rows: groupOf
-      ? sorted.toSorted((a, b) =>
-          sortValue
-            ? (groupRank.get(groupOf(a)) ?? 0) -
-              (groupRank.get(groupOf(b)) ?? 0)
-            : groupOf(a).localeCompare(groupOf(b))
-        )
-      : sorted,
-    sort,
-    toggleSort,
-  }
+  return { rows: sortRows(rows, sort, columns, groupOf), sort, toggleSort }
 }
