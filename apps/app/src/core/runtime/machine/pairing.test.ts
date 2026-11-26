@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 
+import type { MachineId, TAMERY_CLOUD } from '@tamery/shared/machine'
 import { machineIdSchema } from '@tamery/shared/machine'
 
 import type { ConnectionMachine } from './sync'
 
-const OWN_ID = 'own'
+const OWN_ID = machineIdSchema.assert('own')
 const OTHER_ID = machineIdSchema.assert('other')
+const PREVIOUS_ID = machineIdSchema.assert('previous')
 let rows: ConnectionMachine[] = []
 const capture = mock((_event: string, _properties: object) => null)
 
@@ -56,7 +58,9 @@ const on = (platform: keyof typeof PLATFORMS) => {
 
 const NO_ROW = undefined
 
-const storeRow = (machineId: string | null | typeof NO_ROW) => {
+const storeRow = (
+  machineId: MachineId | typeof TAMERY_CLOUD | typeof NO_ROW
+) => {
   const now = new Date()
   rows =
     machineId === NO_ROW
@@ -101,11 +105,11 @@ const NO_ROW_LEFT = { on_cloud: false, on_machine: false }
 
 test.each([
   ['web', NO_ROW, OTHER_ID, OTHER_ID, ON_MACHINE],
-  ['web', 'previous', OTHER_ID, OTHER_ID, ON_MACHINE],
-  ['web', 'previous', CLOUD, NO_ROW, NO_ROW_LEFT],
+  ['web', PREVIOUS_ID, OTHER_ID, OTHER_ID, ON_MACHINE],
+  ['web', PREVIOUS_ID, CLOUD, NO_ROW, NO_ROW_LEFT],
   ['desktop', NO_ROW, OTHER_ID, OTHER_ID, ON_MACHINE],
   ['desktop', NO_ROW, CLOUD, null, ON_CLOUD_ROW],
-  ['desktop', 'previous', CLOUD, null, ON_CLOUD_ROW],
+  ['desktop', PREVIOUS_ID, CLOUD, null, ON_CLOUD_ROW],
   ['desktop', null, THIS_COMPUTER, NO_ROW, NO_ROW_LEFT],
 ] as const)(
   'on %s over a stored %p, picking %p stores %p and reads back',

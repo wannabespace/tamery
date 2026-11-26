@@ -30,9 +30,12 @@ export const machineAttestationInput = type({
   origin: 'string.url',
 })
 
-export const machineIdSchema = type('string').brand('MachineId')
+export type MachineId = string & { readonly __brand: 'MachineId' }
 
-export type MachineId = typeof machineIdSchema.infer
+export const machineIdSchema = type('string').as<MachineId>()
+
+/** `connection_machines.machine_id` for Tamery Cloud, open to everyone; installed desktop apps send it as is. */
+export const TAMERY_CLOUD = null
 
 export const machineUnconfirmed = type({ connectionId: 'string' })
 
