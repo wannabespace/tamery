@@ -82,6 +82,7 @@ export const ResultGrid = ({
         columns={grid.columns}
         rows={grid.rows}
         dialect={dialect}
+        resizable
       />
     )}
   </div>
