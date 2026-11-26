@@ -39,11 +39,11 @@ export const HOBBY_PLAN = {
 export const PRO_PLAN = {
   description: 'The full AI assistant, without limits',
   features: [
-    'Schema-aware AI assistant',
+    'AI chat for any query or error',
+    'Edit, fix and complete SQL with AI',
     'Unlimited AI filters and MCP queries',
-    'Included AI credits',
-    'Extra workspaces',
-    'Unlimited shared table links',
+    'Team workspaces with roles',
+    'Unlimited shared links and test data',
   ],
   highlighted: true,
   id: 'pro',
@@ -59,9 +59,10 @@ export const PRO_PLAN = {
 export const TEAM_PLAN = {
   description: 'Pro for everyone you work with',
   features: [
-    'Pro for every seat',
+    'Every Pro feature on each seat',
     'One subscription and one invoice',
-    'Assign and move seats by email',
+    'Assign seats by email, swap any time',
+    'Add seats as your team grows',
   ],
   highlighted: false,
   id: 'team',
