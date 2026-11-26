@@ -18,7 +18,7 @@ import { rememberOpenedResource } from '~/core/connection/stores'
 import type { Connection } from '~/core/connection/sync'
 import { machine } from '~/core/runtime/machine/machine'
 import type { RunsOn } from '~/core/runtime/machine/pairing'
-import { writeRunsOn } from '~/core/runtime/machine/pairing'
+import { THIS_COMPUTER, writeRunsOn } from '~/core/runtime/machine/pairing'
 
 export interface ConnectionDetails {
   color?: string | null
@@ -26,8 +26,8 @@ export interface ConnectionDetails {
   /** A string `find` returned on the machine, which keeps its password: `machine.keepFoundPassword`. */
   foundConnectionString?: string
   label?: string | null
-  /** For this user; omitted leaves that as it is. */
-  runsOn?: RunsOn
+  /** For this user. */
+  runsOn: RunsOn
   name: string
   provider: Provider | null
   type: ConnectionType
@@ -63,7 +63,7 @@ export const saveConnectionString = async ({
   writeRow,
 }: ConnectionStringInput & {
   foundConnectionString?: string
-  runsOn?: RunsOn
+  runsOn: RunsOn
   writeRow?: (isPasswordExists: boolean) => void
 }) => {
   const {
@@ -105,9 +105,7 @@ export const saveConnectionString = async ({
       })
     }
   })
-  if (runsOn !== undefined) {
-    writeRunsOn(connectionId, runsOn)
-  }
+  writeRunsOn(connectionId, runsOn)
 
   const settle = async () => {
     const persisted = await Result.tryPromise(() => tx.isPersisted.promise)
@@ -171,7 +169,7 @@ const saveConnection = async (
       }),
   })
   // The cloud proxy and a machine both read the server's row, so it must hold it before the connection opens.
-  if ((!window.electron || runsOn) && navigator.onLine) {
+  if ((!window.electron || runsOn !== THIS_COMPUTER) && navigator.onLine) {
     const persisted = await saved.settled
     if (persisted.isErr()) {
       throw persisted.error.cause

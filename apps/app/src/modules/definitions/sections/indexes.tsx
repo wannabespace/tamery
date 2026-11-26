@@ -556,7 +556,7 @@ const indexColumns = ({
         numberColumn<GroupedIndex>({
           format: (value) => scanCount.format(value),
           header: 'Scans',
-          valueOf: (item) => item.scans ?? undefined,
+          valueOf: (item) => item.scans ?? null,
           width: '2/12',
         }),
       ]

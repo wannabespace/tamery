@@ -10,7 +10,7 @@ export interface CellContext {
 
 export type ColumnWidth = '2/12' | '3/12' | '4/12'
 
-export type SortValue = number | string | null | undefined
+export type SortValue = number | string | null
 
 export interface DefinitionsColumn<T> {
   align?: 'end'
@@ -54,7 +54,7 @@ export const textColumn = <T,>({
   width,
 }: {
   header: string
-  valueOf: (item: T) => string | null | undefined
+  valueOf: (item: T) => string | null
   width?: ColumnWidth
 }): DefinitionsColumn<T> => ({
   cell: (item, { search }) => (
@@ -75,7 +75,7 @@ export const numberColumn = <T,>({
 }: {
   format: (value: number) => string
   header: string
-  valueOf: (item: T) => number | undefined
+  valueOf: (item: T) => number | null
   width?: ColumnWidth
 }): DefinitionsColumn<T> => ({
   align: 'end',
@@ -83,7 +83,7 @@ export const numberColumn = <T,>({
     const value = valueOf(item)
     return (
       <span className="text-muted-foreground tabular-nums">
-        {value === undefined ? '' : format(value)}
+        {value === null ? '' : format(value)}
       </span>
     )
   },

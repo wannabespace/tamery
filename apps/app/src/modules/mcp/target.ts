@@ -4,7 +4,6 @@ import { getCollections } from '~/core/collections'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import type { Connection } from '~/core/connection/sync'
 import {
-  CLOUD,
   getConnectionRunsOn,
   getMachineRoute,
 } from '~/core/runtime/machine/pairing'
@@ -47,7 +46,7 @@ export const resolveTarget = ({
 
   const connectionString = connectionStringsCollection.get(connectionId) ?? null
   const { canSend, reason } = fetchingConfig(connection, {
-    inCloud: getConnectionRunsOn(connectionId) === CLOUD,
+    runsOn: getConnectionRunsOn(connectionId),
     machine: getMachineRoute(connectionId),
     connectionString,
   })
