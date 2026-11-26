@@ -32,6 +32,9 @@ export const SSH_TUNNEL_ERROR = 'SSH tunnel: '
 /** The session's own outcomes when this device never reached the SSH host; `diagnose.ts` reads them, and installed apps send them, verbatim. */
 export const SSH_HOST_TIMEOUT = 'Timed out reaching the SSH host'
 export const SSH_HOST_UNREACHABLE = "Can't reach the SSH host: "
+/** Followed by the host `~/.ssh/config` resolved, which the renderer never knows, so `diagnosis-request.ts` redacts what follows them. */
+export const SSH_HOST_TIMEOUT_AT = 'Timed out connecting to the SSH host at '
+export const SSH_HOST_UNREACHABLE_AT = "Can't reach the SSH host at "
 
 export const tunnelError = (message: string) =>
   new Error(`${SSH_TUNNEL_ERROR}${message}`)

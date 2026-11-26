@@ -53,10 +53,13 @@ export const replaceWithSavedDdl = async (
 const headerEnd = /(?<preceding>\S+)\s+AS\s/giu
 const parameterName = /@\w+$/u
 
-// Null means the body cannot be read back; the caller opens it read-only.
-export const mssqlModuleParts = (definition: string | null) => {
+export const UNREADABLE_BODY = null
+
+export const mssqlModuleParts = (
+  definition: string | typeof UNREADABLE_BODY
+) => {
   if (!definition) {
-    return null
+    return UNREADABLE_BODY
   }
 
   for (const match of definition.matchAll(headerEnd)) {
@@ -74,11 +77,11 @@ export const mssqlModuleParts = (definition: string | null) => {
     return { body: definition.slice(end), header: definition.slice(0, end) }
   }
 
-  return null
+  return UNREADABLE_BODY
 }
 
-export const mssqlModuleBody = (definition: string | null) =>
-  mssqlModuleParts(definition)?.body ?? null
+export const mssqlModuleBody = (definition: string | typeof UNREADABLE_BODY) =>
+  mssqlModuleParts(definition)?.body ?? UNREADABLE_BODY
 
 export const mssqlObjectDefinition = (schema: string, name: string) =>
   sql<

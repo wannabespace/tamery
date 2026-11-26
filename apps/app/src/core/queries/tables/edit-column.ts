@@ -12,7 +12,7 @@ import type { RenamedValue } from '~/core/queries/shared/inline-enum'
 import { clickhouseEnum, mysqlEnum } from '~/core/queries/shared/inline-enum'
 import { createQuery } from '~/core/runtime/query'
 
-import type { AlterColumnTarget } from './shape'
+import type { AlterColumnTarget, CommentEdit } from './shape'
 import { renameColumnStatement } from './shape'
 import {
   alterColumnStatement,
@@ -21,8 +21,7 @@ import {
 } from './shape/alter-column'
 
 interface EditColumnTarget extends AlterColumnTarget {
-  // Omitted leaves the stored comment alone.
-  comment?: string | null
+  comment: CommentEdit
   newName: string
   reference?: ConstraintShape
   renamedValues: RenamedValue[]
@@ -33,8 +32,11 @@ const altered = ({ nullable, original, type }: EditColumnTarget) =>
 
 const commented = (
   target: EditColumnTarget
-): target is EditColumnTarget & { comment: string | null } =>
-  target.comment !== undefined && target.comment !== target.original.comment
+): target is EditColumnTarget & {
+  comment: Extract<CommentEdit, { kind: 'set' }>
+} =>
+  target.comment.kind === 'set' &&
+  target.comment.text !== target.original.comment
 
 // Alters under the old name first, so a failing alter leaves the column as it
 // was; the key names the new one.
@@ -139,11 +141,11 @@ export const editColumnQuery = (target: EditColumnTarget) =>
   createQuery({
     query: {
       clickhouse: async (db) => {
-        const { comment, newName, schema, table } = target
+        const { newName, schema, table } = target
         await clickhouseRefuseHeldValues(db, target)
         await editInSteps(Dialect.ClickHouse, db, target)
         if (commented(target)) {
-          await sql`ALTER TABLE ${sql.id(schema, table)} COMMENT COLUMN ${sql.id(newName)} ${sql.lit(comment ?? '')}`.execute(
+          await sql`ALTER TABLE ${sql.id(schema, table)} COMMENT COLUMN ${sql.id(newName)} ${sql.lit(target.comment.text ?? '')}`.execute(
             db
           )
         }
@@ -152,7 +154,7 @@ export const editColumnQuery = (target: EditColumnTarget) =>
       duckdb: target.reference
         ? unsupported('Foreign keys on a stored table')
         : async (db) => {
-            const { column, comment, newName, schema, table } = target
+            const { column, newName, schema, table } = target
             const statements = [
               ...duckdbAlterColumnStatements(db, target),
               ...(newName === column
@@ -165,7 +167,7 @@ export const editColumnQuery = (target: EditColumnTarget) =>
               await db.executeQuery(statement)
             }
             if (commented(target)) {
-              await sql`COMMENT ON COLUMN ${sql.id(schema, table, newName)} IS ${sql.lit(comment)}`.execute(
+              await sql`COMMENT ON COLUMN ${sql.id(schema, table, newName)} IS ${sql.lit(target.comment.text)}`.execute(
                 db
               )
             }
@@ -175,9 +177,9 @@ export const editColumnQuery = (target: EditColumnTarget) =>
         const { newName, original, schema, table } = target
         await editInSteps(Dialect.MSSQL, db, target)
         if (commented(target)) {
-          const { comment } = target
-          const value = comment === null ? sql`` : sql`@value = ${comment}, `
-          await sql`EXEC ${mssqlCommentProcedure(original.comment, comment)} @name = N'MS_Description', ${value}@level0type = N'SCHEMA', @level0name = ${schema}, @level1type = N'TABLE', @level1name = ${table}, @level2type = N'COLUMN', @level2name = ${newName}`.execute(
+          const { text } = target.comment
+          const value = text === null ? sql`` : sql`@value = ${text}, `
+          await sql`EXEC ${mssqlCommentProcedure(original.comment, text)} @name = N'MS_Description', ${value}@level0type = N'SCHEMA', @level0name = ${schema}, @level1type = N'TABLE', @level1name = ${table}, @level2type = N'COLUMN', @level2name = ${newName}`.execute(
             db
           )
         }
@@ -187,10 +189,12 @@ export const editColumnQuery = (target: EditColumnTarget) =>
       mysql: async (db) => {
         const { column, comment, newName, nullable, reference, schema, table } =
           target
+        const restated =
+          comment.kind === 'set' ? comment.text : target.original.comment
         await mysqlMoveRenamedValues(db, target)
         const columnAction =
           altered(target) || commented(target)
-            ? sql`CHANGE COLUMN ${sql.id(column)} ${sql.id(newName)} ${mysqlColumnDefinition(target, comment)}${sql.raw(nullable ? '' : ' NOT NULL')}`
+            ? sql`CHANGE COLUMN ${sql.id(column)} ${sql.id(newName)} ${mysqlColumnDefinition(target, restated)}${sql.raw(nullable ? '' : ' NOT NULL')}`
             : newName !== column &&
               sql`RENAME COLUMN ${sql.id(column)} TO ${sql.id(newName)}`
         const actions = [
@@ -204,19 +208,19 @@ export const editColumnQuery = (target: EditColumnTarget) =>
         }
       },
       oracle: async (db) => {
-        const { comment, newName, schema, table } = target
+        const { newName, schema, table } = target
         await editInSteps(Dialect.Oracle, db, target)
         if (commented(target)) {
-          await sql`COMMENT ON COLUMN ${sql.id(schema, table, newName)} IS ${sql.lit(comment ?? '')}`.execute(
+          await sql`COMMENT ON COLUMN ${sql.id(schema, table, newName)} IS ${sql.lit(target.comment.text ?? '')}`.execute(
             db
           )
         }
       },
       postgres: async (db) => {
-        const { comment, newName, schema, table } = target
+        const { newName, schema, table } = target
         await editInSteps(Dialect.Postgres, db, target)
         if (commented(target)) {
-          await sql`COMMENT ON COLUMN ${sql.id(schema, table, newName)} IS ${sql.lit(comment)}`.execute(
+          await sql`COMMENT ON COLUMN ${sql.id(schema, table, newName)} IS ${sql.lit(target.comment.text)}`.execute(
             db
           )
         }

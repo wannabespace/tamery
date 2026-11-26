@@ -42,6 +42,7 @@ export const diagnoseConnection = orpc
       signal,
       telemetry: aiUsage.telemetry({
         feature: AiFeature.DiagnoseConnection,
+        ownKey: false,
         userId: context.user.id,
       }),
     })

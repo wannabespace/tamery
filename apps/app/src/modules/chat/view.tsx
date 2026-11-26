@@ -14,7 +14,7 @@ import { startNewChat } from './open-chat'
 import { chatDraftsValue, newChatIdsValue, unreadChatsValue } from './stores'
 import { SubagentStrip } from './subagent-strip'
 import { SubagentDrawer } from './subagent-view'
-import { openSubagent, openSubagentStore } from './subagents-store'
+import { openSubagent, openSubagentStore, PARENT_CHAT } from './subagents-store'
 import type { ChatParams } from './tab'
 import { chatTab, chatTabId, newChatTabId } from './tab'
 import { useChatSession } from './use-chat-session'
@@ -63,13 +63,13 @@ const TabChat = ({
     <>
       <ChatConversation
         beforeInput={<SubagentStrip subagents={subagents} />}
-        isActive={!openId}
+        isActive={openId === PARENT_CHAT}
         onNewChat={newChat}
         session={session}
       />
       <SubagentDrawer
         agent={subagents.find((agent) => agent.chatId === openId)}
-        onClose={() => openSubagent(connectionResourceId, null)}
+        onClose={() => openSubagent(connectionResourceId, PARENT_CHAT)}
         parentTitle={session.title ?? 'New chat'}
       />
     </>

@@ -17,9 +17,11 @@ export interface Subagent {
 /** Subagents started in this window; finished ones of earlier sessions come from their parent's transcript instead. */
 export const subagentsStore = createStore<Subagent[]>([])
 
-/** The subagent the chat tab shows instead of its parent, per resource; null shows the parent. */
+export const PARENT_CHAT = null
+
+/** The subagent the chat tab shows instead of its parent, per resource. */
 export const openSubagentStore = memoize((_resourceId: string) =>
-  createStore<string | null>(null)
+  createStore<string | typeof PARENT_CHAT>(PARENT_CHAT)
 )
 
 export const setSubagentStatus = (chatId: string, status: SubagentStatus) =>
@@ -34,9 +36,12 @@ export const resumeSubagent = (chatId: string) => {
   }
 }
 
-export const openSubagent = (resourceId: string, chatId: string | null) => {
+export const openSubagent = (
+  resourceId: string,
+  chatId: string | typeof PARENT_CHAT
+) => {
   openSubagentStore(resourceId).set(chatId)
-  if (chatId) {
+  if (chatId !== PARENT_CHAT) {
     posthog.capture('ai_chat_subagent_opened')
   }
 }

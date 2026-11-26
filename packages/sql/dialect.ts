@@ -2,6 +2,8 @@ import { COMMON_FUNCTIONS, COMMON_KEYWORDS, COMMON_TYPES } from './vocabulary'
 
 export type NameCase = 'lower' | 'upper'
 
+export const CASE_INSENSITIVE = null
+
 export interface DialectSpec {
   alternativeQuotes: boolean
   identifierQuotes: readonly string[]
@@ -14,8 +16,8 @@ export interface DialectSpec {
   spacedDashComments: boolean
   /** Postgres reads every non-ASCII character, a no-break space included, as part of a name, so `€$a$` is a name and not a dollar quote. */
   nonAsciiNames: boolean
-  /** The case an unquoted name folds to; `null` where the engine compares names without case. */
-  nameCase: NameCase | null
+  /** The case an unquoted name folds to. */
+  nameCase: NameCase | typeof CASE_INSENSITIVE
   atVariables: boolean
   goBatches: boolean
   /** Oracle: `DECLARE`, `BEGIN` and `CREATE FUNCTION`/`PROCEDURE`/`PACKAGE`/`TRIGGER`/`TYPE` run to a `/` line, and a `/` line also ends any other statement. */
@@ -43,7 +45,7 @@ export const spec = (
   goBatches: false,
   hashComments: false,
   identifierQuotes: ['"'],
-  nameCase: null,
+  nameCase: CASE_INSENSITIVE,
   nonAsciiNames: false,
   plsqlUnits: false,
   separatorFreeStatements: false,

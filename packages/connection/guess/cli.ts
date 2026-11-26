@@ -10,30 +10,32 @@ import { guessUrl } from './url'
 
 type Field = ServerField | 'server'
 
+const DROP_VALUE = null
+
 interface Client {
   type: ConnectionType
   /** Flags that prompt when bare, so their value must be glued on: `-pSECRET`, `--password=SECRET`. */
   gluedOnly?: string[]
-  /** Every flag that takes a value; `null` drops the value instead of reading it as a positional. */
-  options: Record<string, Field | null>
+  /** Every flag that takes a value, so its value is never read as a positional. */
+  options: Record<string, Field | typeof DROP_VALUE>
   positionals: ServerField[]
 }
 
 const PSQL: Client = {
   options: {
-    '--command': null,
+    '--command': DROP_VALUE,
     '--dbname': 'database',
-    '--file': null,
+    '--file': DROP_VALUE,
     '--host': 'host',
     '--port': 'port',
     '--username': 'user',
     '-U': 'user',
-    '-c': null,
+    '-c': DROP_VALUE,
     '-d': 'database',
-    '-f': null,
+    '-f': DROP_VALUE,
     '-h': 'host',
     '-p': 'port',
-    '-v': null,
+    '-v': DROP_VALUE,
   },
   positionals: ['database', 'user'],
   type: ConnectionType.Postgres,
@@ -43,16 +45,16 @@ const MYSQL: Client = {
   gluedOnly: ['-p', '--password'],
   options: {
     '--database': 'database',
-    '--execute': null,
+    '--execute': DROP_VALUE,
     '--host': 'host',
     '--password': 'password',
     '--port': 'port',
-    '--socket': null,
+    '--socket': DROP_VALUE,
     '--user': 'user',
     '-D': 'database',
     '-P': 'port',
-    '-S': null,
-    '-e': null,
+    '-S': DROP_VALUE,
+    '-e': DROP_VALUE,
     '-h': 'host',
     '-p': 'password',
     '-u': 'user',
@@ -66,13 +68,13 @@ const MARIADB: Client = { ...MYSQL, type: ConnectionType.MariaDB }
 const SQLCMD: Client = {
   options: {
     '-P': 'password',
-    '-Q': null,
+    '-Q': DROP_VALUE,
     '-S': 'server',
     '-U': 'user',
     '-d': 'database',
-    '-i': null,
-    '-o': null,
-    '-q': null,
+    '-i': DROP_VALUE,
+    '-o': DROP_VALUE,
+    '-q': DROP_VALUE,
   },
   positionals: [],
   type: ConnectionType.MSSQL,
@@ -84,11 +86,11 @@ const CLICKHOUSE: Client = {
     '--host': 'host',
     '--password': 'password',
     '--port': 'port',
-    '--query': null,
+    '--query': DROP_VALUE,
     '--user': 'user',
     '-d': 'database',
     '-h': 'host',
-    '-q': null,
+    '-q': DROP_VALUE,
     '-u': 'user',
   },
   positionals: [],

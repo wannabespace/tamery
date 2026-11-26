@@ -10,11 +10,12 @@ import {
   DEFAULT_CHAT_EFFORT,
   DEFAULT_CHAT_MODEL,
 } from '../models/list'
-import type { AiKey } from '../models/own-key'
+import type { AiKey, PayingKey } from '../models/own-key'
 import {
   chatKeyFor,
   chatModelsFor,
   OWN_KEY_AUTO_MODELS,
+  TAMERY_ACCOUNT,
 } from '../models/own-key'
 import { logProviderError } from '../provider-error'
 import type { JevUsage } from './jev'
@@ -64,8 +65,7 @@ interface ChatPick {
   /** Auto chose the model, so it may fall back to another company's. */
   auto: boolean
   effort: ChatEffort
-  /** The own key the step runs on; null on Tamery's account. */
-  key: AiKey | null
+  key: PayingKey
   model: ChatModelId
 }
 
@@ -90,7 +90,7 @@ export const pickChatModel = async (data: {
         }
       : null
   }
-  const [key = null] = data.keys
+  const [key = TAMERY_ACCOUNT] = data.keys
   if (key && key.provider !== 'openrouter') {
     return {
       auto: true,

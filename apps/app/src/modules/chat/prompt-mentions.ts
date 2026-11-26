@@ -9,11 +9,10 @@ import { useSubscription } from 'seitu/react'
 import { useCollections } from '~/core/collections'
 import { lastOpenedResourcesStorageValue } from '~/core/connection/last-opened-resources'
 import { useConnectionContext } from '~/core/connection/route'
-import { useLocalMachine } from '~/core/local-machine'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
-import { useConnectionRunsOn } from '~/core/runtime/machine/pairing'
 import { posthog } from '~/lib/posthog'
 
+import { useLocalSkills } from './local-skills'
 import { escapeRegExp } from './mention-text'
 import type { ChatCommand } from './slash-commands'
 import { COMMANDS } from './slash-commands'
@@ -49,8 +48,8 @@ export type PromptSuggestion =
       id: string
       /** A row of an expanded connection, named by its resource. */
       isResource?: boolean
-      /** A table's schema, unless it is the connection's default one. */
-      schema?: string
+      /** A table outside the connection's default schema, so its row names the schema. */
+      showsSchema?: boolean
       kind: PromptMention['kind']
       mention: PromptMention
     }
@@ -211,13 +210,7 @@ export const usePromptMentions = ({
           type: connections.type,
         })),
   })
-  const machine = useLocalMachine(useConnectionRunsOn(connection.id))
-  const { data: skills = [] } = useQuery({
-    enabled: !!machine,
-    queryFn: () => machine?.listSkills() ?? [],
-    queryKey: [...(machine?.queryKey ?? []), 'skills'],
-    staleTime: 30_000,
-  })
+  const { outdatedOn, skills } = useLocalSkills(connection.id)
   const { data: catalog } = useQuery(
     resourceTablesAndSchemasQueryOptions({ connectionResource })
   )
@@ -347,8 +340,7 @@ export const usePromptMentions = ({
           .map((table): PromptSuggestion => ({
             id: `table:${schema.name}.${table.name}`,
             kind: 'table',
-            schema:
-              schema.name === catalog?.defaultSchema ? undefined : schema.name,
+            showsSchema: schema.name !== catalog?.defaultSchema,
             mention: tableMention(schema.name, table.name),
           }))
       ),
@@ -372,7 +364,8 @@ export const usePromptMentions = ({
   }
   const suggestions = listed()
 
-  const isOpen = !!trigger && suggestions.length > 0
+  const skillsOutdatedOn = trigger?.char === '/' ? outdatedOn : null
+  const isOpen = !!trigger && (suggestions.length > 0 || !!skillsOutdatedOn)
   const active =
     suggestions.find(({ id }) => id === highlighted) ?? suggestions[0]
 
@@ -449,10 +442,8 @@ export const usePromptMentions = ({
         expanded
       ) {
         collapse()
-      } else if (event.key === 'Enter' || event.key === 'Tab') {
-        if (active) {
-          pick(active)
-        }
+      } else if ((event.key === 'Enter' || event.key === 'Tab') && active) {
+        pick(active)
       } else if (event.key === 'Escape') {
         setDismissed(value)
       } else {
@@ -475,6 +466,8 @@ export const usePromptMentions = ({
       )
     },
     setHighlighted,
+    /** The machine whose CLI predates skills, while `/` is open on it. */
+    skillsOutdatedOn,
     suggestions,
   }
 }

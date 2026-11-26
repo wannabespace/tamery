@@ -5,9 +5,13 @@ import { type } from 'arktype'
 
 import { PORTS } from './ports'
 
-/** Bumped only by a change an older machine cannot serve; the app refuses a machine below `MIN_MACHINE_PROTOCOL`. */
-export const MACHINE_PROTOCOL = 3
+/**
+ * Bumped only by a change an older machine cannot serve; the app refuses a machine below `MIN_MACHINE_PROTOCOL`. A feature an
+ * older machine lacks gets its own constant the app checks instead of a raised `MIN`, which would cut off machines that still run queries.
+ */
+export const MACHINE_PROTOCOL = 4
 export const MIN_MACHINE_PROTOCOL = 3
+export const LOCAL_SKILLS_PROTOCOL = 4
 
 /** `localhost` may resolve to `::1`, where any other process can listen. */
 export const MACHINE_URL = `http://127.0.0.1:${PORTS.MACHINE}`
@@ -34,7 +38,7 @@ export type MachineId = string & { readonly __brand: 'MachineId' }
 
 export const machineIdSchema = type('string').as<MachineId>()
 
-/** `connection_machines.machine_id` for Tamery Cloud, open to everyone; installed desktop apps send it as is. */
+/** `connection_machines.machine_id` for Tamery Cloud, open to everyone: stored rows hold it, so it never changes. */
 export const TAMERY_CLOUD = null
 
 export const machineUnconfirmed = type({ connectionId: 'string' })
@@ -45,10 +49,12 @@ export const machineHostKey = type({
   keyType: 'string',
 })
 
-/** `'all'` when the machine holds no string at all, as for **Metadata only**. */
+/** Sent when the machine holds no connection string at all, as for **Metadata only**; released machines send this literal. */
+export const ALL_SECRET_FIELDS = 'all'
+
 export const machineNeedsSecrets = type({
   connectionId: 'string',
-  fields: "string[] | 'all'",
+  fields: type('string[]').or(type.unit(ALL_SECRET_FIELDS)),
 })
 
 /**
