@@ -13,6 +13,7 @@ import {
   ConnectionType,
   getDialect,
 } from '@tamery/shared/enums/connection-type'
+import { ALL_SECRET_FIELDS } from '@tamery/shared/machine'
 import { hasErrorCode } from '@tamery/shared/orpc-error'
 import { SafeURL } from '@tamery/shared/safe-url'
 import { toError } from '@tamery/shared/utils'
@@ -133,7 +134,9 @@ export const connections = {
     const server = await getServerCopy(connectionId, !!local, errors)
     const known = server.connectionString ?? local
     if (!known) {
-      throw errors.NEEDS_SECRETS({ data: { connectionId, fields: 'all' } })
+      throw errors.NEEDS_SECRETS({
+        data: { connectionId, fields: ALL_SECRET_FIELDS },
+      })
     }
     // Approval reads a string as its own connection type: SQLite under another dialect's name would open a file unasked.
     const { host, type } = connectionParts.parse(known)

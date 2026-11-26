@@ -45,10 +45,12 @@ export const machineHostKey = type({
   keyType: 'string',
 })
 
-/** `'all'` when the machine holds no string at all, as for **Metadata only**. */
+/** Sent when the machine holds no connection string at all, as for **Metadata only**; released machines send this literal. */
+export const ALL_SECRET_FIELDS = 'all'
+
 export const machineNeedsSecrets = type({
   connectionId: 'string',
-  fields: "string[] | 'all'",
+  fields: type('string[]').or(type.unit(ALL_SECRET_FIELDS)),
 })
 
 /**
