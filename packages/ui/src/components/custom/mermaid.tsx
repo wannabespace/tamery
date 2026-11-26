@@ -68,12 +68,12 @@ export const Mermaid = ({
 }) => {
   // Mermaid uses the id as a CSS selector, which React's `«r0»` ids break.
   const id = `mermaid-${useId().replaceAll(/[^\w-]/gu, '')}`
-  const [svg, setSvg] = useState('')
+  const [svg, setSvg] = useState<string | null>(null)
 
   useEffect(() => {
     void renderChart(id, chart)
       .then(setSvg)
-      .catch(() => setSvg(''))
+      .catch(() => setSvg(null))
   }, [chart, id])
 
   if (!svg) {

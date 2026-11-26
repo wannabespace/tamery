@@ -10,7 +10,7 @@ import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list
 import { tableTabId } from '~/core/tabs/ids'
 
 import { useNavigatorSearch } from './keyboard'
-import { NavigatorSearchField } from './navigator-header'
+import { NavigatorSearchField } from './navigator-search-field'
 import { pinnedTable } from './pinned-tables'
 import { navigatorStore } from './stores'
 import { TablesList } from './tables-list'

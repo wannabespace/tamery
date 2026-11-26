@@ -34,7 +34,7 @@ import {
   ChatIntroHeading,
 } from './composer-stand-in'
 import { ContextMeter } from './context-meter'
-import type { ChatCommand } from './prompt-mentions'
+import type { ChatCommand } from './slash-commands'
 import { modelPickerOpenStore } from './stores'
 import type { ChatSession } from './use-chat-session'
 

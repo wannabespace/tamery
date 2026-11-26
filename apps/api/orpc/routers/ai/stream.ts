@@ -21,7 +21,10 @@ import { type } from 'arktype'
 
 import { payForAi } from '~/lib/ai-key'
 import { attachments } from '~/lib/attachments'
+import { chatCompaction } from '~/lib/chat-compaction'
 import { chatPersist } from '~/lib/chat-persist'
+import { persistChatSuggestion } from '~/lib/chat-suggestion'
+import { persistChatTitle } from '~/lib/chat-title'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 const isAttachmentId = type('string.uuid.v7')
@@ -129,7 +132,7 @@ export const stream = orpc
 
     if (!title) {
       runInBackground(
-        chatPersist.persistTitle({
+        persistChatTitle({
           chatId: input.chatId,
           messages: history,
           payer,
@@ -153,14 +156,13 @@ export const stream = orpc
     if (!pick) {
       throw errors.MODEL_UNAVAILABLE()
     }
-    const { auto, effort, key, model } = pick
-    const contextTokens = resolveChatContext(model, input.context)
+    const contextTokens = resolveChatContext(pick.model, input.context)
     const telemetry = payer.telemetry(scope)
-    const stored = await chatPersist.compaction(input.chatId)
+    const stored = await chatCompaction.get(input.chatId)
     const compaction =
       turn.role === 'user' &&
       needsCompaction(afterCompaction(history, stored), contextTokens)
-        ? await chatPersist.compact({
+        ? await chatCompaction.compact({
             chatId: input.chatId,
             history,
             key: payer.key,
@@ -171,16 +173,13 @@ export const stream = orpc
         : stored
 
     const str = await chatStream.claim({
-      auto,
+      ...pick,
       chatId: input.chatId,
       connection,
       messages: afterCompaction(history, compaction),
       contextTokens,
-      effort,
       fast: input.fast,
       isSubagent,
-      key,
-      model,
       onFinish: async (message) => {
         await chatPersist.persistMessage({
           chatId: input.chatId,
@@ -192,7 +191,7 @@ export const stream = orpc
         const isAnswered = !(lastPart && isToolUIPart(lastPart))
         if (!isSubagent && !message.metadata?.stopped && isAnswered) {
           runInBackground(
-            chatPersist.persistSuggestion({
+            persistChatSuggestion({
               chatId: input.chatId,
               history,
               message,

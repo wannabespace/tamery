@@ -78,10 +78,9 @@ export const NoteDialogContent = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent data-mask>
-              <SelectItem value={null}>The {table.kind} itself</SelectItem>
-              {table.columns.map((entry) => (
-                <SelectItem key={entry.id} value={entry.id}>
-                  {entry.name}
+              {targets.map(({ label, value }) => (
+                <SelectItem key={label} value={value}>
+                  {label}
                 </SelectItem>
               ))}
             </SelectContent>

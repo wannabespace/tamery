@@ -5,7 +5,7 @@ export interface SchemaNoteText {
   table: string | null
 }
 
-export type SchemaNoteScope =
+type SchemaNoteScope =
   | { kind: 'database' }
   | { kind: 'table'; schema: string | null; table: string }
   | { column: string; kind: 'column'; schema: string | null; table: string }
