@@ -10,7 +10,7 @@ import { MATCH_USER_STYLE, section } from './prompt'
 
 const CARET = '<CARET>'
 
-const engineInstructions = (connectionType: string) =>
+const engineInstructions = (connectionType: ConnectionType) =>
   connectionType === ConnectionType.MongoDB
     ? [
         'You are an inline mongosh completion engine inside a MongoDB query editor.',
@@ -27,7 +27,7 @@ const engineInstructions = (connectionType: string) =>
       ]
 
 const completeInstructions = (data: {
-  connectionType: string
+  connectionType: ConnectionType
   context: string
 }) =>
   [
@@ -44,7 +44,7 @@ const completeInstructions = (data: {
   ].join('\n')
 
 interface CompleteQueryInput {
-  connectionType: string
+  connectionType: ConnectionType
   context: string
   onUsage: (
     modelId: string,
