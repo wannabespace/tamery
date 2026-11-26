@@ -50,12 +50,12 @@ export const indexesType = type({
     ...data,
     constraintOwned: !!is_primary || !!is_constraint,
     custom: !!is_custom,
-    customExpression: custom_expression ?? undefined,
+    customExpression: custom_expression ?? null,
     definition: index_definition,
-    included: included_columns ?? undefined,
+    included: included_columns ?? null,
     isPrimary: !!is_primary,
     isUnique: !!is_unique,
-    sizeBytes: size_bytes ?? undefined,
+    sizeBytes: size_bytes ?? null,
     type: index_type,
   })
 )
