@@ -4,11 +4,12 @@ import type { AppUIMessage } from '@tamery/ai/message'
 import type { ChatDataParts } from '@tamery/ai/tools'
 import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 import { cn } from '@tamery/ui/lib/utils'
-import { and, eq, useLiveQuery } from '@tanstack/react-db'
+import { and, eq, isNull, useLiveQuery } from '@tanstack/react-db'
 import { Fragment } from 'react'
 import type { ReactNode } from 'react'
 
 import { Link } from '~/components/link'
+import { OWN_DATABASE } from '~/core/agent/target'
 import { tableTypeIcon } from '~/core/catalog/table-type'
 import { useCollections } from '~/core/collections'
 import { posthog } from '~/lib/posthog'
@@ -61,7 +62,9 @@ const ConnectionChip = ({
         .where(({ row }) =>
           and(
             eq(row.connectionId, connection.connectionId),
-            eq(row.name, connection.resource ?? '')
+            connection.resource === OWN_DATABASE
+              ? isNull(row.name)
+              : eq(row.name, connection.resource)
           )
         )
         .findOne(),
