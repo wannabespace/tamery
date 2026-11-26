@@ -335,6 +335,41 @@ describe('diagnoseConnectionError', () => {
     })
   })
 
+  describe('redacts the saved secrets', () => {
+    it('in a title a driver echoes', () => {
+      expect(
+        diagnose('database "hunter2" does not exist', { password: 'hunter2' })
+          ?.title
+      ).toBe('Database "[REDACTED]" doesn\'t exist')
+    })
+
+    it('in a hint a rule builds from the connection', () => {
+      expect(
+        diagnose('unable to open database file', {
+          database: '/data/hunter2.db',
+          password: 'hunter2',
+          type: ConnectionType.SQLite,
+        })?.hint
+      ).not.toContain('hunter2')
+    })
+
+    it('after the SSH prefix comes off the hint', () => {
+      expect(
+        diagnose(`${SSH_TUNNEL_ERROR}SSH connection failed: bad key`, {
+          ssh: { ...EMPTY_SSH_TUNNEL, password: 'SSH' },
+        })?.hint
+      ).toBe('[REDACTED] connection failed: bad key')
+    })
+
+    it('without stopping a rule that matches the same word', () => {
+      expect(
+        diagnose('password authentication failed for user "me"', {
+          password: 'authentication',
+        })?.title
+      ).toBe('Wrong user or password')
+    })
+  })
+
   describe('while offline', () => {
     it.each([
       'getaddrinfo ENOTFOUND db.acme.io',

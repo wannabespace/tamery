@@ -1,5 +1,6 @@
 import { PROXY_ERROR_MESSAGE } from '@tamery/shared/constants'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { redactSecrets } from '@tamery/shared/sanitize-log'
 
 import type { ConnectionParts } from './connection-parts'
 import { NETWORK_RULES } from './diagnose-network'
@@ -345,10 +346,28 @@ const RECONNECTED_DIAGNOSIS: Diagnosis = {
 export const adviseRetry = (diagnosis: Diagnosis | null, online: boolean) =>
   online && diagnosis?.offline ? RECONNECTED_DIAGNOSIS : diagnosis
 
-/** The rules read `context.message` as the driver wrote it; a diagnosis quotes only `shownMessage`, which may have a secret redacted out of a word the rules match. */
+/** A driver or ssh2 may echo a credential, and a rule may quote a field that holds one; only a literal match catches either. */
+const redactConnectionSecrets = (
+  text: string,
+  { password, ssh }: ConnectionParts
+) => {
+  let redacted = redactSecrets(text)
+  for (const secret of [
+    password,
+    ssh?.password,
+    ssh?.passphrase,
+    ssh?.privateKey,
+  ]) {
+    if (secret) {
+      redacted = redacted.replaceAll(secret, '[REDACTED]')
+    }
+  }
+  return redacted
+}
+
+/** The rules read the message as the driver wrote it, so a secret that is also a word they match keeps its diagnosis; only the title and hint shown are redacted. */
 export const diagnoseConnectionError = (
-  context: DiagnosisContext,
-  shownMessage = context.message
+  context: DiagnosisContext
 ): Diagnosis | null => {
   const { message, online, parts } = context
   const rule = RULES.find(
@@ -361,14 +380,19 @@ export const diagnoseConnectionError = (
   if (!online && isLostWithNetwork(rule, context)) {
     return OFFLINE_DIAGNOSIS
   }
-  const diagnosis = rule.diagnose({ ...context, message: shownMessage })
+  const diagnosis = rule.diagnose(context)
   const { host, password } = parts
-  if (rule.tunnel || diagnosis.focus || password || isLocalHost(host)) {
-    return diagnosis
-  }
+  const shown: Diagnosis =
+    rule.tunnel || diagnosis.focus || password || isLocalHost(host)
+      ? diagnosis
+      : {
+          ...diagnosis,
+          focus: 'password',
+          hint: `${diagnosis.hint} The password is empty too.`,
+        }
   return {
-    ...diagnosis,
-    focus: 'password',
-    hint: `${diagnosis.hint} The password is empty too.`,
+    ...shown,
+    hint: redactConnectionSecrets(shown.hint, parts),
+    title: redactConnectionSecrets(shown.title, parts),
   }
 }
