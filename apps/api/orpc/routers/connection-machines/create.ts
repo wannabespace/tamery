@@ -38,7 +38,11 @@ export const create = orpc
         )
       )
 
-    if (!connection || !(await canRunOn(context.user.id, machineId))) {
+    if (
+      !connection ||
+      (machineId !== TAMERY_CLOUD &&
+        !(await canRunOn(context.user.id, machineId)))
+    ) {
       throw errors.NOT_FOUND()
     }
 
