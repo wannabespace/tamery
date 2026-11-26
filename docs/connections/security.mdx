@@ -62,6 +62,6 @@ The built-in chat does not execute SQL. Coding agents connected through [MCP](/m
 
 ### AI help with a failed test
 
-**Explain with AI** sends connection diagnostics when you click it. Tamery removes connection identifiers and secrets from the error. For a connection with an SSH tunnel, a tunnel failure is sent only as its kind, such as a timeout, a refused connection or a failed sign-in, never as its text. It also sends the engine, the port number, the SSL and timeout options, and the kind of host, such as local, private network or public, with its provider when Tamery recognizes one. Other driver options are not sent.
+**Explain with AI** sends connection diagnostics when you click it. Tamery removes connection identifiers and secrets from the error. For a connection with an SSH tunnel, Tamery sends no error text at all, only the kind of failure, such as a timeout, a failed sign-in or a missing database. It also sends the engine, the port number, the SSL and timeout options, and the kind of host, such as local, private network or public, with its provider when Tamery recognizes one. Other driver options are not sent.
 
 Tamery is [open source](https://github.com/wannabespace/tamery) under AGPL-3.0.

@@ -12,6 +12,7 @@ import { connectionParts } from './connection-parts'
 import {
   getDiagnosisRequest,
   sanitizeDiagnosisRequest,
+  SSH_ON_ERRORS,
 } from './diagnosis-request'
 import { EMPTY_SSH_TUNNEL } from './ssh/params'
 import { connectSsh } from './ssh/session'
@@ -125,46 +126,41 @@ describe('getDiagnosisRequest', () => {
 
   it('sends no SSH secret, alias or user', () => {
     expect(
-      request('auth failed: p%40ss!, hunter2, s3cret, SSH and tunnel', {
-        password: 'p@ss!',
-        ssh: {
-          ...EMPTY_SSH_TUNNEL,
-          host: 'SSH',
-          passphrase: 's3cret',
-          password: 'hunter2',
-          user: 'tunnel',
-        },
-      }).error
+      request(
+        'SSH authentication failed: p%40ss!, hunter2, s3cret, SSH and tunnel',
+        {
+          password: 'p@ss!',
+          ssh: {
+            ...EMPTY_SSH_TUNNEL,
+            host: 'SSH',
+            passphrase: 's3cret',
+            password: 'hunter2',
+            user: 'tunnel',
+          },
+        }
+      ).error
     ).toBe('SSH tunnel: SSH sign-in failed')
   })
 
   it.each([
-    [
-      'database "database" does not exist',
-      '<database> "<database>" does not exist',
-    ],
-    [
-      'password authentication failed for user "me"',
-      'password authentication failed for user "<user>"',
-    ],
-    ['relation "orders" is locked', 'relation "orders" is locked'],
-  ])('keeps the driver error %s of a tunneled connection', (message, error) => {
-    expect(
-      request(message, { database: 'database', ssh: EMPTY_SSH_TUNNEL }).error
-    ).toBe(error)
-  })
+    ['database "database" does not exist', 'Database does not exist'],
+    ['role "me" does not exist', 'Database user does not exist'],
+    ['password authentication failed for user "me"', 'Database sign-in failed'],
+    ['relation "orders" is locked', 'Connection failed'],
+  ])(
+    'sends the driver error %s of a tunneled connection as %s',
+    (message, error) => {
+      expect(
+        request(message, { database: 'database', ssh: EMPTY_SSH_TUNNEL }).error
+      ).toBe(error)
+    }
+  )
 
-  it.each([
-    'database "database" does not exist',
-    'Failed to connect to db:1433 - (SSH) Channel open failure: open failed',
-    'SSH tunnel: SSH connection failed: Disconnected by bastion.corp.io',
-    'SSH tunnel: Timed out reaching the SSH host',
-    "SSH tunnel: Can't reach the SSH host at [2001:db8::5%eth0]:2222: ECONNREFUSED",
-  ])('the API sends %s as the client did', (message) => {
-    const sent = request(message, {
-      database: 'database',
-      ssh: { ...EMPTY_SSH_TUNNEL, host: 'prod' },
-    })
+  it.each([...SSH_ON_ERRORS])('the API sends %s as the client did', (text) => {
+    const sent = {
+      ...request('timeout', { ssh: EMPTY_SSH_TUNNEL }),
+      error: text,
+    }
     expect(sanitizeDiagnosisRequest(sent)).toStrictEqual(sent)
   })
 

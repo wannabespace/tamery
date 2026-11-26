@@ -28,8 +28,9 @@ const ANY_IPV6 = new RegExp(
 )
 
 const tunnelFailure = (text: string) => tunnelError(text).message
-/** What the AI gets for an SSH or tunnel failure, whose text can name the host `~/.ssh/config` resolved or the SSH host's own words. */
-const SSH_FAILURES: [RegExp, string][] = [
+const SSH_MARKER =
+  /ssh|tunnel|channel open|docker|known_hosts|line break|match criteria|proxy(?:jump|command)/iu
+const SSH_CATEGORIES: [RegExp, string][] = [
   [/tunnels run in the Tamery desktop/iu, SSH_ELSEWHERE],
   [
     /docker|container/iu,
@@ -48,7 +49,7 @@ const SSH_FAILURES: [RegExp, string][] = [
     tunnelFailure("The SSH host's key wasn't trusted"),
   ],
   [
-    /authenticat|passphrase|private key|key file|agent|password/iu,
+    /authenticat|sign-in|passphrase|private key|key file|agent|password/iu,
     tunnelFailure('SSH sign-in failed'),
   ],
   [/timed out|timeout/iu, tunnelFailure(SSH_HOST_TIMEOUT)],
@@ -59,25 +60,52 @@ const SSH_FAILURES: [RegExp, string][] = [
   ],
 ]
 const SSH_FAILURE = tunnelFailure('SSH connection failed')
-const SSH_FAILURE_TEXTS = new Set([
-  SSH_FAILURE,
-  ...SSH_FAILURES.map(([, text]) => text),
-])
-const SSH_MARKER =
-  /ssh|tunnel|channel open|docker|known_hosts|line break|match criteria|proxy(?:jump|command)/iu
-const PLACEHOLDER = /<[^\s<>]+>/u
-// An older renderer wrote a placeholder over every word equal to a form value, an SSH failure's own words included, so once one appears only a known driver error keeps its wording.
-const DATABASE_ERROR =
-  /does not exist|authentication failed|access denied|login failed|unknown database|permission denied|pg_hba\.conf|too many connections|cannot open database|ssl|tls|certificate/iu
+const DATABASE_CATEGORIES: [RegExp, string][] = [
+  [/(?:role|user) .*does not exist/iu, 'Database user does not exist'],
+  [
+    /does not exist|unknown database|cannot open database/iu,
+    'Database does not exist',
+  ],
+  [
+    /authentication failed|access denied|login failed|sign-in|password/iu,
+    'Database sign-in failed',
+  ],
+  [
+    /pg_hba\.conf|not allowed to connect|doesn't allow connections/iu,
+    "Database server doesn't allow connections from this address",
+  ],
+  [/ssl|tls|certificate/iu, 'Database TLS/SSL error'],
+  [
+    /too many connections|connection slots/iu,
+    'Database has too many connections',
+  ],
+  [/permission denied/iu, 'Database permission denied'],
+  [/timed out|timeout/iu, 'Connection to the database timed out'],
+  [/refused/iu, 'Database refused the connection'],
+  [
+    /enotfound|eai_again|getaddrinfo|not known|resolved/iu,
+    "Database host name couldn't be resolved",
+  ],
+]
+const CONNECTION_FAILURE = 'Connection failed'
 
-/** With a tunnel on, an error reaches the AI as written only when it is a database's own; an SSH failure goes as one of the fixed texts above. */
-const withoutSshText = (error: string) =>
-  SSH_FAILURE_TEXTS.has(error) ||
-  (!SSH_MARKER.test(error) &&
-    (!PLACEHOLDER.test(error) || DATABASE_ERROR.test(error)))
-    ? error
-    : (SSH_FAILURES.find(([pattern]) => pattern.test(error))?.[1] ??
+/** Every error text the AI may get for a connection with an SSH tunnel. */
+export const SSH_ON_ERRORS = new Set([
+  ...[...SSH_CATEGORIES, ...DATABASE_CATEGORIES].map(([, text]) => text),
+  SSH_FAILURE,
+  CONNECTION_FAILURE,
+])
+
+/**
+ * With a tunnel on, an error can name the host `~/.ssh/config` resolved however it reads, and an older renderer rewrote
+ * the words that would say where it came from, so the AI gets only the category its text points to.
+ */
+const toCategory = (error: string) =>
+  SSH_MARKER.test(error)
+    ? (SSH_CATEGORIES.find(([pattern]) => pattern.test(error))?.[1] ??
       SSH_FAILURE)
+    : (DATABASE_CATEGORIES.find(([pattern]) => pattern.test(error))?.[1] ??
+      CONNECTION_FAILURE)
 
 /** Any other key's value can be a secret or a name, however harmless it looks (`sslpassword=123456`). */
 const SETTING_KEYS = new Set([
@@ -149,7 +177,7 @@ export const getDiagnosisRequest = ({
     .replaceAll(ANY_IPV4, '<ip>')
     .replaceAll(ANY_IPV6, '<ip>')
   return {
-    error: parts.ssh ? withoutSshText(error) : error,
+    error: parts.ssh ? toCategory(message) : error,
     hostKind: [
       getHostHint(parts.host)?.label,
       HOST_KIND_LABELS[getHostKind(parts.host)],
@@ -172,7 +200,7 @@ export const sanitizeDiagnosisRequest = <Request extends DiagnosisRequest>(
   request: Request
 ): Request => ({
   ...request,
-  error: request.sshEnabled ? withoutSshText(request.error) : request.error,
+  error: request.sshEnabled ? toCategory(request.error) : request.error,
   hostKind: HOST_KINDS.has(request.hostKind) ? request.hostKind : '',
   options: redactOptions(request.options),
   port: PORT.test(request.port) ? request.port : '',

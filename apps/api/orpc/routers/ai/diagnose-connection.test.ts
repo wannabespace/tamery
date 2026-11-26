@@ -1,6 +1,7 @@
 import { expect, mock, test } from 'bun:test'
 
 import { call, os } from '@orpc/server'
+import { SSH_ON_ERRORS } from '@tamery/connection/diagnosis-request'
 import type { DiagnosisRequest } from '@tamery/connection/diagnosis-request'
 
 import type { Context } from '../../context'
@@ -55,9 +56,8 @@ const SSH_FAILURES = {
 const FORWARDED: Record<keyof typeof released, string> = {
   'a Match without its value': SSH_FAILURES.config,
   'a failed SSH sign-in': SSH_FAILURES.auth,
-  'a malformed HostName, database user line': SSH_FAILURES.failed,
-  'a missing database named database':
-    '<<database>> "<<database>>" does not exist',
+  'a malformed HostName, database user line': 'Connection failed',
+  'a missing database named database': 'Database does not exist',
   'a refused forward, database user open': SSH_FAILURES.forward,
   'a refused forward, database user open and database failure':
     SSH_FAILURES.forward,
@@ -99,11 +99,15 @@ const SSH_WORDS = [
   'failed',
   'reach',
   'host',
+  'line',
+  'break',
 ]
-const REWRITTEN = [
+const AMBIGUOUS = [
   'SSH tunnel: SSH connection failed: Disconnected by bastion.corp.io',
   '(SSH) Channel open failure: Connection refused by bastion.corp.io',
   "SSH tunnel: Can't reach the SSH host at bastion.corp.io: ECONNREFUSED",
+  'Unexpected line break at ssl-does-not-exist.corp.io',
+  'bastion.corp.io password authentication failed',
 ].flatMap((failure) =>
   SSH_WORDS.flatMap((word, index) =>
     SSH_WORDS.slice(index + 1).map((other) =>
@@ -112,19 +116,23 @@ const REWRITTEN = [
   )
 )
 
-test('sends no text of an SSH failure, whichever two of its words the form held', async () => {
+test('sends the model only a fixed error for any request with SSH on', async () => {
+  const requests = [
+    ...Object.values(released).map((request) => request as DiagnosisRequest),
+    ...AMBIGUOUS.map((error) => ({
+      ...(released[
+        'an ssh2 disconnect the SSH host described'
+      ] as DiagnosisRequest),
+      error,
+    })),
+  ].filter(({ sshEnabled }) => sshEnabled)
   const inputs = await Promise.all(
-    REWRITTEN.map(async (error) => {
-      const [input] = await diagnosed({
-        ...released['an ssh2 disconnect the SSH host described'],
-        error,
-      } as DiagnosisRequest)
+    requests.map(async (request) => {
+      const [input] = await diagnosed(request)
       return (input as { error: string }).error
     })
   )
-  expect(new Set(inputs).isSubsetOf(new Set(Object.values(SSH_FAILURES)))).toBe(
-    true
-  )
+  expect(new Set(inputs).isSubsetOf(SSH_ON_ERRORS)).toBe(true)
 })
 
 test('keeps a driver error but no setting that names anything', async () => {
