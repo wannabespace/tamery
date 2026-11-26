@@ -8,9 +8,7 @@ import { motion } from 'motion/react'
 import { ProductCrop } from './product-crop'
 import { appear, rise, vanish } from './variants'
 
-const QUESTION = 'Mark order 58309 as shipped.'
 const ANSWER = 'It is one pending order. The change waits for your Run:'
-const DONE = 'Done. Order 58309 is shipped.'
 
 const STREAM_AT = 0.4
 const WORD_STEP = 0.035
@@ -49,7 +47,7 @@ export const AskIllustration = () => (
     <div className="mx-auto flex max-w-lg flex-col gap-4 px-3 py-5 text-sm">
       <motion.div variants={rise(0.1)} className="flex flex-col">
         <Bubble align="end" variant="muted">
-          <BubbleContent>{QUESTION}</BubbleContent>
+          <BubbleContent>Mark order 58309 as shipped.</BubbleContent>
         </Bubble>
       </motion.div>
       <Words at={STREAM_AT} text={ANSWER} />
@@ -97,7 +95,7 @@ export const AskIllustration = () => (
           </motion.span>
         </div>
       </motion.div>
-      <Words at={DONE_AT} text={DONE} />
+      <Words at={DONE_AT} text="Done. Order 58309 is shipped." />
     </div>
   </ProductCrop>
 )

@@ -11,7 +11,8 @@ import { Button } from '@tamery/ui/components/button'
 import { Separator } from '@tamery/ui/components/separator'
 import { motion } from 'motion/react'
 
-const EASE = [0.32, 0.72, 0, 1] as const
+import { EASE } from '~/modules/features/variants'
+
 const CARD_WIDTH = 150
 const HEADER_HEIGHT = 28
 const ROW_HEIGHT = 24

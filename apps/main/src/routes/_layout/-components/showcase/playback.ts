@@ -64,19 +64,13 @@ const TAB_HOLD_MS = 3500
 
 export type ShowcaseTab = 'chat' | 'schema' | 'table'
 
-const held = (conversation: Conversation) => ({
+const held = (conversation: Conversation, tab: ShowcaseTab = 'chat') => ({
   conversation,
-  ms: HOLD_MS,
+  ms: tab === 'chat' ? HOLD_MS : TAB_HOLD_MS,
   result: true,
   sql: true,
-  tab: 'chat' as ShowcaseTab,
-  words: conversation.answer.split(' ').length,
-})
-
-const visit = (conversation: Conversation, tab: ShowcaseTab) => ({
-  ...held(conversation),
-  ms: TAB_HOLD_MS,
   tab,
+  words: conversation.answer.split(' ').length,
 })
 
 export type Frame = ReturnType<typeof held>
@@ -103,13 +97,13 @@ export const CHAT_TITLES = CONVERSATIONS.map(({ title }) => title)
 
 export const FRAMES = [
   REST_FRAME,
-  visit(first, 'table'),
-  visit(first, 'schema'),
+  held(first, 'table'),
+  held(first, 'schema'),
   ...later.flatMap((conversation) => [
     ...lead(conversation),
     held(conversation),
-    visit(conversation, 'table'),
-    visit(conversation, 'schema'),
+    held(conversation, 'table'),
+    held(conversation, 'schema'),
   ]),
   ...lead(first),
 ]
