@@ -1,5 +1,10 @@
 import { afterCompaction, chatStream, pickChatModel } from '@tamery/ai/features'
-import { resolveChatContext } from '@tamery/ai/models'
+import {
+  AUTO_MODEL,
+  chatModelPick,
+  MODEL_UNAVAILABLE_MESSAGE,
+  resolveChatContext,
+} from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
@@ -17,10 +22,11 @@ export const attachStream = orpc
       'context?': 'number.integer > 0',
       'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
       'fast?': 'boolean',
-      'model?': 'string',
+      'model?': chatModelPick,
     })
   )
-  .handler(async function* attachStream({ context, input }) {
+  .errors({ MODEL_UNAVAILABLE: { message: MODEL_UNAVAILABLE_MESSAGE } })
+  .handler(async function* attachStream({ context, errors, input }) {
     const owned = await db.query.chats.findFirst({
       columns: { connectionResourceId: true, parentChatId: true },
       where: { id: { eq: input.chatId }, userId: { eq: context.user.id } },
@@ -58,13 +64,17 @@ export const attachStream = orpc
       feature: AiFeature.Chat,
       userId: context.user.id,
     }
-    const { auto, effort, key, model } = await pickChatModel({
+    const pick = await pickChatModel({
       effort: input.effort,
       keys: payer.keys,
       messages,
-      model: input.model,
+      model: input.model ?? AUTO_MODEL,
       onJevUsage: payer.recordJev(scope),
     })
+    if (!pick) {
+      throw errors.MODEL_UNAVAILABLE()
+    }
+    const { auto, effort, key, model } = pick
 
     const compaction = await chatPersist.compaction(input.chatId)
 

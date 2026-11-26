@@ -4923,6 +4923,13 @@
       "entityType": "uniques",
       "schema": "public",
       "table": "subscription_seats"
+    },
+    {
+      "value": "\"column\" IS NULL OR \"table\" IS NOT NULL",
+      "name": "schema_notes_column_needs_table",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "schema_notes"
     }
   ],
   "renames": []

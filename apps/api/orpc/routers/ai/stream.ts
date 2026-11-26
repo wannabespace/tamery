@@ -6,7 +6,12 @@ import {
 } from '@tamery/ai/features'
 import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
-import { resolveChatContext } from '@tamery/ai/models'
+import {
+  AUTO_MODEL,
+  chatModelPick,
+  MODEL_UNAVAILABLE_MESSAGE,
+  resolveChatContext,
+} from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { parseAttachmentRef } from '@tamery/shared/attachments'
 import { runInBackground } from '@tamery/shared/background'
@@ -62,13 +67,14 @@ export const stream = orpc
       'context?': 'number.integer > 0',
       'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
       'fast?': 'boolean',
-      'model?': 'string',
+      'model?': chatModelPick,
       'subagent?': { parentChatId: 'string.uuid.v7', title: 'string' },
     })
   )
   .errors({
     BAD_REQUEST: { message: 'Invalid messages' },
     CONFLICT: { message: 'This chat is already generating an answer.' },
+    MODEL_UNAVAILABLE: { message: MODEL_UNAVAILABLE_MESSAGE },
     TOO_MANY_REQUESTS: { message: AI_BUDGET_SPENT_MESSAGE },
   })
   .handler(async function* streamHandler({ context, errors, input }) {
@@ -137,13 +143,17 @@ export const stream = orpc
       feature: AiFeature.Chat,
       userId: context.user.id,
     }
-    const { auto, effort, key, model } = await pickChatModel({
+    const pick = await pickChatModel({
       effort: input.effort,
       keys: payer.keys,
       messages: history,
-      model: input.model,
+      model: input.model ?? AUTO_MODEL,
       onJevUsage: payer.recordJev(scope),
     })
+    if (!pick) {
+      throw errors.MODEL_UNAVAILABLE()
+    }
+    const { auto, effort, key, model } = pick
     const contextTokens = resolveChatContext(model, input.context)
     const telemetry = payer.telemetry(scope)
     const stored = await chatPersist.compaction(input.chatId)
