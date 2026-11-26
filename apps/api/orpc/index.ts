@@ -88,7 +88,6 @@ const LOGGED_PAYLOADS: ReadonlySet<string> = new Set([
   'banner',
   'connectionsResources',
   'releases',
-  'repo',
   'usage',
   'userCount',
   'workspaces',
