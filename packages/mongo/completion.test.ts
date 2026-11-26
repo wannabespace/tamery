@@ -8,7 +8,7 @@ const catalog = {
     { name: 'my-orders', view: false },
   ],
   fields: (collection: string) =>
-    collection === 'users' ? [{ name: 'age', type: 'int' }] : null,
+    collection === 'users' ? [{ name: 'age', type: 'int' }] : [],
 }
 
 const complete = (template: string) => {
