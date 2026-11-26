@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { memoize } from 'memoza'
 
 import type { RunOptions } from '../..'
-import { resultSet } from '../..'
+import { NO_ROW_COUNT, resultSet } from '../..'
 import { cancellable } from '../../cancellation'
 import { getClient, parseError } from './client'
 
@@ -104,7 +104,10 @@ export const runQuery = ({
       return {
         duration: performance.now() - start,
         result: [
-          resultSet({ affectedRows: null, columns: [], rows: [] }, maxRows),
+          resultSet(
+            { affectedRows: NO_ROW_COUNT, columns: [], rows: [] },
+            maxRows
+          ),
         ],
       }
     }
@@ -169,7 +172,7 @@ export const runQuery = ({
       result: [
         resultSet(
           {
-            affectedRows: null,
+            affectedRows: NO_ROW_COUNT,
             columns: meta.map((column) => column.name),
             rows: unquoteSafeIntegers(meta, rows),
           },

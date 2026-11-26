@@ -1,3 +1,4 @@
+import { silently } from '@tamery/shared/utils'
 import { cn } from '@tamery/ui/lib/utils'
 import { createFileRoute, Outlet, useRouter } from '@tanstack/react-router'
 import { PermixProvider } from 'permix/react'
@@ -80,12 +81,16 @@ const ProtectedLayout = () => {
 
 export const Route = createFileRoute('/_protected')({
   component: ProtectedLayout,
-  beforeLoad: async () => {
-    const [{ getCollections, whenOfflineReady }, { thisMachineQuery }] =
-      await Promise.all([
-        import('~/core/collections'),
-        import('~/core/runtime/machine/pairing'),
-      ])
+  beforeLoad: async ({ cause }) => {
+    const [
+      { getCollections, whenOfflineReady },
+      { machine },
+      { thisMachineQuery },
+    ] = await Promise.all([
+      import('~/core/collections'),
+      import('~/core/runtime/machine/machine'),
+      import('~/core/runtime/machine/pairing'),
+    ])
     const c = getCollections()
 
     await Promise.all([
@@ -99,6 +104,11 @@ export const Route = createFileRoute('/_protected')({
       permix.isReady() || loadPermissions(),
       window.electron && queryClient.ensureQueryData(thisMachineQuery),
     ])
+
+    const thisMachine = queryClient.getQueryData(thisMachineQuery.queryKey)
+    if (cause === 'enter' && thisMachine && !thisMachine.enabled) {
+      void silently(() => machine.startThisComputer(thisMachine.publicUrl))
+    }
 
     return { collections: c }
   },

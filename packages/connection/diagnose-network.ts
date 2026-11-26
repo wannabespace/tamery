@@ -137,8 +137,10 @@ export const NETWORK_RULES: DiagnosisRule[] = [
     offline: 'host',
   },
   {
-    diagnose: () => ({
-      hint: 'The web app reaches databases through it. Check your internet connection, then try again.',
+    diagnose: ({ desktop }) => ({
+      hint: desktop
+        ? 'Its proxy did not answer. Try again, or set Runs on to This computer to query it from here.'
+        : 'The web app reaches databases through it. Check your internet connection, then try again.',
       title: "Couldn't reach Tamery's cloud proxy",
     }),
     match: new RegExp(RegExp.escape(PROXY_ERROR_MESSAGE), 'u'),

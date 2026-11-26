@@ -1,55 +1,67 @@
 ---
 title: 'Reach a machine on another computer'
 sidebarTitle: 'Remote machine'
-description: 'Put Tailscale Serve, Cloudflare Tunnel or a reverse proxy in front of tamery machine to run queries on a server from your browser.'
-keywords: ['tunnel', 'reverse proxy', 'server', 'vps', 'caddy', 'cloudflared']
+description: 'Give a machine an HTTPS address with Tailscale, Cloudflare Tunnel, ngrok or a reverse proxy, and run queries on it from your other computers.'
+keywords:
+  [
+    'tunnel',
+    'server',
+    'vps',
+    'caddy',
+    'cloudflared',
+    'vpn',
+    'work computer',
+    'public url',
+  ]
 ---
 
-The machine listens only on `127.0.0.1`, so other computers can't reach it directly. To use a machine on a server or another computer, run a tunnel or reverse proxy **on that same computer**, give it an HTTPS address, and pass that address to `tamery machine --public-url`. The web app connects only to `127.0.0.1` or an `https://` address.
+To run queries on a machine from another computer, give it an `https://` address. On the same computer you don't need one.
 
-Reaching the address is not enough to use the machine: a browser runs nothing until you allow it in the machine's terminal or with `tamery machine approve`.
+**Use Tailscale if you can**: its network is private. Cloudflare Tunnel and ngrok put the address on the public internet, and they can read your queries, results and the secrets you send. Either way, the machine runs nothing until you allow your app on it.
 
-A request through a tunnel without `--public-url` gets an error that tells you which address to set.
+1. On the machine's computer, start one of the services below.
+2. Give the machine the address it shows:
 
-## Tailscale Serve
+   | Machine | Port | Address |
+   | --- | --- | --- |
+   | Desktop app | `26382` | **Settings → Machines → Address for your other computers** |
+   | CLI | `26380` | `tamery machine --public-url <address>` |
 
-Tailscale Serve gives the machine an HTTPS address that only devices on your tailnet can open. The encryption ends on the machine's computer, so nothing in between sees your queries.
+3. On your other computer, choose the machine under a connection's **Runs on**, then allow it on the machine within 2 minutes. Over SSH, use [`tamery machine approve`](/cli/commands#tamery-machine-approve) (CLI only).
 
-1. On the machine's computer, run:
+The commands below use the desktop app's port.
 
-   ```bash
-   tailscale serve --bg 26380
-   tamery machine --public-url https://<machine>.<tailnet>.ts.net
-   ```
+## Tailscale
 
-   The first time, Tailscale asks you to turn on HTTPS for your tailnet.
+Install [Tailscale](https://tailscale.com/download) on both computers, sign in to the same tailnet, and run on the machine's computer:
 
-2. Open the pairing link in a browser on a device in the same tailnet.
+```bash
+tailscale serve --bg 26382
+```
+
+Don't use `tailscale funnel`, which makes the address public.
 
 ## Cloudflare Tunnel
 
-1. On the machine's computer, start a tunnel to the machine's port:
+Install [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) and run:
 
-   ```bash
-   cloudflared tunnel --url http://127.0.0.1:26380
-   ```
+```bash
+cloudflared tunnel --url http://127.0.0.1:26382
+```
 
-2. Start the machine with the address `cloudflared` printed:
+This address changes every time. For a permanent one, create a tunnel in the Cloudflare dashboard with the service URL `http://127.0.0.1:26382`. Requests longer than about 2 minutes fail.
 
-   ```bash
-   tamery machine --public-url https://<name>.trycloudflare.com
-   ```
+## ngrok
 
-That address changes every time. A named tunnel with your own hostname works the same way and keeps it.
+Install [ngrok](https://ngrok.com/download), add your authtoken and run:
 
-Know two limits before you use it:
-
-- Cloudflare ends any request after 100 seconds, so a query that runs longer fails.
-- Cloudflare decrypts the traffic on its servers. It can see your queries, their results, and the secrets you enter for **No password** and **Metadata only** connections, which go to the machine once. If that matters, use Tailscale Serve.
+```bash
+ngrok http 26382
+```
 
 ## Caddy
 
-On a server with a domain pointing at it, Caddy gets a certificate on its own. Add this to the `Caddyfile` on the machine's computer:
+On a server with its own domain, add this to the `Caddyfile`:
 
 ```text
 db-box.example.com {
@@ -57,10 +69,6 @@ db-box.example.com {
 }
 ```
 
-Then start the machine:
+## Another service
 
-```bash
-tamery machine --public-url https://db-box.example.com
-```
-
-Any other reverse proxy works the same way, as long as it runs on the machine's computer, serves HTTPS, and forwards the original `Host` header.
+Any tunnel or reverse proxy works if it runs on the machine's computer, serves HTTPS and forwards the original `Host` header.

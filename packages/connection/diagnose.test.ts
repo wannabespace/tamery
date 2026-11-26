@@ -492,6 +492,13 @@ describe('diagnoseConnectionError', () => {
     expect(adviseRetry(sameTitle, true)).toBe(sameTitle)
   })
 
+  it('points a desktop at Runs on when Tamery Cloud does not answer', () => {
+    expect(diagnose(PROXY_ERROR_MESSAGE, { password: '' })).toStrictEqual({
+      hint: 'Its proxy did not answer. Try again, or set Runs on to This computer to query it from here.',
+      title: "Couldn't reach Tamery's cloud proxy",
+    })
+  })
+
   it('returns nothing for an error it does not know', () => {
     expect(diagnose('something odd happened')).toBeNull()
   })

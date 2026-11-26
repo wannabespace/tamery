@@ -26,8 +26,7 @@ export interface MongoCompletionItem {
 
 export interface MongoCatalog {
   collections: { name: string; view: boolean }[]
-  /** `null` while the collection's fields are still loading. */
-  fields: (collection: string) => { name: string; type: string }[] | null
+  fields: (collection: string) => { name: string; type: string }[]
 }
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/u
@@ -103,8 +102,7 @@ export const mongoCompletionItems = (
   if (target?.kind !== 'key') {
     return target ? ITEMS[target.kind](catalog) : []
   }
-  const fields =
-    target.fields && collection ? (catalog.fields(collection) ?? []) : []
+  const fields = target.fields && collection ? catalog.fields(collection) : []
   return [
     ...fields.map(({ name, type }): MongoCompletionItem => ({
       detail: type,

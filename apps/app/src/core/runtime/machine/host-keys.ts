@@ -1,4 +1,4 @@
-import type { machineHostKey } from '@tamery/shared/machine'
+import type { MachineId, machineHostKey } from '@tamery/shared/machine'
 import { createStore } from 'seitu'
 
 type MachineHostKey = typeof machineHostKey.infer
@@ -14,7 +14,7 @@ const store = createStore<HostKeyQuestion[]>([])
 
 export const machineHostKeys = {
   /** Per machine: each trusts the key in its own known_hosts, so one answer never covers another computer. */
-  ask: (machineId: string, hostKey: MachineHostKey) => {
+  ask: (machineId: MachineId, hostKey: MachineHostKey) => {
     const id = `${machineId} ${hostKey.host} ${hostKey.fingerprint}`
     const asked = store.get().find((question) => question.id === id)
     if (asked) {

@@ -11,15 +11,18 @@ import { resourceTableTotalQueryOptions } from '~/core/queries/rows/total'
 import { resourceTableColumnsQueryOptions } from '~/core/queries/tables/columns'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import {
+  getConnectionRunsOn,
   getMachineRoute,
-  useMachineRoute,
+  useConnectionRunsOn,
+  useMachineRouteById,
 } from '~/core/runtime/machine/pairing'
 import { queryClient } from '~/lib/query-client'
 
-import { fetchingConfig } from './fetching-config'
+import { fetchingConfig, isReachableFromWeb } from './fetching-config'
 
 export const canQueryConnection = (connection: Connection) =>
   fetchingConfig(connection, {
+    runsOn: getConnectionRunsOn(connection.id),
     machine: getMachineRoute(connection.id),
     connectionString:
       getCollections().connectionStringsCollection.get(connection.id) ?? null,
@@ -88,7 +91,8 @@ export const prefetchConnectionResourceTableCore = async ({
 export const useFetchingConfig = (
   connection: Pick<Connection, 'id' | 'syncType' | 'isPasswordExists'>
 ) => {
-  const machine = useMachineRoute(connection.id)
+  const runsOn = useConnectionRunsOn(connection.id)
+  const machine = useMachineRouteById(runsOn, connection.id)
   const { connectionStringsCollection } = useCollections()
   const { data: connectionString } = useLiveQuery({
     query: (q) =>
@@ -99,7 +103,36 @@ export const useFetchingConfig = (
   })
 
   return fetchingConfig(connection, {
+    runsOn,
     machine,
     connectionString: connectionString ?? null,
   })
+}
+
+export const useIsReachableFromWeb = (connectionId: string | null) => {
+  const { connectionsCollection, connectionStringsCollection } =
+    useCollections()
+  const { data: connection } = useLiveQuery(
+    (q) =>
+      connectionId
+        ? q
+            .from({ c: connectionsCollection })
+            .where(({ c }) => eq(c.id, connectionId))
+            .findOne()
+        : null,
+    [connectionId]
+  )
+  const { data: connectionString } = useLiveQuery(
+    (q) =>
+      connectionId
+        ? q
+            .from({ cs: connectionStringsCollection })
+            .where(({ cs }) => eq(cs.connectionId, connectionId))
+            .findOne()
+        : null,
+    [connectionId]
+  )
+  return (
+    !!connection && isReachableFromWeb(connection, connectionString ?? null)
+  )
 }

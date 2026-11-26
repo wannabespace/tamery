@@ -14,6 +14,7 @@ import packageJson from '../desktop/package.json' with { type: 'json' }
 
 setupPortlessEnvs({
   VITE_PUBLIC_API_URL: 'api.local.tamery',
+  VITE_PUBLIC_DOCS_URL: 'docs.local.tamery',
   VITE_PUBLIC_MAIN_URL: 'main.local.tamery',
   VITE_PUBLIC_PROXY_URL: 'proxy.local.tamery',
   VITE_PUBLIC_SHARE_URL: 'share.local.tamery',

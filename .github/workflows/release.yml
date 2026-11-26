@@ -34,6 +34,7 @@ jobs:
           TODESKTOP_ACCESS_TOKEN: ${{ secrets.TODESKTOP_ACCESS_TOKEN }}
           TODESKTOP_EMAIL: ${{ secrets.TODESKTOP_EMAIL }}
           VITE_PUBLIC_API_URL: https://api.tamery.app
+          VITE_PUBLIC_DOCS_URL: https://docs.tamery.app
           VITE_PUBLIC_WEB_URL: https://web.tamery.app
           VITE_PUBLIC_PROXY_URL: https://proxy.tamery.app
           VITE_PUBLIC_SHARE_URL: https://share.tamery.app
