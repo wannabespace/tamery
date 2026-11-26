@@ -11,7 +11,6 @@ import { resourceTableTotalQueryOptions } from '~/core/queries/rows/total'
 import { resourceTableColumnsQueryOptions } from '~/core/queries/tables/columns'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
 import {
-  CLOUD,
   getConnectionRunsOn,
   getMachineRoute,
   useConnectionRunsOn,
@@ -23,7 +22,7 @@ import { fetchingConfig, isReachableFromWeb } from './fetching-config'
 
 export const canQueryConnection = (connection: Connection) =>
   fetchingConfig(connection, {
-    inCloud: getConnectionRunsOn(connection.id) === CLOUD,
+    runsOn: getConnectionRunsOn(connection.id),
     machine: getMachineRoute(connection.id),
     connectionString:
       getCollections().connectionStringsCollection.get(connection.id) ?? null,
@@ -104,7 +103,7 @@ export const useFetchingConfig = (
   })
 
   return fetchingConfig(connection, {
-    inCloud: runsOn === CLOUD,
+    runsOn,
     machine,
     connectionString: connectionString ?? null,
   })

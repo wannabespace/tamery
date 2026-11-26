@@ -48,8 +48,13 @@ mock.module('~/core/runtime/machine/machine', () => ({
 }))
 mock.module('~/core/runtime/machine/pairing', () => ({
   CLOUD: 'cloud',
+  THIS_COMPUTER: 'this-computer',
+  defaultRunsOn: () => (window.electron ? 'this-computer' : 'cloud'),
   getConnectionRunsOn: () =>
-    state.inCloud ? 'cloud' : (state.route?.machineId ?? null),
+    state.inCloud
+      ? 'cloud'
+      : (state.route?.machineId ??
+        (window.electron ? 'this-computer' : 'cloud')),
   getMachineRoute: (connectionId: string | null) =>
     connectionId === null ? null : state.route,
 }))
@@ -99,8 +104,8 @@ test('the form tests no string on a machine, which runs saved connections only',
     fetchingConfig(null, {
       connectionString: null,
       draft: true,
-      inCloud: false,
       machine: paired,
+      runsOn: paired.machineId,
     }).reason
   ).toStartWith('Saved connections run on valerii-mbp')
 })
@@ -190,18 +195,18 @@ const onDesktop = async (run: () => Promise<unknown>) => {
   return execute
 }
 
-const testOnDesktop = (inCloud: boolean) =>
+const testOnDesktop = (runsOn: 'cloud' | 'this-computer') =>
   onDesktop(() =>
     createDialectProvider(Dialect.Postgres, {
       connectionString: publicString,
-      inCloud,
+      runsOn,
     }).execute(select)
   )
 
 test('on desktop a string under test runs in the cloud only when Runs on says so', async () => {
-  expect(await testOnDesktop(false)).toHaveBeenCalledTimes(1)
+  expect(await testOnDesktop('this-computer')).toHaveBeenCalledTimes(1)
   expect(cloud.execute).not.toHaveBeenCalled()
-  expect(await testOnDesktop(true)).not.toHaveBeenCalled()
+  expect(await testOnDesktop('cloud')).not.toHaveBeenCalled()
   expect(cloud.execute).toHaveBeenCalledTimes(1)
 })
 

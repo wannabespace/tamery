@@ -39,6 +39,9 @@ export const RunsOnField = ({ form }: { form: ConnectionForm }) => {
             items={items}
             value={field.state.value}
             onValueChange={(next) => {
+              if (next === null) {
+                return
+              }
               field.handleChange(next)
               connectPickedMachine(next)
             }}
@@ -68,7 +71,7 @@ export const RunsOnField = ({ form }: { form: ConnectionForm }) => {
             </SelectTrigger>
             <SelectContent>
               {items.map(({ description, icon, label, value }) => (
-                <SelectItem key={value ?? 'here'} value={value}>
+                <SelectItem key={value} value={value}>
                   <HugeiconsIcon icon={icon} strokeWidth={2} />
                   <span className="flex flex-col">
                     <span data-mask>{label}</span>
