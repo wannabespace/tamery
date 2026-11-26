@@ -204,4 +204,39 @@ describe('D1', () => {
       query.execute({ connectionString: CONNECTION, query: 'select titel' })
     ).rejects.toThrow(/^No such column: titel \(at offset 7\)$/u)
   })
+
+  test.each([
+    [
+      new TypeError('fetch failed', {
+        cause: Object.assign(
+          new Error('getaddrinfo ENOTFOUND api.cloudflare.com'),
+          { code: 'ENOTFOUND' }
+        ),
+      }),
+      'fetch failed: ENOTFOUND',
+    ],
+    [
+      new TypeError('fetch failed', {
+        cause: new AggregateError(
+          [
+            Object.assign(new Error('connect ENETUNREACH'), {
+              code: 'ENETUNREACH',
+            }),
+          ],
+          'All attempts failed'
+        ),
+      }),
+      'fetch failed: ENETUNREACH',
+    ],
+    [new TypeError('fetch failed'), 'fetch failed'],
+  ])(
+    'names the socket code a failed request lost',
+    async (rejection, message) => {
+      stubbed = spyOn(globalThis, 'fetch').mockRejectedValueOnce(rejection)
+
+      await expect(
+        query.execute({ connectionString: CONNECTION, query: 'select 1' })
+      ).rejects.toThrow(new RegExp(`^${message}$`, 'iu'))
+    }
+  )
 })

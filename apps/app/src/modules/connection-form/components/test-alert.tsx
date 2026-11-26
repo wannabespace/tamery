@@ -1,7 +1,10 @@
 import { Alert02Icon, SparklesIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { ConnectionParts } from '@tamery/connection/connection-parts'
-import { diagnoseConnectionError } from '@tamery/connection/diagnose'
+import {
+  adviseRetry,
+  diagnoseConnectionError,
+} from '@tamery/connection/diagnose'
 import type { ConnectionPatch, Diagnosis } from '@tamery/connection/diagnosis'
 import { getDiagnosisRequest } from '@tamery/connection/diagnosis-request'
 import { getSslOptions } from '@tamery/connection/ssl/setting'
@@ -21,6 +24,7 @@ import { useMutation } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { useState } from 'react'
 
+import { failedAttempt } from '~/lib/failed-attempt'
 import { orpc } from '~/lib/orpc'
 import { useIsOnline } from '~/store'
 
@@ -62,10 +66,10 @@ export const TestAlert = ({
   const context = {
     desktop: !!window.electron,
     message: error.message,
-    online: isOnline,
+    online: failedAttempt(error).online,
     parts,
   }
-  const diagnosis = diagnoseConnectionError(context)
+  const diagnosis = adviseRetry(diagnoseConnectionError(context), isOnline)
   const ask = useMutation(
     orpc.ai.diagnoseConnection.mutationOptions({
       meta: { event: 'connection_diagnosed' },

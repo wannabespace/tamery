@@ -5,21 +5,29 @@ import { noop, toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import type { Client, ConnectConfig } from 'ssh2'
 
+import { getHostKind } from '../hosts'
 import { AGENT_UNAVAILABLE, getSshConfig } from './config'
 import type { ConfirmHostKey } from './host-key'
 import { HOST_KEY_REFUSALS, hostKeyTrust } from './host-key'
 import { knownHosts } from './known-hosts'
 import type { SshTunnel } from './params'
-import { SSH_AUTH_ERRORS, tunnelError } from './params'
+import {
+  SSH_AUTH_ERRORS,
+  SSH_HOST_TIMEOUT,
+  SSH_HOST_UNREACHABLE,
+  tunnelError,
+} from './params'
 
 const READY_TIMEOUT = 20_000
 // The two errors ssh2's `connect` throws for a key it cannot parse, an encrypted one without its passphrase included.
 const SSH2_KEY_ERROR =
   /^(?:Cannot parse privateKey|privateKey value does not contain)/u
 
+/** `lost`: no host key came back from a public destination, so this device may never have reached it; `diagnose.ts` reads only those outcomes as offline. */
 const sshErrorMessage = (
   error: Error & { code?: string; level?: string },
-  auth: ConnectConfig
+  auth: ConnectConfig,
+  { host, lost }: { host: string; lost: boolean }
 ) => {
   if (error.level === 'client-authentication') {
     return 'agent' in auth
@@ -30,10 +38,15 @@ const sshErrorMessage = (
     return AGENT_UNAVAILABLE
   }
   if (error.level === 'client-timeout' || hasErrnoCode(error, 'ETIMEDOUT')) {
-    return 'Timed out reaching the SSH host'
+    return lost
+      ? SSH_HOST_TIMEOUT
+      : `Timed out connecting to the SSH host at ${host}`
   }
   if (error.level === 'client-socket') {
-    return `Can't reach the SSH host: ${error.code ?? 'connection failed'}`
+    const code = error.code ?? 'connection failed'
+    return lost
+      ? `${SSH_HOST_UNREACHABLE}${code}`
+      : `Can't reach the SSH host at ${host}: ${code}`
   }
   return `SSH connection failed: ${error.message}`
 }
@@ -66,6 +79,11 @@ export const connectSsh = async (
   })
   let refusal: string | undefined
   let verifiedKey: Buffer | undefined
+  let answered = false
+  const failure = () => ({
+    host,
+    lost: !answered && getHostKind(host) === 'public',
+  })
   let readyTimer: ReturnType<typeof setTimeout> | undefined
   const startReadyTimer = () => {
     readyTimer = setTimeout(() => {
@@ -131,6 +149,7 @@ export const connectSsh = async (
       host,
       // Returns undefined on purpose: ssh2 takes any other return value, a promise included, as the verdict.
       hostVerifier: (key: Buffer, verify: (valid: boolean) => void) => {
+        answered = true
         void verifyHostKey(key, verify)
       },
       keepaliveInterval: 10_000,
@@ -146,7 +165,7 @@ export const connectSsh = async (
     throw tunnelError(
       SSH2_KEY_ERROR.test(configError.message)
         ? unreadableKey(tunnel, configError)
-        : sshErrorMessage(configError, auth)
+        : sshErrorMessage(configError, auth, failure())
     )
   }
   const ready = Promise.race([once(client, 'ready'), hungUp()])
@@ -156,7 +175,7 @@ export const connectSsh = async (
   if (readied.isErr()) {
     client.end()
     throw tunnelError(
-      refusal ?? sshErrorMessage(toError(readied.error.cause), auth)
+      refusal ?? sshErrorMessage(toError(readied.error.cause), auth, failure())
     )
   }
   return client
