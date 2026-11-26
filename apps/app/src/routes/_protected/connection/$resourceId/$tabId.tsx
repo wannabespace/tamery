@@ -48,7 +48,7 @@ export const Route = createFileRoute(
   errorComponent: TabError,
   validateSearch: tabSearchType,
   beforeLoad: ({ context, params }) => {
-    const resolved = resolveTab(params.tabId)
+    const resolved = resolveTab(params.tabId, params.resourceId)
 
     if (
       !resolved ||

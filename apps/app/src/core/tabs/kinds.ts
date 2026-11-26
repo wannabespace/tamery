@@ -56,9 +56,9 @@ export const schemaGroups = (dialect: Dialect) =>
     items: group.items.filter((item) => item.available?.(dialect) ?? true),
   })).filter((group) => group.items.length > 0)
 
-export const resolveTab = (id: string) => {
+export const resolveTab = (id: string, resourceId: string) => {
   for (const kind of TAB_KINDS) {
-    const params = kind.match(id)
+    const params = kind.match(id, resourceId)
 
     if (params !== null) {
       return { kind, params }
@@ -71,8 +71,12 @@ export const resolveTab = (id: string) => {
 export type ResolvedTab = NonNullable<ReturnType<typeof resolveTab>>
 
 /** True when the tab's kind renamed what it shows, so the tab keeps no name of its own. */
-export const renameTabTitle = (tabId: string, title: string) => {
-  const resolved = resolveTab(tabId)
+export const renameTabTitle = (
+  resourceId: string,
+  tabId: string,
+  title: string
+) => {
+  const resolved = resolveTab(tabId, resourceId)
   return !!resolved?.kind.renameTitle?.(resolved.params, title)
 }
 
@@ -81,10 +85,11 @@ export const tabFullTitle = ({ kind, params }: ResolvedTab) =>
 
 /** `titles` names tabs whose label lives in a collection rather than in the id, like a chat's generated title. */
 export const tabLabels = (
+  resourceId: string,
   tabs: ConnectionTab[],
   titles: Map<string, string>
 ) => {
-  const resolved = tabs.map((tab) => resolveTab(tab.id))
+  const resolved = tabs.map((tab) => resolveTab(tab.id, resourceId))
 
   return tabs.map((tab, index) => {
     const own = resolved[index]

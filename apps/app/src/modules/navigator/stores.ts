@@ -48,8 +48,11 @@ export const navigatorStore = memoize((resourceId: string) =>
 
 export type NavigatorMode = 'tables' | 'definitions' | 'chats'
 
-const getNavigatorSection = (tabId?: string): NavigatorMode => {
-  if (tabId && resolveTab(tabId)?.kind === chatTab) {
+const getNavigatorSection = (
+  resourceId: string,
+  tabId?: string
+): NavigatorMode => {
+  if (tabId && resolveTab(tabId, resourceId)?.kind === chatTab) {
     return 'chats'
   }
   return schemaItems.some((item) => item.tabId === tabId)
@@ -58,7 +61,7 @@ const getNavigatorSection = (tabId?: string): NavigatorMode => {
 }
 
 export const getNavigatorStore = memoize(
-  (_resourceId: string, activeTabId?: string) =>
-    createStore<NavigatorMode>(getNavigatorSection(activeTabId)),
+  (resourceId: string, activeTabId?: string) =>
+    createStore<NavigatorMode>(getNavigatorSection(resourceId, activeTabId)),
   { cacheKey: (resourceId) => resourceId }
 )
