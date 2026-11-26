@@ -18,7 +18,7 @@ const machine = {
 const cloud = { execute: machineCall(), executeTransaction: machineCall() }
 const pairing = {
   browserId: 'browser',
-  machineId: 'machine',
+  machineId: machineIdSchema.assert('machine'),
   name: 'valerii-mbp',
   secret: 'secret',
   url: 'http://127.0.0.1:26380',
@@ -70,7 +70,7 @@ const { dialects } = await import('./index')
 
 const paired: MachineRoute = {
   asks: null,
-  machineId: machineIdSchema.assert(pairing.machineId),
+  machineId: pairing.machineId,
   name: pairing.name,
   pairing,
 }
