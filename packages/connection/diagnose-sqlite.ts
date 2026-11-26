@@ -21,7 +21,8 @@ const RULES: Omit<DiagnosisRule, 'engine'>[] = [
       title: getUnreachableTitle(parts),
     }),
     // D1's own transport failure (`d1.ts`), before the network rules, which would blame the fixed Cloudflare host.
-    match: /^fetch failed$/iu,
+    // Also reads the socket code some builds put after it; `d1.ts` sends the bare form, because an older app blames the fixed host for that code.
+    match: /^fetch failed(?:: [A-Z_]+)?$/iu,
     offline: 'host',
   },
   {
