@@ -1,3 +1,5 @@
+import type { LocalSkill } from '@tamery/shared/local-skills'
+import { LOCAL_SKILLS_PROTOCOL } from '@tamery/shared/machine'
 import { isMac } from '@tamery/ui/lib/os'
 import { useSubscription } from 'seitu/react'
 
@@ -10,25 +12,39 @@ import {
   useMachineRouteById,
   useMachines,
 } from '~/core/runtime/machine/pairing'
+import { ensureConnected } from '~/core/runtime/machine/status'
+
+export type LocalSkills =
+  | { skills: LocalSkill[]; state: 'listed' }
+  | { state: 'outdated' }
 
 /** The computer whose databases and skill files a connection uses: a paired machine it runs on, else this desktop. */
 export const useLocalMachine = (runsOn: RunsOn) => {
   const route = useMachineRouteById(runsOn)
-  if (route?.pairing) {
-    const client = machine.client(route.pairing)
+  const pairing = route?.pairing
+  if (route && pairing) {
+    const client = machine.client(pairing)
     return {
       findDatabases: () => client.localDatabases.find(),
-      listSkills: () => client.localSkills.list(),
+      listSkills: async (): Promise<LocalSkills> => {
+        const { protocol } = await ensureConnected(pairing)
+        return protocol < LOCAL_SKILLS_PROTOCOL
+          ? { state: 'outdated' }
+          : { skills: await client.localSkills.list(), state: 'listed' }
+      },
       name: route.name,
       // Under the pairing's key, which unpairing drops, so another pairing never shows this computer's databases or skills.
-      queryKey: [MACHINE_QUERY_KEY, route.pairing.browserId],
+      queryKey: [MACHINE_QUERY_KEY, pairing.browserId],
     }
   }
   if (!route && window.electron) {
     const { localDatabases, localSkills } = window.electron
     return {
       findDatabases: () => localDatabases.find(),
-      listSkills: () => localSkills.list(),
+      listSkills: async (): Promise<LocalSkills> => ({
+        skills: await localSkills.list(),
+        state: 'listed',
+      }),
       name: isMac ? 'this Mac' : 'this computer',
       queryKey: ['localMachine'],
     }
