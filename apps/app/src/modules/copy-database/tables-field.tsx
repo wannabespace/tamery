@@ -22,8 +22,11 @@ interface CopyTable {
 // Rendering every table of a large database at once freezes the window; typing reaches the rest.
 const MAX_TABLES = 100
 
-/** `null` is the whole database, which copies more than its tables. */
-export type TableSelection = Map<string, CopyTable> | null
+export type TableSelection =
+  | { kind: 'database' }
+  | { kind: 'tables'; tables: Map<string, CopyTable> }
+
+export const WHOLE_DATABASE: TableSelection = { kind: 'database' }
 
 export const TablesField = ({
   onSelectionChange,
@@ -71,9 +74,13 @@ export const TablesField = ({
               <CommandItem
                 value="everything"
                 keywords={['all']}
-                data-checked={selection === null || undefined}
+                data-checked={selection.kind === 'database' || undefined}
                 onSelect={() =>
-                  onSelectionChange(selection === null ? new Map() : null)
+                  onSelectionChange(
+                    selection.kind === 'database'
+                      ? { kind: 'tables', tables: new Map() }
+                      : WHOLE_DATABASE
+                  )
                 }
               >
                 Everything
@@ -83,15 +90,21 @@ export const TablesField = ({
                   key={key}
                   value={key}
                   keywords={[entry.schema, entry.table]}
-                  data-checked={(selection?.has(key) ?? true) || undefined}
+                  data-checked={
+                    selection.kind === 'database' ||
+                    selection.tables.has(key) ||
+                    undefined
+                  }
                   onSelect={() => {
-                    const next = new Map(selection ?? tables)
+                    const next = new Map(
+                      selection.kind === 'tables' ? selection.tables : tables
+                    )
                     if (next.has(key)) {
                       next.delete(key)
                     } else {
                       next.set(key, entry)
                     }
-                    onSelectionChange(next)
+                    onSelectionChange({ kind: 'tables', tables: next })
                   }}
                 >
                   <span data-mask className="min-w-0 truncate">
@@ -114,9 +127,9 @@ export const TablesField = ({
         </Command>
       </div>
       <FieldDescription>
-        {selection === null
+        {selection.kind === 'database'
           ? 'Schemas, types, functions, views and data.'
-          : `${plural(selection.size, 'table')} with data, indexes and constraints. Types and functions they use must already be in the target.`}
+          : `${plural(selection.tables.size, 'table')} with data, indexes and constraints. Types and functions they use must already be in the target.`}
       </FieldDescription>
     </>
   )

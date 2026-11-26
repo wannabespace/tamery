@@ -13,7 +13,7 @@ import type { AgentBudget } from '../limits'
 import type { AppUIMessage } from '../message'
 import type { ChatEffort, ChatModelId } from '../models/list'
 import { DEFAULT_CHAT_EFFORT, DEFAULT_CHAT_MODEL } from '../models/list'
-import type { AiKey } from '../models/own-key'
+import type { PayingKey } from '../models/own-key'
 import { chatModelFor } from '../models/own-key'
 import type { SchemaNoteText } from '../schema-notes'
 import { formatSchemaNotes } from '../schema-notes'
@@ -55,6 +55,12 @@ const chatInstructions = (connection: ChatConnection) =>
   ]
     .filter(Boolean)
     .join('\n')
+
+const ASSISTANT_INSTRUCTIONS = [
+  'You are Tamery AI, an assistant built into the Tamery database client.',
+  'Help the user with their databases: SQL, schema design, data questions, and anything else they ask.',
+  'Be concise. Use fenced code blocks with a language tag for SQL and code.',
+].join('\n')
 
 const SUBAGENT_INSTRUCTION =
   'You are a subagent: another agent gave you one task and sees only your final message. Do the task with your tools, then end with a complete, concise report of what you found or changed, with the exact numbers and names. Ask the user nothing; if the task cannot be done, say why in the report.'
@@ -130,6 +136,8 @@ const PROMPT_CACHE = {
 
 export interface ChatStepInput {
   abortSignal?: AbortSignal
+  /** The client answers tool calls. Installed desktop apps (v0.99.6) cannot, so without it the chat runs with no tools: a tool call would leave their answer spinning. */
+  agent: boolean
   auto?: boolean
   /** The transcript is cut to this many tokens, oldest turns first; the model's full window when unset. */
   contextTokens?: number
@@ -137,7 +145,7 @@ export interface ChatStepInput {
   fast?: boolean
   /** A subagent's chat: told to report back, and offered every tool but `ask_user` and `spawn_agent`. */
   isSubagent?: boolean
-  key: AiKey | null
+  key: PayingKey
   /** The compacted start of the chat; `messages` then holds only what came after it. */
   summary?: string
   connection: ChatConnection
@@ -151,7 +159,7 @@ export interface ChatStepInput {
 
 const stepInstructions = (data: ChatStepInput, capped: boolean) =>
   [
-    chatInstructions(data.connection),
+    data.agent ? chatInstructions(data.connection) : ASSISTANT_INSTRUCTIONS,
     data.isSubagent && SUBAGENT_INSTRUCTION,
     data.summary && section('EARLIER IN THIS CHAT, SUMMARIZED', data.summary),
     capped && CAPPED_INSTRUCTION,
@@ -174,6 +182,7 @@ export const streamChatStep = async (data: ChatStepInput) => {
 
   const model = data.model ?? DEFAULT_CHAT_MODEL
   const effort = data.effort ?? DEFAULT_CHAT_EFFORT
+  const tools = data.isSubagent ? subagentTools : chatTools
   const result = streamText({
     abortSignal: data.abortSignal,
     experimental_transform: smoothStream(),
@@ -201,7 +210,7 @@ export const streamChatStep = async (data: ChatStepInput) => {
     reasoning: effort,
     telemetry: data.telemetry,
     toolChoice: capped ? 'none' : 'auto',
-    tools: data.isSubagent ? subagentTools : chatTools,
+    tools: data.agent ? tools : undefined,
   })
 
   return toUIMessageStream({

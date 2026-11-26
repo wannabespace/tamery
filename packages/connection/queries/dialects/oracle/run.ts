@@ -3,7 +3,7 @@ import { dialects, splitStatements } from '@tamery/sql'
 import type * as OracleDb from 'oracledb'
 
 import type { RunOptions } from '../..'
-import { resultSet } from '../..'
+import { NO_ROW_COUNT, resultSet } from '../..'
 import { cancellable } from '../../cancellation'
 import { bindable, fetchTypeHandler } from './values'
 
@@ -53,7 +53,7 @@ export const runOn = async (
       resultSet(
         rows
           ? {
-              affectedRows: null,
+              affectedRows: NO_ROW_COUNT,
               columns: metaData.map((column) => column.name),
               rows,
             }

@@ -1,6 +1,6 @@
 import { afterCompaction, compactMessages } from '@tamery/ai/features'
 import type { AppUIMessage, ChatCompaction } from '@tamery/ai/message'
-import type { AiKey } from '@tamery/ai/models'
+import type { PayingKey } from '@tamery/ai/models'
 import { logProviderError } from '@tamery/ai/provider-error'
 import { db } from '@tamery/db'
 import { chats } from '@tamery/db/schema'
@@ -14,7 +14,7 @@ export const chatCompaction = {
   compact: async (data: {
     chatId: string
     history: AppUIMessage[]
-    key: AiKey | null
+    key: PayingKey
     previous: ChatCompaction | null
     telemetry?: TelemetryOptions
     userId: string

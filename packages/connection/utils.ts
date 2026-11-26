@@ -13,22 +13,34 @@ import { SSH_PARAMS } from './ssh/params'
 
 export const SQLITE_RESOURCE_NAME = 'main'
 
-interface EngineString {
+const RESOURCE_IN_PATH = null
+const LOGIN_DEFAULT_DATABASE = null
+
+type EngineString = {
   /** The login is checked against the path's database unless `authSource` says otherwise, so a resource switch keeps it there. */
   authenticatesInPath?: boolean
-  /** The database the server opens when the string names none; absent when only the server knows (a login's default). */
-  defaultDatabase?: (user: string) => string
   /** The schema unqualified names resolve in, where the engine takes it from the login rather than the database. */
   defaultSchema?: (user: string) => string
   label: (parts: { address: string; database: string; host: string }) => string
-  /** The one resource the engine opens, kept out of the string's path; `null` when the path names it. */
-  resource: ((database: string) => string) | null
-}
+} & (
+  | {
+      /** The database the server opens when the string names none. */
+      defaultDatabase:
+        | ((user: string) => string)
+        | typeof LOGIN_DEFAULT_DATABASE
+      resource: typeof RESOURCE_IN_PATH
+    }
+  | {
+      /** The one resource the engine opens, kept out of the string's path. */
+      resource: (database: string) => string
+    }
+)
 
-const SERVER_STRING: EngineString = {
+const SERVER_STRING = {
+  defaultDatabase: LOGIN_DEFAULT_DATABASE,
   label: ({ address }) => address,
-  resource: null,
-}
+  resource: RESOURCE_IN_PATH,
+} satisfies EngineString
 
 const fileName = (path: string) => path.slice(path.lastIndexOf('/') + 1)
 
@@ -83,7 +95,7 @@ const ENGINE_STRINGS: Record<ConnectionType | Provider, EngineString> = {
   },
 }
 
-const getEngineString = (connectionString: string) => {
+const getEngineString = (connectionString: string): EngineString => {
   const { provider, type } = connectionParts.parse(connectionString)
   return type ? ENGINE_STRINGS[provider ?? type] : SERVER_STRING
 }
@@ -129,13 +141,14 @@ const isMachineCredentialLogin = (authMechanism: string) =>
 export const describeConnectionString = (connectionString: string) => {
   const { database, host, password, searchParams, user } =
     readConnectionString(connectionString)
-  const { defaultDatabase, defaultSchema, label, resource } =
-    getEngineString(connectionString)
+  const engine = getEngineString(connectionString)
   return {
     defaultResourceName:
-      resource?.(database) ?? (database || defaultDatabase?.(user) || null),
-    defaultSchema: defaultSchema?.(user) || null,
-    displayUrl: label({
+      engine.resource === RESOURCE_IN_PATH
+        ? database || engine.defaultDatabase?.(user) || null
+        : engine.resource(database),
+    defaultSchema: engine.defaultSchema?.(user) || null,
+    displayUrl: engine.label({
       address: new SafeURL(connectionString).host,
       database,
       host,
@@ -158,7 +171,7 @@ export const resourceConnectionString = (
   resourceName: string | null
 ) => {
   const { authenticatesInPath, resource } = getEngineString(connectionString)
-  if (resource) {
+  if (resource !== RESOURCE_IN_PATH) {
     return connectionString
   }
   const url = new SafeURL(connectionString)

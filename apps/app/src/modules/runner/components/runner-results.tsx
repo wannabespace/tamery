@@ -7,6 +7,7 @@ import {
   TableIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { NO_ROW_COUNT } from '@tamery/connection/queries'
 import { Button } from '@tamery/ui/components/button'
 import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
@@ -140,12 +141,12 @@ const ResultBody = ({
     return <ResultError result={{ ...result, error: result.error }} />
   }
   if (!result.set || result.set.columns.length === 0) {
-    const affected = result.set?.affectedRows ?? null
+    const affected = result.set?.affectedRows ?? NO_ROW_COUNT
     return (
       <IconEmpty
         icon={TableIcon}
         title={
-          affected === null
+          affected === NO_ROW_COUNT
             ? 'Statement finished'
             : `${plural(affected, names.row)} affected`
         }

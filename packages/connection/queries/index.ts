@@ -6,11 +6,14 @@ export interface QueryExecuteResult {
   duration: number
 }
 
+// Wire value: released machines (cli-v0.99.4) and the proxy send `null`, so it stays `null`.
+export const NO_ROW_COUNT = null
+
 export interface ResultSet {
   columns: string[]
   rows: unknown[][]
-  /** Rows a write changed; `null` for a statement that returned rows. */
-  affectedRows: number | null
+  /** Rows a write changed. */
+  affectedRows: number | typeof NO_ROW_COUNT
   truncated: boolean
 }
 

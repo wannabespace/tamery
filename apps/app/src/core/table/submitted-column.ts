@@ -1,4 +1,8 @@
-import type { DraftState, NewColumn } from '~/core/queries/tables/shape'
+import type {
+  CommentEdit,
+  DraftState,
+  NewColumn,
+} from '~/core/queries/tables/shape'
 
 import type { ReferenceTarget } from './use-reference-targets'
 
@@ -17,7 +21,7 @@ export interface EditableTable {
   state?: DraftState
 }
 
-export type SubmittedColumn = NewColumn & Pick<EditableColumn, 'comment'>
+export type SubmittedColumn = NewColumn & { comment: CommentEdit }
 
 export const changed = (
   column: EditableColumn | null,
@@ -29,13 +33,16 @@ export const changed = (
   next.name !== column.name ||
   next.type !== column.type ||
   next.nullable !== column.nullable ||
-  next.comment !== column.comment
+  (next.comment.kind === 'set' && next.comment.text !== column.comment)
 
 export const normalized = (
   column: EditableColumn | null,
   { comment, name, nullable, primaryKey, type }: SubmittedColumn
 ): SubmittedColumn => ({
-  comment: comment === column?.comment ? comment : comment?.trim() || null,
+  comment:
+    comment.kind === 'set' && comment.text !== column?.comment
+      ? { kind: 'set', text: comment.text?.trim() || null }
+      : comment,
   name: name.trim(),
   nullable,
   primaryKey,

@@ -11,6 +11,10 @@ import {
 
 export type DraftState = 'added' | 'changed' | 'dropped'
 
+export type CommentEdit =
+  | { kind: 'keep' }
+  | { kind: 'set'; text: string | null }
+
 export interface NewColumn {
   name: string
   nullable: boolean

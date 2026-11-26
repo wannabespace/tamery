@@ -2,7 +2,7 @@ import { db } from '@tamery/db'
 import { shares, users } from '@tamery/db/schema'
 import { SHARE_ACCOUNT_MESSAGE } from '@tamery/shared/constants'
 import { SyncType } from '@tamery/shared/enums/sync-type'
-import { shareSaveInput } from '@tamery/shared/share'
+import { NEW_SHARE, shareSaveInput } from '@tamery/shared/share'
 import { FREE_SHARE_LIMIT_MESSAGE } from '@tamery/shared/usage'
 import { pick } from '@tamery/shared/utils'
 import { and, eq, gt, isNull, or, sql } from 'drizzle-orm'
@@ -64,12 +64,13 @@ export const save = orpc
       ]),
       failingSince: null,
       view: pick(input, ['columnTypes', 'columns', 'filters', 'orderBy']),
-      ...(password !== undefined && {
-        passwordHash: password && (await Bun.password.hash(password)),
+      ...(password.kind === 'set' && {
+        passwordHash:
+          password.password && (await Bun.password.hash(password.password)),
       }),
     }
 
-    if (id) {
+    if (id !== NEW_SHARE) {
       const [row] = await db
         .update(shares)
         .set(changes)

@@ -29,6 +29,7 @@ import { getCapabilities } from '~/core/catalog/capabilities'
 import { submittedName } from '~/core/catalog/engine-name'
 import { useConnectionContext } from '~/core/connection/route'
 import type { RenamedValue } from '~/core/queries/shared/inline-enum'
+import type { CommentEdit } from '~/core/queries/tables/shape'
 
 import { CommentField } from './column-comment-field'
 import { ReferenceField } from './column-reference-field'
@@ -77,10 +78,14 @@ const lockedFields = (
   }
 }
 
-const editableComment = (dialect: Dialect, column: EditableColumn | null) =>
+const editableComment = (
+  dialect: Dialect,
+  column: EditableColumn | null
+): CommentEdit =>
+  column?.comment !== undefined &&
   getCapabilities(dialect).flags.includes('comments')
-    ? column?.comment
-    : undefined
+    ? { kind: 'set', text: column.comment }
+    : { kind: 'keep' }
 
 const ColumnForm = ({
   onSubmit,
@@ -184,8 +189,11 @@ const ColumnForm = ({
             }
           }}
         />
-        {comment !== undefined && (
-          <CommentField value={comment} onValueChange={setComment} />
+        {comment.kind === 'set' && (
+          <CommentField
+            value={comment.text}
+            onValueChange={(text) => setComment({ kind: 'set', text })}
+          />
         )}
         {column === null && table.state === 'added' && (
           <OptionField

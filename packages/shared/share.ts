@@ -58,15 +58,26 @@ export const shareCheckInput = shareView.merge({
   resourceId: 'string.uuid',
 })
 
-export const shareSaveInput = shareView.merge({
-  connectionResourceId: 'string.uuid',
-  description: 'string | null',
-  expiresAt: 'Date | null',
-  /** Left out creates a new share. */
-  'id?': 'string.uuid',
-  maxRows: shareMaxRows,
-  name: 'string > 0',
-  /** Left out keeps the current password; `null` removes it. */
-  'password?': `string >= ${SHARE_PASSWORD_MIN_LENGTH} | null`,
-  refresh: type.valueOf(ShareRefresh),
-})
+export const NEW_SHARE = null
+
+export const shareSaveInput = shareView
+  .merge({
+    connectionResourceId: 'string.uuid',
+    description: 'string | null',
+    expiresAt: 'Date | null',
+    /** Left out creates a new share. */
+    'id?': 'string.uuid',
+    maxRows: shareMaxRows,
+    name: 'string > 0',
+    /** Left out keeps the current password; `null` removes it. */
+    'password?': `string >= ${SHARE_PASSWORD_MIN_LENGTH} | null`,
+    refresh: type.valueOf(ShareRefresh),
+  })
+  .pipe(({ id, password, ...share }) => ({
+    ...share,
+    id: id ?? NEW_SHARE,
+    password:
+      password === undefined
+        ? ({ kind: 'keep' } as const)
+        : ({ kind: 'set', password } as const),
+  }))

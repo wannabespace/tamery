@@ -27,12 +27,13 @@ import type { CopyStatus } from './copy-progress'
 import { CopyProgress } from './copy-progress'
 import { CopyRoute } from './copy-route'
 import type { TableSelection } from './tables-field'
+import { WHOLE_DATABASE } from './tables-field'
 
 interface CopyRun {
   id: string
+  selection: TableSelection
   source: CopyEnd
   stop: AbortController
-  tables: TableSelection
   target: CopyEnd
 }
 
@@ -66,8 +67,11 @@ const startCopy = async (run: CopyRun) => {
   })
   await window.electron?.copyDatabase.start({
     id: run.id,
+    scope:
+      run.selection.kind === 'tables'
+        ? { kind: 'tables', tables: [...run.selection.tables.values()] }
+        : run.selection,
     source: from.connectionString,
-    tables: run.tables && [...run.tables.values()],
     target: to.connectionString,
   })
   return Date.now()
@@ -77,7 +81,7 @@ export const CopyDatabaseDialog = () => {
   const [open, setOpen] = useState(false)
   const [source, setSource] = useState<CopyEnd | null>(null)
   const [target, setTarget] = useState<CopyEnd | null>(null)
-  const [selection, setSelection] = useState<TableSelection>(null)
+  const [selection, setSelection] = useState(WHOLE_DATABASE)
   const [entries, setEntries] = useState<CopyLogLine[]>([])
 
   const copy = useMutation({
@@ -112,7 +116,7 @@ export const CopyDatabaseDialog = () => {
       copy.reset()
       setSource(next)
       setTarget(null)
-      setSelection(null)
+      setSelection(WHOLE_DATABASE)
       setOpen(true)
     },
   }))
@@ -176,9 +180,9 @@ export const CopyDatabaseDialog = () => {
               onSubmit={(picked) =>
                 copy.mutate({
                   id: uuidv7(),
+                  selection,
                   source,
                   stop: new AbortController(),
-                  tables: selection,
                   target: picked,
                 })
               }
