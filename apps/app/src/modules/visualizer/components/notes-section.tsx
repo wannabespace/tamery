@@ -19,15 +19,15 @@ export const NotesSection = ({ table }: { table: DiagramTable }) => {
   const { data: notes } = useLiveQuery({
     query: (q) =>
       q
-        .from({ notes: schemaNotesCollection })
-        .where(({ notes: note }) =>
+        .from({ note: schemaNotesCollection })
+        .where(({ note }) =>
           and(
             eq(note.connectionResourceId, connectionResource.id),
             eq(note.schema, table.schema),
             eq(note.table, table.table)
           )
         )
-        .orderBy(({ notes: note }) => note.createdAt, 'asc'),
+        .orderBy(({ note }) => note.createdAt),
   })
   const [dialog, setDialog] = useState<{ editing: SchemaNote | null } | null>(
     null
