@@ -131,6 +131,17 @@ test('a row without a primary key is found by a NOT NULL unique key, else by eve
       Dialect.Postgres
     )
   ).toEqual({ columns: ['email', 'score', 'name'], unique: false })
+  expect(
+    rowIdentity(
+      [
+        { id: 'ratio', type: 'float' },
+        { id: 'doc', type: 'json' },
+        { id: 'price', type: 'double' },
+        { id: 'name', type: 'varchar' },
+      ],
+      Dialect.MySQL
+    )
+  ).toEqual({ columns: ['price', 'name'], unique: false })
 })
 
 test('a column of two unique keys does not make the wider key a row identity on its own', () => {
