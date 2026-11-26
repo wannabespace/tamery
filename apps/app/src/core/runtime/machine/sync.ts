@@ -1,3 +1,4 @@
+import type { MachineId, TAMERY_CLOUD } from '@tamery/shared/machine'
 import { persistedCollectionOptions } from '@tanstack/browser-db-sqlite-persistence'
 import { createCollection } from '@tanstack/react-db'
 
@@ -15,8 +16,7 @@ export interface Machine extends BaseTable {
 /** Where a connection runs for this user; no row means here, the cloud proxy on the web or this computer on desktop. Read it as `RunsOn`. */
 export interface ConnectionMachine extends BaseTable {
   connectionId: string
-  /** `null` is Tamery Cloud. */
-  machineId: string | null
+  machineId: MachineId | typeof TAMERY_CLOUD
 }
 
 export const createMachinesCollection = () =>

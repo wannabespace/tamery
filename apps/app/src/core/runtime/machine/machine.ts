@@ -2,8 +2,8 @@ import { createORPCClient, ORPCError, safe } from '@orpc/client'
 import type { MachineRouter } from '@tamery/cli/src/machine/router'
 import { formatBrowserName } from '@tamery/shared/device-label'
 import { SyncType } from '@tamery/shared/enums/sync-type'
-import type { machineHostKey } from '@tamery/shared/machine'
-import { machineKey } from '@tamery/shared/machine'
+import type { MachineId, machineHostKey } from '@tamery/shared/machine'
+import { machineIdSchema, machineKey } from '@tamery/shared/machine'
 import { omit, silently } from '@tamery/shared/utils'
 import { memoize } from 'memoza'
 
@@ -68,7 +68,7 @@ const sendStoredSecrets = async (
 
 const trustHostKey = async (
   client: MachineRouter,
-  machineId: string,
+  machineId: MachineId,
   hostKey: typeof machineHostKey.infer
 ) => {
   const trusted = await machineHostKeys.ask(machineId, hostKey)
@@ -127,7 +127,7 @@ const getPairedClient = memoize((pairing: MachinePairing): MachineRouter =>
 )
 
 /** The machine at one of these URLs: a listed machine names every address it listens at, and this browser may reach only some. */
-const findMachineUrl = async (urls: string[], machineId: string) => {
+const findMachineUrl = async (urls: string[], machineId: MachineId) => {
   const origins = urls.flatMap((url) => parseMachineUrl(url) ?? [])
   if (origins.length === 0) {
     throw new Error(
@@ -188,7 +188,7 @@ export const machine = {
     urls,
   }: {
     browserNonce: string
-    machineId: string
+    machineId: MachineId
     urls: string[]
   }) => {
     const user = await getSessionUser()
@@ -213,7 +213,7 @@ export const machine = {
     }
     const pairing = {
       ...paired,
-      machineId: info.id,
+      machineId: machineIdSchema.assert(info.id),
       name: info.name,
       url: origin,
     }

@@ -1,5 +1,5 @@
 import type { MachineId, machineNeedsSecrets } from '@tamery/shared/machine'
-import { machineIdSchema } from '@tamery/shared/machine'
+import { machineIdSchema, TAMERY_CLOUD } from '@tamery/shared/machine'
 import { omit } from '@tamery/shared/utils'
 import { useLiveQuery } from '@tanstack/react-db'
 import { queryOptions, useQuery } from '@tanstack/react-query'
@@ -24,7 +24,7 @@ export const MACHINE_QUERY_KEY = 'machine'
 
 const pairingSchema = type({
   browserId: 'string',
-  machineId: 'string',
+  machineId: machineIdSchema,
   name: 'string',
   secret: 'string',
   url: 'string',
@@ -118,12 +118,10 @@ const toRunsOn = (
   row: ConnectionMachine | null,
   ownId: string | null
 ): RunsOn => {
-  if (row?.machineId === null) {
+  if (row?.machineId === TAMERY_CLOUD) {
     return CLOUD
   }
-  return !row || row.machineId === ownId
-    ? defaultRunsOn()
-    : machineIdSchema.assert(row.machineId)
+  return !row || row.machineId === ownId ? defaultRunsOn() : row.machineId
 }
 
 const findRow = (connectionId: string) =>
@@ -237,7 +235,7 @@ export const writeRunsOn = (connectionId: string, runsOn: RunsOn) => {
   const { connectionMachinesCollection } = getCollections()
   const row = findRow(connectionId)
   const isDefault = runsOn === defaultRunsOn()
-  const rowMachineId = isMachine(runsOn) ? runsOn : null
+  const rowMachineId = isMachine(runsOn) ? runsOn : TAMERY_CLOUD
   const now = new Date()
   mutateOffline(() => {
     if (isDefault) {

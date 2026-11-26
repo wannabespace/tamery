@@ -1,3 +1,4 @@
+import type { MachineId } from '@tamery/shared/machine'
 import { createInsertSchema, createSelectSchema } from 'drizzle-orm/arktype'
 import * as d from 'drizzle-orm/pg-core'
 
@@ -34,7 +35,7 @@ export const connectionMachines = d.snakeCase.table(
       .uuid()
       .references(() => connections.id, { onDelete: 'cascade' })
       .notNull(),
-    machineId: d.uuid(),
+    machineId: d.uuid().$type<MachineId>(),
     userId: d
       .uuid()
       .references(() => users.id, { onDelete: 'cascade' })
