@@ -21,29 +21,29 @@ const NETWORK_ERROR_CODES = [
 export const useDiagnosis = (connectionId: string, error: Error) => {
   const { connectionStringsCollection } = useCollections()
   const online = useIsOnline()
-  const parts = useQuery({
+  const { data } = useQuery({
     queryFn: async () => {
-      const parsed = connectionParts.parse(
+      const parts = connectionParts.parse(
         await connectionStringsCollection.utils.decrypt(connectionId)
       )
       posthog.capture('connection_failed', {
-        db_type: parsed.type,
+        db_type: parts.type,
         error_code:
           NETWORK_ERROR_CODES.find((code) => error.message.includes(code)) ??
           'other',
-        is_local: isLocalHost(parsed.host),
+        is_local: isLocalHost(parts.host),
       })
-      return parsed
+      return parts
     },
     queryKey: ['connection', connectionId, 'diagnosis', error.message],
     throwOnError: false,
-  }).data
-  return parts
+  })
+  return data
     ? diagnoseConnectionError({
         desktop: !!window.electron,
         message: error.message,
         online,
-        parts,
+        parts: data,
       })
     : null
 }
