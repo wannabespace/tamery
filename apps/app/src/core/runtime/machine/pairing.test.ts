@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 
+import { machineIdSchema } from '@tamery/shared/machine'
+
 import type { ConnectionMachine } from './sync'
 
 const OWN_ID = 'own'
-const OTHER_ID = 'other'
+const OTHER_ID = machineIdSchema.assert('other')
 let rows: ConnectionMachine[] = []
 const capture = mock((_event: string, _properties: object) => null)
 

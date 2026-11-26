@@ -22,6 +22,7 @@ import { FetchingReason } from '~/core/connection/fetching-reason'
 import { useOpenConnectionId } from '~/core/connection/use-open-connection-id'
 import {
   isMachine,
+  parseRunsOn,
   useConnectionRunsOn,
   useMachineRouteById,
 } from '~/core/runtime/machine/pairing'
@@ -99,7 +100,9 @@ const RunsOnMenu = ({ connectionId }: { connectionId: string }) => {
       <DropdownMenuContent align="end" className="min-w-64">
         <DropdownMenuRadioGroup
           value={runsOn}
-          onValueChange={(value: string) => pickRunsOn(connectionId, value)}
+          onValueChange={(value: string) =>
+            pickRunsOn(connectionId, parseRunsOn(value))
+          }
         >
           <DropdownMenuLabel>Runs on</DropdownMenuLabel>
           {options.map(({ description, icon, label, value }) => (
