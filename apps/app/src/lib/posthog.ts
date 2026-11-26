@@ -6,22 +6,11 @@ let instance: Promise<PostHog> | null = null
 let identity: Parameters<PostHog['identify']> | null = null
 
 const uuid = type('string.uuid')
-const EXPECTED_ERRORS = [
-  'resizeobserver loop',
-  'failed to fetch',
-  'network error',
-  'networkerror',
-]
 
 const normalizeSegment = (segment: string) => {
   // A tab id carries schema and table names after its kind (`table:public:users`).
   const [kind = segment] = segment.split(':')
   return uuid.allows(segment) ? ':id' : kind
-}
-
-const isExpectedError = (message: string) => {
-  const lower = message.toLowerCase()
-  return EXPECTED_ERRORS.some((error) => lower.includes(error))
 }
 
 export const getAppProperties = () => ({
@@ -33,12 +22,12 @@ export const getAppProperties = () => ({
 const init = async () => {
   const [
     { default: posthogJs },
-    { isConnectionFailure, isProxyFailure },
+    { isExpectedException },
     { sanitizeLogData },
     { history },
   ] = await Promise.all([
     import('posthog-js'),
-    import('@tamery/connection/diagnose'),
+    import('./expected-exception'),
     import('@tamery/shared/sanitize-log'),
     import('./last-location'),
   ])
@@ -55,13 +44,13 @@ const init = async () => {
     before_send: (event) => {
       const exceptions: { value: string }[] =
         event?.event === '$exception' ? event.properties.$exception_list : []
-      // The list carries each cause as an entry of its own, so a proxy failure caused by "Failed to fetch" would otherwise be dropped.
-      const isExpectedException =
-        !exceptions.some(({ value }) => isProxyFailure(value)) &&
-        exceptions.some(
-          ({ value }) => isExpectedError(value) || isConnectionFailure(value)
+      if (
+        !event ||
+        isExpectedException(
+          exceptions.map(({ value }) => value),
+          navigator.onLine
         )
-      if (!event || isExpectedException) {
+      ) {
         return null
       }
       if (event.event === '$exception') {
