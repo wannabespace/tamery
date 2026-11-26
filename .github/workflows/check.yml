@@ -13,7 +13,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
 
-    # The API's subscription tests run against a real database: TEST_DATABASE_URL, or this default.
+    # The API's subscription tests and the Postgres executor test run against a real database: TEST_DATABASE_URL, or this default.
     services:
       postgres:
         image: postgres:18-alpine
