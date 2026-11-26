@@ -131,11 +131,12 @@ export type CapabilityFlag =
   | 'setDefault'
   | 'uniqueKeys'
 
+export const LOGIN_SCHEMA = null
+
 export interface ConnectionCapabilities {
   columnTypes: ColumnTypeCapabilities
   constraintKinds: readonly ConstraintKind[]
-  // null: the login's schema or the resource, resolved by getDefaultSchema
-  defaultSchema: string | null
+  defaultSchema: string | typeof LOGIN_SCHEMA
   fixedConstraintNames: Partial<Record<ConstraintKind, string>>
   flags: readonly CapabilityFlag[]
   functions: FunctionCapabilities
