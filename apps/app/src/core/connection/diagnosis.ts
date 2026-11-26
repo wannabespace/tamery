@@ -8,7 +8,6 @@ import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { queryOptions, useQuery } from '@tanstack/react-query'
 
 import { useCollections } from '~/core/collections'
-import type { FailedAttempt } from '~/lib/failed-attempt'
 import { failedAttempt } from '~/lib/failed-attempt'
 import { posthog } from '~/lib/posthog'
 import { useIsOnline } from '~/store'
@@ -24,7 +23,7 @@ const NETWORK_ERROR_CODES = [
   'EHOSTUNREACH',
 ]
 
-const reported = new WeakSet<FailedAttempt>()
+const reported = new WeakSet<ReturnType<typeof failedAttempt>>()
 
 /** Caches only what the card and the screen show: a fix patch carries the decrypted driver options, and the key names the attempt, never its message. */
 export const diagnosisQueryOptions = (
