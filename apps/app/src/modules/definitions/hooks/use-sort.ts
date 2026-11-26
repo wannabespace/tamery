@@ -12,7 +12,7 @@ export interface DefinitionsSort {
 
 const collate = new Intl.Collator(undefined, { numeric: true }).compare
 
-const isMissing = (value: SortValue) => value === null || value === undefined
+const isMissing = (value: SortValue) => value === null
 
 const compare = (left: SortValue, right: SortValue, direction: number) => {
   if (isMissing(left) || isMissing(right)) {

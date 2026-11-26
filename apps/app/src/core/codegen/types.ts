@@ -19,7 +19,7 @@ export interface Index {
   table: string
   name: string
   column: string | null
-  customExpression?: string
+  customExpression?: string | null
   custom?: boolean
   definition?: string | null
   isUnique: boolean
