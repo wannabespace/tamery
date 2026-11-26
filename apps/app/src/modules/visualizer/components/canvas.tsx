@@ -212,7 +212,8 @@ export const Canvas = ({
       deleteKeyCode={null}
       proOptions={{ hideAttribution: true }}
       style={flowStyle}
-      className="bg-background"
+      // oxlint-disable-next-line shadcn/no-unknown-classes, tailwindcss/no-unknown-classes -- PostHog's marker: replays would serialise every node of a large diagram.
+      className="bg-background ph-no-capture"
     >
       <ZoomVariable />
       <Background

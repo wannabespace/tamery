@@ -14,7 +14,7 @@ const CollapsibleTrigger = ({
     data-slot="collapsible-trigger"
     className={cn(
       variant === 'disclosure' &&
-        'text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs transition-colors',
+        'text-muted-foreground hover:text-foreground flex h-5 items-center gap-1.5 text-xs transition-colors',
       className
     )}
     {...props}

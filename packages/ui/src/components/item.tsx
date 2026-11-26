@@ -10,7 +10,7 @@ const ItemGroup = ({ className, ...props }: React.ComponentProps<'ul'>) => (
   <ul
     data-slot="item-group"
     className={cn(
-      `group/item-group m-0 flex w-full list-none flex-col gap-4 p-0 has-data-[size=sm]:gap-2.5 has-data-[size=xs]:gap-2`,
+      `group/item-group m-0 flex w-full list-none flex-col gap-4 p-0 has-data-[size=2xs]:gap-0.5 has-data-[size=sm]:gap-2.5 has-data-[size=xs]:gap-2`,
       className
     )}
     {...props}
@@ -32,7 +32,7 @@ const ItemSeparator = ({
 const smallItemInsetClassName = 'px-3.5'
 
 const itemVariants = cva(
-  `group/item focus-visible:focus-ring [a]:hover:bg-accent has-[[data-slot=item-link]:hover]:bg-accent has-[[data-slot=item-link]:focus-visible]:focus-ring [a]:text-foreground flex w-full flex-wrap items-center rounded-2xl border text-sm transition-colors duration-100 outline-none has-data-[slot=item-link]:relative [a]:transition-colors`,
+  `group/item focus-visible:focus-ring [a]:hover:bg-accent has-[[data-slot=item-link]:hover]:bg-accent has-[[data-slot=item-link]:focus-visible]:focus-ring [a]:text-foreground [button]:hover:bg-accent flex w-full flex-wrap items-center rounded-2xl border text-sm transition-colors duration-100 outline-none has-data-[slot=item-link]:relative [a]:transition-colors [button]:text-left`,
   {
     defaultVariants: {
       size: 'default',
@@ -43,9 +43,10 @@ const itemVariants = cva(
         default: 'gap-3.5 px-4 py-3.5',
         sm: `gap-3.5 ${smallItemInsetClassName} py-3`,
         xs: `gap-2 px-2.5 py-2 in-data-[slot=dropdown-menu-content]:p-0`,
+        '2xs': 'min-h-7 gap-2 rounded-lg py-0.5 pr-0.5 pl-2.5 text-xs',
       },
       variant: {
-        card: `bg-popover ring-foreground/4 [a]:hover:ring-foreground/12 has-[[data-slot=item-link]:hover]:ring-foreground/12 rounded-xl border-transparent shadow-xs ring has-data-[slot=item-link]:transition-[color,background-color,box-shadow] [a]:transition-[color,background-color,box-shadow]`,
+        card: `bg-popover ring-foreground/4 [a]:hover:ring-foreground/12 [button]:hover:ring-foreground/12 has-[[data-slot=item-link]:hover]:ring-foreground/12 rounded-xl border-transparent shadow-xs ring transition-[color,background-color,box-shadow]`,
         default: 'border-transparent',
         grouped: `border-foreground/6 rounded-none border-0 border-b last:border-b-0`,
         muted: 'bg-muted/50 border-transparent',

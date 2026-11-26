@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 import { createContext, use, useState } from 'react'
 
 const TooltipProvider = ({
-  delay = 100,
+  delay = 600,
   ...props
 }: TooltipPrimitive.Provider.Props) => (
   <TooltipPrimitive.Provider

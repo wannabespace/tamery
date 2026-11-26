@@ -5,6 +5,7 @@ import { forwarding } from '@tamery/connection/forwarding'
 import { connectionSecrets } from '@tamery/connection/secrets'
 import { createQueryRouter } from '@tamery/query-proxy'
 import { challenge } from '@tamery/shared/challenge'
+import { localSkills } from '@tamery/shared/local-skills'
 import {
   MACHINE_PROTOCOL,
   machineHostKey,
@@ -210,6 +211,9 @@ export const createRouter = ({
             errors
           )
         }),
+    },
+    localSkills: {
+      list: authed.handler(() => localSkills.list()),
     },
     query: createQueryRouter(authed.errors(queryErrors), {
       connection: async (input, context, dialect, errors) => {

@@ -1,43 +1,15 @@
 import type { ConnectionType } from '@tamery/shared/enums/connection-type'
-import { getDialect } from '@tamery/shared/enums/connection-type'
 import type { McpAccess, McpSource } from '@tamery/shared/mcp'
-import { MCP_MAX_ROWS } from '@tamery/shared/mcp'
 import { Result } from 'better-result'
 
-import { getCollections } from '~/core/collections'
-import { refreshAfterRun } from '~/core/connection/refresh-after-run'
-import type { Connection, ConnectionResource } from '~/core/connection/sync'
+import { agentDatabase } from '~/core/agent/database'
+import { resolveResource, resolveTarget } from '~/core/agent/target'
 import type { ResultSet } from '~/core/queries/connection/custom'
-import { statementQuery } from '~/core/queries/connection/statement'
-import { transactionQuery } from '~/core/queries/connection/transaction'
-import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
-import { getQueryLanguage } from '~/core/runtime/language'
-import {
-  connectionResourceToQueryParams,
-  connectionToQueryParams,
-} from '~/core/runtime/query'
 import { notifications } from '~/lib/notifications'
 import { posthog } from '~/lib/posthog'
 
 import { approval } from './approval'
-import { describeTable } from './describe-table'
-import {
-  getResources,
-  fetchForAgent,
-  resolveResource,
-  resolveTarget,
-} from './target'
 import { assertQuota, recordQuery } from './usage'
-
-const agentParams = async (
-  connection: Connection,
-  resource: ConnectionResource | undefined
-) => ({
-  ...(await (resource
-    ? connectionResourceToQueryParams(resource)
-    : connectionToQueryParams(connection))),
-  resultSets: { maxRows: MCP_MAX_ROWS },
-})
 
 const getAbortSignal = (onAbort: (listener: () => void) => void) => {
   const controller = new AbortController()
@@ -58,94 +30,80 @@ const runForAgent = async (
   return result.value
 }
 
-const toMcpConnection = ({
-  id,
-  label,
-  name,
-  type,
-}: Pick<Connection, 'id' | 'label' | 'name' | 'type'>) => ({
-  id,
-  label,
-  name,
-  resources: getResources(id),
-  type,
-})
-
 export const mcpSource: McpSource = {
-  connections: () =>
-    getCollections().connectionsCollection.toArray.map(toMcpConnection),
-  describeTable,
-  execute: async ({ approve, sql, ...target }, onAbort) => {
-    const { connection, resource } = resolveTarget(target)
-    const dialect = getDialect(connection.type)
-    if (getQueryLanguage(dialect).split(sql).length !== 1) {
-      throw new Error(
-        'Run one statement at a time, or wrap several in BEGIN … COMMIT to run them together (on Oracle, in one BEGIN … END; block; not on ClickHouse, which has no transactions).'
-      )
-    }
+  columnValues: (args) => {
+    posthog.capture('mcp_column_values_read', {
+      connection_type: resolveResource(args).connection.type,
+    })
+    return agentDatabase.columnValues(args)
+  },
+  connections: () => agentDatabase.connections('all'),
+  describeTable: (args) => {
+    posthog.capture('mcp_table_described', {
+      connection_type: resolveResource(args).connection.type,
+    })
+    return agentDatabase.describeTable(args)
+  },
+  explain: (args) => {
+    posthog.capture('mcp_plan_explained', {
+      analyze: args.analyze,
+      connection_type: resolveTarget(args).connection.type,
+    })
+    return agentDatabase.explain(args)
+  },
+  execute: async ({ approve, ...statement }, onAbort) => {
+    const { connection, estimate, kind, resource, run } =
+      await agentDatabase.prepareWrite(statement)
     await assertQuota()
-    const params = await agentParams(connection, resource)
     const signal = getAbortSignal(onAbort)
     if (approve) {
       await approval.request({
         connection,
-        params,
+        estimate,
+        kind,
         resourceName: resource?.name ?? null,
         signal,
-        sql,
+        sql: statement.statement,
       })
     }
-    const sets = await runForAgent(
-      statementQuery(sql, dialect).run({ ...params, signal }),
-      { access: approve ? 'ask' : 'write', connection_type: connection.type }
-    )
-    if (resource) {
-      refreshAfterRun(resource, dialect, sql)
-    }
+    const sets = await runForAgent(run(signal), {
+      access: approve ? 'ask' : 'write',
+      connection_type: connection.type,
+    })
     if (!approve) {
       notifications.notify({
-        body: sql,
+        body: statement.statement,
         title: `An agent changed ${connection.name}`,
       })
     }
     return sets
   },
-  query: async ({ sql, ...target }, onAbort) => {
-    const { connection, resource } = resolveTarget(target)
-    if (!getQueryLanguage(getDialect(connection.type)).readsOnly(sql)) {
-      throw new Error(
-        'Only one read-only statement (SELECT, WITH, SHOW, DESCRIBE, EXPLAIN, or a MongoDB find, aggregate, count or distinct) runs at a time.'
-      )
-    }
+  query: async (statement, onAbort) => {
+    const { connection, run } = await agentDatabase.prepareRead(statement)
     await assertQuota()
-    const signal = getAbortSignal(onAbort)
-    return runForAgent(
-      transactionQuery({
-        accessMode: 'read only',
-        commit: false,
-        statements: [sql],
-      }).run({ ...(await agentParams(connection, resource)), signal }),
-      { access: 'read', connection_type: connection.type }
-    )
+    return runForAgent(run(getAbortSignal(onAbort)), {
+      access: 'read',
+      connection_type: connection.type,
+    })
   },
-  tables: async ({ schema, ...target }) => {
-    const { connection, resource } = resolveResource(target)
-    const { schemas } = await fetchForAgent(
-      resourceTablesAndSchemasQueryOptions({ connectionResource: resource })
-    )
+  searchSavedQueries: (args) => {
+    posthog.capture('mcp_saved_queries_searched', {
+      connection_type: resolveResource(args).connection.type,
+    })
+    return agentDatabase.searchSavedQueries(args)
+  },
+  searchSchema: (args) => {
+    posthog.capture('mcp_schema_searched', {
+      connection_type: resolveResource(args).connection.type,
+    })
+    return agentDatabase.searchSchema(args)
+  },
+  tables: async (args) => {
+    const { connection, schemas } = await agentDatabase.tables(args)
     posthog.capture('mcp_tables_listed', {
       connection_type: connection.type,
-      filtered: !!schema,
+      filtered: !!args.schema,
     })
-    if (!schema) {
-      return { schemas }
-    }
-    const match = schemas.filter(({ name }) => name === schema)
-    if (match.length === 0) {
-      throw new Error(
-        `No schema "${schema}". Call list_tables without schema for the schemas.`
-      )
-    }
-    return { schemas: match }
+    return { schemas }
   },
 }

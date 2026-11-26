@@ -10,22 +10,24 @@ import {
   useMachines,
 } from '~/core/runtime/machine/pairing'
 
-/** The computer whose databases a connection can reach: a paired machine it runs on, else this desktop. */
+/** The computer whose databases and skill files a connection uses: a paired machine it runs on, else this desktop. */
 export const useLocalMachine = (runsOn: RunsOn) => {
   const route = useMachineRouteById(runsOn)
   if (route?.pairing) {
     const client = machine.client(route.pairing)
     return {
       findDatabases: () => client.localDatabases.find(),
+      listSkills: () => client.localSkills.list(),
       name: route.name,
-      // Under the pairing's key, which unpairing drops, so another pairing never shows this computer's databases.
+      // Under the pairing's key, which unpairing drops, so another pairing never shows this computer's databases or skills.
       queryKey: [MACHINE_QUERY_KEY, route.pairing.browserId],
     }
   }
   if (!route && window.electron) {
-    const { localDatabases } = window.electron
+    const { localDatabases, localSkills } = window.electron
     return {
       findDatabases: () => localDatabases.find(),
+      listSkills: () => localSkills.list(),
       name: isMac ? 'this Mac' : 'this computer',
       queryKey: ['localMachine'],
     }

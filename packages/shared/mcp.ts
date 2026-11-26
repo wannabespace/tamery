@@ -48,17 +48,33 @@ type OnAbort = (listener: () => void) => void
 
 /** Main checks each connection's access before asking, so the window runs whatever it is asked. Every method takes `(args, onAbort)` so the bridge dispatches by name. */
 export interface McpSource {
+  columnValues: (
+    args: McpTarget & { column: string; schema: string; table: string },
+    onAbort: OnAbort
+  ) => Promise<unknown>
   connections: (args: undefined, onAbort: OnAbort) => McpConnection[]
   describeTable: (
     args: McpTarget & { schema: string; table: string },
     onAbort: OnAbort
   ) => Promise<unknown>
+  explain: (
+    args: McpTarget & { analyze: boolean; statement: string },
+    onAbort: OnAbort
+  ) => Promise<unknown>
   execute: (
-    args: McpTarget & { sql: string; approve: boolean },
+    args: McpTarget & { statement: string; approve: boolean },
     onAbort: OnAbort
   ) => Promise<unknown>
   query: (
-    args: McpTarget & { sql: string },
+    args: McpTarget & { statement: string },
+    onAbort: OnAbort
+  ) => Promise<unknown>
+  searchSavedQueries: (
+    args: McpTarget & { query: string },
+    onAbort: OnAbort
+  ) => unknown
+  searchSchema: (
+    args: McpTarget & { query: string },
     onAbort: OnAbort
   ) => Promise<unknown>
   tables: (
@@ -79,7 +95,11 @@ export type McpTool =
   | 'create_connection'
   | 'list_tables'
   | 'describe_table'
+  | 'search_schema'
+  | 'search_saved_queries'
+  | 'column_values'
   | 'query'
+  | 'explain'
   | 'execute'
 
 export interface McpCall {
