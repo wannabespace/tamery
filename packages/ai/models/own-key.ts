@@ -29,8 +29,7 @@ interface ProviderModels {
   /** Takes an id from the provider's dictation models (`getDictationModels`). */
   dictation: ((id: string) => Dictation) | null
   models: FixedModels
-  /** Null on OpenRouter: `searchWeb` sends its server tool in the request body. */
-  webSearch: Tool | null
+  webSearch: { kind: 'tool'; tool: Tool } | { kind: 'openrouter-server-tool' }
 }
 
 const bareId = (id: string) => id.replace(/^~?[^/]+\//u, '')
@@ -46,7 +45,7 @@ const anthropicModels = (apiKey: string): ProviderModels => {
       search: anthropic('claude-haiku-5-5'),
       summary: anthropic('claude-sonnet-5-5'),
     },
-    webSearch: anthropic.tools.webSearch_20260318(),
+    webSearch: { kind: 'tool', tool: anthropic.tools.webSearch_20260318() },
   }
 }
 
@@ -60,7 +59,7 @@ const googleModels = (apiKey: string): ProviderModels => {
       search: google('gemini-3.8-flash'),
       summary: google('gemini-3.8-flash'),
     },
-    webSearch: google.tools.googleSearch({}),
+    webSearch: { kind: 'tool', tool: google.tools.googleSearch({}) },
   }
 }
 
@@ -77,7 +76,7 @@ const openaiModels = (apiKey: string): ProviderModels => {
       search: openai('gpt-6.1-terra'),
       summary: openai('gpt-6.1-terra'),
     },
-    webSearch: openai.tools.webSearch(),
+    webSearch: { kind: 'tool', tool: openai.tools.webSearch() },
   }
 }
 
@@ -86,7 +85,7 @@ const userOpenRouterModels = (apiKey: string): ProviderModels => {
   return {
     ...openRouterModels(openrouter),
     dictation: (id) => ({ kind: 'prompt', model: openrouter(id) }),
-    webSearch: null,
+    webSearch: { kind: 'openrouter-server-tool' },
   }
 }
 
@@ -155,7 +154,7 @@ export const ownKeyWebSearchTools = (
   key: AiKey | null
 ): ToolSet | undefined => {
   const webSearch = key && providerModels[key.provider](key.key).webSearch
-  return webSearch ? { web_search: webSearch } : undefined
+  return webSearch?.kind === 'tool' ? { web_search: webSearch.tool } : undefined
 }
 
 /** Throws when the provider refuses the key; a one-token call on the user's bill. */
