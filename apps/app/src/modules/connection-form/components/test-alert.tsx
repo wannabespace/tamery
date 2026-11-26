@@ -58,9 +58,14 @@ export const TestAlert = ({
   engineFields: EngineFields
   parts: ConnectionParts
 }) => {
-  const context = { desktop: !!window.electron, message: error.message, parts }
-  const diagnosis = diagnoseConnectionError(context)
   const isOnline = useIsOnline()
+  const context = {
+    desktop: !!window.electron,
+    message: error.message,
+    online: isOnline,
+    parts,
+  }
+  const diagnosis = diagnoseConnectionError(context)
   const ask = useMutation(
     orpc.ai.diagnoseConnection.mutationOptions({
       meta: { event: 'connection_diagnosed' },

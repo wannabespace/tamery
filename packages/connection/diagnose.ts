@@ -4,8 +4,9 @@ import type { ConnectionParts } from './connection-parts'
 import { NETWORK_RULES } from './diagnose-network'
 import { SQLITE_RULES } from './diagnose-sqlite'
 import type { Diagnosis, DiagnosisContext, DiagnosisRule } from './diagnosis'
-import { getHostHint, isLocalHost } from './hosts'
+import { getHostHint, getHostKind, isLocalHost } from './hosts'
 import { SSH_RULES } from './ssh/diagnose'
+import { SSH_TUNNEL_ERROR } from './ssh/params'
 import type { SslSetting } from './ssl/setting'
 import { getSslOptions } from './ssl/setting'
 
@@ -302,15 +303,28 @@ export const isConnectionFailure = (message: string) =>
 export const diagnoseConnectionError = (
   context: DiagnosisContext
 ): Diagnosis | null => {
+  const { message, online, parts } = context
   const rule = RULES.find(
     ({ engine, match }) =>
-      (!engine || engine === context.parts.type) && match.test(context.message)
+      (!engine || engine === parts.type) && match.test(message)
   )
   if (!rule) {
     return null
   }
+  // Through SSH only the leg to the SSH host leaves this device; a channel the connected bastion could not open keeps its own diagnosis.
+  const lostWithNetwork = parts.ssh
+    ? message.startsWith(SSH_TUNNEL_ERROR) &&
+      !isLocalHost(parts.ssh.host) &&
+      NETWORK_RULES.some(({ match, offline }) => offline && match.test(message))
+    : !!rule.offline && getHostKind(parts.host) === 'public'
+  if (!online && lostWithNetwork) {
+    return {
+      hint: "This device isn't connected to the internet. Reconnect, then try again.",
+      title: "You're offline",
+    }
+  }
   const diagnosis = rule.diagnose(context)
-  const { host, password } = context.parts
+  const { host, password } = parts
   if (rule.tunnel || diagnosis.focus || password || isLocalHost(host)) {
     return diagnosis
   }
