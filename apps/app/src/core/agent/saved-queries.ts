@@ -13,7 +13,7 @@ export const searchSavedQueries = ({
   ...target
 }: AgentTarget & { query: string }) => {
   const { resource } = resolveResource(target)
-  const terms = query.toLowerCase().split(/\s+/u).filter(Boolean)
+  const terms = query.split(/\s+/u)
   const found = getCollections()
     .queriesCollection.toArray.filter(
       (saved) =>

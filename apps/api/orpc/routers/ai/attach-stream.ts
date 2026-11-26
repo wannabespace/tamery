@@ -10,6 +10,7 @@ import { db } from '@tamery/db'
 import { type } from 'arktype'
 
 import { payForAi } from '~/lib/ai-key'
+import { chatCompaction } from '~/lib/chat-compaction'
 import { chatPersist } from '~/lib/chat-persist'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
@@ -74,24 +75,20 @@ export const attachStream = orpc
     if (!pick) {
       throw errors.MODEL_UNAVAILABLE()
     }
-    const { auto, effort, key, model } = pick
 
-    const compaction = await chatPersist.compaction(input.chatId)
+    const compaction = await chatCompaction.get(input.chatId)
 
     const restarted = await chatStream.claim({
-      auto,
+      ...pick,
       chatId: input.chatId,
       connection: await chatPersist.connection({
         connectionResourceId: owned.connectionResourceId,
         userId: context.user.id,
       }),
       messages: afterCompaction(messages, compaction),
-      contextTokens: resolveChatContext(model, input.context),
-      effort,
+      contextTokens: resolveChatContext(pick.model, input.context),
       fast: input.fast,
       isSubagent: !!owned.parentChatId,
-      key,
-      model,
       onFinish: (message) =>
         chatPersist.persistMessage({
           chatId: input.chatId,

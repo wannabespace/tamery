@@ -21,7 +21,7 @@ import type { ChatDataParts } from '../tools'
 import { chatTools } from '../tools'
 import { section } from './prompt'
 
-export interface ChatConnection {
+interface ChatConnection {
   id: string
   name: string
   notes: SchemaNoteText[]

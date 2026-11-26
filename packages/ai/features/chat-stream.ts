@@ -37,23 +37,10 @@ const resumable = createResumableUIMessageStream({
   waitUntil: runInBackground,
 })
 
-type ChatStreamInput = Pick<
+type ChatStreamInput = Omit<
   ChatStepInput,
-  | 'auto'
-  | 'connection'
-  | 'contextTokens'
-  | 'effort'
-  | 'fast'
-  | 'isSubagent'
-  | 'key'
-  | 'messages'
-  | 'model'
-  | 'summary'
-  | 'telemetry'
-> & {
-  chatId: string
-  onFinish: ChatStepInput['onEnd']
-}
+  'abortSignal' | 'limits' | 'onEnd' | 'onError'
+> & { chatId: string; onFinish: ChatStepInput['onEnd'] }
 
 const TOOL_CALL_CLAIM_SECONDS = 3600
 
@@ -80,24 +67,14 @@ export const chatStream = {
     try {
       const abortController = new AbortController()
       const uiStream = await streamChatStep({
+        ...data,
         abortSignal: abortController.signal,
-        auto: data.auto,
-        connection: data.connection,
-        contextTokens: data.contextTokens,
-        effort: data.effort,
-        fast: data.fast,
-        isSubagent: data.isSubagent,
-        key: data.key,
         limits: CHAT_LIMITS.message,
-        messages: data.messages,
-        model: data.model,
         onEnd: data.onFinish,
         onError: (error) => {
           logProviderError(`chat stream ${streamId}`, error)
           return 'Something went wrong while generating the answer.'
         },
-        summary: data.summary,
-        telemetry: data.telemetry,
       })
 
       const { stream } = await resumable.startStream(uiStream, {
