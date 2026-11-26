@@ -1,5 +1,6 @@
 import { Delete02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import type { MachineId } from '@tamery/shared/machine'
 import { MACHINE_INSTALL_COMMANDS } from '@tamery/shared/machine'
 import { Button } from '@tamery/ui/components/button'
 import { CopyButton } from '@tamery/ui/components/custom/copy-button'
@@ -33,7 +34,7 @@ const RUNNING_WITHIN_MS = 10 * 60 * 1000
 const CLOCK_MS = 60 * 1000
 
 export interface ListedMachine {
-  id: string
+  id: MachineId
   /** `false` for a pairing whose machine was removed from the account: no connection runs on it. */
   isListed: boolean
   name: string
