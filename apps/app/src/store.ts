@@ -11,6 +11,7 @@ const noSignInPrompt: { at: number; hint: string | null } = {
 export const appStore = createStore({
   isOnline: window.navigator.onLine,
   isSubscriptionDialogOpen: false,
+  offerAiKey: false,
   signInPrompt: noSignInPrompt,
   upgradeHint: null as string | null,
 })
@@ -41,7 +42,8 @@ export const promptSignIn = (hint: string) => {
 
 export const setIsSubscriptionDialogOpen = (
   isOpen: boolean,
-  hint: string | null = null
+  hint: string | null = null,
+  { offerAiKey = false } = {}
 ) => {
   if (isOpen) {
     posthog.capture('subscription_dialog_opened', { hint })
@@ -53,6 +55,7 @@ export const setIsSubscriptionDialogOpen = (
         isSubscriptionDialogOpen: isOpen,
         // Kept on close, so the dialog fades out with the text it showed.
         upgradeHint: isOpen ? hint : state.upgradeHint,
+        offerAiKey: isOpen ? offerAiKey : state.offerAiKey,
       }) satisfies typeof state
   )
 }

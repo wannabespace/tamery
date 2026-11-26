@@ -11,7 +11,14 @@ export const update = orpc
   .use(permix.checkMiddleware('ai.chat.use'))
   .input(
     chatsUpdateSchema
-      .omit('createdAt', 'updatedAt', 'id', 'userId', 'connectionResourceId')
+      .omit(
+        'compaction',
+        'connectionResourceId',
+        'createdAt',
+        'id',
+        'updatedAt',
+        'userId'
+      )
       .merge(chatsUpdateSchema.pick('id').required())
   )
   .handler(async ({ context, input }) => {

@@ -1,13 +1,55 @@
-import { chatStream } from '@tamery/ai/features'
+import {
+  afterCompaction,
+  chatStream,
+  needsCompaction,
+  pickChatModel,
+} from '@tamery/ai/features'
+import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
+import { resolveChatContext } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
+import { parseAttachmentRef } from '@tamery/shared/attachments'
 import { runInBackground } from '@tamery/shared/background'
-import { validateUIMessages } from 'ai'
+import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
+import { isToolUIPart, validateUIMessages } from 'ai'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
+import { payForAi } from '~/lib/ai-key'
+import { attachments } from '~/lib/attachments'
 import { chatPersist } from '~/lib/chat-persist'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
+
+const isAttachmentId = type('string.uuid.v7')
+
+// A file arrives as a data URL, or as a reference to one already stored in this chat when a turn is edited or asked again; a remote URL would have the model provider fetch it on the user's behalf.
+const attachmentsFit = async (chatId: string, message: AppUIMessage) => {
+  const files = message.parts.filter((part) => part.type === 'file')
+  if (files.length > CHAT_LIMITS.attachments) {
+    return false
+  }
+  const fits = await Promise.all(
+    files.map((file) => {
+      if (!CHAT_LIMITS.attachmentTypes.has(file.mediaType)) {
+        return false
+      }
+      const ref = parseAttachmentRef(file.url)
+      if (ref) {
+        return (
+          ref.chatId === chatId &&
+          isAttachmentId.allows(ref.id) &&
+          attachments.exists(ref)
+        )
+      }
+      const prefix = `data:${file.mediaType};base64,`
+      return (
+        file.url.startsWith(prefix) &&
+        ((file.url.length - prefix.length) * 3) / 4 <=
+          CHAT_LIMITS.attachmentBytes
+      )
+    })
+  )
+  return fits.every(Boolean)
+}
 
 export const stream = orpc
   .use(permissionsMiddleware)
@@ -17,11 +59,17 @@ export const stream = orpc
       chatId: 'string.uuid.v7',
       connectionResourceId: 'string.uuid.v7',
       messages: 'object[]',
+      'context?': 'number.integer > 0',
+      'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
+      'fast?': 'boolean',
+      'model?': 'string',
+      'subagent?': { parentChatId: 'string.uuid.v7', title: 'string' },
     })
   )
   .errors({
     BAD_REQUEST: { message: 'Invalid messages' },
     CONFLICT: { message: 'This chat is already generating an answer.' },
+    TOO_MANY_REQUESTS: { message: AI_BUDGET_SPENT_MESSAGE },
   })
   .handler(async function* streamHandler({ context, errors, input }) {
     const messages = await validateUIMessages<AppUIMessage>({
@@ -30,62 +78,122 @@ export const stream = orpc
       throw errors.BAD_REQUEST()
     })
 
-    const { title } = await chatPersist.ensureChat({
+    const turn = messages.at(-1)
+    if (
+      !turn ||
+      turn.role === 'system' ||
+      !(await attachmentsFit(input.chatId, turn))
+    ) {
+      throw errors.BAD_REQUEST()
+    }
+
+    const payer = await payForAi(context.user.id, errors.TOO_MANY_REQUESTS)
+
+    const { connection, isSubagent, title } = await chatPersist.ensureChat({
       chatId: input.chatId,
       connectionResourceId: input.connectionResourceId,
+      subagent: input.subagent,
       userId: context.user.id,
     })
 
-    const lastUserMessage = messages.findLast(
-      (message) => message.role === 'user'
-    )
-    if (lastUserMessage) {
-      await chatPersist.persistMessage({
+    if (turn.role === 'user') {
+      await chatPersist.truncateFrom({
         chatId: input.chatId,
-        message: lastUserMessage,
+        messageId: turn.id,
         userId: context.user.id,
       })
     }
+
+    await (turn.role === 'user'
+      ? chatPersist.persistMessage({
+          chatId: input.chatId,
+          message: await attachments.store(input.chatId, turn),
+          userId: context.user.id,
+        })
+      : chatPersist.persistToolOutputs({
+          chatId: input.chatId,
+          message: turn,
+          userId: context.user.id,
+        }))
 
     const history = await chatPersist.loadMessages({
       chatId: input.chatId,
       userId: context.user.id,
     })
 
-    const previousAnswer = history.at(-1)
-    if (previousAnswer?.role === 'assistant') {
-      await chatPersist.deleteMessage({
-        chatId: input.chatId,
-        messageId: previousAnswer.id,
-        userId: context.user.id,
-      })
-      history.pop()
-    }
-
     if (!title) {
       runInBackground(
         chatPersist.persistTitle({
           chatId: input.chatId,
           messages: history,
+          payer,
           userId: context.user.id,
         })
       )
     }
 
-    const str = await chatStream.claim({
+    const scope = {
       chatId: input.chatId,
+      feature: AiFeature.Chat,
+      userId: context.user.id,
+    }
+    const { auto, effort, key, model } = await pickChatModel({
+      effort: input.effort,
+      keys: payer.keys,
       messages: history,
-      onFinish: (message) =>
-        chatPersist.persistMessage({
+      model: input.model,
+      onJevUsage: payer.recordJev(scope),
+    })
+    const contextTokens = resolveChatContext(model, input.context)
+    const telemetry = payer.telemetry(scope)
+    const stored = await chatPersist.compaction(input.chatId)
+    const compaction =
+      turn.role === 'user' &&
+      needsCompaction(afterCompaction(history, stored), contextTokens)
+        ? await chatPersist.compact({
+            chatId: input.chatId,
+            history,
+            key: payer.key,
+            previous: stored,
+            telemetry,
+            userId: context.user.id,
+          })
+        : stored
+
+    const str = await chatStream.claim({
+      auto,
+      chatId: input.chatId,
+      connection,
+      messages: afterCompaction(history, compaction),
+      contextTokens,
+      effort,
+      fast: input.fast,
+      isSubagent,
+      key,
+      model,
+      onFinish: async (message) => {
+        await chatPersist.persistMessage({
           chatId: input.chatId,
           message,
           userId: context.user.id,
-        }),
-      telemetry: aiUsage.telemetry({
-        chatId: input.chatId,
-        feature: AiFeature.Chat,
-        userId: context.user.id,
-      }),
+        })
+        const lastPart = message.parts.at(-1)
+        // A step ending on a tool call is not the answer's end: the window answers it, or the change waits for Run.
+        const isAnswered = !(lastPart && isToolUIPart(lastPart))
+        if (!isSubagent && !message.metadata?.stopped && isAnswered) {
+          runInBackground(
+            chatPersist.persistSuggestion({
+              chatId: input.chatId,
+              history,
+              message,
+              payer,
+              userId: context.user.id,
+            })
+          )
+        }
+      },
+      summary: compaction?.summary,
+      telemetry,
     })
 
     if (str) {

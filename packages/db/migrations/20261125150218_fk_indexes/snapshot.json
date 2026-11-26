@@ -8,13 +8,17 @@
   "ddl": [
     {
       "values": [
+        "approval_judge",
         "chat",
+        "chat_suggestion",
         "chat_title",
         "complete_query",
+        "dictation",
         "diagnose_connection",
         "filters",
         "fix_query",
-        "update_query"
+        "update_query",
+        "web_search"
       ],
       "name": "ai_feature",
       "entityType": "enums",
@@ -85,6 +89,12 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "ai_keys",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "ai_usage",
       "entityType": "tables",
       "schema": "public"
@@ -122,6 +132,18 @@
     {
       "isRlsEnabled": false,
       "name": "connections_resources",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "credit_accounts",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "credit_top_ups",
       "entityType": "tables",
       "schema": "public"
     },
@@ -169,6 +191,12 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "schema_notes",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "sessions",
       "entityType": "tables",
       "schema": "public"
@@ -176,12 +204,6 @@
     {
       "isRlsEnabled": false,
       "name": "shares",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "subscription_seats",
       "entityType": "tables",
       "schema": "public"
     },
@@ -401,6 +423,97 @@
       "name": "created_at",
       "entityType": "columns",
       "schema": "public",
+      "table": "ai_keys"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_keys"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_keys"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "enabled",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_keys"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "key",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_keys"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "provider",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_keys"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_keys"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
       "table": "ai_usage"
     },
     {
@@ -534,6 +647,19 @@
       "table": "ai_usage"
     },
     {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "own_key",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_usage"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -612,6 +738,45 @@
       "table": "chats"
     },
     {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "parent_chat_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chats"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "compaction",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chats"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "pinned_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chats"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -620,6 +785,19 @@
       "generated": null,
       "identity": null,
       "name": "title",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chats"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "encrypted_title",
       "entityType": "columns",
       "schema": "public",
       "table": "chats"
@@ -848,7 +1026,7 @@
     {
       "type": "uuid",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
@@ -1104,6 +1282,214 @@
       "entityType": "columns",
       "schema": "public",
       "table": "connections_resources"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_accounts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_accounts"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_accounts"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'20'",
+      "generated": null,
+      "identity": null,
+      "name": "auto_top_up_amount",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_accounts"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "auto_top_up_enabled",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_accounts"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "auto_top_up_failed_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_accounts"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'5'",
+      "generated": null,
+      "identity": null,
+      "name": "auto_top_up_threshold",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_accounts"
+    },
+    {
+      "type": "numeric(14,8)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'0'",
+      "generated": null,
+      "identity": null,
+      "name": "balance",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_accounts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_accounts"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_top_ups"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_top_ups"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_top_ups"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "amount",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_top_ups"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "automatic",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_top_ups"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "stripe_payment_intent_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_top_ups"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_top_ups"
     },
     {
       "type": "jsonb",
@@ -1766,6 +2152,123 @@
       "name": "created_at",
       "entityType": "columns",
       "schema": "public",
+      "table": "schema_notes"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "schema_notes"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "schema_notes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "column",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "schema_notes"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "connection_resource_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "schema_notes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "note",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "schema_notes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "schema",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "schema_notes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "table",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "schema_notes"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "schema_notes"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
       "table": "sessions"
     },
     {
@@ -2078,84 +2581,6 @@
       "name": "created_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "subscription_seats"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "subscription_seats"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "subscription_seats"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "email",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "subscription_seats"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "normalized_email",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "subscription_seats"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "subscription_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "subscription_seats"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
       "table": "subscriptions"
     },
     {
@@ -2271,19 +2696,6 @@
       "generated": null,
       "identity": null,
       "name": "price",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "subscriptions"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "seats",
       "entityType": "columns",
       "schema": "public",
       "table": "subscriptions"
@@ -2913,48 +3325,6 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "chat_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "ai_usage_chat_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "ai_usage"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "workspace_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "ai_usage_workspace_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "ai_usage"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
           "value": "user_id",
           "isExpression": false,
           "asc": true,
@@ -2989,6 +3359,27 @@
       "method": "btree",
       "concurrently": false,
       "name": "chats_connection_resource_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "chats"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "parent_chat_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "chats_parent_chat_id_index",
       "entityType": "indexes",
       "schema": "public",
       "table": "chats"
@@ -3057,27 +3448,6 @@
       "table": "chats_messages_parts"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "connection_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "connection_machines_connection_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "connection_machines"
-    },
-    {
       "nameExplicit": true,
       "columns": [
         {
@@ -3107,6 +3477,13 @@
           "asc": true,
           "nullsFirst": false,
           "opclass": null
+        },
+        {
+          "value": "created_at",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3114,10 +3491,10 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "connections_user_id_index",
+      "name": "credit_top_ups_user_id_created_at_index",
       "entityType": "indexes",
       "schema": "public",
-      "table": "connections"
+      "table": "credit_top_ups"
     },
     {
       "nameExplicit": false,
@@ -3270,27 +3647,6 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "user_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "queries_user_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "queries"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
           "value": "connection_resource_id",
           "isExpression": false,
           "asc": true,
@@ -3303,10 +3659,10 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "queries_connection_resource_id_index",
+      "name": "schema_notes_connection_resource_id_index",
       "entityType": "indexes",
       "schema": "public",
-      "table": "queries"
+      "table": "schema_notes"
     },
     {
       "nameExplicit": true,
@@ -3370,48 +3726,6 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "shares"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "normalized_email",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "subscription_seats_normalized_email_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "subscription_seats"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "user_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "subscriptions_user_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "subscriptions"
     },
     {
       "nameExplicit": true,
@@ -3517,6 +3831,23 @@
     {
       "nameExplicit": false,
       "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "ai_keys_user_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "ai_keys"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "chat_id"
       ],
       "schemaTo": "public",
@@ -3578,6 +3909,23 @@
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "chats_connection_resource_id_connections_resources_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "chats"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "parent_chat_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "chats",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "chats_parent_chat_id_chats_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "chats"
@@ -3721,6 +4069,40 @@
     {
       "nameExplicit": false,
       "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "credit_accounts_user_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "credit_accounts"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "credit_top_ups_user_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "credit_top_ups"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "inviter_id"
       ],
       "schemaTo": "public",
@@ -3857,6 +4239,40 @@
     {
       "nameExplicit": false,
       "columns": [
+        "connection_resource_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "connections_resources",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "schema_notes_0ndn0IPWN4AN_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "schema_notes"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "schema_notes_user_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "schema_notes"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "user_id"
       ],
       "schemaTo": "public",
@@ -3904,23 +4320,6 @@
       "entityType": "fks",
       "schema": "public",
       "table": "shares"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "subscription_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "subscriptions",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "subscription_seats_subscription_id_subscriptions_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "subscription_seats"
     },
     {
       "nameExplicit": false,
@@ -3999,6 +4398,16 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "ai_keys_pkey",
+      "schema": "public",
+      "table": "ai_keys",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "ai_usage_pkey",
       "schema": "public",
       "table": "ai_usage",
@@ -4069,6 +4478,26 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "credit_accounts_pkey",
+      "schema": "public",
+      "table": "credit_accounts",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "credit_top_ups_pkey",
+      "schema": "public",
+      "table": "credit_top_ups",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "early_access_pkey",
       "schema": "public",
       "table": "early_access",
@@ -4129,6 +4558,16 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "schema_notes_pkey",
+      "schema": "public",
+      "table": "schema_notes",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "sessions_pkey",
       "schema": "public",
       "table": "sessions",
@@ -4142,16 +4581,6 @@
       "name": "shares_pkey",
       "schema": "public",
       "table": "shares",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "subscription_seats_pkey",
-      "schema": "public",
-      "table": "subscription_seats",
       "entityType": "pks"
     },
     {
@@ -4218,6 +4647,18 @@
       "nameExplicit": false,
       "columns": [
         "user_id",
+        "provider"
+      ],
+      "nullsNotDistinct": false,
+      "name": "ai_keys_user_id_provider_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "ai_keys"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "user_id",
         "connection_id"
       ],
       "nullsNotDistinct": false,
@@ -4241,14 +4682,24 @@
     {
       "nameExplicit": false,
       "columns": [
-        "subscription_id",
-        "normalized_email"
+        "user_id"
       ],
       "nullsNotDistinct": false,
-      "name": "subscription_seats_subscription_id_normalized_email_unique",
-      "entityType": "uniques",
+      "name": "credit_accounts_user_id_key",
       "schema": "public",
-      "table": "subscription_seats"
+      "table": "credit_accounts",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "stripe_payment_intent_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "credit_top_ups_stripe_payment_intent_id_key",
+      "schema": "public",
+      "table": "credit_top_ups",
+      "entityType": "uniques"
     },
     {
       "nameExplicit": false,
@@ -4315,6 +4766,310 @@
       "schema": "public",
       "table": "workspaces",
       "entityType": "uniques"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "subscription_seats",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "email",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "normalized_email",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "subscription_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "seats",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subscriptions"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "normalized_email",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "subscription_seats_normalized_email_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "subscription_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "subscriptions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "subscription_seats_subscription_id_subscriptions_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "subscription_seats_pkey",
+      "schema": "public",
+      "table": "subscription_seats",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "subscription_id",
+        "normalized_email"
+      ],
+      "nullsNotDistinct": false,
+      "name": "subscription_seats_subscription_id_normalized_email_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "subscription_seats"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "subscriptions_user_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "subscriptions"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "chat_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "ai_usage_chat_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "ai_usage"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "workspace_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "ai_usage_workspace_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "ai_usage"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "connection_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "connection_machines_connection_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "connection_machines"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "connections_user_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "connections"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "queries_user_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "queries"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "connection_resource_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "queries_connection_resource_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "queries"
     }
   ],
   "renames": []

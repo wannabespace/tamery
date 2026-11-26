@@ -92,6 +92,7 @@ const retrieve = spyOn(stripe.subscriptions, 'retrieve')
 const cancel = spyOn(stripe.subscriptions, 'cancel')
 const createCustomer = spyOn(stripe.customers, 'create')
 const createCheckout = spyOn(stripe.checkout.sessions, 'create')
+const listCheckouts = spyOn(stripe.checkout.sessions, 'list')
 
 beforeAll(async () => {
   await migrate(db, {
@@ -105,6 +106,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   createCustomer.mockReset()
   createCheckout.mockReset()
+  listCheckouts.mockReset()
+  listCheckouts.mockResolvedValue({ data: [] } as never)
   retrieve.mockReset()
   cancel.mockReset()
   limit.mockClear()

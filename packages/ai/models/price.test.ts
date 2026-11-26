@@ -1,6 +1,8 @@
-import { afterAll, expect, it, spyOn } from 'bun:test'
+import { afterAll, beforeAll, expect, it, spyOn } from 'bun:test'
 
-import { getModelCost } from './price'
+import { clearMemoizeCache } from 'memoza'
+
+import { fetchPrices, getModelCost } from './price'
 
 const fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
   Response.json({
@@ -25,7 +27,12 @@ const fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
   })
 )
 
+beforeAll(() => {
+  clearMemoizeCache(fetchPrices)
+})
+
 afterAll(() => {
+  clearMemoizeCache(fetchPrices)
   fetchSpy.mockRestore()
 })
 

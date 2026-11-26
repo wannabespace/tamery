@@ -21,6 +21,7 @@ import * as machines from './machines'
 import * as queries from './queries'
 import { releases } from './releases'
 import { repo } from './repo'
+import * as schemaNotes from './schema-notes'
 import * as shares from './shares'
 import * as usage from './usage'
 import { userCount } from './user-count'
@@ -45,6 +46,7 @@ export const router = {
   queries,
   releases,
   repo,
+  schemaNotes,
   shares,
   usage,
   userCount,

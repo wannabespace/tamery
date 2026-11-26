@@ -1,9 +1,11 @@
 import { ORPCError } from '@orpc/server'
+import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import type { MeteredFeature } from '@tamery/shared/usage'
 import { FREE_WEEKLY_LIMITS, usageResetsAt } from '@tamery/shared/usage'
 
 import type { permix } from '~/orpc'
 
+import { credits } from './credits'
 import { redis } from './redis'
 
 const unlimitedPermission = {
@@ -51,7 +53,7 @@ export const usage = {
           feature,
           Number(await redis.get(getKey(user.id, feature, usageResetsAt())))
         ),
-  /** Takes the unit before `run` starts, so parallel calls cannot pass the limit, and gives it back when `run` throws or calls `skipCount`. */
+  /** Free takes the unit before `run` starts, so parallel calls cannot pass the limit, and gets it back when `run` throws or calls `skipCount`; unlimited is held to the AI budget and credits instead. */
   metered: async <T>(
     { permissions, user }: UsageContext,
     feature: keyof typeof limitReachedMessage,
@@ -62,6 +64,11 @@ export const usage = {
       counts = false
     }
     if (permissions.check(unlimitedPermission[feature])) {
+      if (!(await credits.canUseAi(user.id))) {
+        throw new ORPCError('TOO_MANY_REQUESTS', {
+          message: AI_BUDGET_SPENT_MESSAGE,
+        })
+      }
       return run(skipCount)
     }
     const { release, used } = await increment(user.id, feature)

@@ -19,6 +19,8 @@ export const aiUsage = d.snakeCase.table(
     inputTokens: d.integer().notNull().default(0),
     model: d.text().notNull(),
     outputTokens: d.integer().notNull().default(0),
+    /** Paid by the user's own provider key: shown in AI usage, never counted toward the budget or spent from credits. */
+    ownKey: d.boolean().notNull().default(false),
     userId: d
       .uuid()
       .references(() => users.id, { onDelete: 'cascade' })

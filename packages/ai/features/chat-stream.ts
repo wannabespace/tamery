@@ -1,20 +1,14 @@
 import { runInBackground } from '@tamery/shared/background'
-import type { TelemetryOptions } from 'ai'
-import { convertToModelMessages, streamText, toUIMessageStream } from 'ai'
 import { createRedisAdapter } from 'ai-resumable-stream/adapters/redis'
 import { createResumableUIMessageStream } from 'ai-resumable-stream/ai-sdk'
 import { createClient } from 'redis'
 import { v7 } from 'uuid'
 
 import { env } from '../env'
-import type { AppUIMessage } from '../message'
-import { models } from '../models/list'
-
-const CHAT_INSTRUCTIONS = [
-  'You are Tamery AI, an assistant built into the Tamery database client.',
-  'Help the user with their databases: SQL, schema design, data questions, and anything else they ask.',
-  'Be concise. Use fenced code blocks with a language tag for SQL and code.',
-].join('\n')
+import { CHAT_LIMITS } from '../limits'
+import { logProviderError } from '../provider-error'
+import type { ChatStepInput } from './chat-step'
+import { streamChatStep } from './chat-step'
 
 const redis = createClient({
   socket: env.REDIS_CA ? { ca: env.REDIS_CA, tls: true } : undefined,
@@ -43,14 +37,40 @@ const resumable = createResumableUIMessageStream({
   waitUntil: runInBackground,
 })
 
-interface ChatStreamInput {
+type ChatStreamInput = Pick<
+  ChatStepInput,
+  | 'auto'
+  | 'connection'
+  | 'contextTokens'
+  | 'effort'
+  | 'fast'
+  | 'isSubagent'
+  | 'key'
+  | 'messages'
+  | 'model'
+  | 'summary'
+  | 'telemetry'
+> & {
   chatId: string
-  messages: AppUIMessage[]
-  onFinish: (message: AppUIMessage) => Promise<void>
-  telemetry?: TelemetryOptions
+  onFinish: ChatStepInput['onEnd']
 }
 
+const TOOL_CALL_CLAIM_SECONDS = 3600
+
 export const chatStream = {
+  /** The first window to claim a tool call answers or decides it; the others watch its output arrive. Claiming again from the same window keeps it. */
+  claimToolCall: async (data: {
+    chatId: string
+    toolCallId: string
+    windowId: string
+  }) => {
+    const key = `ai:tool-call:${data.chatId}:${data.toolCallId}`
+    const claimed = await redis.set(key, data.windowId, {
+      EX: TOOL_CALL_CLAIM_SECONDS,
+      NX: true,
+    })
+    return !!claimed || (await redis.get(key)) === data.windowId
+  },
   claim: async (data: ChatStreamInput) => {
     const streamId = v7()
     if (!(await activeStream.claim(data.chatId, streamId))) {
@@ -59,24 +79,25 @@ export const chatStream = {
 
     try {
       const abortController = new AbortController()
-
-      const result = streamText({
+      const uiStream = await streamChatStep({
         abortSignal: abortController.signal,
-        instructions: CHAT_INSTRUCTIONS,
-        messages: await convertToModelMessages(data.messages),
-        model: models.chat,
-        telemetry: data.telemetry,
-      })
-
-      const uiStream = toUIMessageStream({
-        generateMessageId: () => v7(),
-        onEnd: ({ responseMessage }) => data.onFinish(responseMessage),
+        auto: data.auto,
+        connection: data.connection,
+        contextTokens: data.contextTokens,
+        effort: data.effort,
+        fast: data.fast,
+        isSubagent: data.isSubagent,
+        key: data.key,
+        limits: CHAT_LIMITS.message,
+        messages: data.messages,
+        model: data.model,
+        onEnd: data.onFinish,
         onError: (error) => {
-          console.error(`chat stream ${streamId} failed`, error)
+          logProviderError(`chat stream ${streamId}`, error)
           return 'Something went wrong while generating the answer.'
         },
-        originalMessages: data.messages,
-        stream: result.stream,
+        summary: data.summary,
+        telemetry: data.telemetry,
       })
 
       const { stream } = await resumable.startStream(uiStream, {
