@@ -104,7 +104,6 @@ type MachineId = string
 
 export type RunsOn = typeof CLOUD | typeof THIS_COMPUTER | MachineId
 
-/** What a connection without a row runs on. */
 export const defaultRunsOn = (): RunsOn =>
   window.electron ? THIS_COMPUTER : CLOUD
 
