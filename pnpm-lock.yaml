@@ -1972,6 +1972,37 @@ importers:
         specifier: 'catalog:'
         version: 23.2.0(@types/node@26.1.1)
 
+  packages/evals:
+    dependencies:
+      '@tamery/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@tamery/connection':
+        specifier: workspace:*
+        version: link:../connection
+      '@tamery/shared':
+        specifier: workspace:*
+        version: link:../shared
+      ai:
+        specifier: 'catalog:'
+        version: 7.0.179(zod@4.6.7)
+      mongodb:
+        specifier: 'catalog:'
+        version: 7.9.1(@aws-sdk/credential-providers@3.993.0)(socks@2.8.11)
+      mysql2:
+        specifier: 'catalog:'
+        version: 3.24.6(@types/node@26.1.1)
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.1
+      uuid:
+        specifier: 'catalog:'
+        version: 14.0.3
+    devDependencies:
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.23.1
+
   packages/monaco:
     dependencies:
       '@tamery/ai':
@@ -7539,10 +7570,6 @@ packages:
     resolution: {integrity: sha512-cGmADo5M2PTi3ewJZ2lcE32eURd4JmHtQ5JwRIUcas5L1SXqufG9yPyjWp8fW0gRi7aZi9bgbZPFZO1eyZ+1CQ==}
     engines: {node: '>=12'}
 
-  d3-color@3.1.0:
-    resolution: {integrity: sha512-zg/chbXyeBtMQ1LbD/WSoW2DpC3I0mpmPdW+ynRTj/x2DAWYrIY7qeZIHidozwV24m4iavr15lNwIwLxRmOxhA==}
-    engines: {node: '>=12'}
-
   d3-color@3.1.1:
     resolution: {integrity: sha512-lfab8x0Bj0UO7SNsY8dZSbNIA6ipbkE3X0NG9nqjCu6CfCHZseuDnOSJY7hidKrjpP++i1M2qT+FlAdPKYRilA==}
     engines: {node: '>=12'}
@@ -7553,10 +7580,6 @@ packages:
 
   d3-delaunay@6.0.6:
     resolution: {integrity: sha512-DMQIEvSJhZCB6pwedcXaAlQ+MeKU5LlM2XakKtc73b/VM+RBiI1SRXycOEOKg2jsKj4zZ9F0KGYG6nCGwwWu/g==}
-    engines: {node: '>=12'}
-
-  d3-dispatch@3.0.1:
-    resolution: {integrity: sha512-rzUyPU/S7rwUflMyLc1ETDeBj0NRuHKKAcvukozwhshr6g6c5d8zh4c2gQjY2bZ0dXeGLWc1PF174P2tVvKhfg==}
     engines: {node: '>=12'}
 
   d3-dispatch@3.0.2:
@@ -7571,10 +7594,6 @@ packages:
     resolution: {integrity: sha512-FUnXhX7I4/AXyRCZzwfZTDGSq8PGZ4oR0tiCBqNGOZMsDrQ+6sIWNQnBzcCGhzJKZ6uCvCezTwflUqI209RRiQ==}
     engines: {node: '>=12'}
     hasBin: true
-
-  d3-ease@3.0.1:
-    resolution: {integrity: sha512-wR/XK3D3XcLIZwpbvQwQ5fK+8Ykds1ip7A2Txe0yxncXSdq1L9skcG7blcedkOX+ZcgxGAmLX1FrRGbADwzi0w==}
-    engines: {node: '>=12'}
 
   d3-ease@3.0.2:
     resolution: {integrity: sha512-B5znKqRmKROAN4oHWQ50W/qisVjA9GXh2WMsVKdFVp4DxWmcrOsweqgUOUVsv5th96kwaZlokU6SlV4J3gak1w==}
@@ -7598,10 +7617,6 @@ packages:
 
   d3-hierarchy@3.1.3:
     resolution: {integrity: sha512-GRajN5ZcnEwYFWqqdzhG1qJ3+fDg6WWzk47TJg7ePY7yvYAgRfD2r1mUx+wviBOWuCwamCUzjwMSdato43jbGA==}
-    engines: {node: '>=12'}
-
-  d3-interpolate@3.0.1:
-    resolution: {integrity: sha512-3bYs1rOD33uo8aqJfKP3JWPAibgw8Zm2+L9vBKEHJ2Rg+viTR7o5Mmv5mZcieN+FRYaAOWX5SJATX6k1PWz72g==}
     engines: {node: '>=12'}
 
   d3-interpolate@3.0.2:
@@ -7638,10 +7653,6 @@ packages:
     resolution: {integrity: sha512-66cWobCNzcMvlfoaDHCxuIv9TBUWG1BLOWdv9kHHFuCr1JdqAWPvTmsaEYDD5NRMyWZ5+7u0GqiCDfMXMqh3hg==}
     engines: {node: '>=12'}
 
-  d3-selection@3.0.0:
-    resolution: {integrity: sha512-fmTRWbNMmsmWq6xJV8D19U/gw/bwrHfNXxrIN+HfZgnzqTHp9jOmKMhsTUjXOJnZOdZY9Q28y4yebKzqDKlxlQ==}
-    engines: {node: '>=12'}
-
   d3-selection@3.0.1:
     resolution: {integrity: sha512-ODSf35vqCrlCfp7hrm0eZjvOosSXSYLjqvIlhMBV9q9VOx7EBJG6pc+uXBswEZNJgCGJ+qnKYcWutbZDIxe/Xg==}
     engines: {node: '>=12'}
@@ -7661,19 +7672,9 @@ packages:
     resolution: {integrity: sha512-Ze7rjrhMzdeulh0/hjcfFj7XLAHOfowtEMfsoG6DU866HPynQNW7Wfen6hzXcqKTv8XzxvF6Hzr5XD6bMHr2ug==}
     engines: {node: '>=12'}
 
-  d3-timer@3.0.1:
-    resolution: {integrity: sha512-ndfJ/JxxMd3nw31uyKoY2naivF+r29V+Lc0svZxe1JvvIRmi8hUsrMvdOwgS1o6uBHmiz91geQ0ylPP0aj1VUA==}
-    engines: {node: '>=12'}
-
   d3-timer@3.0.2:
     resolution: {integrity: sha512-1Il1aliroVSErrv5aulRBxAY+7+DnaoLIWGd1C6SsBTWDeobWiP/V69vwb8vT6abR1kKwaNe1196pmaQ1fK90A==}
     engines: {node: '>=12'}
-
-  d3-transition@3.0.1:
-    resolution: {integrity: sha512-ApKvfjsSR6tg06xrL434C0WydLr7JewBB3V+/39RMHsaXTOG0zmt/OAXeng5M5LBm0ojmxJrpomQVZ1aPvBL4w==}
-    engines: {node: '>=12'}
-    peerDependencies:
-      d3-selection: 2 - 3
 
   d3-transition@3.0.2:
     resolution: {integrity: sha512-RcjCsdFgyFoDB+QXLC5m60ZkTN0k9zH+ovoLlTdJnDS1AbfbcuowiM4pCKSTOclNibS4f4J4cbv2m7O7y8NTOQ==}
@@ -16173,8 +16174,8 @@ snapshots:
 
   '@upsetjs/venn.js@2.0.0':
     optionalDependencies:
-      d3-selection: 3.0.0
-      d3-transition: 3.0.1(d3-selection@3.0.0)
+      d3-selection: 3.0.1
+      d3-transition: 3.0.2(d3-selection@3.0.1)
 
   '@upstash/context7-sdk@0.5.1': {}
 
@@ -17034,9 +17035,6 @@ snapshots:
     dependencies:
       d3-path: 3.1.1
 
-  d3-color@3.1.0:
-    optional: true
-
   d3-color@3.1.1: {}
 
   d3-contour@4.0.3:
@@ -17046,9 +17044,6 @@ snapshots:
   d3-delaunay@6.0.6:
     dependencies:
       delaunator: 5.1.0
-
-  d3-dispatch@3.0.1:
-    optional: true
 
   d3-dispatch@3.0.2: {}
 
@@ -17062,9 +17057,6 @@ snapshots:
       commander: 7.2.0
       iconv-lite: 0.6.3
       rw: 1.3.3
-
-  d3-ease@3.0.1:
-    optional: true
 
   d3-ease@3.0.2: {}
 
@@ -17085,11 +17077,6 @@ snapshots:
       d3-array: 3.2.5
 
   d3-hierarchy@3.1.3: {}
-
-  d3-interpolate@3.0.1:
-    dependencies:
-      d3-color: 3.1.0
-    optional: true
 
   d3-interpolate@3.0.2:
     dependencies:
@@ -17124,9 +17111,6 @@ snapshots:
       d3-time: 3.1.1
       d3-time-format: 4.1.1
 
-  d3-selection@3.0.0:
-    optional: true
-
   d3-selection@3.0.1: {}
 
   d3-shape@1.3.7:
@@ -17145,20 +17129,7 @@ snapshots:
     dependencies:
       d3-array: 3.2.5
 
-  d3-timer@3.0.1:
-    optional: true
-
   d3-timer@3.0.2: {}
-
-  d3-transition@3.0.1(d3-selection@3.0.0):
-    dependencies:
-      d3-color: 3.1.0
-      d3-dispatch: 3.0.1
-      d3-ease: 3.0.1
-      d3-interpolate: 3.0.1
-      d3-selection: 3.0.0
-      d3-timer: 3.0.1
-    optional: true
 
   d3-transition@3.0.2(d3-selection@3.0.1):
     dependencies:

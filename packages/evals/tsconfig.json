@@ -1,0 +1,9 @@
+{
+  "extends": "@tamery/configs/ts/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "strictNullChecks": true
+  },
+  "include": ["."],
+  "exclude": ["node_modules"]
+}
