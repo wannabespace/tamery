@@ -12,7 +12,7 @@ const RULES: Omit<DiagnosisRule, 'engine'>[] = [
           : "Couldn't reach Turso",
     }),
     // D1's own transport failure (`d1.ts`), before the network rules, which would blame the fixed Cloudflare host.
-    match: /^fetch failed(?:: [A-Z_]+)?$/iu,
+    match: /^fetch failed$/iu,
     offline: 'host',
   },
   {

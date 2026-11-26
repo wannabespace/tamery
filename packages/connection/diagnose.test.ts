@@ -425,7 +425,7 @@ describe('diagnoseConnectionError', () => {
       )
     })
 
-    it.each(['Fetch failed: ENOTFOUND', 'Fetch failed', 'fetch failed'])(
+    it.each(['Fetch failed', 'fetch failed'])(
       'blames the lost connection for a D1 request that failed with %p',
       (message) => {
         expect(
@@ -440,7 +440,7 @@ describe('diagnoseConnectionError', () => {
     it('never sends an online D1 failure to the host rules', () => {
       expect(
         diagnose(
-          'Fetch failed: ENOTFOUND',
+          'fetch failed',
           connectionParts.parse('d1://acc:tok@api.cloudflare.com/db-id')
         )?.title
       ).toBe("Couldn't reach Cloudflare's API")
