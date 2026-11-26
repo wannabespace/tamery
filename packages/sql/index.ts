@@ -24,4 +24,4 @@ export {
   writesData,
 } from './destructive'
 export { statementScope } from './scope'
-export { findTable, findTableWithSchema } from './catalog'
+export { COLUMNS_NOT_LOADED, findTable, findTableWithSchema } from './catalog'

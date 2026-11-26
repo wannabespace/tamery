@@ -1,5 +1,6 @@
 import { SSH_ELSEWHERE } from '@tamery/connection/ssh/params'
 import { SyncType } from '@tamery/shared/enums/sync-type'
+import { ALL_SECRET_FIELDS } from '@tamery/shared/machine'
 
 import type { ConnectionString } from '~/core/connection/connection-strings'
 import type { Connection } from '~/core/connection/sync'
@@ -112,7 +113,7 @@ const machineConfig = (
   if (!pairing) {
     return blocked('machine', getNotPairedMessage(name))
   }
-  if (asks === 'all') {
+  if (asks === ALL_SECRET_FIELDS) {
     return blocked('waiting-for-details', REASONS.connectionStringNotStored)
   }
   if (asks) {

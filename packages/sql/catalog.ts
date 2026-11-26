@@ -7,11 +7,12 @@ export interface SqlColumn {
   comment?: string | null
 }
 
+export const COLUMNS_NOT_LOADED = null
+
 export interface SqlTable {
   name: string
   kind: string
-  /** `null` while the columns have not been loaded — column checks and suggestions skip the table. */
-  columns: SqlColumn[] | null
+  columns: SqlColumn[] | typeof COLUMNS_NOT_LOADED
   comment?: string | null
 }
 

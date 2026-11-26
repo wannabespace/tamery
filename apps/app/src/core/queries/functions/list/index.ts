@@ -12,7 +12,10 @@ import {
   nullableString,
   oneOf,
 } from '~/core/queries/shared/catalog-fields'
-import { mssqlModuleParts } from '~/core/queries/shared/definition'
+import {
+  mssqlModuleParts,
+  UNREADABLE_BODY,
+} from '~/core/queries/shared/definition'
 import {
   connectionResourceToQueryParams,
   createQuery,
@@ -122,7 +125,7 @@ const resourceFunctionsQuery = createQuery({
 
         return {
           ...row,
-          body: module?.body ?? null,
+          body: module?.body ?? UNREADABLE_BODY,
           custom: mssqlHeaderOptions.test(
             (module?.header ?? '').replace(mssqlSchemaBindingOnly, '')
           ),

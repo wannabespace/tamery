@@ -12,7 +12,7 @@ import type {
 } from '@tamery/shared/enums/connection-type'
 import { noop } from '@tamery/shared/utils'
 import type { SqlCatalog } from '@tamery/sql'
-import { dialects, findTableWithSchema } from '@tamery/sql'
+import { COLUMNS_NOT_LOADED, dialects, findTableWithSchema } from '@tamery/sql'
 import { matchQuery } from '@tanstack/react-query'
 import type { editor } from 'monaco-editor'
 
@@ -65,7 +65,7 @@ const getSqlCatalog = (
               nullable: column.isNullable,
               // Postgres reports enum columns as `USER-DEFINED`; the label names the enum.
               type: column.typeLabel,
-            })) ?? null,
+            })) ?? COLUMNS_NOT_LOADED,
         comment: table.comment,
         kind: table.type,
         name: table.name,
@@ -88,7 +88,7 @@ const querySourceFor = (
     const current = catalog()
     return refs.flatMap((ref) => {
       const found = findTableWithSchema(current, ref.name, ref.schema)
-      return found?.table.columns === null
+      return found?.table.columns === COLUMNS_NOT_LOADED
         ? [
             resourceTableColumnsQueryOptions({
               connectionResource,
