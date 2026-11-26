@@ -1,4 +1,5 @@
 import {
+  AiChat02Icon,
   AppWindowIcon,
   ArrowDown02Icon,
   ArrowLeft02Icon,
@@ -59,6 +60,7 @@ import type { AppMenuNode } from '~/components/app-menu'
 import { SHORTCUTS } from '~/core/keyboard/shortcuts'
 
 export const sfSymbols = new Map<IconSvgElement, SFSymbol>([
+  [AiChat02Icon, 'bubble.left.and.text.bubble.right'],
   [AppWindowIcon, 'macwindow'],
   [ArrowDown02Icon, 'arrow.down'],
   [ArrowLeft02Icon, 'arrow.left'],
