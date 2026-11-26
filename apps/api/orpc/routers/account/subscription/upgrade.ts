@@ -1,9 +1,16 @@
 import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
 import { type } from 'arktype'
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 
-import { stripe, stripePrices } from '~/lib/stripe'
+import {
+  LOCK_TIMEOUT,
+  STRIPE_UNDER_LOCK,
+  stripe,
+  stripePrices,
+  timedOutUnderLock,
+} from '~/lib/stripe'
 import { getSubscription } from '~/lib/subscription'
 import { accountMiddleware, orpc } from '~/orpc'
 
@@ -26,10 +33,13 @@ export const upgrade = orpc
     CONFLICT: {
       message: 'You already have a plan. Change it in the billing portal.',
     },
+    GATEWAY_TIMEOUT: {
+      message: 'Checkout took too long to open. Try again in a moment.',
+    },
     INTERNAL_SERVER_ERROR: { message: 'Stripe is not configured' },
     NOT_FOUND: { message: 'User not found' },
   })
-  .handler(({ context, errors, input }) => {
+  .handler(async ({ context, errors, input }) => {
     const client = stripe
 
     if (!client) {
@@ -47,7 +57,9 @@ export const upgrade = orpc
     }
 
     // Serializes a user's checkouts, so two tabs cannot each open one and pay for two plans.
-    return db.transaction(async (tx) => {
+    const checkout = db.transaction(async (tx) => {
+      await tx.execute(LOCK_TIMEOUT)
+
       const [user] = await tx
         .select()
         .from(users)
@@ -68,24 +80,27 @@ export const upgrade = orpc
       let customerId = user.stripeCustomerId
 
       if (customerId) {
-        const open = await client.checkout.sessions.list({
-          customer: customerId,
-          status: 'open',
-        })
+        const open = await client.checkout.sessions.list(
+          { customer: customerId, status: 'open' },
+          STRIPE_UNDER_LOCK
+        )
 
         await Promise.all(
           open.data.map((session) =>
-            client.checkout.sessions.expire(session.id)
+            client.checkout.sessions.expire(session.id, {}, STRIPE_UNDER_LOCK)
           )
         )
       } else {
-        const customer = await client.customers.create({
-          email: user.email,
-          metadata: {
-            userId: user.id,
+        const customer = await client.customers.create(
+          {
+            email: user.email,
+            metadata: {
+              userId: user.id,
+            },
+            name: user.name,
           },
-          name: user.name,
-        })
+          STRIPE_UNDER_LOCK
+        )
         customerId = customer.id
 
         await tx
@@ -94,32 +109,35 @@ export const upgrade = orpc
           .where(eq(users.id, user.id))
       }
 
-      const session = await client.checkout.sessions.create({
-        cancel_url: cancelUrl,
-        customer: customerId,
-        line_items: [
-          {
-            price: priceId,
-            ...(plan === 'team'
-              ? {
-                  adjustable_quantity: { enabled: true, minimum: 1 },
-                  quantity: DEFAULT_TEAM_SEATS,
-                }
-              : { quantity: 1 }),
-          },
-        ],
-        metadata: {
-          userId: user.id,
-        },
-        mode: 'subscription',
-        subscription_data: {
+      const session = await client.checkout.sessions.create(
+        {
+          cancel_url: cancelUrl,
+          customer: customerId,
+          line_items: [
+            {
+              price: priceId,
+              ...(plan === 'team'
+                ? {
+                    adjustable_quantity: { enabled: true, minimum: 1 },
+                    quantity: DEFAULT_TEAM_SEATS,
+                  }
+                : { quantity: 1 }),
+            },
+          ],
           metadata: {
             userId: user.id,
           },
-          trial_period_days: 7,
+          mode: 'subscription',
+          subscription_data: {
+            metadata: {
+              userId: user.id,
+            },
+            trial_period_days: 7,
+          },
+          success_url: successUrl,
         },
-        success_url: successUrl,
-      })
+        STRIPE_UNDER_LOCK
+      )
 
       if (!session.url) {
         throw errors.INTERNAL_SERVER_ERROR({
@@ -129,4 +147,14 @@ export const upgrade = orpc
 
       return { url: session.url }
     })
+
+    const result = await Result.tryPromise(() => checkout)
+
+    if (result.isOk()) {
+      return result.value
+    }
+
+    const { cause } = result.error
+
+    throw timedOutUnderLock(cause) ? errors.GATEWAY_TIMEOUT() : cause
   })
