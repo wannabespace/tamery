@@ -56,7 +56,6 @@ export const authClient = createAuthClient({
     },
     onError({ error }) {
       if (error.status === 401 && !isAuthLocation()) {
-        // oxlint-disable-next-line no-use-before-define
         fullSignOut()
       }
     },

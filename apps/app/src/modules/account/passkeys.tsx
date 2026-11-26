@@ -1,8 +1,8 @@
 import type { Passkey } from '@better-auth/passkey/client'
-import { PASSKEY_ERROR_CODES } from '@better-auth/passkey/client'
 import { FingerPrintIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { WebAuthnErrorCode } from '@simplewebauthn/browser'
+import { isPasskeyPromptDismissed } from '@tamery/shared/passkey'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
 import { SettingsRow } from '@tamery/ui/components/custom/settings-group'
@@ -15,15 +15,6 @@ import { handleError } from '~/utils/error'
 import { BrowserMark, inBrowser } from './browser'
 import { PasskeyRow } from './passkey-row'
 import { SESSION_NOT_FRESH_CODE } from './session-not-fresh'
-
-// A dismissed or timed-out browser prompt reports NotAllowedError, which arrives as the passthrough code, not AUTH_CANCELLED.
-const PASSKEY_DISMISSED_CODES = new Set<string>([
-  PASSKEY_ERROR_CODES.AUTH_CANCELLED.code,
-  ...([
-    'ERROR_CEREMONY_ABORTED',
-    'ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY',
-  ] satisfies WebAuthnErrorCode[]),
-])
 
 const ALREADY_REGISTERED: WebAuthnErrorCode =
   'ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED'
@@ -51,7 +42,7 @@ export const Passkeys = ({
         toast.error(
           'This device or password manager already has a passkey for your account.'
         )
-      } else if (!(error.code && PASSKEY_DISMISSED_CODES.has(error.code))) {
+      } else if (!isPasskeyPromptDismissed(error)) {
         void handleError(error)
       }
     },

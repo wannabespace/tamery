@@ -12,6 +12,7 @@ import { type } from 'arktype'
 import { payForAi } from '~/lib/ai-key'
 import { chatCompaction } from '~/lib/chat-compaction'
 import { chatPersist } from '~/lib/chat-persist'
+import { chatSession } from '~/lib/chat-session'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 export const attachStream = orpc
@@ -81,7 +82,7 @@ export const attachStream = orpc
     const restarted = await chatStream.claim({
       ...pick,
       chatId: input.chatId,
-      connection: await chatPersist.connection({
+      connection: await chatSession.connection({
         connectionResourceId: owned.connectionResourceId,
         userId: context.user.id,
       }),

@@ -16,7 +16,7 @@ import { SubagentStrip } from './subagent-strip'
 import { SubagentDrawer } from './subagent-view'
 import { openSubagent, openSubagentStore } from './subagents-store'
 import type { ChatParams } from './tab'
-import { chatTabId, newChatTabId } from './tab'
+import { chatTab, chatTabId, newChatTabId } from './tab'
 import { useChatSession } from './use-chat-session'
 import { useSubagents } from './use-subagents'
 
@@ -76,36 +76,33 @@ const TabChat = ({
   )
 }
 
-const ChatTabContent = ({ params }: { id: string; params: ChatParams }) => {
+const ChatTabContent = ({ id, params }: { id: string; params: ChatParams }) => {
   const { connectionResource } = useTabContext()
-  const newChatId = useSubscription(newChatIdsValue, {
-    selector: (ids) => ids[connectionResource.id],
+  const chatId = useSubscription(newChatIdsValue, {
+    selector: () =>
+      chatTab.match(id, connectionResource.id)?.chatId ?? params.chatId,
   })
-  const chatId = params.chatId ?? newChatId
+  const isUnsentTab = id === newChatTabId
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col">
       <Suspense
         fallback={
-          params.chatId ? (
-            <ChatSkeleton />
-          ) : (
+          isUnsentTab ? (
             <ComposerStandIn
-              ref={adoptStandIn(
-                (chatId && chatDraftsValue.get()[chatId]?.text) ?? ''
-              )}
+              ref={adoptStandIn(chatDraftsValue.get()[chatId]?.text ?? '')}
             />
+          ) : (
+            <ChatSkeleton />
           )
         }
       >
-        {chatId && (
-          <TabChat
-            chatId={chatId}
-            connectionResourceId={connectionResource.id}
-            isUnsentTab={!params.chatId}
-            key={chatId}
-          />
-        )}
+        <TabChat
+          chatId={chatId}
+          connectionResourceId={connectionResource.id}
+          isUnsentTab={isUnsentTab}
+          key={chatId}
+        />
       </Suspense>
     </div>
   )

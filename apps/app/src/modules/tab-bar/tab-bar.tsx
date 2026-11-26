@@ -69,9 +69,11 @@ export const TabBar = ({ className }: { className?: string }) => {
 
   useEffect(() => {
     closeTabsEvent(
-      tabs.filter((tab) => !resolveTab(tab.id)).map((tab) => tab.id)
+      tabs
+        .filter((tab) => !resolveTab(tab.id, connectionResource.id))
+        .map((tab) => tab.id)
     )
-  }, [tabs])
+  }, [tabs, connectionResource.id])
 
   const closeDroppedTableTabsEvent = useEffectEvent(
     (existingTableTabIds: Set<string>) => {
@@ -112,6 +114,7 @@ export const TabBar = ({ className }: { className?: string }) => {
         ),
   })
   const labels = tabLabels(
+    connectionResource.id,
     tabs,
     new Map(
       chats.flatMap((chat) =>
@@ -155,7 +158,7 @@ export const TabBar = ({ className }: { className?: string }) => {
         />
         <Separator orientation="vertical" className="mx-0.5 h-4!" />
         <HistoryNav />
-        <TabRefresh tabId={activeTabId} />
+        <TabRefresh resourceId={connectionResource.id} tabId={activeTabId} />
       </div>
       {tabs.length > 0 ? (
         <ScrollArea

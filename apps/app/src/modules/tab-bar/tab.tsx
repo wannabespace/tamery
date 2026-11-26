@@ -59,7 +59,7 @@ export const Tab = ({
   const [contextMenuOpen, setContextMenuOpen] = useState(false)
   const [draft, setDraft] = useState<string | null>(null)
   const renameRef = useRef<HTMLInputElement>(null)
-  const resolved = resolveTab(tab.id)
+  const resolved = resolveTab(tab.id, connectionResource.id)
   const isPreview = !!tab.preview
   const isRenaming = draft !== null
 
@@ -77,7 +77,9 @@ export const Tab = ({
 
     const next = draft.trim()
     const isTitleRenamed =
-      !!next && next !== label && renameTabTitle(tab.id, next)
+      !!next &&
+      next !== label &&
+      renameTabTitle(connectionResource.id, tab.id, next)
 
     renameTab(
       connectionResource.id,

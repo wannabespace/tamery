@@ -48,7 +48,7 @@ export const removeTabs = (id: string, tabIds: string[]) => {
     } satisfies typeof state
   })
   for (const tabId of tabIds) {
-    resolveTab(tabId)?.kind.onClose?.(id, tabId)
+    resolveTab(tabId, id)?.kind.onClose?.(id, tabId)
   }
 }
 
@@ -98,8 +98,8 @@ export const replaceTabId = (id: string, from: string, to: string) => {
   setTabs(id, (tabs) =>
     tabs.map((tab) => (tab.id === from ? { ...tab, id: to } : tab))
   )
-  const renamed = resolveTab(from)
-  const target = resolveTab(to)
+  const renamed = resolveTab(from, id)
+  const target = resolveTab(to, id)
   if (renamed && target?.kind === renamed.kind) {
     renamed.kind.onRename?.(id, renamed.params, target.params)
   }
