@@ -302,6 +302,16 @@ export const isConnectionFailure = (message: string) =>
 export const diagnoseConnectionError = (
   context: DiagnosisContext
 ): Diagnosis | null => {
+  if (
+    !context.online &&
+    (context.parts.ssh || !isLocalHost(context.parts.host)) &&
+    NETWORK_RULES.some(({ match }) => match.test(context.message))
+  ) {
+    return {
+      hint: "This device isn't connected to the internet. Reconnect, then try again.",
+      title: "You're offline",
+    }
+  }
   const rule = RULES.find(
     ({ engine, match }) =>
       (!engine || engine === context.parts.type) && match.test(context.message)

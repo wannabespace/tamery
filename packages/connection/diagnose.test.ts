@@ -18,6 +18,7 @@ const diagnose = (message: string, overrides: Partial<ConnectionParts> = {}) =>
   diagnoseConnectionError({
     desktop: true,
     message,
+    online: true,
     parts: { ...parts, ...overrides },
   })
 
@@ -314,6 +315,29 @@ describe('diagnoseConnectionError', () => {
       hint: 'The web app reaches databases through a cloud proxy, which only connects to public hosts. Run this connection on a machine (Edit → Runs on), or open it in the desktop app.',
       title: "The web app can't reach a private host",
     })
+  })
+
+  it('blames a lost internet connection, not the host, while offline', () => {
+    const offline = { desktop: true, online: false, parts }
+    expect(
+      diagnoseConnectionError({
+        ...offline,
+        message: 'getaddrinfo ENOTFOUND db.acme.io',
+      })?.title
+    ).toBe("You're offline")
+    expect(
+      diagnoseConnectionError({
+        ...offline,
+        message: 'connect ECONNREFUSED 127.0.0.1:5432',
+        parts: { ...parts, host: 'localhost' },
+      })?.title
+    ).toBe("The database isn't running here")
+    expect(
+      diagnoseConnectionError({
+        ...offline,
+        message: 'role "me" does not exist',
+      })?.title
+    ).toBe('User "me" doesn\'t exist')
   })
 
   it('returns nothing for an error it does not know', () => {
