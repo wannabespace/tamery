@@ -4,6 +4,8 @@ import {
   Cancel01Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import type { ChatModelPick } from '@tamery/ai/models/list'
+import { AUTO_MODEL } from '@tamery/ai/models/list'
 import { matchesSearch } from '@tamery/shared/utils'
 import {
   Command,
@@ -51,16 +53,19 @@ const forget = (id: string) => {
   posthog.capture('ai_chat_recent_model_removed')
 }
 
-const choose = (id: string | null) => {
+const choose = (id: ChatModelPick) => {
   chatModelValue.set(id)
-  if (id) {
+  if (id !== AUTO_MODEL) {
     recentChatModelsValue.set((recent) =>
       [id, ...recent.filter((other) => other !== id)].slice(0, RECENT_LIMIT)
     )
   }
 }
 
-const setOption = (id: string, option: ChatModelOptions) => {
+const setOption = (
+  id: Exclude<ChatModelPick, typeof AUTO_MODEL>,
+  option: ChatModelOptions
+) => {
   chatModelOptionsValue.set((all) => ({
     ...all,
     [id]: { ...all[id], ...option },
@@ -89,13 +94,16 @@ export const ModelPicker = () => {
   const recent = recentIds.flatMap(
     (id) => models.find((model) => model.id === id) ?? []
   )
+  const recentRows = new Map(
+    recent.map((model) => [`recent:${model.id}`, model])
+  )
   const currentRow =
     current &&
     (recentIds.includes(current.id) ? `recent:${current.id}` : current.id)
-  const active = highlighted || currentRow || 'auto'
-  const activeModel = models.find(
-    (model) => model.id === active.replace(/^recent:/u, '')
-  )
+  const isUnavailable = !!data && picked !== AUTO_MODEL && !current
+  const active = highlighted || currentRow || AUTO_MODEL
+  const activeModel =
+    recentRows.get(active) ?? models.find((model) => model.id === active)
   const providers = [...new Set(models.map((model) => model.provider))]
 
   const optionsOf = (model: (typeof models)[number]) => ({
@@ -123,10 +131,10 @@ export const ModelPicker = () => {
     }
   }
 
-  const select = (id: string | null) => {
+  const select = (id: ChatModelPick) => {
     choose(id)
     setOpen(false)
-    posthog.capture('ai_chat_model_changed', { model: id ?? 'auto' })
+    posthog.capture('ai_chat_model_changed', { model: id })
   }
 
   // cmdk scrolls before a controlled value reaches the DOM, so it would bring the previous row into view; the row scrolls itself once highlighted.
@@ -185,7 +193,9 @@ export const ModelPicker = () => {
       >
         {current && <AiProviderIcon provider={current.provider} />}
         <span className="text-foreground truncate">
-          {current?.name ?? 'Auto model'}
+          {isUnavailable
+            ? 'Model unavailable'
+            : (current?.name ?? 'Auto model')}
         </span>
         <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} />
       </PopoverTrigger>
@@ -206,12 +216,12 @@ export const ModelPicker = () => {
               (event.key === 'Backspace' || event.key === 'Delete') &&
               !search &&
               activeModel &&
-              active.startsWith('recent:')
+              recentRows.has(active)
             ) {
               event.preventDefault()
               const index = recent.indexOf(activeModel)
               const neighbour = recent[index + 1] ?? recent[index - 1]
-              setHighlighted(neighbour ? `recent:${neighbour.id}` : 'auto')
+              setHighlighted(neighbour ? `recent:${neighbour.id}` : AUTO_MODEL)
               forget(activeModel.id)
             }
           }}
@@ -228,11 +238,11 @@ export const ModelPicker = () => {
             <ListEmpty icon={AiBrain01Icon}>No matching models</ListEmpty>
             <CommandGroup>
               <CommandItem
-                ref={rowRef('auto')}
-                value="auto"
+                ref={rowRef(AUTO_MODEL)}
+                value={AUTO_MODEL}
                 keywords={['Auto']}
-                data-checked={!current}
-                onSelect={() => select(null)}
+                data-checked={picked === AUTO_MODEL}
+                onSelect={() => select(AUTO_MODEL)}
               >
                 Auto
                 <span className="text-muted-foreground flex-1 truncate text-xs">

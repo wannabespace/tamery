@@ -9,10 +9,10 @@ import { queryClient } from '~/lib/query-client'
 
 const AGENT_STALE_TIME = 5000
 
-/** MCP leaves `resource` out, the chat's tools send null: both mean the connection's own database. */
+/** A null resource is the connection's own database. */
 export interface AgentTarget {
   connectionId: string
-  resource?: string | null
+  resource: string | null
 }
 
 export const fetchForAgent: typeof queryClient.query = (options) =>

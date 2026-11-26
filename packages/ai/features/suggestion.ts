@@ -22,7 +22,7 @@ const SUGGESTION_INSTRUCTIONS = [
 
 export const generateNextPrompt = async (data: {
   messages: AppUIMessage[]
-  key?: AiKey | null
+  key: AiKey | null
   telemetry?: TelemetryOptions
 }) => {
   const asked = data.messages.findLast((message) => message.role === 'user')

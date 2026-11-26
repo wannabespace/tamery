@@ -8,7 +8,7 @@ import { posthog } from '~/lib/posthog'
 interface Approval {
   connection: Connection
   decide: (approved: boolean) => void
-  estimate: number | null
+  estimate: { status: 'pending' } | { rows: number | null; status: 'done' }
   id: string
   kind: OperationKind
   resourceName: string | null
@@ -39,7 +39,9 @@ const request = async ({
     (rows) => {
       store.set(({ pending }) => ({
         pending: pending.map((item) =>
-          item.id === id ? { ...item, estimate: rows } : item
+          item.id === id
+            ? { ...item, estimate: { rows, status: 'done' } }
+            : item
         ),
       }))
       return rows
@@ -58,7 +60,7 @@ const request = async ({
       {
         connection,
         decide: decision.resolve,
-        estimate: null,
+        estimate: { status: 'pending' },
         id,
         kind,
         resourceName,

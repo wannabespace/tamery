@@ -20,12 +20,15 @@ const SUMMARY_REQUEST = [
 /** The messages the model still reads in full: those after the last compaction. */
 export const afterCompaction = (
   messages: AppUIMessage[],
-  compaction: ChatCompaction | null | undefined
+  compaction: ChatCompaction | null
 ) => {
-  const index = compaction
-    ? messages.findIndex(({ id }) => id === compaction.throughMessageId)
-    : -1
-  return messages.slice(index + 1)
+  if (!compaction) {
+    return messages
+  }
+  const index = messages.findIndex(
+    ({ id }) => id === compaction.throughMessageId
+  )
+  return index === -1 ? messages : messages.slice(index + 1)
 }
 
 export const needsCompaction = (messages: AppUIMessage[], window: number) =>
@@ -36,7 +39,7 @@ export const needsCompaction = (messages: AppUIMessage[], window: number) =>
 export const compactMessages = async (data: {
   messages: AppUIMessage[]
   previous?: string
-  key?: AiKey | null
+  key: AiKey | null
   telemetry?: TelemetryOptions
 }): Promise<ChatCompaction | null> => {
   const last = data.messages.at(-1)

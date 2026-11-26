@@ -3,8 +3,7 @@ import { isSqlRun, textFromMessage } from '@tamery/ai/message'
 import { AiFeature } from '@tamery/ai/usage'
 import { type } from 'arktype'
 
-import { aiKey } from '~/lib/ai-key'
-import { aiUsage } from '~/lib/ai-usage'
+import { aiKey, getAiPayer } from '~/lib/ai-key'
 import { chatPersist } from '~/lib/chat-persist'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
@@ -55,17 +54,16 @@ export const judgeStatement = orpc
       feature: AiFeature.ApprovalJudge,
       userId: context.user.id,
     }
-    const [key = null] = await aiKey.enabled(context.user.id)
+    const payer = getAiPayer(await aiKey.enabled(context.user.id))
     return judge({
       additive: input.additive,
       dialect: input.dialect,
-      key,
-      onJevUsage: (usage) =>
-        aiUsage.recordPriced({ ...scope, ownKey: !!key }, usage),
+      key: payer.key,
+      onJevUsage: payer.recordJev(scope),
       proposal,
       request,
       signal,
       statement: input.statement,
-      telemetry: aiUsage.telemetry({ ...scope, ownKey: !!key }),
+      telemetry: payer.telemetry(scope),
     })
   })

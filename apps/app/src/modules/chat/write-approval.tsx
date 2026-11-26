@@ -13,28 +13,28 @@ import { useEffect } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { agentDatabase } from '~/core/agent/database'
-import type { Connection } from '~/core/connection/sync'
 import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 import { plural } from '~/utils/plural'
 
 import { autoApprovalsStore, estimateKey } from './auto-approval'
 import type { ToolPartActions } from './chat-tool-types'
+import type { StatementSource } from './statement-card'
 import { approvalModeValue, hasDecidedChangeValue } from './stores'
 
 const AUTO_NOTES = { checking: 'Auto is checking', run: 'Auto is running it' }
 
 export const WriteApproval = ({
   auto,
-  connection,
   decideWrite,
   input,
+  source,
   toolCallId,
 }: {
   auto: NonNullable<ToolPartActions['decide']>['auto']
-  connection: Connection | undefined
   decideWrite: NonNullable<ToolPartActions['decide']>['write']
   input: ChatTools['execute']['input']
+  source: StatementSource
   toolCallId: string
 }) => {
   const { data: write } = useQuery({
@@ -51,7 +51,8 @@ export const WriteApproval = ({
   })
   const decision = {
     destructive,
-    dialect: connection ? getDialect(connection.type) : null,
+    dialect:
+      source.kind === 'connection' ? getDialect(source.connection.type) : null,
   }
   const estimate = useQuery({
     enabled: !!write,

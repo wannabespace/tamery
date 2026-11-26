@@ -7,7 +7,8 @@ CREATE TABLE "schema_notes" (
 	"note" text NOT NULL,
 	"schema" text,
 	"table" text,
-	"user_id" uuid NOT NULL
+	"user_id" uuid NOT NULL,
+	CONSTRAINT "schema_notes_column_needs_table" CHECK ("column" IS NULL OR "table" IS NOT NULL)
 );
 --> statement-breakpoint
 CREATE INDEX "schema_notes_connection_resource_id_index" ON "schema_notes" ("connection_resource_id");--> statement-breakpoint
