@@ -3,7 +3,6 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import type { GridHeaderProps } from '@tamery/table'
 import { ARIA_SORT, isHeaderPress } from '@tamery/table'
 import { Button } from '@tamery/ui/components/button'
-import { ResizeHandle } from '@tamery/ui/components/custom/resize-handle'
 import { cn } from '@tamery/ui/lib/utils'
 import type { RefObject } from 'react'
 import { useRef } from 'react'
@@ -13,6 +12,7 @@ import { AppContextMenu, AppMenuButton } from '~/components/app-context-menu'
 /* oxlint-disable jsx-a11y/prefer-tag-over-role -- a virtualized flex grid cannot be built from table elements */
 import { useObjectNames } from '~/core/catalog/names'
 import type { Column } from '~/core/table/cell/utils'
+import { ColumnResizeHandle } from '~/core/table/column-resize-handle'
 import { useGridCursorContext } from '~/core/table/cursor'
 import {
   labelCandidates,
@@ -25,8 +25,6 @@ import { columnMenuItems } from '../../lib/column-menu'
 import { getLabelColumn } from '../../lib/labels'
 import { columnLayout, columnsOrder, useTablePageStore } from '../../lib/store'
 import { ColumnHeading } from './column-type'
-
-const MIN_WIDTH = 100
 
 const useColumnMenu = (
   column: Column,
@@ -84,7 +82,6 @@ export const TableHeaderCell = ({
 }: ColumnActions & { column: Column; header: GridHeaderProps }) => {
   const names = useObjectNames()
   const ref = useRef<HTMLDivElement>(null)
-  const width = useRef(0)
   const pressClosedEditor = useRef(false)
   const cursor = useGridCursorContext()
   const { cycleOrder, items, layout, order } = useColumnMenu(
@@ -141,28 +138,13 @@ export const TableHeaderCell = ({
         contentProps={{ align: 'end', className: 'min-w-52' }}
         render={<Button variant="ghost" size="icon-xs" tabIndex={-1} />}
       />
-      <ResizeHandle
-        aria-label={`Resize ${column.id} ${names.column}`}
-        min={MIN_WIDTH}
-        className={cn(
-          'absolute inset-y-0 right-0 z-10 flex w-3 justify-end',
-          isDragging && 'hidden'
-        )}
-        getValue={() => ref.current?.getBoundingClientRect().width ?? 0}
-        onResize={(next) => {
-          width.current = next
-          setWidth(next)
-        }}
-        onResizingChange={(resizing) => {
-          if (!resizing && width.current) {
-            layout.resize(column.id, width.current)
-          }
-          width.current = 0
-        }}
-        onDoubleClick={() => layout.resetSize(column.id)}
-      >
-        <span className="bg-foreground/20 group-hover/resize-handle:bg-primary group-data-resizing/resize-handle:bg-primary w-0.5 opacity-0 transition-opacity group-hover/header:opacity-100 group-data-resizing/resize-handle:opacity-100" />
-      </ResizeHandle>
+      <ColumnResizeHandle
+        hidden={isDragging}
+        label={`Resize ${column.id} ${names.column}`}
+        setWidth={setWidth}
+        onResize={(width) => layout.resize(column.id, width)}
+        onReset={() => layout.resetSize(column.id)}
+      />
     </AppContextMenu>
   )
 }
