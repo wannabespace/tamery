@@ -60,7 +60,7 @@ export const authClient = createAuthClient({
         fullSignOut()
       }
     },
-    // Turning two-factor on or off replaces the session, and the bearer plugin sends the new token only in this header.
+    // The signed token rides only in this header: a sign-in's body carries the raw one, and turning two-factor on or off replaces the session.
     onSuccess({ response }) {
       const token = response.headers.get('set-auth-token')
 

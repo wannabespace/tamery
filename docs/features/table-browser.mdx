@@ -49,7 +49,7 @@ To ask the [AI assistant](/features/ai-assistant) about a row, right-click it an
 - **Fill Down** copies the top value of a selection into the cells below it.
 - **Set Null** clears a value to `NULL`.
 
-Without a primary key, Tamery finds a row by a unique key with no nullable columns, or else by its values. When an edit or delete would reach more rows than you picked, it tells you how many first. Adding rows still needs a primary key, and generated columns are read-only.
+Without a primary key, Tamery finds a row by a unique key with no nullable columns, or else by its values. On MySQL and MariaDB that lookup leaves out FLOAT and JSON columns, whose values never compare equal to what the table shows, and Distinct Values is not offered for them. When an edit or delete would reach more rows than you picked, it tells you how many first, and when no row has those values anymore, it blocks the delete instead of reporting one. Adding rows still needs a primary key, and generated columns are read-only.
 
 Changing filters or sorting clears drafted cell edits, so save them first. If you forget, undo brings them back. New rows you have not saved yet stay.
 

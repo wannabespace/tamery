@@ -8,17 +8,19 @@ import { getStripeCustomerId, stripe, stripePrices } from '~/lib/stripe'
 import { getSubscription, tamerySubscriptions } from '~/lib/subscription'
 import { accountMiddleware, orpc } from '~/orpc'
 
+import { billingDestination } from './billing-destination'
+
 const DEFAULT_TEAM_SEATS = 2
 
 export const upgrade = orpc
   .use(accountMiddleware)
   .input(
     type({
-      cancelUrl: 'string',
+      cancelUrl: billingDestination,
       isYearly: 'boolean?',
       plan: '"pro" | "team" = "pro"',
       returnUrl: 'string',
-      successUrl: 'string',
+      successUrl: billingDestination,
     })
   )
   .errors({

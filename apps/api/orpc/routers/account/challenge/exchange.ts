@@ -5,6 +5,7 @@ import { CLIENT_IP_HEADER } from '@tamery/shared/constants'
 import { decrypt, encrypt } from '@tamery/shared/crypto-node'
 import { sanitizeLogData } from '@tamery/shared/sanitize-log'
 import { type } from 'arktype'
+import { makeSignature } from 'better-auth/crypto'
 import { eq } from 'drizzle-orm'
 
 import { auth, sendNewSignInEmail } from '~/lib/auth'
@@ -118,5 +119,8 @@ export const exchange = orpc
       challengeDeviceRedis.delete(input.codeChallenge),
       sendNewSignInEmail({ ...session, newUser: data.newUser }),
     ])
-    return { newUser: data.newUser, token: session.token }
+    return {
+      newUser: data.newUser,
+      token: `${session.token}.${await makeSignature(session.token, context.secret)}`,
+    }
   })

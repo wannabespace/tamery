@@ -14,7 +14,7 @@ Object.assign(process.env, {
   BETTER_AUTH_SECRET: 'better-auth-secret-at-least-32-chars',
   CONTEXT7_API_KEY: 'test',
   DATABASE_URL: 'postgres://test@127.0.0.1:1/test',
-  ENCRYPTION_SECRET: 'test',
+  ENCRYPTION_SECRET: 'test-encryption-secret-of-32-chars',
   EXA_API_KEY: 'test',
   GITHUB_CLIENT_ID: 'test',
   GITHUB_CLIENT_SECRET: 'test',
@@ -42,7 +42,7 @@ Object.assign(process.env, {
   STRIPE_TEAM_MONTH_PRICE_ID: 'price_team_month',
   STRIPE_WEBHOOK_SECRET,
   TODESKTOP_WEBHOOK_SECRET,
-  USER_KEY_SECRET: 'test',
+  USER_KEY_SECRET: 'test-user-key-secret-of-32-chars',
 })
 
 const redisClient = {

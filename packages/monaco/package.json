@@ -5,7 +5,8 @@
   "exports": {
     "./editor": "./src/editor.tsx",
     "./monaco.css": "./src/monaco.css",
-    "./query-language": "./src/query-language/index.ts"
+    "./query-language": "./src/query-language/index.ts",
+    "./vite": "./src/vite.ts"
   },
   "scripts": {
     "check-types": "bun check",

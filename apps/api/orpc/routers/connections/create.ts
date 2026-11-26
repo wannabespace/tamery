@@ -19,7 +19,7 @@ export const create = orpc
   .use(permissionsMiddleware)
   .input(
     connectionsInsertSchema
-      .omit('userId', 'workspaceId')
+      .omit('userId', 'workspaceId', 'updatedAt')
       .merge(type({ id: 'string.uuid.v7', 'workspaceId?': 'string | null' }))
   )
   .errors({
@@ -71,4 +71,5 @@ export const create = orpc
         value: inserted,
       })
     }
+    return inserted
   })

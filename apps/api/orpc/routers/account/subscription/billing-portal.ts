@@ -8,12 +8,14 @@ import { stripe } from '~/lib/stripe'
 import { getSubscription } from '~/lib/subscription'
 import { authMiddleware, orpc } from '~/orpc'
 
+import { billingDestination } from './billing-destination'
+
 export const billingPortal = orpc
   .use(authMiddleware)
   .input(
     type({
       'changePlan?': 'boolean',
-      returnUrl: 'string',
+      returnUrl: billingDestination,
     })
   )
   .errors({

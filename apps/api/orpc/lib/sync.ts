@@ -59,8 +59,9 @@ export const syncDiff = async <TItem extends { id: string }>(opts: {
   const changedIds = versions
     .filter(({ id, updatedAt }) => {
       const known = clientVersions.get(id)
-      // Both sides hold the millisecond Date the driver read, so any slack added here hides edits made inside it.
-      return !known || updatedAt.getTime() > known.getTime()
+      // A device reports the server's own millisecond stamp, so any difference is a change, an older one included:
+      // ordering or slack here hides edits.
+      return !known || updatedAt.getTime() !== known.getTime()
     })
     .map(({ id }) => id)
   const changed =

@@ -62,12 +62,13 @@ export default defineConfig(({ command, mode }) => ({
           ),
         },
       },
+      // A sandboxed preload cannot be an ES module or require anything but `electron`, so it is one CommonJS file.
       preload: {
         input: 'src/preload/preload.ts',
         vite: {
           build: {
             minify: false,
-            rolldownOptions,
+            rolldownOptions: { output: { entryFileNames: '[name].cjs' } },
           },
         },
       },

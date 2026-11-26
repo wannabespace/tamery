@@ -1,10 +1,16 @@
 import { expect, mock, spyOn, test } from 'bun:test'
+import process from 'node:process'
 
 import { logDriverError } from '@tamery/shared/sanitize-log'
 import { Pool } from 'pg'
 
 import { SSH_ELSEWHERE } from '../../../ssh/params'
 import { getPool } from './client'
+import { query } from './index'
+
+const DATABASE_URL =
+  process.env.TEST_DATABASE_URL ??
+  'postgres://postgres:postgres@localhost:5432/postgres'
 
 test('both the TLS pool and its plaintext fallback handle idle-client errors', async () => {
   const logging = spyOn(console, 'error').mockImplementation(mock())
@@ -68,3 +74,17 @@ test('an SSH string reaches no driver unless the desktop app opens its tunnel', 
     connect.mockRestore()
   }
 })
+
+test('a query queued behind one running past the connect timeout still runs', async () => {
+  const long = query.execute({
+    connectionString: DATABASE_URL,
+    query: 'select pg_sleep(35)',
+  })
+  await Bun.sleep(500)
+  const queued = await query.execute({
+    connectionString: DATABASE_URL,
+    query: 'select 1 as one',
+  })
+  expect(queued.result[0]?.rows).toStrictEqual([[1]])
+  await long
+}, 45_000)

@@ -19,7 +19,7 @@ export type QueryCursor = AggregationCursor<Document> | FindCursor<Document>
 
 export interface Run<Target> {
   args: unknown[]
-  options: { comment?: string; session?: ClientSession }
+  options: { comment?: string; promoteValues: boolean; session?: ClientSession }
   read: (cursor: QueryCursor) => Promise<ResultSet>
   rows: (docs: Document[]) => ResultSet
   target: Target

@@ -99,9 +99,6 @@ const init = async () => {
     // Autocapture's `$el_text` would carry connection, table and column names.
     mask_all_text: true,
     session_recording: {
-      // The grid and the visualizer canvas replace thousands of nodes at a time, and serialising each one blocks the window
-      // for seconds on large tables; replays show them as empty boxes. Sync the grid's class with `grid-scroller.tsx`.
-      blockSelector: '.table-scroller, .react-flow__viewport',
       maskAllInputs: true,
       maskTextSelector: '[data-mask]',
       // Pinned off: the project's own network-capture setting would otherwise record bodies, and `connections.resolve`

@@ -5,7 +5,7 @@ import type { QueryExecutor } from '../..'
 import { handleQueryError } from '../..'
 import { cancel } from '../../cancellation'
 import { registerTransaction, transactionQueries } from '../../transactions'
-import { getPool, pg } from './client'
+import { getPool, TimedClient } from './client'
 import { runOn, TRANSACTION_STATUS } from './run'
 
 const register = (
@@ -97,7 +97,7 @@ export const query = {
 
   openSession: handleQueryError(async ({ connectionString, ownerId }) => {
     const pool = await getPool(connectionString)
-    const client = new pg.Client(pool.options)
+    const client = new TimedClient(pool.options)
     await client.connect()
     // An unhandled `error` (the server dropping the connection) would crash the process.
     client.on('error', logDriverError)

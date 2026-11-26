@@ -72,6 +72,8 @@ export interface ColumnTypeCapabilities {
   id: string
   // ORDER BY, GROUP BY or COUNT(DISTINCT) reject these; Distinct Values also skips `bytes`.
   incomparable: RegExp | null
+  // Sortable, but `col = value` misses the value they read back as, so row identity and Distinct Values leave them out.
+  inexact: RegExp | null
   // Edited as JSON text; ClickHouse reads its composite types back as JSON too.
   json: RegExp
   // ClickHouse refuses Nullable() around these, so Allow NULL is off and locked for them.

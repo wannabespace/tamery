@@ -9,7 +9,7 @@ import { publisher } from './events'
 
 export const create = orpc
   .use(authMiddleware)
-  .input(schemaNotesInsertSchema.omit('userId'))
+  .input(schemaNotesInsertSchema.omit('userId', 'updatedAt'))
   .errors({
     NOT_FOUND: { message: 'Connection resource not found' },
   })
@@ -41,4 +41,5 @@ export const create = orpc
         value: inserted,
       })
     }
+    return inserted
   })

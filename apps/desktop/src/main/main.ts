@@ -144,8 +144,8 @@ export const createWindow = (route?: string) => {
       visualEffectState: 'active',
     }),
     webPreferences: {
-      preload: path.join(import.meta.dirname, './preload.mjs'),
-      sandbox: false,
+      preload: path.join(import.meta.dirname, './preload.cjs'),
+      sandbox: true,
     },
   })
 

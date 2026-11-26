@@ -35,4 +35,5 @@ export const update = orpc
     }
 
     publisher.publish(context.user.id, { type: 'update', value: updated })
+    return updated
   })
