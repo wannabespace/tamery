@@ -77,7 +77,7 @@ export const useRunsOnOptions = (
   return options.length > 1 ? options : []
 }
 
-export const useConnectionRunsOnOptions = (connectionId: string) =>
+export const useConnectionRunsOnOptions = (connectionId: string | null) =>
   useRunsOnOptions(
     useConnectionRunsOn(connectionId),
     useIsReachableFromWeb(connectionId)
