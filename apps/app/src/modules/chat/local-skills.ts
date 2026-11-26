@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useLocalMachine } from '~/core/local-machine'
 import { useConnectionRunsOn } from '~/core/runtime/machine/pairing'
 
-/** The user's skills on the computer a connection runs on, for the `/` menu. */
+/** The user's skills on the computer a connection runs on, for the `/` menu; `outdatedOn` names a machine whose CLI predates skills. */
 export const useLocalSkills = (connectionId: string) => {
   const machine = useLocalMachine(useConnectionRunsOn(connectionId))
   const { data = null } = useQuery({
@@ -12,5 +12,8 @@ export const useLocalSkills = (connectionId: string) => {
     queryKey: [...(machine?.queryKey ?? []), 'skills'],
     staleTime: 30_000,
   })
-  return data?.state === 'listed' ? data.skills : []
+  return {
+    outdatedOn: data?.state === 'outdated' ? (machine?.name ?? null) : null,
+    skills: data?.state === 'listed' ? data.skills : [],
+  }
 }

@@ -210,7 +210,7 @@ export const usePromptMentions = ({
           type: connections.type,
         })),
   })
-  const skills = useLocalSkills(connection.id)
+  const { outdatedOn, skills } = useLocalSkills(connection.id)
   const { data: catalog } = useQuery(
     resourceTablesAndSchemasQueryOptions({ connectionResource })
   )
@@ -364,7 +364,8 @@ export const usePromptMentions = ({
   }
   const suggestions = listed()
 
-  const isOpen = !!trigger && suggestions.length > 0
+  const skillsOutdatedOn = trigger?.char === '/' ? outdatedOn : null
+  const isOpen = !!trigger && (suggestions.length > 0 || !!skillsOutdatedOn)
   const active =
     suggestions.find(({ id }) => id === highlighted) ?? suggestions[0]
 
@@ -441,10 +442,8 @@ export const usePromptMentions = ({
         expanded
       ) {
         collapse()
-      } else if (event.key === 'Enter' || event.key === 'Tab') {
-        if (active) {
-          pick(active)
-        }
+      } else if ((event.key === 'Enter' || event.key === 'Tab') && active) {
+        pick(active)
       } else if (event.key === 'Escape') {
         setDismissed(value)
       } else {
@@ -467,6 +466,8 @@ export const usePromptMentions = ({
       )
     },
     setHighlighted,
+    /** The machine whose CLI predates skills, while `/` is open on it. */
+    skillsOutdatedOn,
     suggestions,
   }
 }
