@@ -114,4 +114,13 @@ describe('confinement', () => {
   ])('%s opens: %p', (connectionString, opens) => {
     expect(confinement.getRefusal(connectionString) === null).toBe(opens)
   })
+
+  test.each([
+    ['postgres://me@localhost:5432/app', true],
+    ['postgres://me@[::1]:5432/app', true],
+    ['postgres://me@localhost.:5432/app', false],
+    ['postgres://me@db.acme.io:5432/app', false],
+  ])('%s takes a found password: %p', (connectionString, allowed) => {
+    expect(confinement.allowsFoundPassword(connectionString)).toBe(allowed)
+  })
 })

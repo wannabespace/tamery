@@ -165,16 +165,16 @@ const PRIVATE_NAME =
   /\.(?:internal|local|lan|svc|cluster\.local|corp|intranet|home\.arpa|ts\.net)$/iu
 
 const MAPPED_IPV4 =
-  /^::ffff:(?:(?<dotted>\d{1,3}(?:\.\d{1,3}){3})|(?<high>[\da-f]{1,4}):(?<low>[\da-f]{1,4}))$/u
+  /^(?:::|(?:0{1,4}:){5})ffff:(?:(?<dotted>\d{1,3}(?:\.\d{1,3}){3})|(?<high>[\da-f]{1,4}):(?<low>[\da-f]{1,4}))$/u
 
 const BYTE = 256
 
+const unbracket = (host: string) =>
+  host.toLowerCase().replace(/^\[(?<address>.*)\]$/u, '$<address>')
+
 /** A resolver ignores a name's root dot, and an IPv4-mapped IPv6 address reaches that IPv4 address, which URL parsing spells as hex groups (`[::ffff:7f00:1]`). */
 const normalizeHost = (host: string) => {
-  const name = host
-    .toLowerCase()
-    .replace(/^\[(?<address>.*)\]$/u, '$<address>')
-    .replace(/\.$/u, '')
+  const name = unbracket(host).replace(/\.$/u, '')
   const mapped = MAPPED_IPV4.exec(name)?.groups
   if (!mapped?.high || !mapped.low) {
     return mapped?.dotted ?? name
@@ -203,8 +203,12 @@ const isServiceName = (name: string) =>
 
 export const isLocalHost = (host: string) => isLocalName(normalizeHost(host))
 
+/** Gates what a request may reach, so it reads the host as written: rows stored before a spelling was normalized, and installed CLIs, classify it this way too. */
+export const isLiteralLocalHost = (host: string) => isLocalName(unbracket(host))
+
+/** Literal like `isLiteralLocalHost`: the transport and the stored `isInternal` must agree. */
 export const isInternalHost = (host: string) => {
-  const name = normalizeHost(host)
+  const name = unbracket(host)
   return isLocalName(name) || isPrivateName(name) || isServiceName(name)
 }
 

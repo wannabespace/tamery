@@ -392,6 +392,7 @@ describe('diagnoseConnectionError', () => {
       ['a public SSH host that timed out', 'bastion.acme.io', true],
       ['a private SSH host that timed out', '10.0.0.20', false],
       ['an SSH config alias that timed out', 'bastion', false],
+      ['an expanded mapped loopback', '0:0:0:0:0:ffff:7f00:1', false],
     ])('for %s says offline: %p', (_, host, offline) => {
       expect(
         diagnoseOffline(tunnelError(SSH_HOST_TIMEOUT).message, {
@@ -402,6 +403,8 @@ describe('diagnoseConnectionError', () => {
 
     it.each([
       "Can't reach the SSH host: ECONNREFUSED",
+      "Can't reach the SSH host at bastion.internal: ENOTFOUND",
+      'Timed out connecting to the SSH host at bastion.acme.io',
       "The SSH host can't resolve timeout, and your SSH user can't run docker there to look for a container of that name. Add the user to the docker group.",
     ])('keeps the SSH host the device reached to blame for %s', (message) => {
       expect(
@@ -421,13 +424,25 @@ describe('diagnoseConnectionError', () => {
       )
     })
 
-    it('blames the lost connection for a D1 request that found no DNS', () => {
+    it.each(['Fetch failed: ENOTFOUND', 'Fetch failed', 'fetch failed'])(
+      'blames the lost connection for a D1 request that failed with %p',
+      (message) => {
+        expect(
+          diagnoseOffline(
+            message,
+            connectionParts.parse('d1://acc:tok@api.cloudflare.com/db-id')
+          )
+        ).toBe("You're offline")
+      }
+    )
+
+    it('never sends an online D1 failure to the host rules', () => {
       expect(
-        diagnoseOffline(
-          'fetch failed: getaddrinfo ENOTFOUND api.cloudflare.com',
+        diagnose(
+          'Fetch failed: ENOTFOUND',
           connectionParts.parse('d1://acc:tok@api.cloudflare.com/db-id')
-        )
-      ).toBe("You're offline")
+        )?.title
+      ).toBe("Couldn't reach Cloudflare's API")
     })
 
     it.each([
@@ -457,6 +472,14 @@ describe('diagnoseConnectionError', () => {
     expect(adviseRetry(OFFLINE_DIAGNOSIS, false)).toBe(OFFLINE_DIAGNOSIS)
     const hostNotFound = diagnose('getaddrinfo ENOTFOUND db.acme.io')
     expect(adviseRetry(hostNotFound, false)).toBe(hostNotFound)
+  })
+
+  it('reads the offline flag, not the title, of a cached diagnosis', () => {
+    expect(adviseRetry(structuredClone(OFFLINE_DIAGNOSIS), true)?.title).toBe(
+      'This failed while you were offline'
+    )
+    const sameTitle = { hint: '', title: OFFLINE_DIAGNOSIS.title }
+    expect(adviseRetry(sameTitle, true)).toBe(sameTitle)
   })
 
   it('returns nothing for an error it does not know', () => {

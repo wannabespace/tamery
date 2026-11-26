@@ -1,16 +1,24 @@
 import { beforeEach, expect, mock, test } from 'bun:test'
 
 import { ORPCError } from '@orpc/client'
+import { PROXY_ERROR_MESSAGE } from '@tamery/shared/constants'
 import { noop } from '@tamery/shared/utils'
 import { QueryObserver } from '@tanstack/react-query'
 
 const capture = mock()
 const network = { online: true }
+const SECRET = 'hunter2'
+const stored = {
+  connectionString: `postgres://me:pw@db.acme.io/app?sslpassword=${SECRET}`,
+}
 
 mock.module('~/lib/posthog', () => ({ posthog: { capture } }))
 mock.module('~/core/collections', () => ({
-  getCollections: () => ({}),
-  useCollections: () => ({}),
+  getCollections: () => ({
+    connectionStringsCollection: {
+      utils: { decrypt: () => Promise.resolve(stored.connectionString) },
+    },
+  }),
 }))
 mock.module('~/store', () => ({ useIsOnline: () => network.online }))
 Object.assign(globalThis, { window: {} })
@@ -19,20 +27,19 @@ Object.defineProperty(globalThis.navigator, 'onLine', {
   get: () => network.online,
 })
 
-const { diagnosisQueryOptions } = await import('./diagnosis')
+const { diagnosisQueryOptions, reportConnectionFailure } =
+  await import('./diagnosis')
 const { failedAttempt } = await import('~/lib/failed-attempt')
 const { queryClient } = await import('~/lib/query-client')
 
-const SECRET = 'hunter2'
-const decrypt = () =>
-  Promise.resolve(`postgres://me:pw@db.acme.io/app?sslpassword=${SECRET}`)
 const SSL_REQUIRED = 'no pg_hba.conf entry for host "1.2.3.4", no encryption'
 
 const diagnose = (error: Error) =>
-  queryClient.fetchQuery(diagnosisQueryOptions('connection', error, decrypt))
+  queryClient.fetchQuery(diagnosisQueryOptions('connection', error))
 
 beforeEach(() => {
   network.online = true
+  stored.connectionString = `postgres://me:pw@db.acme.io/app?sslpassword=${SECRET}`
   capture.mockClear()
   queryClient.clear()
 })
@@ -54,12 +61,13 @@ test('caches only the title and hint, keyed by the attempt instead of its messag
   expect(cached).not.toContain(error.message)
 })
 
-test('counts each failed attempt once, however often it is read', async () => {
+test('counts each failed statement once, with no diagnosis read', () => {
   const first = new Error('connect ETIMEDOUT 34.1.2.3:5432')
-  await diagnose(first)
-  queryClient.clear()
-  await diagnose(first)
-  await diagnose(new Error(first.message))
+  reportConnectionFailure(first, stored.connectionString)
+  reportConnectionFailure(first, stored.connectionString)
+  reportConnectionFailure(new Error(first.message), stored.connectionString)
+  reportConnectionFailure(new Error('syntax error at or near "selec"'), '')
+  reportConnectionFailure('a string', stored.connectionString)
 
   expect(capture).toHaveBeenCalledTimes(2)
   expect(capture.mock.calls[0]).toEqual([
@@ -68,16 +76,36 @@ test('counts each failed attempt once, however often it is read', async () => {
   ])
 })
 
+test('labels a cloud proxy failure', () => {
+  reportConnectionFailure(
+    new Error(PROXY_ERROR_MESSAGE),
+    stored.connectionString
+  )
+
+  expect(capture.mock.calls[0]?.[1]).toMatchObject({ error_code: 'proxy' })
+})
+
+test.each([
+  ['a driver-derived title', 'database "hunter2" does not exist'],
+  ['an SSH hint', 'SSH tunnel: SSH connection failed: bad key hunter2'],
+])('caches %s without the secret it echoes', async (_, message) => {
+  stored.connectionString = `postgres://me:${SECRET}@db.acme.io/app?ssh_host=b.acme.io&ssh_password=${SECRET}`
+  const diagnosis = await diagnose(new Error(message))
+
+  expect(diagnosis).not.toBeNull()
+  expect(JSON.stringify(diagnosis)).not.toContain(SECRET)
+})
+
 test("never shows another attempt's diagnosis while a new one loads", async () => {
   const previous = new Error(SSL_REQUIRED)
   await diagnose(previous)
   const observer = new QueryObserver(
     queryClient,
-    diagnosisQueryOptions('connection', previous, decrypt)
+    diagnosisQueryOptions('connection', previous)
   )
   const unsubscribe = observer.subscribe(noop)
   observer.setOptions(
-    diagnosisQueryOptions('connection', new Error(SSL_REQUIRED), decrypt)
+    diagnosisQueryOptions('connection', new Error(SSL_REQUIRED))
   )
 
   expect(observer.getCurrentResult().data).toBeUndefined()
@@ -106,4 +134,21 @@ test('a failure the cloud proxy answered with never reads as offline', async () 
       })
     )
   ).toMatchObject({ title: 'Host not found' })
+})
+
+test('a rejection that is not an Error keeps its reason', async () => {
+  await expect(
+    queryClient.fetchQuery({
+      // oxlint-disable-next-line eslint/prefer-promise-reject-errors -- the hooks must survive a reason that is not an Error
+      queryFn: () => Promise.reject('x'),
+      queryKey: ['primitive'],
+    })
+  ).rejects.toBe('x')
+  await expect(
+    queryClient
+      .getMutationCache()
+      // oxlint-disable-next-line eslint/prefer-promise-reject-errors -- as above
+      .build(queryClient, { mutationFn: () => Promise.reject('y') })
+      .execute(undefined)
+  ).rejects.toBe('y')
 })

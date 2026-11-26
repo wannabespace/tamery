@@ -17,6 +17,8 @@ export interface Diagnosis {
   fix?: { label: string; patch: ConnectionPatch }
   focus?: 'database' | 'password' | 'user' | (typeof SSH_FIELD_AT_FAULT)[string]
   hint: string
+  /** Only on `OFFLINE_DIAGNOSIS`, so a cached copy still tells `adviseRetry` what it is. */
+  offline?: true
   title: string
 }
 

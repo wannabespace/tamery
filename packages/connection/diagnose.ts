@@ -1,3 +1,4 @@
+import { PROXY_ERROR_MESSAGE } from '@tamery/shared/constants'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 
 import type { ConnectionParts } from './connection-parts'
@@ -304,6 +305,10 @@ const RULES: DiagnosisRule[] = [
 export const isConnectionFailure = (message: string) =>
   RULES.some(({ match }) => match.test(message))
 
+/** A connection failure like any other on screen, but the cloud proxy's own outage, so error tracking keeps it and a tab keeps it to itself. */
+export const isProxyFailure = (message: string) =>
+  message.includes(PROXY_ERROR_MESSAGE)
+
 // Only these session outcomes mean this device never reached the SSH host; a refusal came from a host it did reach, and everything after the session opened ran on the bastion.
 const SSH_HOST_LOST = new RegExp(
   `^${RegExp.escape(SSH_TUNNEL_ERROR)}(?:${RegExp.escape(SSH_HOST_TIMEOUT)}|${RegExp.escape(SSH_HOST_UNREACHABLE)}(?:ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ENETUNREACH|EHOSTUNREACH))$`,
@@ -326,6 +331,7 @@ const isLostWithNetwork = (
 }
 
 export const OFFLINE_DIAGNOSIS: Diagnosis = {
+  offline: true,
   hint: "This device isn't connected to the internet. Reconnect, then try again.",
   title: "You're offline",
 }
@@ -337,9 +343,7 @@ const RECONNECTED_DIAGNOSIS: Diagnosis = {
 
 /** A diagnosis belongs to the attempt that failed; the network since then only says whether to try again. */
 export const adviseRetry = (diagnosis: Diagnosis | null, online: boolean) =>
-  online && diagnosis?.title === OFFLINE_DIAGNOSIS.title
-    ? RECONNECTED_DIAGNOSIS
-    : diagnosis
+  online && diagnosis?.offline ? RECONNECTED_DIAGNOSIS : diagnosis
 
 export const diagnoseConnectionError = (
   context: DiagnosisContext
