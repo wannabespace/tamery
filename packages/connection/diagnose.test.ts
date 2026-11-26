@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
+import { PROXY_ERROR_MESSAGE } from '@tamery/shared/constants'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 
 import type { ConnectionParts } from './connection-parts'
@@ -313,6 +314,13 @@ describe('diagnoseConnectionError', () => {
     expect(diagnose(PRIVATE_HOST_MESSAGE, { password: '' })).toStrictEqual({
       hint: 'The web app reaches databases through a cloud proxy, which only connects to public hosts. Run this connection on a machine (Edit → Runs on), or open it in the desktop app.',
       title: "The web app can't reach a private host",
+    })
+  })
+
+  it('points a desktop at Runs on when Tamery Cloud does not answer', () => {
+    expect(diagnose(PROXY_ERROR_MESSAGE, { password: '' })).toStrictEqual({
+      hint: 'Its proxy did not answer. Try again, or set Runs on to This computer to query it from here.',
+      title: "Tamery Cloud isn't answering",
     })
   })
 
