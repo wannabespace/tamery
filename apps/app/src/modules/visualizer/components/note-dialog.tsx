@@ -24,8 +24,6 @@ import type { SchemaNote } from '~/core/schema-notes/sync'
 
 import type { DiagramTable } from '../lib/schema'
 
-const TABLE_TARGET = ''
-
 /** Adds a note to the table or one of its columns, or edits or deletes an existing one; remounted per open, so its fields start from `editing`. */
 export const NoteDialogContent = ({
   editing,
@@ -37,9 +35,13 @@ export const NoteDialogContent = ({
   table: DiagramTable
 }) => {
   const { connectionResource } = useConnectionContext()
-  const [column, setColumn] = useState(editing?.column ?? TABLE_TARGET)
+  const [column, setColumn] = useState(editing?.column ?? null)
   const [text, setText] = useState(editing?.note ?? '')
   const kept = text.trim()
+  const targets = [
+    { label: `The ${table.kind} itself`, value: null },
+    ...table.columns.map(({ id, name }) => ({ label: name, value: id })),
+  ]
 
   const save = () => {
     if (editing) {
@@ -47,7 +49,7 @@ export const NoteDialogContent = ({
     } else {
       schemaNotes.add(
         {
-          column: column || null,
+          column,
           connectionResourceId: connectionResource.id,
           note: kept,
           schema: table.schema,
@@ -71,14 +73,12 @@ export const NoteDialogContent = ({
       {!editing && (
         <Field>
           <FieldLabel htmlFor="note-dialog-target">About</FieldLabel>
-          <Select value={column} onValueChange={(v) => setColumn(v ?? '')}>
+          <Select items={targets} value={column} onValueChange={setColumn}>
             <SelectTrigger id="note-dialog-target" data-mask className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent data-mask>
-              <SelectItem value={TABLE_TARGET}>
-                The {table.kind} itself
-              </SelectItem>
+              <SelectItem value={null}>The {table.kind} itself</SelectItem>
               {table.columns.map((entry) => (
                 <SelectItem key={entry.id} value={entry.id}>
                   {entry.name}

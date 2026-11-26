@@ -7,7 +7,7 @@ import { AI_KEY_PROVIDERS, getDictationModel } from '@tamery/shared/ai-key'
 import type { LanguageModel, Tool, ToolSet, TranscriptionModel } from 'ai'
 import { generateText } from 'ai'
 
-import type { ChatModelId } from './list'
+import type { ChatModelId, ChatRouting } from './list'
 import { chatModel, chatModels, models, openRouterModels } from './list'
 
 /** A user's own provider key, decrypted for one call. */
@@ -24,13 +24,12 @@ export type Dictation =
   | { kind: 'transcription'; model: TranscriptionModel }
 
 interface ProviderModels {
-  /** Takes a chat model's OpenRouter id; `fast` only reaches OpenRouter. */
-  chat: (id: ChatModelId, fast: boolean, auto: boolean) => LanguageModel
+  /** Takes a chat model's OpenRouter id; the routing only reaches OpenRouter. */
+  chat: (id: ChatModelId, routing: ChatRouting) => LanguageModel
   /** Takes an id from the provider's dictation models (`getDictationModels`). */
   dictation: ((id: string) => Dictation) | null
   models: FixedModels
-  /** `null` on OpenRouter, whose search is a server tool `searchWeb` asks for in its provider options. */
-  webSearch: Tool | null
+  webSearch: { kind: 'tool'; tool: Tool } | { kind: 'openrouter-server-tool' }
 }
 
 const bareId = (id: string) => id.replace(/^~?[^/]+\//u, '')
@@ -46,7 +45,7 @@ const anthropicModels = (apiKey: string): ProviderModels => {
       search: anthropic('claude-haiku-5-5'),
       summary: anthropic('claude-sonnet-5-5'),
     },
-    webSearch: anthropic.tools.webSearch_20260318(),
+    webSearch: { kind: 'tool', tool: anthropic.tools.webSearch_20260318() },
   }
 }
 
@@ -60,7 +59,7 @@ const googleModels = (apiKey: string): ProviderModels => {
       search: google('gemini-3.8-flash'),
       summary: google('gemini-3.8-flash'),
     },
-    webSearch: google.tools.googleSearch({}),
+    webSearch: { kind: 'tool', tool: google.tools.googleSearch({}) },
   }
 }
 
@@ -77,7 +76,7 @@ const openaiModels = (apiKey: string): ProviderModels => {
       search: openai('gpt-6.1-terra'),
       summary: openai('gpt-6.1-terra'),
     },
-    webSearch: openai.tools.webSearch(),
+    webSearch: { kind: 'tool', tool: openai.tools.webSearch() },
   }
 }
 
@@ -86,7 +85,7 @@ const userOpenRouterModels = (apiKey: string): ProviderModels => {
   return {
     ...openRouterModels(openrouter),
     dictation: (id) => ({ kind: 'prompt', model: openrouter(id) }),
-    webSearch: null,
+    webSearch: { kind: 'openrouter-server-tool' },
   }
 }
 
@@ -117,18 +116,18 @@ export const chatModelsFor = (keys: AiKey[]) =>
     : chatModels
 
 /** The chat's helper models (titles, suggestions, compaction, web search, dictation) on the user's key; Tamery's otherwise. */
-export const modelsFor = (key?: AiKey | null): FixedModels =>
+export const modelsFor = (key: AiKey | null): FixedModels =>
   key ? providerModels[key.provider](key.key).models : models
 
 /** Only an OpenRouter account has cross-provider fallbacks and `:nitro` routing. */
 export const chatModelFor = (
   id: ChatModelId,
-  { auto, fast }: { auto: boolean; fast: boolean },
-  key?: AiKey | null
+  routing: ChatRouting,
+  key: AiKey | null
 ) =>
   key
-    ? providerModels[key.provider](key.key).chat(id, fast, auto)
-    : chatModel(id, fast, auto)
+    ? providerModels[key.provider](key.key).chat(id, routing)
+    : chatModel(id, routing)
 
 /** How a call dictates: on Tamery's model without a key, else on the pick of the keys' models; null when none of their providers takes audio. */
 export const dictationFor = (
@@ -152,10 +151,10 @@ export const dictationFor = (
 }
 
 export const ownKeyWebSearchTools = (
-  key?: AiKey | null
+  key: AiKey | null
 ): ToolSet | undefined => {
   const webSearch = key && providerModels[key.provider](key.key).webSearch
-  return webSearch ? { web_search: webSearch } : undefined
+  return webSearch?.kind === 'tool' ? { web_search: webSearch.tool } : undefined
 }
 
 /** Throws when the provider refuses the key; a one-token call on the user's bill. */

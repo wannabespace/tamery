@@ -2,10 +2,11 @@ import { type } from 'arktype'
 
 import type { AppUIMessage } from '../message'
 import { textFromMessage } from '../message'
-import type { ChatEffort, ChatModelId } from '../models/list'
+import type { ChatEffort, ChatModelId, ChatModelPick } from '../models/list'
 import {
   AUTO_CHAT_EFFORTS,
   AUTO_CHAT_MODELS,
+  AUTO_MODEL,
   DEFAULT_CHAT_EFFORT,
   DEFAULT_CHAT_MODEL,
 } from '../models/list'
@@ -68,24 +69,26 @@ interface ChatPick {
   model: ChatModelId
 }
 
-/** The user's pick, or Auto's when they picked none or one no longer offered. A picked model runs on the key that serves it, Auto on the first key. On a provider's own key Auto is that provider's model at the default effort, since Jev runs only on OpenRouter; otherwise it has Jev rate each new user turn and keeps a turn's tool steps on the model and effort that started it. The effort follows each turn's own rating, but a chat never steps down a model tier: a lighter model would read the whole history again without the previous model's prompt cache. */
+/** The user's pick, Auto's when they picked Auto, or null when no key serves the picked model. A picked model runs on the key that serves it, Auto on the first key. On a provider's own key Auto is that provider's model at the default effort, since Jev runs only on OpenRouter; otherwise it has Jev rate each new user turn and keeps a turn's tool steps on the model and effort that started it. The effort follows each turn's own rating, but a chat never steps down a model tier: a lighter model would read the whole history again without the previous model's prompt cache. */
 export const pickChatModel = async (data: {
   effort?: ChatEffort
   keys: AiKey[]
   messages: AppUIMessage[]
-  model?: string
+  model: ChatModelPick
   onJevUsage: (usage: JevUsage) => Promise<void>
-}): Promise<ChatPick> => {
-  const picked = chatModelsFor(data.keys).find(
-    (model) => model.id === data.model
-  )
-  if (picked) {
-    return {
-      auto: false,
-      effort: data.effort ?? DEFAULT_CHAT_EFFORT,
-      key: chatKeyFor(data.keys, picked),
-      model: picked.id,
-    }
+}): Promise<ChatPick | null> => {
+  if (data.model !== AUTO_MODEL) {
+    const picked = chatModelsFor(data.keys).find(
+      (model) => model.id === data.model
+    )
+    return picked
+      ? {
+          auto: false,
+          effort: data.effort ?? DEFAULT_CHAT_EFFORT,
+          key: chatKeyFor(data.keys, picked),
+          model: picked.id,
+        }
+      : null
   }
   const [key = null] = data.keys
   if (key && key.provider !== 'openrouter') {

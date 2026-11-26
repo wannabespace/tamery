@@ -1,4 +1,5 @@
-import { formatSchemaNotes } from '@tamery/ai/schema-notes'
+import type { SchemaNoteText } from '@tamery/ai/schema-notes'
+import { formatSchemaNotes, getNoteScope } from '@tamery/ai/schema-notes'
 import { v7 } from 'uuid'
 
 import { getCollections, mutateOffline } from '~/core/collections'
@@ -11,17 +12,24 @@ type NoteTarget = Pick<
   'column' | 'connectionResourceId' | 'schema' | 'table'
 >
 
-const getKind = ({ column, table }: Pick<SchemaNote, 'column' | 'table'>) => {
-  if (column) {
-    return 'column'
+/** `table.column` or `table`; null for a note on the whole database. */
+export const getNoteLabel = (target: Omit<SchemaNoteText, 'note'>) => {
+  const scope = getNoteScope(target)
+  if (scope.kind === 'database') {
+    return null
   }
-  return table ? 'table' : 'database'
+  return scope.kind === 'column'
+    ? `${scope.table}.${scope.column}`
+    : scope.table
 }
 
 /** Every write to the user's schema notes, each tracked with what it is about and where it came from. */
 export const schemaNotes = {
   add: (target: NoteTarget & { note: string }, source: 'agent' | 'manual') => {
-    posthog.capture('schema_note_added', { kind: getKind(target), source })
+    posthog.capture('schema_note_added', {
+      kind: getNoteScope(target).kind,
+      source,
+    })
     return mutateOffline(() =>
       getCollections().schemaNotesCollection.insert({
         ...target,
@@ -32,7 +40,7 @@ export const schemaNotes = {
     )
   },
   edit: (note: SchemaNote, text: string) => {
-    posthog.capture('schema_note_edited', { kind: getKind(note) })
+    posthog.capture('schema_note_edited', { kind: getNoteScope(note).kind })
     return mutateOffline(() =>
       getCollections().schemaNotesCollection.update(note.id, (draft) => {
         draft.note = text
@@ -53,7 +61,7 @@ export const schemaNotes = {
       .filter(Boolean)
       .join('\n\n'),
   remove: (note: SchemaNote) => {
-    posthog.capture('schema_note_removed', { kind: getKind(note) })
+    posthog.capture('schema_note_removed', { kind: getNoteScope(note).kind })
     return mutateOffline(() =>
       getCollections().schemaNotesCollection.delete(note.id)
     )

@@ -137,7 +137,7 @@ export interface ChatStepInput {
   fast?: boolean
   /** A subagent's chat: told to report back, and offered every tool but `ask_user` and `spawn_agent`. */
   isSubagent?: boolean
-  key?: AiKey | null
+  key: AiKey | null
   /** The compacted start of the chat; `messages` then holds only what came after it. */
   summary?: string
   connection: ChatConnection
