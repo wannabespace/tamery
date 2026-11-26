@@ -23,25 +23,12 @@ mock.module('@tamery/db', () => ({
 }))
 mock.module('@tamery/db/schema', () => ({
   chats: {},
-  chatsMessages: {},
-  chatsMessagesParts: {},
   schemaNotes: {},
 }))
-mock.module('@tamery/ai/features', () => ({
-  afterCompaction: mock(),
-  compactMessages: mock(),
-  generateChatTitle: mock(),
-  generateNextPrompt: mock(),
-}))
-mock.module('~/lib/attachments', () => ({ attachments: {} }))
 mock.module('~/lib/workspace', () => ({ inMemberWorkspace: () => null }))
 mock.module('~/orpc/routers/chats/events', () => ({ publisher: {} }))
-mock.module('~/orpc/routers/chats-messages/events', () => ({ publisher: {} }))
-mock.module('~/orpc/routers/chats-messages-parts/events', () => ({
-  publisher: {},
-}))
 
-const { chatPersist } = await import('./chat-persist')
+const { chatSession } = await import('./chat-session')
 
 const session = {
   chatId: 'chat',
@@ -52,7 +39,7 @@ const session = {
 test('a concurrent chat insert requires a matching owner and resource', async () => {
   findFirst.mockResolvedValue(undefined)
 
-  await expect(chatPersist.ensureChat(session)).rejects.toMatchObject({
+  await expect(chatSession.ensureChat(session)).rejects.toMatchObject({
     code: 'NOT_FOUND',
   })
   expect(findFirst).toHaveBeenCalledTimes(2)
@@ -71,7 +58,7 @@ test('a concurrent insert for the same chat returns the stored metadata', async 
     .mockResolvedValueOnce(undefined)
     .mockResolvedValueOnce({ parentChatId: 'parent', title: 'Stored title' })
 
-  await expect(chatPersist.ensureChat(session)).resolves.toMatchObject({
+  await expect(chatSession.ensureChat(session)).resolves.toMatchObject({
     isSubagent: true,
     title: 'Stored title',
   })
