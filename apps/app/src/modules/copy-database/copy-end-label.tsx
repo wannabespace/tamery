@@ -1,7 +1,10 @@
 import { canQueryConnection } from '~/core/connection/fetching'
 import { ResourceLabel } from '~/core/connection/resource-label'
 import type { Connection, ConnectionResource } from '~/core/connection/sync'
-import { getConnectionRunsOn } from '~/core/runtime/machine/pairing'
+import {
+  getConnectionRunsOn,
+  THIS_COMPUTER,
+} from '~/core/runtime/machine/pairing'
 
 export interface CopyEnd {
   connection: Connection
@@ -10,7 +13,8 @@ export interface CopyEnd {
 
 /** The copy runs this computer's `pg_dump` and `psql`, so both ends must run here: elsewhere `localhost` is another server. */
 export const canCopyHere = ({ connection }: CopyEnd) =>
-  canQueryConnection(connection) && getConnectionRunsOn(connection.id) === null
+  canQueryConnection(connection) &&
+  getConnectionRunsOn(connection.id) === THIS_COMPUTER
 
 export const ConnectionNameLabel = ({
   connection,

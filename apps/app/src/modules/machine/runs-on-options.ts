@@ -8,6 +8,7 @@ import type { RunsOn } from '~/core/runtime/machine/pairing'
 import {
   CLOUD,
   machinePairings,
+  THIS_COMPUTER,
   useConnectionRunsOn,
   useMachineRouteById,
   useMachines,
@@ -30,15 +31,11 @@ const CLOUD_PLACE = {
   label: 'Tamery Cloud',
 }
 
-const HERE = window.electron
-  ? {
-      description: 'The desktop app on this computer.',
-      icon: ComputerIcon,
-      label: 'This computer',
-    }
-  : CLOUD_PLACE
-
-export const HERE_VALUE = 'here'
+const THIS_COMPUTER_PLACE = {
+  description: 'The desktop app on this computer.',
+  icon: ComputerIcon,
+  label: 'This computer',
+}
 
 /** Where a connection can run for this user; empty while there is only one place. */
 export const useRunsOnOptions = (
@@ -51,10 +48,11 @@ export const useRunsOnOptions = (
   const route = useMachineRouteById(runsOn)
   const isRemoved =
     !!route && !machines.some(({ id }) => id === route.machineId)
-  const offersCloud =
-    !!window.electron && (isReachableFromWeb || runsOn === CLOUD)
+  const offersCloud = !window.electron || isReachableFromWeb || runsOn === CLOUD
   const options = [
-    { ...HERE, value: null },
+    ...(window.electron
+      ? [{ ...THIS_COMPUTER_PLACE, value: THIS_COMPUTER }]
+      : []),
     ...(offersCloud ? [{ ...CLOUD_PLACE, value: CLOUD }] : []),
     ...machines.map(({ id, name }) => ({
       description: pairings[id]
@@ -84,10 +82,9 @@ export const useConnectionRunsOnOptions = (connectionId: string) =>
     useIsReachableFromWeb(connectionId)
   )
 
-export const pickRunsOn = (connectionId: string, value: string) => {
-  const picked = value === HERE_VALUE ? null : value
-  writeRunsOn(connectionId, picked)
-  connectPickedMachine(picked)
+export const pickRunsOn = (connectionId: string, runsOn: RunsOn) => {
+  writeRunsOn(connectionId, runsOn)
+  connectPickedMachine(runsOn)
 }
 
 /** Per user, so a workspace member who cannot edit the connection still picks where it runs for them. */
@@ -105,10 +102,10 @@ export const useRunsOnMenu = (connectionId: string): AppMenuNode | null => {
         options: options.map(({ icon, label, value }) => ({
           icon,
           label,
-          value: value ?? HERE_VALUE,
+          value,
         })),
         type: 'radio',
-        value: runsOn ?? HERE_VALUE,
+        value: runsOn,
       },
     ],
     label: 'Runs on',
