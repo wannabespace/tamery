@@ -12,7 +12,9 @@ import {
   CancelSquareIcon,
   ChartHistogramIcon,
   CheckmarkSquare02Icon,
+  CloudIcon,
   CodeIcon,
+  ComputerIcon,
   Copy01Icon,
   Copy02Icon,
   Csv01Icon,
@@ -56,7 +58,7 @@ import type {
 import type { AppMenuNode } from '~/components/app-menu'
 import { SHORTCUTS } from '~/core/keyboard/shortcuts'
 
-const sfSymbols = new Map<IconSvgElement, SFSymbol>([
+export const sfSymbols = new Map<IconSvgElement, SFSymbol>([
   [AppWindowIcon, 'macwindow'],
   [ArrowDown02Icon, 'arrow.down'],
   [ArrowLeft02Icon, 'arrow.left'],
@@ -70,7 +72,9 @@ const sfSymbols = new Map<IconSvgElement, SFSymbol>([
   [CancelSquareIcon, 'xmark.square'],
   [ChartHistogramIcon, 'chart.bar'],
   [CheckmarkSquare02Icon, 'checkmark.square'],
+  [CloudIcon, 'cloud'],
   [CodeIcon, 'curlybraces'],
+  [ComputerIcon, 'desktopcomputer'],
   [Copy01Icon, 'doc.on.doc'],
   [Copy02Icon, 'plus.square.on.square'],
   [Csv01Icon, 'tablecells'],
