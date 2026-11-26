@@ -15,7 +15,6 @@ import { posthog } from '~/lib/posthog'
 
 import type { ChatToolPart } from './chat-tool-types'
 
-// Transcripts keep a tool's output as JSON, and an older one may lack a field, so each view reads only what it draws.
 const describedTable = type({
   columns: type({
     name: 'string',

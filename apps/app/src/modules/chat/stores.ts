@@ -11,13 +11,11 @@ import { CHAT_DRAFTS_KEY, CHAT_NEW_IDS_KEY } from '~/lib/constants'
 
 import type { PromptMention } from './prompt-mentions'
 
-/** The model the chat answers with, or Auto, which the API picks per message. Earlier builds stored Auto as null; a model no longer offered reads as Auto. */
+/** The model the chat answers with, or Auto, which the API picks per message; a model no longer offered reads as Auto. */
 export const chatModelValue = createWebStorageValue({
   defaultValue: AUTO_MODEL as ChatModelPick,
   key: 'chat-model',
-  schema: type('null')
-    .pipe((): ChatModelPick => AUTO_MODEL)
-    .or(chatModelPick),
+  schema: chatModelPick,
   type: 'localStorage',
 })
 
