@@ -80,9 +80,10 @@ export const connectSsh = async (
   let refusal: string | undefined
   let verifiedKey: Buffer | undefined
   let answered = false
+  const kind = getHostKind(host)
   const failure = () => ({
     host,
-    lost: !answered && getHostKind(host) === 'public',
+    lost: !answered && (kind === 'public' || kind === 'ipv6-only'),
   })
   let readyTimer: ReturnType<typeof setTimeout> | undefined
   const startReadyTimer = () => {

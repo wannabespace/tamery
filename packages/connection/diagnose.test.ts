@@ -392,6 +392,7 @@ describe('diagnoseConnectionError', () => {
       ['a public SSH host that timed out', 'bastion.acme.io', true],
       ['a private SSH host that timed out', '10.0.0.20', false],
       ['an SSH config alias that timed out', 'bastion', true],
+      ['an IPv6-only SSH host that timed out', 'db.abc.supabase.co', true],
       ['an expanded mapped loopback', '0:0:0:0:0:ffff:7f00:1', false],
     ])('for %s says offline: %p', (_, host, offline) => {
       expect(
