@@ -1,6 +1,7 @@
 import type { Dialect } from '@tamery/shared/enums/connection-type'
 import { omit } from '@tamery/shared/utils'
 import { valueToText } from '@tamery/shared/value-text'
+import type { ColumnAlign } from '@tamery/ui/components/response'
 import { useState } from 'react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
@@ -40,7 +41,7 @@ export const ResultsTable = ({
   dialect,
   resizable,
 }: {
-  aligns?: Column['align'][]
+  aligns?: ColumnAlign[]
   columns: string[]
   rows: Record<string, unknown>[]
   dialect: Dialect
@@ -52,11 +53,14 @@ export const ResultsTable = ({
   return (
     <DataGrid
       rows={rows}
-      columns={columns.map((id, index): Column => ({
-        align: aligns?.[index],
-        id,
-        uiType: 'raw',
-      }))}
+      columns={columns.map((id, index): Column => {
+        const align = aligns?.[index]
+        return {
+          align: align === 'start' ? undefined : align,
+          id,
+          uiType: 'raw',
+        }
+      })}
       dialect={dialect}
       getSize={(column) =>
         widths[column.id] ??

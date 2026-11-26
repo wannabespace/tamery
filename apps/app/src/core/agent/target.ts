@@ -9,10 +9,11 @@ import { queryClient } from '~/lib/query-client'
 
 const AGENT_STALE_TIME = 5000
 
-/** A null resource is the connection's own database. */
+export const OWN_DATABASE = null
+
 export interface AgentTarget {
   connectionId: string
-  resource: string | null
+  resource: string | typeof OWN_DATABASE
 }
 
 export const fetchForAgent: typeof queryClient.query = (options) =>
@@ -58,7 +59,10 @@ export const resolveTarget = ({
     throw new Error(reason ?? `Open "${connection.name}" in Tamery first.`)
   }
 
-  const name = resourceName ?? connectionString?.defaultResourceName ?? null
+  const name =
+    resourceName === OWN_DATABASE
+      ? (connectionString?.defaultResourceName ?? null)
+      : resourceName
   const resource = connectionsResourcesCollection.toArray.find(
     (item) => item.connectionId === connectionId && item.name === name
   )

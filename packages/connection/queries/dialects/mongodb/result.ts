@@ -1,7 +1,7 @@
 import type { Document } from 'mongodb'
 
 import type { ResultSet } from '../..'
-import { resultSet } from '../..'
+import { NO_ROW_COUNT, resultSet } from '../..'
 import { mongodb } from './client'
 
 const { Double, EJSON, Long } = mongodb.BSON
@@ -35,7 +35,7 @@ const toWire = (value: unknown) =>
   EJSON.serialize({ value: keepTypes(value) }, { relaxed: true }).value
 
 export const value = (column: string, result: unknown): ResultSet => ({
-  affectedRows: null,
+  affectedRows: NO_ROW_COUNT,
   columns: [column],
   rows: [[toWire(result)]],
   truncated: false,
@@ -50,7 +50,7 @@ export const affected = (count: number): ResultSet => ({
 })
 
 export const FINISHED: ResultSet = {
-  affectedRows: null,
+  affectedRows: NO_ROW_COUNT,
   columns: [],
   rows: [],
   truncated: false,
@@ -60,7 +60,7 @@ export const rowsOf = (docs: Document[], maxRows: number): ResultSet => {
   const columns = [...new Set(docs.flatMap((doc) => Object.keys(doc)))]
   return resultSet(
     {
-      affectedRows: null,
+      affectedRows: NO_ROW_COUNT,
       columns,
       rows: docs.map((doc) => columns.map((column) => toWire(doc[column]))),
     },

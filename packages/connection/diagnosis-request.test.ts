@@ -64,6 +64,27 @@ describe('getDiagnosisRequest', () => {
     ).toBe('auth failed: <password>, <ssh-password> and <ssh-passphrase>')
   })
 
+  it('redacts the SSH host ~/.ssh/config resolved an alias to', () => {
+    const ssh = { ...EMPTY_SSH_TUNNEL, host: 'bastion', user: 'deploy' }
+    expect([
+      request(
+        "SSH tunnel: Can't reach the SSH host at bastion.corp.io: ECONNREFUSED",
+        { ssh, user: 'admin' }
+      ).error,
+      request("SSH tunnel: Can't reach the SSH host at fe80::1: ECONNRESET", {
+        ssh,
+      }).error,
+      request(
+        'SSH tunnel: Timed out connecting to the SSH host at bastion.corp.io',
+        { ssh, user: 'admin' }
+      ).error,
+    ]).toStrictEqual([
+      "SSH tunnel: Can't reach the SSH host at <ssh-host>: ECONNREFUSED",
+      "SSH tunnel: Can't reach the SSH host at <ssh-host>: ECONNRESET",
+      'SSH tunnel: Timed out connecting to the SSH host at <ssh-host>',
+    ])
+  })
+
   it('keeps only option values that name nothing', () => {
     expect(
       request('timeout', {

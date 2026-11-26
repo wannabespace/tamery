@@ -1,4 +1,5 @@
 import type { AiKey } from '@tamery/ai/models'
+import { TAMERY_ACCOUNT } from '@tamery/ai/models'
 import type { AiUsageScope } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { aiKeys } from '@tamery/db/schema'
@@ -48,18 +49,22 @@ export const aiKey = {
     db.update(aiKeys).set({ enabled }).where(ofProvider(userId, provider)),
 }
 
-/** Who pays for a call: the user's own keys, else Tamery. `key` is the first of them, which the chat's helper calls run on, null on Tamery's account. A call on a key is recorded as `ownKey`, so AI usage shows it while it never counts toward the budget or spends credits. */
+/** Who pays for a call: the user's own keys, else Tamery. `key` is the first of them, which the chat's helper calls run on. A call on a key is recorded as `ownKey`, so AI usage shows it while it never counts toward the budget or spends credits. */
 export const getAiPayer = (keys: AiKey[]) => {
-  const [key = null] = keys
-  const scoped = (scope: AiUsageScope) => ({ ...scope, ownKey: key !== null })
+  const [key = TAMERY_ACCOUNT] = keys
+  const scoped = (scope: Omit<AiUsageScope, 'ownKey'>) => ({
+    ...scope,
+    ownKey: key !== TAMERY_ACCOUNT,
+  })
   return {
     key,
     keys,
     recordJev:
-      (scope: AiUsageScope) =>
+      (scope: Omit<AiUsageScope, 'ownKey'>) =>
       (usage: Parameters<typeof aiUsage.recordPriced>[1]) =>
         aiUsage.recordPriced(scoped(scope), usage),
-    telemetry: (scope: AiUsageScope) => aiUsage.telemetry(scoped(scope)),
+    telemetry: (scope: Omit<AiUsageScope, 'ownKey'>) =>
+      aiUsage.telemetry(scoped(scope)),
   }
 }
 

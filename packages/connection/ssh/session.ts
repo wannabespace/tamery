@@ -14,7 +14,9 @@ import type { SshTunnel } from './params'
 import {
   SSH_AUTH_ERRORS,
   SSH_HOST_TIMEOUT,
+  SSH_HOST_TIMEOUT_AT,
   SSH_HOST_UNREACHABLE,
+  SSH_HOST_UNREACHABLE_AT,
   tunnelError,
 } from './params'
 
@@ -38,15 +40,13 @@ const sshErrorMessage = (
     return AGENT_UNAVAILABLE
   }
   if (error.level === 'client-timeout' || hasErrnoCode(error, 'ETIMEDOUT')) {
-    return lost
-      ? SSH_HOST_TIMEOUT
-      : `Timed out connecting to the SSH host at ${host}`
+    return lost ? SSH_HOST_TIMEOUT : `${SSH_HOST_TIMEOUT_AT}${host}`
   }
   if (error.level === 'client-socket') {
     const code = error.code ?? 'connection failed'
     return lost
       ? `${SSH_HOST_UNREACHABLE}${code}`
-      : `Can't reach the SSH host at ${host}: ${code}`
+      : `${SSH_HOST_UNREACHABLE_AT}${host}: ${code}`
   }
   return `SSH connection failed: ${error.message}`
 }

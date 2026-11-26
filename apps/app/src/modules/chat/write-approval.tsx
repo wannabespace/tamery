@@ -84,7 +84,7 @@ export const WriteApproval = ({
 
   const hint = [
     note,
-    typeof estimate.data === 'number' && `~${plural(estimate.data, 'row')}`,
+    estimate.data?.kind === 'rows' && `~${plural(estimate.data.rows, 'row')}`,
     !isAuto && !hasDecided && 'Changes wait for Run unless Auto is on',
   ]
     .filter(Boolean)

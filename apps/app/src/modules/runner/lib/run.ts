@@ -1,3 +1,4 @@
+import type { Dialect } from '@tamery/shared/enums/connection-type'
 import { silently, toError } from '@tamery/shared/utils'
 import { queryOptions, skipToken } from '@tanstack/react-query'
 import { Result } from 'better-result'
@@ -161,7 +162,7 @@ const captureQueryRun = ({
   statements,
   stopped,
 }: {
-  dialect: string | undefined
+  dialect?: Dialect
   failed: boolean
   ran: { duration: number }[]
   results: RunnerResult[]

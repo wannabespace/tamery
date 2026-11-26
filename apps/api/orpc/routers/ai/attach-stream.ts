@@ -21,6 +21,7 @@ export const attachStream = orpc
   .input(
     type({
       chatId: 'string.uuid.v7',
+      'agent?': 'true',
       'context?': 'number.integer > 0',
       'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
       'fast?': 'boolean',
@@ -81,6 +82,7 @@ export const attachStream = orpc
 
     const restarted = await chatStream.claim({
       ...pick,
+      agent: input.agent ?? false,
       chatId: input.chatId,
       connection: await chatSession.connection({
         connectionResourceId: owned.connectionResourceId,

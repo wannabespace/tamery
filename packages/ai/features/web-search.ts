@@ -2,7 +2,7 @@ import type { TelemetryOptions } from 'ai'
 import { generateText } from 'ai'
 import { decodeHTML } from 'entities'
 
-import type { AiKey } from '../models/own-key'
+import type { PayingKey } from '../models/own-key'
 import { modelsFor, ownKeyWebSearchTools } from '../models/own-key'
 
 const MAX_SOURCES = 8
@@ -43,7 +43,7 @@ const openPage = async (page: { title: string | null; url: string }) => {
 
 /** Answers one question from a live web search, with the pages it read. */
 export const searchWeb = async (data: {
-  key: AiKey | null
+  key: PayingKey
   query: string
   signal?: AbortSignal
   telemetry?: TelemetryOptions

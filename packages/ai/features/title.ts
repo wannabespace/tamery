@@ -3,7 +3,7 @@ import { generateText } from 'ai'
 
 import type { AppUIMessage } from '../message'
 import { textFromMessage } from '../message'
-import type { AiKey } from '../models/own-key'
+import type { PayingKey } from '../models/own-key'
 import { modelsFor } from '../models/own-key'
 import { section } from './prompt'
 
@@ -19,7 +19,7 @@ const TITLE_INSTRUCTIONS = [
 export const generateChatTitle = async (data: {
   messages: AppUIMessage[]
   signal?: AbortSignal
-  key: AiKey | null
+  key: PayingKey
   telemetry?: TelemetryOptions
 }) => {
   const prompt =

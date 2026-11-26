@@ -1,6 +1,6 @@
 import { omit } from '@tamery/shared/utils'
 
-import { connectionParts } from '../connection-parts'
+import { connectionParts, HTTPS_FROM_PORT } from '../connection-parts'
 import { mergeParts } from '../guess/parts'
 import { connectionSecrets } from '../secrets'
 import { dataGrip } from './datagrip'
@@ -32,7 +32,7 @@ const FINDERS: Finder[] = [
 const NO_PARTS = {
   database: '',
   host: '',
-  https: null,
+  https: HTTPS_FROM_PORT,
   options: '',
   password: '',
   port: '',

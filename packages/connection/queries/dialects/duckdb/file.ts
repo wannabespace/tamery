@@ -13,7 +13,7 @@ import {
 import { memoize } from 'memoza'
 
 import type { ResultSet, RunOptions, TransactionStatus } from '../..'
-import { resultSet } from '../..'
+import { NO_ROW_COUNT, resultSet } from '../..'
 import { cancellable } from '../../cancellation'
 import type { TxHandle } from '../../transactions'
 import { duckdbDriver } from './driver'
@@ -67,7 +67,7 @@ const readSet = async (
         affectedRows:
           result.returnType === ResultReturnType.CHANGED_ROWS
             ? result.rowsChanged
-            : null,
+            : NO_ROW_COUNT,
         columns: [],
         rows: [],
       }
@@ -87,7 +87,7 @@ const readSet = async (
         break
       }
     }
-    return { affectedRows: null, columns: result.columnNames(), rows }
+    return { affectedRows: NO_ROW_COUNT, columns: result.columnNames(), rows }
   } finally {
     // A result left unread blocks its connection's next statement.
     result.closeSync()

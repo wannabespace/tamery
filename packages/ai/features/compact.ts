@@ -2,7 +2,7 @@ import type { TelemetryOptions } from 'ai'
 import { generateText } from 'ai'
 
 import type { AppUIMessage, ChatCompaction } from '../message'
-import type { AiKey } from '../models/own-key'
+import type { PayingKey } from '../models/own-key'
 import { modelsFor } from '../models/own-key'
 import { estimateTokens, toModelMessages } from './chat-step'
 import { section } from './prompt'
@@ -39,7 +39,7 @@ export const needsCompaction = (messages: AppUIMessage[], window: number) =>
 export const compactMessages = async (data: {
   messages: AppUIMessage[]
   previous?: string
-  key: AiKey | null
+  key: PayingKey
   telemetry?: TelemetryOptions
 }): Promise<ChatCompaction | null> => {
   const last = data.messages.at(-1)

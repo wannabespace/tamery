@@ -77,7 +77,7 @@ export const ApprovalDialog = () => {
             wrap
             className="max-h-60"
           />
-          {item.estimate.status === 'done' && item.estimate.rows !== null && (
+          {item.estimate.kind === 'rows' && (
             <WriteEstimate rows={item.estimate.rows} />
           )}
           <AlertDialogFooter>
