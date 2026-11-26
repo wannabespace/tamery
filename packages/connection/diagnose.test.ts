@@ -1,15 +1,22 @@
 import { describe, expect, it } from 'bun:test'
 
+import { PROXY_ERROR_MESSAGE } from '@tamery/shared/constants'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 
 import type { ConnectionParts } from './connection-parts'
 import { connectionParts } from './connection-parts'
-import { diagnoseConnectionError } from './diagnose'
+import {
+  adviseRetry,
+  diagnoseConnectionError,
+  OFFLINE_DIAGNOSIS,
+} from './diagnose'
 import { PRIVATE_HOST_MESSAGE } from './diagnose-network'
 import {
   EMPTY_SSH_TUNNEL,
   SSH_AUTH_ERRORS,
+  SSH_HOST_TIMEOUT,
   SSH_TUNNEL_ERROR,
+  tunnelError,
 } from './ssh/params'
 
 const parts = connectionParts.parse('postgres://me:pw@db.acme.io')
@@ -381,6 +388,73 @@ describe('diagnoseConnectionError', () => {
       ).toBe("You're offline")
     })
 
+    it.each([
+      ['a public SSH host that timed out', 'bastion.acme.io', true],
+      ['a private SSH host that timed out', '10.0.0.20', false],
+      ['an SSH config alias that timed out', 'bastion', false],
+      ['an expanded mapped loopback', '0:0:0:0:0:ffff:7f00:1', false],
+    ])('for %s says offline: %p', (_, host, offline) => {
+      expect(
+        diagnoseOffline(tunnelError(SSH_HOST_TIMEOUT).message, {
+          ssh: { ...EMPTY_SSH_TUNNEL, host },
+        }) === "You're offline"
+      ).toBe(offline)
+    })
+
+    it.each([
+      "Can't reach the SSH host: ECONNREFUSED",
+      "Can't reach the SSH host at bastion.internal: ENOTFOUND",
+      'Timed out connecting to the SSH host at bastion.acme.io',
+      "The SSH host can't resolve timeout, and your SSH user can't run docker there to look for a container of that name. Add the user to the docker group.",
+    ])('keeps the SSH host the device reached to blame for %s', (message) => {
+      expect(
+        diagnoseOffline(`${SSH_TUNNEL_ERROR}${message}`, {
+          host: 'timeout',
+          ssh: { ...EMPTY_SSH_TUNNEL, host: 'bastion.acme.io' },
+        })
+      ).toBe("Couldn't open the SSH tunnel")
+    })
+
+    it('blames the lost connection for a request that never reached the cloud proxy', () => {
+      expect(diagnoseOffline(PROXY_ERROR_MESSAGE, { host: '10.0.0.5' })).toBe(
+        "You're offline"
+      )
+      expect(diagnose(PROXY_ERROR_MESSAGE, { password: '' })?.title).toBe(
+        "Couldn't reach Tamery's cloud proxy"
+      )
+    })
+
+    it.each(['Fetch failed: ENOTFOUND', 'Fetch failed', 'fetch failed'])(
+      'blames the lost connection for a D1 request that failed with %p',
+      (message) => {
+        expect(
+          diagnoseOffline(
+            message,
+            connectionParts.parse('d1://acc:tok@api.cloudflare.com/db-id')
+          )
+        ).toBe("You're offline")
+      }
+    )
+
+    it('never sends an online D1 failure to the host rules', () => {
+      expect(
+        diagnose(
+          'Fetch failed: ENOTFOUND',
+          connectionParts.parse('d1://acc:tok@api.cloudflare.com/db-id')
+        )?.title
+      ).toBe("Couldn't reach Cloudflare's API")
+    })
+
+    it.each([
+      'postgres://me:pw@localhost.:5432/app',
+      'postgres://me:pw@[::ffff:127.0.0.1]:5432/app',
+      'postgres://me:pw@db.internal.:5432/app',
+    ])('never blames the network for %s', (url) => {
+      expect(
+        diagnoseOffline('connect ETIMEDOUT', connectionParts.parse(url))
+      ).not.toBe("You're offline")
+    })
+
     it('keeps blaming the connected SSH host for the database it cannot find', () => {
       expect(
         diagnoseOffline('(SSH) Channel open failure: Name does not resolve', {
@@ -389,6 +463,23 @@ describe('diagnoseConnectionError', () => {
         })
       ).toBe('The SSH host can\'t find "db.railway.internal"')
     })
+  })
+
+  it('advises a retry for an offline failure once the device is back online', () => {
+    expect(adviseRetry(OFFLINE_DIAGNOSIS, true)).toMatchObject({
+      title: 'This failed while you were offline',
+    })
+    expect(adviseRetry(OFFLINE_DIAGNOSIS, false)).toBe(OFFLINE_DIAGNOSIS)
+    const hostNotFound = diagnose('getaddrinfo ENOTFOUND db.acme.io')
+    expect(adviseRetry(hostNotFound, false)).toBe(hostNotFound)
+  })
+
+  it('reads the offline flag, not the title, of a cached diagnosis', () => {
+    expect(adviseRetry(structuredClone(OFFLINE_DIAGNOSIS), true)?.title).toBe(
+      'This failed while you were offline'
+    )
+    const sameTitle = { hint: '', title: OFFLINE_DIAGNOSIS.title }
+    expect(adviseRetry(sameTitle, true)).toBe(sameTitle)
   })
 
   it('returns nothing for an error it does not know', () => {

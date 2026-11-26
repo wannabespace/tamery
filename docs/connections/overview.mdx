@@ -82,7 +82,7 @@ Turn this off in **Settings → General → Open database links in Tamery**.
 
 ## Offline
 
-On desktop, you can keep querying any database you can still reach. Changes to connections and saved queries sync when you are back online. If two devices change the same connection, the change that reaches Tamery last is the one every device keeps, whatever their clocks say. Signing in, creating a workspace, and AI need the internet, and so does the web app. A remote database that fails while the device is offline says so, instead of blaming the host.
+On desktop, you can keep querying any database you can still reach. Changes to connections and saved queries sync when you are back online. If two devices change the same connection, the change that reaches Tamery last is the one every device keeps, whatever their clocks say. Signing in, creating a workspace, and AI need the internet, and so does the web app. When this device loses its network on the way out, to a public database host, the SSH host, or the web app's cloud proxy, the failure says you're offline instead of blaming the host. An error the cloud proxy or a machine answers with keeps its own diagnosis, and a failure keeps the network it happened on: once you're back online, it asks you to try again.
 
 ## Connection examples
 
