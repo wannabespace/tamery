@@ -3,7 +3,11 @@ import type { McpAccess, McpSource, McpTarget } from '@tamery/shared/mcp'
 import { Result } from 'better-result'
 
 import { agentDatabase } from '~/core/agent/database'
-import { resolveResource, resolveTarget } from '~/core/agent/target'
+import {
+  OWN_DATABASE,
+  resolveResource,
+  resolveTarget,
+} from '~/core/agent/target'
 import type { ResultSet } from '~/core/queries/connection/custom'
 import { notifications } from '~/lib/notifications'
 import { posthog } from '~/lib/posthog'
@@ -19,7 +23,7 @@ const getAbortSignal = (onAbort: (listener: () => void) => void) => {
 
 const toAgentTarget = <T extends McpTarget>({ resource, ...args }: T) => ({
   ...args,
-  resource: resource ?? null,
+  resource: resource ?? OWN_DATABASE,
 })
 
 const runForAgent = async (
