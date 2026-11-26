@@ -1,6 +1,10 @@
 import type { DialectSpec } from './dialect'
 import type { Statement } from './statements'
-import { splitStatements, statementsFromTokens } from './statements'
+import {
+  splitStatements,
+  statementsFromTokens,
+  unwrapTransaction,
+} from './statements'
 import { identifierName, isKeyword, isPunctuation, tokenize } from './tokenizer'
 
 const RUNNING_EXPLAIN_OPTIONS = new Set(['ANALYSE', 'ANALYZE'])
@@ -94,9 +98,23 @@ const keywordsRun = (
     )
   })
 
+// Counted whatever it tokenized as: PostgreSQL and Oracle do not list `REPLACE` as a keyword, and `CREATE OR REPLACE` swaps out the object it names.
+const replacedObjects = (text: string, dialect: DialectSpec) =>
+  splitStatements(text, dialect).flatMap(({ tokens }) => {
+    const [command, or, verb = ''] = tokens.map((token) =>
+      token.text.toUpperCase()
+    )
+    return command === 'CREATE' && or === 'OR' && DESTRUCTIVE.has(verb)
+      ? [verb]
+      : []
+  })
+
 /** Additive writes (INSERT, CREATE) are left out on purpose. */
 export const destructiveKeywords = (text: string, dialect: DialectSpec) => [
-  ...new Set(keywordsRun(DESTRUCTIVE, text, dialect)),
+  ...new Set([
+    ...replacedObjects(text, dialect),
+    ...keywordsRun(DESTRUCTIVE, text, dialect),
+  ]),
 ]
 
 // COMMENT counts only as a statement's first word: as a keyword it would make `SELECT comment` a write to `readsOnly`.
@@ -105,6 +123,30 @@ export const invalidatesCatalog = (text: string, dialect: DialectSpec) =>
   splitStatements(text, dialect).some(
     ({ tokens }) => tokens[0]?.text.toUpperCase() === 'COMMENT'
   )
+
+const ADDITIVE_COMMANDS = new Set(['CREATE', 'INSERT'])
+
+/** Writes that leave existing data as it was, so deleting or dropping what they made undoes them: only INSERT and CREATE, and neither as an upsert or OR REPLACE, alone or in a committed transaction of them. */
+export const additiveOnly = (text: string, dialect: DialectSpec): boolean => {
+  const transaction = unwrapTransaction(text, dialect)
+  if (transaction) {
+    return (
+      transaction.commit &&
+      transaction.statements.length > 0 &&
+      transaction.statements.every((statement) =>
+        additiveOnly(statement, dialect)
+      )
+    )
+  }
+  const statements = splitStatements(text, dialect)
+  return (
+    statements.length > 0 &&
+    statements.every(({ tokens }) =>
+      ADDITIVE_COMMANDS.has(tokens[0]?.text.toUpperCase() ?? '')
+    ) &&
+    destructiveKeywords(text, dialect).length === 0
+  )
+}
 
 export const writesData = (text: string, dialect: DialectSpec) =>
   keywordsRun(DATA_WRITE_KEYWORDS, text, dialect).length > 0

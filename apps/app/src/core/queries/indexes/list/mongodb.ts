@@ -36,6 +36,10 @@ const indexRows = (schema: string, table: string, index: MongoIndex) => {
     is_primary: index.name === ID_INDEX,
     is_unique: index.name === ID_INDEX || index.unique === true,
     name: index.name,
+    predicate:
+      index.partialFilterExpression === undefined
+        ? undefined
+        : toShell(index.partialFilterExpression),
     schema,
     table,
   }))

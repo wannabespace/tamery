@@ -10,10 +10,13 @@ export interface CellContext {
 
 export type ColumnWidth = '2/12' | '3/12' | '4/12'
 
+export type SortValue = number | string | null | undefined
+
 export interface DefinitionsColumn<T> {
   align?: 'end'
   cell: (item: T, context: CellContext) => ReactNode
   header: string
+  sortValue?: (item: T) => SortValue
   width?: ColumnWidth
 }
 
@@ -40,6 +43,7 @@ export const nameColumn = <T extends { name: string }>({
     </span>
   ),
   header: 'Name',
+  sortValue: (item) => item.name,
   width,
 })
 
@@ -58,6 +62,32 @@ export const textColumn = <T,>({
     </span>
   ),
   header,
+  sortValue: valueOf,
+  width,
+})
+
+export const numberColumn = <T,>({
+  format,
+  header,
+  valueOf,
+  width,
+}: {
+  format: (value: number) => string
+  header: string
+  valueOf: (item: T) => number | undefined
+  width?: ColumnWidth
+}): DefinitionsColumn<T> => ({
+  align: 'end',
+  cell: (item) => {
+    const value = valueOf(item)
+    return (
+      <span className="text-muted-foreground tabular-nums">
+        {value === undefined ? '' : format(value)}
+      </span>
+    )
+  },
+  header,
+  sortValue: valueOf,
   width,
 })
 

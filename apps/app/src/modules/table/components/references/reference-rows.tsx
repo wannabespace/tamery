@@ -85,7 +85,16 @@ export const RowsView = ({
     return <LoadingRows />
   }
   if (error) {
-    return <TableError error={error} />
+    return (
+      <TableError
+        error={error}
+        title={
+          <>
+            Couldn’t load <span data-mask>{hop.table}</span>
+          </>
+        }
+      />
+    )
   }
   if (!onlyRow) {
     return (

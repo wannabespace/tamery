@@ -129,7 +129,7 @@ export const HeaderRow = ({
   <div
     role="row"
     aria-rowindex={1}
-    className={`bg-background after:border-border sticky top-0 z-20 flex w-full after:absolute after:inset-x-0 after:bottom-0 after:z-20 after:border-b ${COLUMN_RULES}`}
+    className={`after:border-border bg-grid-surface sticky top-0 z-20 flex w-full after:absolute after:inset-x-0 after:bottom-0 after:z-20 after:border-b ${COLUMN_RULES}`}
   >
     {renderColumns(columns, virtualColumns, (column, index) => (
       <Header

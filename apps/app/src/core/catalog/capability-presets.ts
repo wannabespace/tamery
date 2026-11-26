@@ -29,6 +29,8 @@ interface FunctionCapabilities {
 }
 
 interface IndexCapabilities {
+  // The method the engine builds unless told otherwise; the list names only the others.
+  plainTypes: readonly string[]
   rename: boolean
   // Data-skipping index types; offering any swaps Unique for Type and Granularity.
   skipTypes: readonly string[]
@@ -114,6 +116,7 @@ export type CapabilityFlag =
   | 'declaredColumns'
   | 'documentIndexes'
   | 'explain'
+  | 'indexStats'
   | 'foreignKeyOnUpdate'
   | 'ilike'
   | 'materializedViews'
@@ -154,7 +157,6 @@ export const full: SectionCapabilities = {
   edit: true,
 }
 
-export const btreeIndexes: IndexCapabilities = { rename: true, skipTypes: [] }
 export const noFunctions: FunctionCapabilities = {
   argumentPlaceholder: '',
   behaviors: [],

@@ -7,6 +7,7 @@ import {
   ComboboxChipsInput,
   ComboboxContent,
   ComboboxEmpty,
+  ComboboxInput,
   ComboboxItem,
   ComboboxList,
   ComboboxValue,
@@ -47,6 +48,8 @@ export const readOnlyEditorOptions = {
 
 const identity = (value: string): string => value
 const noOptions: readonly string[] = []
+// Rendering every table of a large database in one popup freezes the window; typing reaches the rest.
+const SEARCH_LIMIT = 100
 
 export const OptionSelect = <T extends string>({
   className,
@@ -226,6 +229,67 @@ export const SelectField = <T extends string>({
   )
 }
 
+export const SearchSelectField = <T extends string>({
+  description,
+  disabled,
+  empty = 'Nothing to choose',
+  getLabel = identity,
+  label,
+  onChanged,
+  options,
+  placeholder,
+}: LabelledProps & {
+  disabled?: boolean
+  empty?: ReactNode
+  getLabel?: (value: T) => string
+  onChanged?: (value: T) => void
+  options: readonly T[]
+  placeholder: string
+}) => {
+  const field = useFieldContext<T>()
+
+  return (
+    <Labelled description={description} label={label}>
+      <Combobox
+        autoHighlight
+        disabled={disabled}
+        items={options}
+        itemToStringLabel={getLabel}
+        limit={SEARCH_LIMIT}
+        value={field.state.value || null}
+        onValueChange={(next: T | null) => {
+          if (next) {
+            field.handleChange(next)
+            onChanged?.(next)
+          }
+        }}
+      >
+        <ComboboxInput
+          id={field.name}
+          disabled={disabled}
+          placeholder={placeholder}
+          className="w-full"
+          spellCheck={false}
+          autoComplete="off"
+          data-mask
+        />
+        <ComboboxContent data-mask>
+          <ComboboxEmpty>
+            {options.length === 0 ? empty : 'Nothing found.'}
+          </ComboboxEmpty>
+          <ComboboxList>
+            {(option: T) => (
+              <ComboboxItem key={option} value={option}>
+                {getLabel(option)}
+              </ComboboxItem>
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
+    </Labelled>
+  )
+}
+
 export const OptionsField = ({
   description,
   disabled,
@@ -249,6 +313,7 @@ export const OptionsField = ({
         autoHighlight
         disabled={disabled}
         items={options ?? noOptions}
+        limit={SEARCH_LIMIT}
         value={selected}
         onValueChange={(next: string[]) => {
           if (limit === undefined || next.length <= limit) {

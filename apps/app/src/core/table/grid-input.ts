@@ -5,16 +5,10 @@ import { useSubscription } from 'seitu/react'
 
 import { openContextMenuOn } from '~/components/app-context-menu'
 import { useShortcuts } from '~/core/keyboard/use-shortcuts'
+import { useTypedCharacter } from '~/core/keyboard/use-typed-character'
 
 import type { CellPosition, GridCursor } from './cursor'
 import { inRange } from './cursor'
-
-const isTypedCharacter = (event: KeyboardEvent) =>
-  event.key.length === 1 &&
-  event.key !== ' ' &&
-  !event.ctrlKey &&
-  !event.metaKey &&
-  !event.isComposing
 
 const TO_EDGE = Number.MAX_SAFE_INTEGER
 
@@ -68,8 +62,8 @@ export const useGridHotkeys = ({
       cursor.step(0, 0)
     }
   })
-  const typeOverCell = useEffectEvent((event: KeyboardEvent) => {
-    if (navigating && isTypedCharacter(event)) {
+  useTypedCharacter((event) => {
+    if (navigating) {
       event.preventDefault()
       cursor.edit(event.key)
     }
@@ -77,11 +71,9 @@ export const useGridHotkeys = ({
   useEffect(() => {
     document.addEventListener('focusin', track)
     document.addEventListener('focusout', track)
-    document.addEventListener('keydown', typeOverCell)
     return () => {
       document.removeEventListener('focusin', track)
       document.removeEventListener('focusout', track)
-      document.removeEventListener('keydown', typeOverCell)
     }
   }, [])
 
@@ -200,8 +192,42 @@ export const useGridHotkeys = ({
   )
 }
 
-export const useGridPointer = (cursor: GridCursor) => {
+export const useGridPointer = (
+  cursor: GridCursor,
+  scrollRef: RefObject<HTMLDivElement | null>,
+  barRef: RefObject<HTMLDivElement | null>
+) => {
   const dragging = useRef(false)
+  const releaseOnPressAway = useEffectEvent((event: globalThis.MouseEvent) => {
+    const scroller = scrollRef.current
+    const { target } = event
+    if (
+      event.button !== 0 ||
+      !scroller ||
+      !(target instanceof Element) ||
+      scroller.contains(target.closest('[role=row]')) ||
+      barRef.current?.contains(target) ||
+      target.closest('[data-base-ui-portal]') ||
+      // A scrollbar press lands on the scroller itself, outside its client box.
+      (target === scroller &&
+        (event.offsetX >= scroller.clientWidth ||
+          event.offsetY >= scroller.clientHeight)) ||
+      !cursor.commit()
+    ) {
+      return
+    }
+    cursor.store.set({ anchor: null, cursor: null, edit: null, peek: false })
+    if (scroller.contains(target)) {
+      // Focusing the scroller would place a fresh cursor on the first cell.
+      event.preventDefault()
+      scroller.blur()
+    }
+  })
+  useEffect(() => {
+    document.addEventListener('mousedown', releaseOnPressAway, true)
+    return () =>
+      document.removeEventListener('mousedown', releaseOnPressAway, true)
+  }, [])
   return {
     onClick: (event: MouseEvent) => {
       if (getPosition(event) && isCheckbox(event)) {

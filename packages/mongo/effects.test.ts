@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'bun:test'
 
-import { destructiveMethods, invalidatesCatalog, readsOnly } from './effects'
+import {
+  additiveOnly,
+  destructiveMethods,
+  invalidatesCatalog,
+  readsOnly,
+} from './effects'
 
 describe('readsOnly', () => {
   it.each([
@@ -34,5 +39,21 @@ describe('invalidatesCatalog', () => {
     ['db.logs.insertOne({})', false],
   ])('%j → %p', (text, expected) => {
     expect(invalidatesCatalog(text)).toBe(expected)
+  })
+})
+
+describe('additiveOnly', () => {
+  it('admits inserts and new collections', () => {
+    expect(additiveOnly('db.orders.insertOne({ a: 1 })')).toBe(true)
+    expect(additiveOnly('db.createCollection("logs")')).toBe(true)
+  })
+
+  it('refuses changes to existing documents', () => {
+    expect(
+      additiveOnly('db.orders.updateOne({ _id: 1 }, { $set: { a: 2 } })')
+    ).toBe(false)
+    expect(additiveOnly('db.orders.deleteMany({})')).toBe(false)
+    expect(additiveOnly('db.orders.find({})')).toBe(false)
+    expect(additiveOnly('not mongosh')).toBe(false)
   })
 })

@@ -28,18 +28,24 @@ const columnWidth = (
   )
 }
 
-export const RunnerResultsTable = ({
+export const ResultsTable = ({
+  aligns,
   columns,
   rows,
   dialect,
 }: {
+  aligns?: Column['align'][]
   columns: string[]
   rows: Record<string, unknown>[]
   dialect: Dialect
 }) => (
   <DataGrid
     rows={rows}
-    columns={columns.map((id): Column => ({ id, uiType: 'raw' }))}
+    columns={columns.map((id, index): Column => ({
+      align: aligns?.[index],
+      id,
+      uiType: 'raw',
+    }))}
     dialect={dialect}
     getSize={(column) =>
       columnWidth(column.id, rows, column.id === columns.at(-1))

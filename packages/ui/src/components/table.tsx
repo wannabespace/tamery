@@ -57,11 +57,17 @@ const TableFooter = ({
   />
 )
 
-const TableRow = ({ className, ...props }: React.ComponentProps<'tr'>) => (
+const TableRow = ({
+  className,
+  variant = 'default',
+  ...props
+}: React.ComponentProps<'tr'> & { variant?: 'default' | 'group' }) => (
   <tr
     data-slot="table-row"
     className={cn(
       `group-data-[size=sm]/table:even:bg-foreground/3 hover:bg-accent group-data-[size=sm]/table:hover:bg-accent focus-visible:bg-accent group-data-[size=sm]/table:focus-visible:bg-accent has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted data-highlighted:bg-foreground/7 border-b transition-colors outline-none group-data-[size=sm]/table:transition-none aria-busy:hover:bg-transparent`,
+      variant === 'group' &&
+        'text-muted-foreground font-medium hover:bg-transparent',
       className
     )}
     {...props}

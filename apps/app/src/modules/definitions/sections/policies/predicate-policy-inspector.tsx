@@ -20,7 +20,12 @@ import { createPolicyQuery } from '~/core/queries/policies/create'
 import { policyPredicate } from '~/core/queries/policies/shape'
 import { queryClient } from '~/lib/query-client'
 
-import { SchemaField, SelectField, TextField } from '../../components/fields'
+import {
+  SchemaField,
+  SearchSelectField,
+  SelectField,
+  TextField,
+} from '../../components/fields'
 import type { SectionInspectorProps } from '../../components/inspector'
 import { Inspector, InspectorSection } from '../../components/inspector'
 import type { PolicyItem } from './policy-draft'
@@ -218,7 +223,7 @@ export const PredicatePolicyInspector = ({
           </div>
           <form.AppField name={`predicates[${index}].tableKey`}>
             {() => (
-              <SelectField
+              <SearchSelectField
                 label="Table"
                 disabled={readOnly}
                 empty="This database has no tables."

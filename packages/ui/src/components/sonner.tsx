@@ -91,7 +91,7 @@ const Toaster = () => {
             content: 'flex min-w-0 flex-1 flex-col gap-0.5',
             description: 'text-xs leading-snug text-muted-foreground',
             icon: `
-              flex h-lh w-4 shrink-0 items-center justify-center text-sm
+              relative flex h-lh w-4 shrink-0 items-center justify-center text-sm
               leading-tight
             `,
             title: 'text-sm leading-tight font-medium text-foreground',

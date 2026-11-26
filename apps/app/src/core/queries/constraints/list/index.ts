@@ -4,6 +4,11 @@ import { type } from 'arktype'
 import type { ConnectionResource } from '~/core/connection/sync'
 import { structureQueryKey } from '~/core/queries/indexes/list'
 import {
+  bitFlag,
+  nullableString,
+  oneOf,
+} from '~/core/queries/shared/catalog-fields'
+import {
   connectionResourceToQueryParams,
   createQuery,
 } from '~/core/runtime/query'
@@ -18,8 +23,12 @@ import { oracleConstraints } from './oracle'
 import { postgresConstraints } from './postgres'
 import { sqliteConstraints } from './sqlite'
 
-const constraintType = type(
-  '"PRIMARY KEY" | "UNIQUE" | "FOREIGN KEY" | "CHECK" | "EXCLUSION"'
+const constraintType = oneOf(
+  'PRIMARY KEY',
+  'UNIQUE',
+  'FOREIGN KEY',
+  'CHECK',
+  'EXCLUSION'
 )
 
 const constraintTypeLabelMap = {
@@ -31,16 +40,16 @@ const constraintTypeLabelMap = {
 } as const satisfies Record<typeof constraintType.infer, string>
 
 export const constraintsType = type({
-  column: 'string | null',
+  column: nullableString,
   'definition?': 'string',
-  'expression?': 'string | null',
-  foreign_column: 'string | null',
-  foreign_schema: 'string | null',
-  foreign_table: 'string | null',
-  'is_custom?': 'boolean | 1 | 0',
+  'expression?': nullableString,
+  foreign_column: nullableString,
+  foreign_schema: nullableString,
+  foreign_table: nullableString,
+  'is_custom?': bitFlag,
   name: 'string',
-  onDelete: 'string | null',
-  onUpdate: 'string | null',
+  onDelete: nullableString,
+  onUpdate: nullableString,
   schema: 'string',
   table: 'string',
   type: constraintType,

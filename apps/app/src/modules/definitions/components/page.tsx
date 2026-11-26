@@ -37,6 +37,7 @@ import { queryClient } from '~/lib/query-client'
 
 import type { DefinitionsState } from '../hooks/use-definitions-state'
 import { useInspector } from '../hooks/use-inspector'
+import { useSort } from '../hooks/use-sort'
 import type { CellContext, DefinitionsColumn } from '../lib/columns'
 import { getSectionMeta } from '../section-meta'
 import { DefinitionsTable } from './definitions-table'
@@ -55,6 +56,7 @@ export const DefinitionsPage = <T extends { name: string }>({
   Inspector,
   items,
   getKey,
+  groupOf,
   loading,
   match,
   queryKey,
@@ -70,6 +72,7 @@ export const DefinitionsPage = <T extends { name: string }>({
   Inspector: ComponentType<SectionInspectorProps<T>>
   items: T[]
   getKey: (item: T) => string
+  groupOf?: (item: T) => string
   loading: boolean
   match: (item: T) => boolean
   queryKey: QueryKey
@@ -90,7 +93,12 @@ export const DefinitionsPage = <T extends { name: string }>({
   } = state
   const createBlocked = structurePending ? undefined : blockReason
   const { cascade: cascades, icon, noun, title } = getSectionMeta(section)
-  const rows = items.filter(match)
+  const { rows, sort, toggleSort } = useSort({
+    columns,
+    groupOf,
+    rows: items.filter(match),
+    section,
+  })
   const searchRef = useRef<HTMLInputElement>(null)
   const rowsRef = useRef(new Map<string, HTMLTableRowElement>())
   const [highlighted, setHighlighted] = useState<string | null>(null)
@@ -263,8 +271,8 @@ export const DefinitionsPage = <T extends { name: string }>({
 
   return (
     <>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="flex items-baseline gap-2 text-base font-semibold">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h2 className="flex shrink-0 items-baseline gap-2 text-base font-semibold">
           {title}
           {loading ? (
             <Skeleton className="h-3 w-5 self-center rounded-full" />
@@ -275,7 +283,20 @@ export const DefinitionsPage = <T extends { name: string }>({
             />
           )}
         </h2>
-        <div className="flex items-center gap-3">
+        <SearchInput
+          ref={searchRef}
+          className="ml-auto max-w-64 min-w-32 flex-1"
+          data-mask
+          aria-label={`Search ${plural}`}
+          placeholder={`Search ${plural}`}
+          autoFocus
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onClear={() => setSearch('')}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
+        />
+        <div className="ml-auto flex shrink-0 items-center gap-3">
           <div className="flex items-center gap-2">
             {toolbar}
             <SchemaSelect
@@ -290,18 +311,6 @@ export const DefinitionsPage = <T extends { name: string }>({
       <p className="text-muted-foreground -mt-1 text-right text-xs text-pretty empty:hidden">
         {can.create && createBlocked}
       </p>
-      <SearchInput
-        ref={searchRef}
-        data-mask
-        aria-label={`Search ${plural}`}
-        placeholder={`Search ${plural}`}
-        autoFocus
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onClear={() => setSearch('')}
-        onFocus={() => setSearchFocused(true)}
-        onBlur={() => setSearchFocused(false)}
-      />
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={empty ? 'empty' : 'list'}
@@ -327,10 +336,13 @@ export const DefinitionsPage = <T extends { name: string }>({
               context={context}
               highlighted={searchFocused ? highlighted : null}
               getKey={getKey}
+              groupOf={groupOf}
               loading={loading}
               getMenu={rowMenuItems}
               rows={rows}
               rowsRef={rowsRef}
+              sort={sort}
+              onSort={toggleSort}
               onOpen={(item) => {
                 setHighlighted(getKey(item))
                 inspector.open(item)
