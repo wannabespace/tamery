@@ -32,5 +32,7 @@ export interface DiagnosisRule {
   diagnose: (context: DiagnosisContext) => Diagnosis
   /** Only this engine's errors carry the matched text. */
   engine?: ConnectionType
+  /** A device with no network fails this way too. */
+  offline?: true
   tunnel?: true
 }

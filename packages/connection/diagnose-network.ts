@@ -60,6 +60,7 @@ export const NETWORK_RULES: DiagnosisRule[] = [
     },
     match:
       /enotfound|eai_again|getaddrinfo|could not translate host name|name or service not known|name does not resolve|nodename nor servname/iu,
+    offline: true,
   },
   {
     diagnose: ({ parts }) => {
@@ -120,6 +121,7 @@ export const NETWORK_RULES: DiagnosisRule[] = [
       }
     },
     match: /etimedout|timed? ?out|esockettimedout|err_timed_out/iu,
+    offline: true,
   },
   {
     diagnose: (context) => ({
@@ -131,6 +133,7 @@ export const NETWORK_RULES: DiagnosisRule[] = [
       title: "This network can't reach the server",
     }),
     match: /enetunreach|ehostunreach|no route to host/iu,
+    offline: true,
   },
   {
     diagnose: () => ({
