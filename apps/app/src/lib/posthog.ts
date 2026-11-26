@@ -53,12 +53,13 @@ const init = async () => {
   const client = posthogJs.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
     api_host: POSTHOG_API_HOST,
     before_send: (event) => {
+      const exceptions: { value: string }[] =
+        event?.event === '$exception' ? event.properties.$exception_list : []
+      // The list carries each cause as an entry of its own, so a proxy failure caused by "Failed to fetch" would otherwise be dropped.
       const isExpectedException =
-        event?.event === '$exception' &&
-        event.properties.$exception_list.some(
-          ({ value }: { value: string }) =>
-            isExpectedError(value) ||
-            (isConnectionFailure(value) && !isProxyFailure(value))
+        !exceptions.some(({ value }) => isProxyFailure(value)) &&
+        exceptions.some(
+          ({ value }) => isExpectedError(value) || isConnectionFailure(value)
         )
       if (!event || isExpectedException) {
         return null
