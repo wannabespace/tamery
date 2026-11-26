@@ -68,3 +68,24 @@ test('a ProxyJump from an included ~/.ssh/config file fails instead of dialing t
     "SSH tunnel: ProxyJump in ~/.ssh/config isn't supported yet"
   )
 })
+
+test('an alias that resolves to a private host never fails as unreachable from this device', async () => {
+  await mkdir(path.join(home, '.ssh'), { recursive: true })
+  await writeFile(
+    path.join(home, '.ssh', 'config'),
+    'Host bastion.acme.io\n  HostName bastion.internal\n'
+  )
+  await expect(
+    connectSsh(
+      {
+        ...EMPTY_SSH_TUNNEL,
+        auth: 'password',
+        host: 'bastion.acme.io',
+        password: 'pw',
+      },
+      () => Promise.resolve(false)
+    )
+  ).rejects.toThrow(
+    /^SSH tunnel: Can't reach the SSH host at bastion\.internal: /u
+  )
+})
