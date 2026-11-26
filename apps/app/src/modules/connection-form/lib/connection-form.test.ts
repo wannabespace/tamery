@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, mock, test } from 'bun:test'
 
 import { guessConnection } from '@tamery/connection/guess'
 import { EMPTY_SSH_TUNNEL } from '@tamery/connection/ssh/params'
@@ -6,7 +6,13 @@ import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { SyncType } from '@tamery/shared/enums/sync-type'
 
 import type { ConnectionFormValues } from './connection-form'
-import { getFoundDatabase } from './connection-form'
+
+mock.module('~/core/runtime/machine/pairing', () => ({
+  defaultRunsOn: () => 'cloud',
+  getConnectionRunsOn: () => 'cloud',
+}))
+
+const { getFoundDatabase } = await import('./connection-form')
 
 const pickFound = (connectionString: string): ConnectionFormValues => {
   const parts = guessConnection(connectionString, true)?.parts
@@ -25,7 +31,7 @@ const pickFound = (connectionString: string): ConnectionFormValues => {
     password: '',
     port: parts.port ?? '',
     provider: parts.provider ?? null,
-    runsOn: null,
+    runsOn: 'cloud',
     ssh: EMPTY_SSH_TUNNEL,
     sshEnabled: false,
     syncType: SyncType.Cloud,

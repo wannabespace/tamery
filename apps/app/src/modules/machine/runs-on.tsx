@@ -21,7 +21,7 @@ import { Link } from '~/components/link'
 import { FetchingReason } from '~/core/connection/fetching-reason'
 import { useOpenConnectionId } from '~/core/connection/use-open-connection-id'
 import {
-  CLOUD,
+  isMachine,
   useConnectionRunsOn,
   useMachineRouteById,
 } from '~/core/runtime/machine/pairing'
@@ -30,11 +30,7 @@ import {
   useMachineStatus,
 } from '~/core/runtime/machine/status'
 
-import {
-  HERE_VALUE,
-  pickRunsOn,
-  useConnectionRunsOnOptions,
-} from './runs-on-options'
+import { pickRunsOn, useConnectionRunsOnOptions } from './runs-on-options'
 
 const RunsOnMenu = ({ connectionId }: { connectionId: string }) => {
   const runsOn = useConnectionRunsOn(connectionId)
@@ -102,23 +98,15 @@ const RunsOnMenu = ({ connectionId }: { connectionId: string }) => {
       </Tooltip>
       <DropdownMenuContent align="end" className="min-w-64">
         <DropdownMenuRadioGroup
-          value={runsOn ?? HERE_VALUE}
+          value={runsOn}
           onValueChange={(value: string) => pickRunsOn(connectionId, value)}
         >
           <DropdownMenuLabel>Runs on</DropdownMenuLabel>
           {options.map(({ description, icon, label, value }) => (
-            <DropdownMenuRadioItem
-              key={value ?? HERE_VALUE}
-              value={value ?? HERE_VALUE}
-              closeOnClick
-            >
+            <DropdownMenuRadioItem key={value} value={value} closeOnClick>
               <HugeiconsIcon icon={icon} strokeWidth={2} />
               <span className="flex flex-col">
-                <span
-                  data-mask={(value !== null && value !== CLOUD) || undefined}
-                >
-                  {label}
-                </span>
+                <span data-mask={isMachine(value) || undefined}>{label}</span>
                 <span className="text-muted-foreground text-xs">
                   {description}
                 </span>

@@ -18,7 +18,10 @@ import { useState } from 'react'
 
 import type { Connection } from '~/core/connection/sync'
 import type { RunsOn } from '~/core/runtime/machine/pairing'
-import { getConnectionRunsOn } from '~/core/runtime/machine/pairing'
+import {
+  defaultRunsOn,
+  getConnectionRunsOn,
+} from '~/core/runtime/machine/pairing'
 import { posthog } from '~/lib/posthog'
 import { generateRandomName } from '~/utils/faker'
 
@@ -54,7 +57,7 @@ const DEFAULT_VALUES: ConnectionFormValues = {
   password: '',
   port: '',
   provider: null,
-  runsOn: null,
+  runsOn: defaultRunsOn(),
   ssh: EMPTY_SSH_TUNNEL,
   sshEnabled: false,
   syncType: SyncType.Cloud,

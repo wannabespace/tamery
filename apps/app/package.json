@@ -7,7 +7,7 @@
     "build:desktop": "vite build --mode desktop",
     "check-types": "bun check",
     "test:start": "vite build --mode test && vite preview --mode test",
-    "test": "bun test ./src",
+    "test": "bun test --isolate ./src",
     "test:e2e": "playwright test --ui"
   },
   "dependencies": {
