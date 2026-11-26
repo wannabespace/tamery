@@ -111,13 +111,14 @@ export const BLOCK_OPERATIONS = [
 
 export type BlockOperation = (typeof BLOCK_OPERATIONS)[number]
 
+export const ALL_OPERATIONS = null
+
 export interface PolicyPredicate {
   arguments: string
   functionName: string
   functionSchema: string
   kind: 'FILTER' | 'BLOCK'
-  // null blocks every write
-  operation: BlockOperation | null
+  operation: BlockOperation | typeof ALL_OPERATIONS
   schema: string
   table: string
 }

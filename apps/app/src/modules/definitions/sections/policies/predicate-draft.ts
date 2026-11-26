@@ -6,6 +6,7 @@ import type {
   PolicyPredicate,
 } from '~/core/queries/policies/shape'
 import {
+  ALL_OPERATIONS,
   BLOCK_OPERATIONS,
   policyPredicate,
 } from '~/core/queries/policies/shape'
@@ -85,7 +86,7 @@ export const getPredicate = (draft: PredicateDraft): PolicyPredicate => {
     operation:
       draft.kind === 'BLOCK' && draft.operation !== 'ALL'
         ? draft.operation
-        : null,
+        : ALL_OPERATIONS,
     schema,
     table,
   }

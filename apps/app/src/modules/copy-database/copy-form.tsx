@@ -33,7 +33,7 @@ export const CopyForm = ({
   let blocker: string | null = null
   if (!target) {
     blocker = 'Choose a database to copy to.'
-  } else if (selection?.size === 0) {
+  } else if (selection.kind === 'tables' && selection.tables.size === 0) {
     blocker = 'Choose what to copy.'
   }
 

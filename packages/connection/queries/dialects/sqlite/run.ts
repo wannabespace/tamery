@@ -2,7 +2,7 @@ import { Dialect } from '@tamery/shared/enums/connection-type'
 import { dialects, splitStatements } from '@tamery/sql'
 
 import type { QueryExecuteResult, ResultSet, RunOptions } from '../..'
-import { resultSet } from '../..'
+import { NO_ROW_COUNT, resultSet } from '../..'
 import type { TxHandle } from '../../transactions'
 
 export const SQLITE = dialects[Dialect.SQLite]
@@ -80,7 +80,7 @@ export const runTimed = async (
     result: results.map(({ affectedRows, columns, rows }) =>
       resultSet(
         {
-          affectedRows: columns.length === 0 ? affectedRows : null,
+          affectedRows: columns.length === 0 ? affectedRows : NO_ROW_COUNT,
           columns,
           rows,
         },

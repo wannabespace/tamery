@@ -3,6 +3,7 @@ import process from 'node:process'
 import { createORPCErrorConstructorMap } from '@orpc/contract'
 import { ORPCError } from '@orpc/server'
 import type { ResultSet } from '@tamery/connection/queries'
+import { NO_ROW_COUNT } from '@tamery/connection/queries'
 import { confineDuckdbFiles } from '@tamery/connection/queries/dialects/duckdb/instances'
 import { confineSqliteFiles } from '@tamery/connection/queries/dialects/sqlite/client'
 import { executors } from '@tamery/connection/queries/executors'
@@ -160,7 +161,9 @@ const printTable = ({ affectedRows, columns, rows, truncated }: ResultSet) => {
   if (columns.length === 0) {
     console.log(
       paint.dim(
-        affectedRows === null ? 'Done' : `${countRows(affectedRows)} changed`
+        affectedRows === NO_ROW_COUNT
+          ? 'Done'
+          : `${countRows(affectedRows)} changed`
       )
     )
     return

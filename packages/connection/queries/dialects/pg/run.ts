@@ -4,7 +4,7 @@ import type { MaybePromise } from '@tamery/shared/utils'
 import type { ClientBase, Pool, Query, QueryArrayConfig, QueryResult } from 'pg'
 
 import type { RunOptions, TransactionStatus } from '../..'
-import { resultSet } from '../..'
+import { NO_ROW_COUNT, resultSet } from '../..'
 import { cancellable } from '../../cancellation'
 import { pg } from './client'
 
@@ -102,7 +102,7 @@ export const runOn = async (
     result: [results].flat().map((item) =>
       resultSet(
         {
-          affectedRows: item.fields.length === 0 ? item.rowCount : null,
+          affectedRows: item.fields.length === 0 ? item.rowCount : NO_ROW_COUNT,
           columns: item.fields.map((field) => field.name),
           rows: item.rows,
         },
