@@ -1,5 +1,8 @@
 import type { ConnectionParts } from '@tamery/connection/connection-parts'
-import { connectionParts } from '@tamery/connection/connection-parts'
+import {
+  connectionParts,
+  HTTPS_FROM_PORT,
+} from '@tamery/connection/connection-parts'
 import type { ConnectionPatch } from '@tamery/connection/diagnosis'
 import type { ConnectionGuess } from '@tamery/connection/guess'
 import { guessConnection } from '@tamery/connection/guess'
@@ -50,7 +53,7 @@ const DEFAULT_VALUES: ConnectionFormValues = {
   database: '',
   foundDatabase: null,
   host: '',
-  https: null,
+  https: HTTPS_FROM_PORT,
   label: '',
   name: '',
   options: '',

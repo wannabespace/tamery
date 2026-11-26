@@ -19,15 +19,12 @@ export const create = orpc
   .input(
     connectionMachinesInsertSchema
       .omit('userId', 'createdAt', 'updatedAt')
-      .merge(
-        type({ 'machineId?': machineIdSchema.and('string.uuid').or('null') })
-      )
+      .merge(type({ machineId: machineIdSchema.and('string.uuid').or('null') }))
   )
   .errors({
     NOT_FOUND: { message: 'Connection or machine not found' },
   })
   .handler(async ({ context, errors, input }) => {
-    const machineId = input.machineId ?? TAMERY_CLOUD
     const [connection] = await db
       .select({ id: connections.id })
       .from(connections)
@@ -40,8 +37,8 @@ export const create = orpc
 
     if (
       !connection ||
-      (machineId !== TAMERY_CLOUD &&
-        !(await canRunOn(context.user.id, machineId)))
+      (input.machineId !== TAMERY_CLOUD &&
+        !(await canRunOn(context.user.id, input.machineId)))
     ) {
       throw errors.NOT_FOUND()
     }
@@ -50,7 +47,7 @@ export const create = orpc
       .insert(connectionMachines)
       .values({ ...input, userId: context.user.id })
       .onConflictDoUpdate({
-        set: { machineId, updatedAt: new Date() },
+        set: { machineId: input.machineId, updatedAt: new Date() },
         target: [connectionMachines.userId, connectionMachines.connectionId],
       })
       .returning()

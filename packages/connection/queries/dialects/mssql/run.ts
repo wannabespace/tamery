@@ -1,7 +1,7 @@
 import type * as mssqlModule from 'mssql'
 
 import type { RunOptions } from '../..'
-import { resultSet } from '../..'
+import { NO_ROW_COUNT, resultSet } from '../..'
 import { cancellable } from '../../cancellation'
 
 interface ColumnMetadata {
@@ -111,7 +111,7 @@ export const runRequest = async (
       result: sets.map(({ columns, rows }) =>
         resultSet(
           {
-            affectedRows: null,
+            affectedRows: NO_ROW_COUNT,
             columns: columns.map((column) => column.name),
             rows,
           },
