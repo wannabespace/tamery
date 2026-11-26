@@ -44,6 +44,9 @@ mock.module('~/core/collections', () => ({
 mock.module('~/lib/orpc', () => ({
   orpcProxy: { query: { postgres: cloud } },
 }))
+mock.module('~/core/connection/diagnosis', () => ({
+  reportConnectionFailure: () => {},
+}))
 mock.module('~/core/runtime/machine/machine', () => ({
   machine: { client: () => ({ query: { postgres: machine } }) },
 }))

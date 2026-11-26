@@ -29,7 +29,7 @@ export const ConnectionCardError = ({
         }
       />
       <TooltipContent className="pointer-events-auto block max-w-3xs">
-        {diagnosis ? (
+        {diagnosis && (
           <>
             <span data-mask className="block">
               {diagnosis.title}
@@ -38,7 +38,8 @@ export const ConnectionCardError = ({
               {diagnosis.hint}
             </span>
           </>
-        ) : (
+        )}
+        {diagnosis === null && (
           <>
             <span className="opacity-50">Failed to get resources: </span>
             <span data-mask>{error.message}</span>
