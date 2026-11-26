@@ -145,4 +145,5 @@ export const ensureConnected = async (pairing: MachinePairing) => {
   if (status.state !== 'connected') {
     throw new MachineError(status, pairing.name)
   }
+  return status.info
 }

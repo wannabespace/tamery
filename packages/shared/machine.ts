@@ -5,9 +5,13 @@ import { type } from 'arktype'
 
 import { PORTS } from './ports'
 
-/** Bumped only by a change an older machine cannot serve; the app refuses a machine below `MIN_MACHINE_PROTOCOL`. */
-export const MACHINE_PROTOCOL = 3
+/**
+ * Bumped only by a change an older machine cannot serve; the app refuses a machine below `MIN_MACHINE_PROTOCOL`. A feature an
+ * older machine lacks gets its own constant the app checks instead of a raised `MIN`, which would cut off machines that still run queries.
+ */
+export const MACHINE_PROTOCOL = 4
 export const MIN_MACHINE_PROTOCOL = 3
+export const LOCAL_SKILLS_PROTOCOL = 4
 
 /** `localhost` may resolve to `::1`, where any other process can listen. */
 export const MACHINE_URL = `http://127.0.0.1:${PORTS.MACHINE}`

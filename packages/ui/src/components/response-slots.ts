@@ -2,8 +2,7 @@ import type { IconSvgElement } from '@hugeicons/react'
 import type * as React from 'react'
 import { createContext } from 'react'
 
-/** A Markdown column's alignment; undefined is the start edge. */
-export type ColumnAlign = 'center' | 'right' | undefined
+export type ColumnAlign = 'start' | 'center' | 'right'
 
 export interface ResponseSlots {
   /** Turns an inline code span into a button led by `icon`, such as a table name the app can peek; `render` places that button, as a popover's trigger for one. Null keeps the plain span. */
