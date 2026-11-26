@@ -9,17 +9,6 @@ export type ConfirmHostKey = (prompt: {
   keyType: string
 }) => Promise<boolean>
 
-// Worded without the host and user: ~/.ssh/config resolves them, and these messages reach the AI diagnosis, which redacts only what the form holds.
-export const HOST_KEY_REFUSALS: Record<
-  Exclude<HostKeyStatus, 'known'>,
-  string
-> = {
-  changed:
-    "The SSH host presented a key that doesn't match known_hosts, so someone may be impersonating it. If its key changed on purpose, remove the old entry from ~/.ssh/known_hosts (or /etc/ssh/ssh_known_hosts) and connect again.",
-  revoked: "The SSH host's key is revoked in known_hosts",
-  unknown: "The SSH host's key wasn't trusted",
-}
-
 const asking = new Map<string, Promise<boolean>>()
 // A read-only known_hosts (a home-manager symlink) keeps no trusted key, so without this a tunnel reopening mid-query would prompt again.
 const trustedThisRun = new Set<string>()

@@ -22,7 +22,7 @@ interface HostHint {
 const SUPABASE_TRANSACTION_POOLER_PORT = '6543'
 const PGBOUNCER_PORT = '6432'
 
-const HOST_HINTS: HostHint[] = [
+export const HOST_HINTS: HostHint[] = [
   {
     ipv6Only: /^db\.[^.]+\.supabase\.co$/iu,
     label: 'Supabase',

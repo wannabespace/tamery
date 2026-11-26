@@ -10,18 +10,17 @@ import { localPath } from '../local-path'
 import { knownHosts } from './known-hosts'
 import type { SshTunnel } from './params'
 import {
+  AGENT_UNAVAILABLE,
   DEFAULT_SSH_PORT,
+  PROXY_KEYWORDS,
   SSH_AUTH_ERRORS,
   SSH_CONFIG_UNREADABLE,
   tunnelError,
+  unsupportedProxy,
 } from './params'
-
-export const AGENT_UNAVAILABLE =
-  'SSH agent not available. Start ssh-agent or pick another method.'
 
 const MAX_INCLUDE_DEPTH = 16
 const INCLUDE = /^\s*include[\s=]+(?<patterns>.+)$/iu
-const PROXY_KEYWORDS = ['ProxyJump', 'ProxyCommand']
 
 /** Inlines each `Include`, which ssh-config keeps as a plain directive. Unlike OpenSSH, an Include inside a Host block leaves the included file's last Host active for the lines after it. */
 const readConfigFile = async (file: string, depth = 0): Promise<string> => {
@@ -125,9 +124,7 @@ export const getSshConfig = async (tunnel: SshTunnel) => {
     return value && value.toLowerCase() !== 'none'
   })
   if (proxy) {
-    throw tunnelError(
-      `${proxy} in ~/.ssh/config isn't supported yet. Use an SSH host Tamery can reach directly.`
-    )
+    throw tunnelError(unsupportedProxy(proxy))
   }
   const host =
     sshConfig('HostName')?.replaceAll('%h', tunnel.host) ?? tunnel.host

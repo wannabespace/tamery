@@ -6,12 +6,14 @@ import { Result } from 'better-result'
 import type { Client, ConnectConfig } from 'ssh2'
 
 import { getHostKind } from '../hosts'
-import { AGENT_UNAVAILABLE, getSshConfig } from './config'
+import { getSshConfig } from './config'
 import type { ConfirmHostKey } from './host-key'
-import { HOST_KEY_REFUSALS, hostKeyTrust } from './host-key'
+import { hostKeyTrust } from './host-key'
 import { knownHosts } from './known-hosts'
 import type { SshTunnel } from './params'
 import {
+  AGENT_UNAVAILABLE,
+  HOST_KEY_REFUSALS,
   SSH_AUTH_ERRORS,
   SSH_CONNECTION_FAILED,
   SSH_HOST_CLOSED,
@@ -35,8 +37,8 @@ const sshErrorMessage = (
 ) => {
   if (error.level === 'client-authentication') {
     return 'agent' in auth
-      ? 'SSH authentication failed: the host accepted no key from your ssh-agent. Add yours with ssh-add, or pick another sign-in method.'
-      : 'SSH authentication failed. Check the SSH user and credentials.'
+      ? SSH_AUTH_ERRORS.agentKeyRejected
+      : SSH_AUTH_ERRORS.credentialsRejected
   }
   if (error.level === 'agent') {
     return AGENT_UNAVAILABLE

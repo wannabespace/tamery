@@ -1,3 +1,5 @@
+import type { HostKeyStatus } from './known-hosts'
+
 export const SSH_AUTH_METHODS = ['agent', 'keyPath', 'key', 'password'] as const
 
 export type SshAuth = (typeof SSH_AUTH_METHODS)[number]
@@ -40,10 +42,42 @@ export const SSH_CONNECTION_FAILED = 'SSH connection failed'
 export const SSH_CONFIG_UNREADABLE = "~/.ssh/config couldn't be parsed"
 export const SSH_HOST_CLOSED = 'the SSH host closed the connection'
 
+// Every tunnel message below is worded without a host, user or container `~/.ssh/config` or the SSH host supplied: `diagnosis-request.ts` sends the AI only these, and a placeholder where they take the database host.
+export const AGENT_UNAVAILABLE =
+  'SSH agent not available. Start ssh-agent or pick another method.'
+
+export const HOST_KEY_REFUSALS: Record<
+  Exclude<HostKeyStatus, 'known'>,
+  string
+> = {
+  changed:
+    "The SSH host presented a key that doesn't match known_hosts, so someone may be impersonating it. If its key changed on purpose, remove the old entry from ~/.ssh/known_hosts (or /etc/ssh/ssh_known_hosts) and connect again.",
+  revoked: "The SSH host's key is revoked in known_hosts",
+  unknown: "The SSH host's key wasn't trusted",
+}
+
+export const SSH_MACHINE_HOST_KEY_UNKNOWN =
+  "The machine's computer doesn't know this SSH host's key. Trust it when Tamery asks (update Tamery if it doesn't), or connect to it once with ssh on that computer."
+
+export const PROXY_KEYWORDS = ['ProxyJump', 'ProxyCommand']
+
+export const unsupportedProxy = (keyword: string) =>
+  `${keyword} in ~/.ssh/config isn't supported yet. Use an SSH host Tamery can reach directly.`
+
+export const dockerDenied = (host: string) =>
+  `The SSH host can't resolve ${host}, and your SSH user can't run docker there to look for a container of that name. Add the user to the docker group.`
+
+export const serviceAmbiguous = (service: string, containers: string) =>
+  `Several containers run the service ${service}: ${containers}. Use the container name as the host.`
+
 export const tunnelError = (message: string) =>
   new Error(`${SSH_TUNNEL_ERROR}${message}`)
 
 export const SSH_AUTH_ERRORS = {
+  agentKeyRejected:
+    'SSH authentication failed: the host accepted no key from your ssh-agent. Add yours with ssh-add, or pick another sign-in method.',
+  credentialsRejected:
+    'SSH authentication failed. Check the SSH user and credentials.',
   keyFileMissing: "The SSH key file wasn't found. Check its path.",
   keyFileNotAKey: "That file isn't an SSH private key.",
   noKeyFile: 'Choose the SSH key file.',
