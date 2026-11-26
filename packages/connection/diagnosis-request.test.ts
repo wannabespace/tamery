@@ -64,36 +64,6 @@ describe('getDiagnosisRequest', () => {
     expect(request(message, { database: 'app' }).error).toBe(error)
   })
 
-  it('redacts the SSH secrets, percent-encoded too', () => {
-    expect(
-      request('auth failed: p%40ss!, hunter2 and s3cret', {
-        password: 'p@ss!',
-        ssh: { ...EMPTY_SSH_TUNNEL, passphrase: 's3cret', password: 'hunter2' },
-      }).error
-    ).toBe('auth failed: <password>, <ssh-password> and <ssh-passphrase>')
-  })
-
-  it('redacts the SSH host ~/.ssh/config resolved an alias to', () => {
-    const ssh = { ...EMPTY_SSH_TUNNEL, host: 'bastion', user: 'deploy' }
-    expect([
-      request(
-        "SSH tunnel: Can't reach the SSH host at bastion.corp.io: ECONNREFUSED",
-        { ssh, user: 'admin' }
-      ).error,
-      request("SSH tunnel: Can't reach the SSH host at fe80::1: ECONNRESET", {
-        ssh,
-      }).error,
-      request(
-        'SSH tunnel: Timed out connecting to the SSH host at bastion.corp.io',
-        { ssh, user: 'admin' }
-      ).error,
-    ]).toStrictEqual([
-      "SSH tunnel: Can't reach the SSH host at <ssh-host>: ECONNREFUSED",
-      "SSH tunnel: Can't reach the SSH host at <ssh-host>: ECONNRESET",
-      'SSH tunnel: Timed out connecting to the SSH host at <ssh-host>',
-    ])
-  })
-
   it('never writes a value into a placeholder', () => {
     expect(
       request('hunter22 rejected for word', {
@@ -103,103 +73,99 @@ describe('getDiagnosisRequest', () => {
     ).toBe('<password> rejected for <user>')
   })
 
-  it('keeps the wording of an SSH failure whatever the SSH host is called', () => {
-    expect(
-      request(
-        "SSH tunnel: Can't reach the SSH host at bastion.corp.io: ECONNREFUSED",
-        { ssh: { ...EMPTY_SSH_TUNNEL, host: 'host' }, user: 'SSH' }
-      ).error
-    ).toBe("SSH tunnel: Can't reach the SSH host at <ssh-host>: ECONNREFUSED")
-  })
-
   it.each([
+    [
+      "SSH tunnel: Can't reach the SSH host at bastion.corp.io: ECONNREFUSED",
+      'SSH tunnel: The SSH host refused the connection',
+    ],
+    [
+      "SSH tunnel: Can't reach the SSH host at [fe80::1%en0]:2222: ECONNRESET",
+      "SSH tunnel: Can't reach the SSH host",
+    ],
+    [
+      'SSH tunnel: Timed out connecting to the SSH host at bastion.corp.io',
+      'SSH tunnel: Timed out reaching the SSH host',
+    ],
     [
       'SSH tunnel: SSH connection failed: Disconnected by bastion.corp.io',
       'SSH tunnel: SSH connection failed',
     ],
     [
-      "SSH tunnel: ~/.ssh/config couldn't be parsed: Unexpected line break at bastion.corp.io",
-      "SSH tunnel: ~/.ssh/config couldn't be parsed",
-    ],
-    [
       'Unexpected line break at bastion.corp.io',
-      "SSH tunnel: ~/.ssh/config couldn't be parsed",
+      "SSH tunnel: ~/.ssh/config couldn't be used",
     ],
     [
-      'SSH tunnel: SSH connection failed: the SSH host closed the connection',
-      'SSH tunnel: SSH connection failed: the SSH host closed the connection',
+      'Missing value for match criteria bastion.corp.io',
+      "SSH tunnel: ~/.ssh/config couldn't be used",
     ],
     [
-      'SSH tunnel: Timed out reaching the SSH host',
-      'SSH tunnel: Timed out reaching the SSH host',
+      'Failed to connect to db:1433 - (SSH) Channel open failure: Connection refused by bastion.corp.io',
+      "SSH tunnel: The SSH host didn't forward the connection to the database",
     ],
     [
-      "SSH tunnel: Can't reach the SSH host at bastion.corp.io: lost bastion.corp.io",
-      "SSH tunnel: Can't reach the SSH host at <ssh-host>: connection failed",
+      'SSH tunnel: Several containers run the service db: app-db-1, staging-db-1. Use the container name as the host.',
+      "SSH tunnel: The SSH host couldn't find the database container",
     ],
     [
-      '(SSH) Channel open failure: administratively prohibited: open failed',
-      '(SSH) Channel open failure: administratively prohibited',
+      "SSH tunnel: The SSH host presented a key that doesn't match known_hosts",
+      "SSH tunnel: The SSH host's key wasn't trusted",
     ],
     [
-      'Connection terminated: (SSH) Channel open failure: open failed',
-      '(SSH) Channel open failure: open failed',
-    ],
-    [
-      '(SSH) Channel open failure: getaddrinfo db.acme.io: Name or service not known',
-      "(SSH) Channel open failure: the SSH host can't resolve <host>",
-    ],
-    [
-      '(SSH) Channel open failure: connect to bastion.corp.io port 5432 failed',
-      '(SSH) Channel open failure',
-    ],
-    [
-      "SSH tunnel: The SSH host can't resolve db.acme.io, and your SSH user can't run docker there to look for a container of that name. Add the user to the docker group.",
-      "SSH tunnel: The SSH host can't resolve <host>, and your SSH user can't run docker there to look for a container of that name. Add the user to the docker group.",
-    ],
-    [
-      'SSH tunnel: Several containers run the service db.acme.io: app-db-1, staging-db-1. Use the container name as the host.',
-      'SSH tunnel: Several containers run the service <host>: <containers>. Use the container name as the host.',
-    ],
-    [
-      'SSH tunnel: bastion.corp.io said no',
-      'SSH tunnel: SSH connection failed',
+      'SSH tunnel: SSH authentication failed. Check the SSH user and credentials.',
+      'SSH tunnel: SSH sign-in failed',
     ],
   ])('sends the SSH failure %s only as its kind', (message, error) => {
     expect(
-      request(message, { ssh: EMPTY_SSH_TUNNEL, user: 'admin' }).error
+      request(message, {
+        ssh: { ...EMPTY_SSH_TUNNEL, host: 'prod' },
+        user: 'admin',
+      }).error
+    ).toBe(error)
+  })
+
+  it('sends no SSH secret, alias or user', () => {
+    expect(
+      request('auth failed: p%40ss!, hunter2, s3cret, SSH and tunnel', {
+        password: 'p@ss!',
+        ssh: {
+          ...EMPTY_SSH_TUNNEL,
+          host: 'SSH',
+          passphrase: 's3cret',
+          password: 'hunter2',
+          user: 'tunnel',
+        },
+      }).error
+    ).toBe('SSH tunnel: SSH sign-in failed')
+  })
+
+  it.each([
+    [
+      'database "database" does not exist',
+      '<database> "<database>" does not exist',
+    ],
+    [
+      'password authentication failed for user "me"',
+      'password authentication failed for user "<user>"',
+    ],
+    ['relation "orders" is locked', 'relation "orders" is locked'],
+  ])('keeps the driver error %s of a tunneled connection', (message, error) => {
+    expect(
+      request(message, { database: 'database', ssh: EMPTY_SSH_TUNNEL }).error
     ).toBe(error)
   })
 
   it.each([
-    ['database "database" does not exist', { database: 'database' }],
-    ['(SSH) Channel open failure: open failed', {}],
-    ['(SSH) Channel open failure: Connection refused by bastion.corp.io', {}],
-    [
-      "SSH tunnel: Can't reach the SSH host at [2001:db8::5%eth0]:2222: ECONNREFUSED",
-      {},
-    ],
-    [
-      'Failed to connect to db:1433 - SSH tunnel: Several containers run the service db: app-db-1, staging-db-1. Use the container name as the host.',
-      { host: 'db' },
-    ],
-    ['SSH tunnel: SSH connection failed: Disconnected by bastion.corp.io', {}],
-    ['SSH tunnel: Timed out reaching the SSH host', {}],
-  ])('the API sends %s as the client did', (message, overrides) => {
+    'database "database" does not exist',
+    'Failed to connect to db:1433 - (SSH) Channel open failure: open failed',
+    'SSH tunnel: SSH connection failed: Disconnected by bastion.corp.io',
+    'SSH tunnel: Timed out reaching the SSH host',
+    "SSH tunnel: Can't reach the SSH host at [2001:db8::5%eth0]:2222: ECONNREFUSED",
+  ])('the API sends %s as the client did', (message) => {
     const sent = request(message, {
-      ...overrides,
+      database: 'database',
       ssh: { ...EMPTY_SSH_TUNNEL, host: 'prod' },
     })
     expect(sanitizeDiagnosisRequest(sent)).toStrictEqual(sent)
-  })
-
-  it('keeps a driver error of a tunneled connection', () => {
-    expect(
-      request('database "database" does not exist', {
-        database: 'database',
-        ssh: EMPTY_SSH_TUNNEL,
-      }).error
-    ).toBe('<database> "<database>" does not exist')
   })
 
   it('keeps only option values that name nothing', () => {
@@ -264,9 +230,13 @@ describe('a failed SSH session', () => {
   }
 
   it.each([
-    ['fe80::1%en0', 'ECONNREFUSED'],
-    ['10.0.0.20', 'EHOSTUNREACH'],
-  ])('shows %s but sends only %s', async (host, code) => {
+    [
+      'fe80::1%en0',
+      'ECONNREFUSED',
+      'SSH tunnel: The SSH host refused the connection',
+    ],
+    ['10.0.0.20', 'EHOSTUNREACH', "SSH tunnel: Can't reach the SSH host"],
+  ])('shows %s and %s, but sends only %s', async (host, code, sent) => {
     expect(
       await failedSession(
         `Host prod\n  HostName ${host}\n`,
@@ -276,7 +246,7 @@ describe('a failed SSH session', () => {
         })
       )
     ).toEqual({
-      sent: `SSH tunnel: Can't reach the SSH host at <ssh-host>: ${code}`,
+      sent,
       shown: `SSH tunnel: Can't reach the SSH host at ${host}: ${code}`,
     })
   })
@@ -300,9 +270,8 @@ describe('a failed SSH session', () => {
     expect(
       await failedSession('Host prod\n  HostName "bastion.internal')
     ).toEqual({
-      sent: "SSH tunnel: ~/.ssh/config couldn't be parsed",
-      shown:
-        "SSH tunnel: ~/.ssh/config couldn't be parsed: Unexpected line break at bastion.internal",
+      sent: "SSH tunnel: ~/.ssh/config couldn't be used",
+      shown: 'Unexpected line break at bastion.internal',
     })
   })
 })

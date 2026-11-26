@@ -1,7 +1,8 @@
 import { log } from '@clack/prompts'
 import { connectionParts } from '@tamery/connection/connection-parts'
 import type { ConfirmHostKey } from '@tamery/connection/ssh/host-key'
-import { HOST_KEY_REFUSALS, tunnelError } from '@tamery/connection/ssh/params'
+import { HOST_KEY_REFUSALS } from '@tamery/connection/ssh/host-key'
+import { tunnelError } from '@tamery/connection/ssh/params'
 import type { machineHostKey } from '@tamery/shared/machine'
 import { toError } from '@tamery/shared/utils'
 

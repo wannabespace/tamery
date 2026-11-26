@@ -4,7 +4,7 @@ import { promisify } from 'node:util'
 import { Result } from 'better-result'
 import type { Client } from 'ssh2'
 
-import { dockerDenied, serviceAmbiguous, tunnelError } from './params'
+import { tunnelError } from './params'
 
 // Only a name the SSH host could not resolve falls back to Docker, so a working host or a refused port is never redirected. Covers glibc, musl and BSD getaddrinfo wording.
 const UNRESOLVED = /resol|not known|no address/iu
@@ -31,7 +31,9 @@ const lookUp = async (client: Client, host: string) => {
   })
   const [inspected, errors] = listed.unwrapOr(['', ''])
   if (/permission denied/iu.test(errors)) {
-    throw tunnelError(dockerDenied(host))
+    throw tunnelError(
+      `The SSH host can't resolve ${host}, and your SSH user can't run docker there to look for a container of that name. Add the user to the docker group.`
+    )
   }
   const containers = inspected
     .split('\n')
@@ -44,10 +46,7 @@ const lookUp = async (client: Client, host: string) => {
   const ofService = containers.filter((container) => container.service === host)
   if (!named && ofService.length > 1) {
     throw tunnelError(
-      serviceAmbiguous(
-        host,
-        ofService.map((container) => container.name).join(', ')
-      )
+      `Several containers run the service ${host}: ${ofService.map((container) => container.name).join(', ')}. Use the container name as the host.`
     )
   }
   return (named ?? ofService[0])?.address ?? null

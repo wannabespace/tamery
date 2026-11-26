@@ -41,26 +41,34 @@ const OPTIONS_SENT: Record<string, string> = {
   'sslmode=require&application_name=%3Credacted%3E': 'sslmode=require',
 }
 
+const SSH_FAILURES = {
+  auth: 'SSH tunnel: SSH sign-in failed',
+  config: "SSH tunnel: ~/.ssh/config couldn't be used",
+  docker: "SSH tunnel: The SSH host couldn't find the database container",
+  failed: 'SSH tunnel: SSH connection failed',
+  forward:
+    "SSH tunnel: The SSH host didn't forward the connection to the database",
+  refused: 'SSH tunnel: The SSH host refused the connection',
+  unreachable: "SSH tunnel: Can't reach the SSH host",
+}
+
 const FORWARDED: Record<keyof typeof released, string> = {
-  'a Match without its value': "SSH tunnel: ~/.ssh/config couldn't be parsed",
-  'a failed SSH sign-in':
-    'SSH tunnel: SSH authentication failed. Check the SSH user and credentials.',
-  'a malformed HostName, database user line':
-    "SSH tunnel: ~/.ssh/config couldn't be parsed",
+  'a Match without its value': SSH_FAILURES.config,
+  'a failed SSH sign-in': SSH_FAILURES.auth,
+  'a malformed HostName, database user line': SSH_FAILURES.failed,
   'a missing database named database':
     '<<database>> "<<database>>" does not exist',
-  'a refused forward, database user open': '(SSH) Channel open failure',
-  'an SSH host that timed out, alias at': 'SSH tunnel: SSH connection failed',
-  'an SSH host this device never reached': 'SSH tunnel: SSH connection failed',
-  'an ssh2 disconnect the SSH host described':
-    'SSH tunnel: SSH connection failed',
-  'an unreachable SSH host with its port attached':
-    "SSH tunnel: Can't reach the SSH host at <ssh-host>: ECONNREFUSED",
-  'an unreachable SSH host, alias SSH and database ssh':
-    'SSH tunnel: SSH connection failed',
-  'an unreachable SSH host, alias host': 'SSH tunnel: SSH connection failed',
-  'several containers, wrapped by the SQL Server driver':
-    'SSH tunnel: Several containers run the service <host>: <containers>. Use the container name as the host.',
+  'a refused forward, database user open': SSH_FAILURES.forward,
+  'a refused forward, database user open and database failure':
+    SSH_FAILURES.forward,
+  'an SSH host that timed out, alias at': SSH_FAILURES.failed,
+  'an SSH host this device never reached': SSH_FAILURES.unreachable,
+  'an ssh2 disconnect the SSH host described': SSH_FAILURES.failed,
+  'an ssh2 disconnect, alias SSH and database user tunnel': SSH_FAILURES.failed,
+  'an unreachable SSH host with its port attached': SSH_FAILURES.refused,
+  'an unreachable SSH host, alias SSH and database ssh': SSH_FAILURES.refused,
+  'an unreachable SSH host, alias host': SSH_FAILURES.refused,
+  'several containers, wrapped by the SQL Server driver': SSH_FAILURES.docker,
 }
 
 test.each(Object.entries(released))(
@@ -79,6 +87,45 @@ test.each(Object.entries(released))(
     ])
   }
 )
+
+const SSH_WORDS = [
+  'SSH',
+  'tunnel',
+  'Channel',
+  'open',
+  'failure',
+  'Disconnected',
+  'connection',
+  'failed',
+  'reach',
+  'host',
+]
+const REWRITTEN = [
+  'SSH tunnel: SSH connection failed: Disconnected by bastion.corp.io',
+  '(SSH) Channel open failure: Connection refused by bastion.corp.io',
+  "SSH tunnel: Can't reach the SSH host at bastion.corp.io: ECONNREFUSED",
+].flatMap((failure) =>
+  SSH_WORDS.flatMap((word, index) =>
+    SSH_WORDS.slice(index + 1).map((other) =>
+      failure.replaceAll(word, '<user>').replaceAll(other, '<database>')
+    )
+  )
+)
+
+test('sends no text of an SSH failure, whichever two of its words the form held', async () => {
+  const inputs = await Promise.all(
+    REWRITTEN.map(async (error) => {
+      const [input] = await diagnosed({
+        ...released['an ssh2 disconnect the SSH host described'],
+        error,
+      } as DiagnosisRequest)
+      return (input as { error: string }).error
+    })
+  )
+  expect(new Set(inputs).isSubsetOf(new Set(Object.values(SSH_FAILURES)))).toBe(
+    true
+  )
+})
 
 test('keeps a driver error but no setting that names anything', async () => {
   expect(

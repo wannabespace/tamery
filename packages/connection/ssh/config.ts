@@ -2,25 +2,20 @@ import { glob, readFile } from 'node:fs/promises'
 import { homedir, userInfo } from 'node:os'
 import path from 'node:path'
 
-import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import type { ConnectConfig } from 'ssh2'
 
 import { localPath } from '../local-path'
 import { knownHosts } from './known-hosts'
 import type { SshTunnel } from './params'
-import {
-  AGENT_UNAVAILABLE,
-  DEFAULT_SSH_PORT,
-  PROXY_KEYWORDS,
-  SSH_AUTH_ERRORS,
-  SSH_CONFIG_UNREADABLE,
-  tunnelError,
-  unsupportedProxy,
-} from './params'
+import { DEFAULT_SSH_PORT, SSH_AUTH_ERRORS, tunnelError } from './params'
+
+export const AGENT_UNAVAILABLE =
+  'SSH agent not available. Start ssh-agent or pick another method.'
 
 const MAX_INCLUDE_DEPTH = 16
 const INCLUDE = /^\s*include[\s=]+(?<patterns>.+)$/iu
+const PROXY_KEYWORDS = ['ProxyJump', 'ProxyCommand']
 
 /** Inlines each `Include`, which ssh-config keeps as a plain directive. Unlike OpenSSH, an Include inside a Host block leaves the included file's last Host active for the lines after it. */
 const readConfigFile = async (file: string, depth = 0): Promise<string> => {
@@ -105,18 +100,10 @@ export const getSshConfig = async (tunnel: SshTunnel) => {
     path.join(homedir(), '.ssh', 'config')
   )
   // OpenSSH keywords are case-insensitive, and `Match exec` runs through spawnSync, which would freeze the desktop database process.
-  const parsed = Result.try(() =>
-    parse(userConfig).compute(tunnel.host, {
-      ignoreCase: true,
-      matchExec: false,
-    })
-  )
-  if (parsed.isErr()) {
-    throw tunnelError(
-      `${SSH_CONFIG_UNREADABLE}: ${toError(parsed.error.cause).message}`
-    )
-  }
-  const computed = parsed.value
+  const computed = parse(userConfig).compute(tunnel.host, {
+    ignoreCase: true,
+    matchExec: false,
+  })
   const sshConfig = (key: string): string | undefined =>
     [computed[key.toLowerCase()]].flat()[0]
   const proxy = PROXY_KEYWORDS.find((keyword) => {
@@ -124,7 +111,9 @@ export const getSshConfig = async (tunnel: SshTunnel) => {
     return value && value.toLowerCase() !== 'none'
   })
   if (proxy) {
-    throw tunnelError(unsupportedProxy(proxy))
+    throw tunnelError(
+      `${proxy} in ~/.ssh/config isn't supported yet. Use an SSH host Tamery can reach directly.`
+    )
   }
   const host =
     sshConfig('HostName')?.replaceAll('%h', tunnel.host) ?? tunnel.host

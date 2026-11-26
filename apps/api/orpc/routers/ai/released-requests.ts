@@ -126,4 +126,26 @@ export const RELEASED_REQUESTS = {
     type: 'postgres',
     userSet: true,
   },
+  'an ssh2 disconnect, alias SSH and database user tunnel': {
+    error:
+      '<ssh-host> <user>: <ssh-host> connection failed: Disconnected by bastion.corp.io',
+    hostKind: 'public host',
+    options: 'sslmode=require&application_name=%3Credacted%3E',
+    passwordSet: true,
+    port: '5432',
+    sshEnabled: true,
+    type: 'postgres',
+    userSet: true,
+  },
+  'a refused forward, database user open and database failure': {
+    error:
+      '(SSH) Channel <user> <database>: Connection refused by bastion.corp.io',
+    hostKind: 'public host',
+    options: 'sslmode=require&application_name=%3Credacted%3E',
+    passwordSet: true,
+    port: '5432',
+    sshEnabled: true,
+    type: 'postgres',
+    userSet: true,
+  },
 }

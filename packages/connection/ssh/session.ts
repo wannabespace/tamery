@@ -6,17 +6,13 @@ import { Result } from 'better-result'
 import type { Client, ConnectConfig } from 'ssh2'
 
 import { getHostKind } from '../hosts'
-import { getSshConfig } from './config'
+import { AGENT_UNAVAILABLE, getSshConfig } from './config'
 import type { ConfirmHostKey } from './host-key'
-import { hostKeyTrust } from './host-key'
+import { HOST_KEY_REFUSALS, hostKeyTrust } from './host-key'
 import { knownHosts } from './known-hosts'
 import type { SshTunnel } from './params'
 import {
-  AGENT_UNAVAILABLE,
-  HOST_KEY_REFUSALS,
   SSH_AUTH_ERRORS,
-  SSH_CONNECTION_FAILED,
-  SSH_HOST_CLOSED,
   SSH_HOST_TIMEOUT,
   SSH_HOST_TIMEOUT_AT,
   SSH_HOST_UNREACHABLE,
@@ -37,8 +33,8 @@ const sshErrorMessage = (
 ) => {
   if (error.level === 'client-authentication') {
     return 'agent' in auth
-      ? SSH_AUTH_ERRORS.agentKeyRejected
-      : SSH_AUTH_ERRORS.credentialsRejected
+      ? 'SSH authentication failed: the host accepted no key from your ssh-agent. Add yours with ssh-add, or pick another sign-in method.'
+      : 'SSH authentication failed. Check the SSH user and credentials.'
   }
   if (error.level === 'agent') {
     return AGENT_UNAVAILABLE
@@ -52,7 +48,7 @@ const sshErrorMessage = (
       ? `${SSH_HOST_UNREACHABLE}${code}`
       : `${SSH_HOST_UNREACHABLE_AT}${host}: ${code}`
   }
-  return `${SSH_CONNECTION_FAILED}: ${error.message}`
+  return `SSH connection failed: ${error.message}`
 }
 
 // ssh2 names the passphrase in both its "no passphrase given" and "bad passphrase?" parse errors, and in nothing else.
@@ -143,7 +139,7 @@ export const connectSsh = async (
   // ssh2 emits only `close`, never `error`, when the host hangs up after its banner (sshd's LoginGraceTime while the host-key prompt is open).
   const hungUp = async () => {
     await once(client, 'close')
-    throw new Error(SSH_HOST_CLOSED)
+    throw new Error('the SSH host closed the connection')
   }
   // `connect` throws synchronously for a key it cannot parse; arming the timer or the race before it leaves an unawaited rejection that crashes the desktop database process.
   const connecting = Result.try(() =>
