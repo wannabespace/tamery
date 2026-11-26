@@ -15,7 +15,7 @@ export const sqlRuns = (message: AppUIMessage) =>
   message.parts.flatMap((part) => (part.type === 'data-sql' ? [part.data] : []))
 
 /** `!` opens a statement the user runs themselves, like a shell command in a terminal agent. */
-export const sqlOf = (text: string) =>
+export const getStatement = (text: string) =>
   text.startsWith('!') ? text.slice(1).trim() : null
 
 /** Runs the user's own statement on the chat's database, with no approval: they wrote it, as in a Query tab. The part keeps it in the transcript for the agent to read. */

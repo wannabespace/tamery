@@ -15,7 +15,7 @@ import { chatToolRuns } from './chat-tools'
 import { approvalModeValue } from './stores'
 
 /** `checking` while the judge reads the change, then `run` while it runs; a change Auto would not run is answered as skipped instead. */
-export type AutoApproval = 'checking' | 'run'
+type AutoApproval = 'checking' | 'run'
 
 /** What Auto is doing, by tool call; its card shows it. */
 export const autoApprovalsStore = createStore<Record<string, AutoApproval>>({})

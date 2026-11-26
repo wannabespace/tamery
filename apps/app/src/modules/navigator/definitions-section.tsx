@@ -19,7 +19,7 @@ import { openTab } from '~/core/tabs/actions'
 import { schemaGroups } from '~/core/tabs/kinds'
 
 import { useNavigatorSearch } from './keyboard'
-import { NavigatorSearchField } from './navigator-header'
+import { NavigatorSearchField } from './navigator-search-field'
 import { getNavigatorStore } from './stores'
 
 export const DefinitionsPanel = () => {

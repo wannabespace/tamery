@@ -22,9 +22,9 @@ import { autoApprove } from './auto-approval'
 import { getChatInstance } from './chat-instance'
 import { awaitsUser } from './chat-tool-types'
 import { chatToolRuns } from './chat-tools'
+import { mentionPart, messageParts } from './message-parts'
 import type { PromptMention } from './prompt-mentions'
-import { mentionPart, messageParts } from './prompt-mentions'
-import { runSql, sqlOf } from './sql-run'
+import { runSql, getStatement } from './sql-run'
 import type { QueuedMessage } from './stores'
 import { chatQueueStore } from './stores'
 
@@ -43,9 +43,6 @@ const isAnswering = (
       (part.state === 'input-streaming' ||
         (part.state === 'input-available' && !awaitsUser(part)))
   )
-
-const awaitsAnswer = (message: AppUIMessage | undefined) =>
-  message?.role === 'user'
 
 const pausedBy = ({
   lastAsked,
@@ -138,7 +135,7 @@ export const useChatSession = ({
   )
   const lastMessage = displayMessages.at(-1)
   const isAwaitingAnswer =
-    !!chat && status === 'ready' && awaitsAnswer(lastMessage)
+    !!chat && status === 'ready' && lastMessage?.role === 'user'
   const firstMessage = displayMessages.at(0)
   const lastAsked = displayMessages.findLast(
     (message) => message.role === 'user'
@@ -174,7 +171,7 @@ export const useChatSession = ({
     skipped,
     text,
   }: Omit<QueuedMessage, 'id'>) => {
-    const statement = sqlOf(text)
+    const statement = getStatement(text)
     await sendMessage({
       id: v7(),
       parts: statement
@@ -360,7 +357,7 @@ export const useChatSession = ({
     ) => {
       posthog.capture('ai_chat_message_sent', {
         attachments: files.length,
-        sql: !!sqlOf(text),
+        sql: !!getStatement(text),
         chat_mentions: mentions.filter(({ kind }) => kind === 'chat').length,
         interrupted: isWorking && now,
         queued: isWorking && !now,

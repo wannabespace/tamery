@@ -1,61 +1,38 @@
-import {
-  AiChat02Icon,
-  Delete02Icon,
-  PencilEdit01Icon,
-  PinIcon,
-  PinOffIcon,
-  Search01Icon,
-} from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
+import { AiChat02Icon, Search01Icon } from '@hugeicons/core-free-icons'
 import type { AppMessagePart } from '@tamery/ai/message'
 import { matchesSearch } from '@tamery/shared/utils'
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@tamery/ui/components/alert-dialog'
-import { HighlightText } from '@tamery/ui/components/custom/highlight'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import {
   SidebarContent,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
-  SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSkeleton,
 } from '@tamery/ui/components/sidebar'
-import { Spinner } from '@tamery/ui/components/spinner'
-import { cn } from '@tamery/ui/lib/utils'
 import { eq, useLiveQuery } from '@tanstack/react-db'
 import { useParams } from '@tanstack/react-router'
 import { isStaticToolUIPart } from 'ai'
-import { Fragment, useState, useSyncExternalStore } from 'react'
+import { differenceInCalendarDays } from 'date-fns'
+import { Fragment, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
-import { AppContextMenu, AppMenuButton } from '~/components/app-context-menu'
-import type { AppMenuNode } from '~/components/app-menu'
 import { getCollections, useCollections } from '~/core/collections'
 import { useConnectionContext } from '~/core/connection/route'
 import { useNavigatorSearch } from '~/modules/navigator/keyboard'
-import { NavigatorSearchField } from '~/modules/navigator/navigator-header'
+import { NavigatorSearchField } from '~/modules/navigator/navigator-search-field'
 import { getNavigatorStore } from '~/modules/navigator/stores'
 
 import { chatActions } from './chat-actions'
-import { getChatInstance } from './chat-instance'
+import type { ChatRow, ChatStatus } from './chat-list-row'
+import { ChatListRow } from './chat-list-row'
 import { awaitsUser } from './chat-tool-types'
-import { openChat } from './open-chat'
+import { DeleteChatDialog } from './delete-chat-dialog'
 import { RenameChatDialog } from './rename-chat-dialog'
 import { chatDraftsValue, newChatIdsValue, unreadChatsValue } from './stores'
 import { chatTab } from './tab'
 import { isSkipped } from './tool-status'
 
 const SKELETON_ROWS = 6
-const DAY = 24 * 60 * 60 * 1000
 
 const GROUPS = [
   'Pinned',
@@ -67,31 +44,6 @@ const GROUPS = [
 ] as const
 
 type ChatGroup = (typeof GROUPS)[number]
-
-type ChatStatus = 'failed' | 'unread' | 'waiting' | 'working'
-
-const STATUS_DOT: Record<Exclude<ChatStatus, 'working'>, string> = {
-  failed: 'bg-destructive',
-  unread: 'bg-primary',
-  waiting: 'bg-warning',
-}
-
-const STATUS_LABEL: Record<ChatStatus, string> = {
-  failed: 'Failed',
-  unread: 'New answer',
-  waiting: 'Needs approval',
-  working: 'Working',
-}
-
-interface ChatRow {
-  date: Date
-  id: string
-  isDraft: boolean
-  isPinned: boolean
-  /** What the synced transcript says; whether this window is answering it is read live per row. */
-  status?: ChatStatus
-  title: string
-}
 
 const waitsOnUser = (part: AppMessagePart) =>
   awaitsUser(part) || (isStaticToolUIPart(part) && isSkipped(part))
@@ -112,45 +64,21 @@ const waitingChatIds = (
   )
 }
 
-const useLiveStatus = (chatId: string, connectionResourceId: string) => {
-  const chat = getChatInstance({ chatId, connectionResourceId })
-  const status = useSyncExternalStore(
-    chat['~registerStatusCallback'],
-    () => chat.status
-  )
-  if (status === 'submitted' || status === 'streaming') {
-    return 'working'
-  }
-  return status === 'error' ? 'failed' : undefined
-}
-
-const ChatStatusMark = ({ status }: { status: ChatStatus }) => (
-  <span className="ml-auto flex size-4 shrink-0 items-center justify-center group-hover/menu-item:invisible">
-    <span className="sr-only">{STATUS_LABEL[status]}</span>
-    {status === 'working' ? (
-      <Spinner className="text-muted-foreground size-3" />
-    ) : (
-      <span className={cn('size-1.5 rounded-full', STATUS_DOT[status])} />
-    )}
-  </span>
-)
-
-const groupOf = (row: ChatRow): ChatGroup => {
+const getGroup = (row: ChatRow): ChatGroup => {
   if (row.isPinned) {
     return 'Pinned'
   }
-  const today = new Date().setHours(0, 0, 0, 0)
-  const time = row.date.getTime()
-  if (time >= today) {
+  const daysAgo = differenceInCalendarDays(new Date(), row.date)
+  if (daysAgo <= 0) {
     return 'Today'
   }
-  if (time >= today - DAY) {
+  if (daysAgo === 1) {
     return 'Yesterday'
   }
-  if (time >= today - 7 * DAY) {
+  if (daysAgo <= 7) {
     return 'Previous 7 days'
   }
-  return time >= today - 30 * DAY ? 'Previous 30 days' : 'Older'
+  return daysAgo <= 30 ? 'Previous 30 days' : 'Older'
 }
 
 const chatsMentioning = (search: string) => {
@@ -166,107 +94,6 @@ const chatsMentioning = (search: string) => {
         ? [chatId]
         : []
     })
-  )
-}
-
-const ChatListRow = ({
-  controlId,
-  isActive,
-  isHighlighted,
-  onDelete,
-  onRename,
-  row,
-  search,
-}: {
-  controlId?: string
-  isActive: boolean
-  isHighlighted: boolean
-  onDelete: () => void
-  onRename: () => void
-  row: ChatRow
-  search: string
-}) => {
-  const { connectionResource } = useConnectionContext()
-  const status = useLiveStatus(row.id, connectionResource.id) ?? row.status
-
-  const items: AppMenuNode[] = [
-    ...(row.isDraft
-      ? []
-      : [
-          {
-            icon: PencilEdit01Icon,
-            label: 'Rename',
-            onSelect: onRename,
-          },
-          {
-            icon: row.isPinned ? PinOffIcon : PinIcon,
-            label: row.isPinned ? 'Unpin' : 'Pin',
-            onSelect: () => chatActions.togglePin(row.id, !row.isPinned),
-          },
-          { type: 'separator' as const },
-        ]),
-    {
-      icon: Delete02Icon,
-      label: row.isDraft ? 'Delete Draft' : 'Delete',
-      onSelect: onDelete,
-      variant: 'destructive',
-    },
-  ]
-
-  return (
-    <SidebarMenuItem data-highlighted={isHighlighted || undefined}>
-      <AppContextMenu
-        items={items}
-        className="block"
-        contentProps={{ className: 'min-w-48' }}
-      >
-        <SidebarMenuButton
-          id={controlId}
-          tabIndex={-1}
-          isActive={isActive}
-          onClick={() => openChat(connectionResource.id, row.id)}
-        >
-          <span className="truncate">
-            <HighlightText text={row.title} match={search} />
-          </span>
-          {row.isDraft && (
-            <span className="text-muted-foreground ml-auto shrink-0 text-xs group-hover/menu-item:invisible">
-              Draft
-            </span>
-          )}
-          {status && <ChatStatusMark status={status} />}
-        </SidebarMenuButton>
-        {row.isDraft ? (
-          <SidebarMenuAction
-            showOnHover
-            tabIndex={-1}
-            aria-label="Delete draft"
-            className="top-1/2 -translate-y-1/2"
-            onClick={onDelete}
-          >
-            <HugeiconsIcon
-              icon={Delete02Icon}
-              strokeWidth={2}
-              className="size-3.5!"
-            />
-          </SidebarMenuAction>
-        ) : (
-          <AppMenuButton
-            variant="muted"
-            items={items}
-            contentProps={{ className: 'min-w-48' }}
-            render={
-              <SidebarMenuAction
-                showOnHover
-                tabIndex={-1}
-                aria-label="Chat actions"
-                className="top-1/2 -translate-y-1/2"
-              />
-            }
-          />
-        )}
-      </AppContextMenu>
-    </SidebarMenuItem>
   )
 }
 
@@ -309,7 +136,7 @@ export const ChatList = () => {
   })
   const waiting = waitingChatIds(transcriptParts)
   const unread = useSubscription(unreadChatsValue)
-  const statusOf = (chatId: string): ChatStatus | undefined => {
+  const getStatus = (chatId: string): ChatStatus | undefined => {
     if (waiting.has(chatId)) {
       return 'waiting'
     }
@@ -349,14 +176,14 @@ export const ChatList = () => {
         id: chat.id,
         isDraft: false,
         isPinned: !!chat.pinnedAt,
-        status: statusOf(chat.id),
+        status: getStatus(chat.id),
         title: chat.title || 'New Chat',
       })),
   ]
     .filter((row) => matchesSearch(search, row.title) || mentioning.has(row.id))
     .toSorted((a, b) => b.date.getTime() - a.date.getTime())
   // Drafts live in this window and show at once, so before the chats load they would sit under the skeleton, and a sent chat's draft would show as a draft.
-  const grouped = Object.groupBy(isLoading ? [] : rows, groupOf)
+  const grouped = Object.groupBy(isLoading ? [] : rows, getGroup)
   const shown = GROUPS.flatMap((group) => grouped[group] ?? [])
   const {
     highlightedControlId,
@@ -452,36 +279,11 @@ export const ChatList = () => {
         open={isRenameOpen}
         onOpenChange={setIsRenameOpen}
       />
-      <AlertDialog
-        open={!!deleting}
-        onOpenChange={(open) => !open && setDeleting(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Chat</AlertDialogTitle>
-            <AlertDialogDescription>
-              Delete{' '}
-              <span data-mask className="font-semibold">
-                {deleting?.title}
-              </span>
-              ? This can’t be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel variant="outline">Cancel</AlertDialogCancel>
-            <AlertDialogCancel
-              variant="destructive"
-              onClick={() => {
-                if (deleting) {
-                  chatActions.remove(connectionResource.id, deleting.id)
-                }
-              }}
-            >
-              Delete
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteChatDialog
+        chat={deleting}
+        resourceId={connectionResource.id}
+        onClose={() => setDeleting(null)}
+      />
     </>
   )
 }

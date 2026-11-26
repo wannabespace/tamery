@@ -46,11 +46,13 @@ import { useDictation } from './dictation'
 import { DictationButton } from './dictation-button'
 import { MentionHighlight } from './mention-highlight'
 import { ModelPicker } from './model-picker'
-import type { ChatCommand, PromptMention } from './prompt-mentions'
-import { commandOf, usePromptMentions } from './prompt-mentions'
+import type { PromptMention } from './prompt-mentions'
+import { usePromptMentions } from './prompt-mentions'
 import { PromptMenu } from './prompt-menu'
+import type { ChatCommand } from './slash-commands'
+import { getSlashCommand } from './slash-commands'
 import { SqlComposer } from './sql-composer'
-import { sqlOf } from './sql-run'
+import { getStatement } from './sql-run'
 import {
   chatDraftsValue,
   composerFocusRequestStore,
@@ -58,13 +60,13 @@ import {
 } from './stores'
 import { useTypeToFocus } from './use-type-to-focus'
 
-const draftOf = (chatId: string) => {
+const getDraft = (chatId: string) => {
   const text = standInText() ?? chatDraftsValue.get()[chatId]?.text ?? ''
-  const statement = sqlOf(text)
+  const statement = getStatement(text)
   return { isSql: statement !== null, value: statement ?? text }
 }
 
-const sendLabelOf = ({
+const getSendLabel = ({
   isSql,
   isWorking,
   sendsNow,
@@ -87,7 +89,7 @@ const sendLabelOf = ({
   return isSql ? 'Run SQL' : 'Send message'
 }
 
-const placeholderOf = ({
+const getPlaceholder = ({
   isRecording,
   suggestion,
 }: {
@@ -133,8 +135,8 @@ export const ChatInput = ({
   const isOnline = useIsOnline()
   const { connectionResource } = useConnectionContext()
   const { dialect } = useTabContext()
-  const [isSql, setIsSql] = useState(() => draftOf(chatId).isSql)
-  const [value, setValue] = useState(() => draftOf(chatId).value)
+  const [isSql, setIsSql] = useState(() => getDraft(chatId).isSql)
+  const [value, setValue] = useState(() => getDraft(chatId).value)
   const [files, setFiles] = useState<FileUIPart[]>([])
   const formRef = useRef<HTMLFormElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -203,9 +205,9 @@ export const ChatInput = ({
     (!!value.trim() || (!isSql && files.length > 0)) && isOnline && !isDictating
   const showStop = isWorking && !canSend
   const sendsNow = isWorking && canInterrupt
-  const sendLabel = sendLabelOf({ isSql, isWorking, sendsNow, showStop })
+  const sendLabel = getSendLabel({ isSql, isWorking, sendsNow, showStop })
   const submit = (now = false) => {
-    const command = isSql ? null : commandOf(value)
+    const command = isSql ? null : getSlashCommand(value)
     if (command) {
       onCommand(command)
       menu.reset()
@@ -284,7 +286,7 @@ export const ChatInput = ({
               />
               <ComposerTextarea
                 ref={textareaRef}
-                placeholder={placeholderOf({
+                placeholder={getPlaceholder({
                   isRecording: dictation.isRecording,
                   suggestion,
                 })}

@@ -1,15 +1,11 @@
-import type { AppUIMessage } from '@tamery/ai/message'
 import type { ChatDataParts } from '@tamery/ai/tools'
 import { matchesSearch } from '@tamery/shared/utils'
 import { eq, useLiveQuery } from '@tanstack/react-db'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from '@tanstack/react-router'
-import type { FileUIPart } from 'ai'
-import { Result } from 'better-result'
 import { useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
-import { agentDatabase } from '~/core/agent/database'
 import { useCollections } from '~/core/collections'
 import { lastOpenedResourcesStorageValue } from '~/core/connection/last-opened-resources'
 import { useConnectionContext } from '~/core/connection/route'
@@ -19,6 +15,8 @@ import { useConnectionRunsOn } from '~/core/runtime/machine/pairing'
 import { posthog } from '~/lib/posthog'
 
 import { escapeRegExp } from './mention-text'
+import type { ChatCommand } from './slash-commands'
+import { COMMANDS } from './slash-commands'
 import { chatTab } from './tab'
 
 export type PromptMention =
@@ -42,21 +40,6 @@ export type PromptMention =
       label: string
       table: Omit<ChatDataParts['table'], 'definition'>
     }
-
-/** In the order the menu lists them. */
-const COMMANDS = [
-  ['new', 'Start a new chat'],
-  ['model', 'Choose the model'],
-  ['retry', 'Ask the last message again'],
-  ['copy', 'Copy the last answer'],
-  ['compact', 'Summarize the chat so far to free up context'],
-] as const
-
-export type ChatCommand = (typeof COMMANDS)[number][0]
-
-/** The command a message runs instead of being sent: the whole text is one `/command`. */
-export const commandOf = (text: string) =>
-  COMMANDS.find(([command]) => text.trim() === `/${command}`)?.[0] ?? null
 
 export type PromptSuggestion =
   | { command: ChatCommand; id: string; kind: 'command'; label: string }
@@ -494,36 +477,3 @@ export const usePromptMentions = ({
     suggestions,
   }
 }
-
-export const mentionPart = async (
-  mention: PromptMention
-): Promise<AppUIMessage['parts'][number]> => {
-  if (mention.kind === 'connection') {
-    return { data: mention.connection, type: 'data-connection' }
-  }
-  if (mention.kind === 'chat') {
-    return { data: mention.chat, type: 'data-chat' }
-  }
-  if (mention.kind === 'skill') {
-    const { description: _, ...skill } = mention.skill
-    return { data: skill, type: 'data-skill' }
-  }
-  const definition = await Result.tryPromise(() =>
-    agentDatabase.describeTable(mention.table)
-  )
-  return {
-    data: { ...mention.table, definition: definition.unwrapOr(null) },
-    type: 'data-table',
-  }
-}
-
-/** A user turn's parts: its text, then its files, then what its mentions describe. */
-export const messageParts = async (
-  text: string,
-  mentions: PromptMention[],
-  files: FileUIPart[]
-): Promise<AppUIMessage['parts']> => [
-  ...(text ? [{ text, type: 'text' as const }] : []),
-  ...files,
-  ...(await Promise.all(mentions.map(mentionPart))),
-]
