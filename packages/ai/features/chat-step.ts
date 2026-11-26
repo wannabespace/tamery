@@ -3,6 +3,7 @@ import { UNTRUSTED_DATA_NOTE } from '@tamery/shared/mcp'
 import type { DataUIPart, TelemetryOptions } from 'ai'
 import {
   convertToModelMessages,
+  isToolUIPart,
   smoothStream,
   streamText,
   toUIMessageStream,
@@ -121,6 +122,17 @@ const fitContext = (messages: AppUIMessage[], budget: number) => {
   return messages.slice(firstUser === -1 ? start : firstUser)
 }
 
+// A provider refuses tool calls in the transcript of a request that offers no tools.
+const withoutToolCalls = (messages: AppUIMessage[]) =>
+  messages
+    .map((message) => ({
+      ...message,
+      parts: message.parts.filter((part) => !isToolUIPart(part)),
+    }))
+    .filter((message) =>
+      message.parts.some((part) => part.type !== 'step-start')
+    )
+
 export const toModelMessages = (messages: AppUIMessage[]) =>
   convertToModelMessages<AppUIMessage>(messages, {
     convertDataPart: (part) => ({ text: dataPartText(part), type: 'text' }),
@@ -167,6 +179,13 @@ const stepInstructions = (data: ChatStepInput, capped: boolean) =>
     .filter(Boolean)
     .join('\n')
 
+const stepTranscript = (data: ChatStepInput) => {
+  const history = data.contextTokens
+    ? fitContext(data.messages, data.contextTokens)
+    : data.messages
+  return data.agent ? history : withoutToolCalls(history)
+}
+
 /** One model step of the chat agent as a UI message stream: the instructions, tools and turn limits every caller (the API, the eval) runs. A step that calls tools ends the stream; the caller answers them and sends the turn back. */
 export const streamChatStep = async (data: ChatStepInput) => {
   const answer = data.messages.at(-1)
@@ -191,11 +210,7 @@ export const streamChatStep = async (data: ChatStepInput) => {
       providerOptions: PROMPT_CACHE,
       role: 'system',
     },
-    messages: await toModelMessages(
-      data.contextTokens
-        ? fitContext(data.messages, data.contextTokens)
-        : data.messages
-    ),
+    messages: await toModelMessages(stepTranscript(data)),
     model: chatModelFor(
       model,
       { auto: data.auto ?? false, fast: data.fast ?? false },
