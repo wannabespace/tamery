@@ -40,12 +40,12 @@ const redisClient = {
   on: () => redisClient,
 }
 mock.module('redis', () => ({ createClient: () => redisClient }))
+const limit = mock(() => Promise.resolve({ success: true }))
 mock.module('@orpc/ratelimit/redis', () => ({
-  RedisRateLimiter: mock(() => ({
-    limit: () => Promise.resolve({ success: true }),
-  })),
+  RedisRateLimiter: mock(() => ({ limit })),
 }))
-mock.module('~/lib/resend', () => ({ sendEmail: () => Promise.resolve(true) }))
+const sendEmail = mock(() => Promise.resolve(true))
+mock.module('~/lib/resend', () => ({ sendEmail }))
 
 let signedIn = { email: '', id: '' }
 const orpc = os.$context<Context>()
@@ -102,6 +102,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   retrieve.mockReset()
   cancel.mockReset()
+  limit.mockClear()
+  sendEmail.mockClear()
   await db.execute('TRUNCATE users, subscriptions CASCADE')
 })
 
@@ -244,6 +246,21 @@ test('the last seat goes to one of two concurrent assignments', async () => {
     'rejected',
   ])
   expect(await assignedEmails()).toHaveLength(2)
+})
+
+test('an email that already has a seat, or a full Team, sends no email and spends no email quota', async () => {
+  const owner = await createTeam({ quantity: 2 })
+  await assign(owner, 'jane@tamery.test')
+
+  expect(await assign(owner, 'Jane@tamery.test')).toEqual({
+    alreadyAssigned: true,
+    emailed: false,
+  })
+  await expect(assign(owner, 'bob@tamery.test')).rejects.toThrow(
+    'Every seat is taken'
+  )
+  expect(limit).toHaveBeenCalledTimes(2)
+  expect(sendEmail).toHaveBeenCalledTimes(1)
 })
 
 test('a trial gives one seat besides the owner whatever count it will bill', async () => {
