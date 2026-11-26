@@ -14,7 +14,9 @@ import { publisher } from './events'
 
 export const create = orpc
   .use(authMiddleware)
-  .input(connectionMachinesInsertSchema.omit('userId'))
+  .input(
+    connectionMachinesInsertSchema.omit('userId', 'createdAt', 'updatedAt')
+  )
   .errors({
     NOT_FOUND: { message: 'Connection or machine not found' },
   })

@@ -39,7 +39,7 @@ type ConnectionStringsUtils = {
     write: () => void
   }>
   resolve: (
-    connection: Pick<Connection, 'id' | 'isPasswordExists'>,
+    connection: Pick<Connection, 'id' | 'isPasswordExists' | 'updatedAt'>,
     signal: AbortSignal
   ) => Promise<void>
 }
@@ -133,10 +133,15 @@ export const createConnectionStringsCollection = (
         },
         async resolve(connection, signal) {
           const local = collection.get(connection.id)
+          // A save stamps the string and the optimistic row alike, so a match is either this device's unsent edit, which an
+          // answer would overwrite with the older string, or the version the server already gave.
+          if (local?.updatedAt.getTime() === connection.updatedAt.getTime()) {
+            return
+          }
 
           const result = await orpc.connections.resolve.call({
             id: connection.id,
-            updatedAt: local?.updatedAt,
+            version: local?.updatedAt,
           })
 
           if (result.status !== 'modified') {

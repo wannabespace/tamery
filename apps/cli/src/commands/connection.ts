@@ -259,7 +259,6 @@ export const updateConnection = async (options: {
     : null
   await api.connections.update({
     id: found.id,
-    updatedAt: new Date(),
     ...(options.name && { name: options.name }),
     ...(options.label !== undefined && { label: options.label || null }),
     ...(tested && {

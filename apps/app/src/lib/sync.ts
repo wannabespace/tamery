@@ -82,7 +82,11 @@ const RETRY_MAX_DELAY = 30_000
 interface ServerMutations<T> {
   delete?: (key: string) => Promise<unknown>
   insert?: (value: T) => Promise<T | undefined> | Promise<void>
-  update?: (key: string, changes: Partial<T>, row: T) => Promise<unknown>
+  update?: (
+    key: string,
+    changes: Partial<T>,
+    row: T
+  ) => Promise<T | undefined> | Promise<void>
 }
 
 export interface SyncCollectionConfig<T extends { updatedAt: Date }> {
@@ -248,13 +252,16 @@ export const syncCollectionOptions = <T extends { updatedAt: Date }>(
           return
         }
 
+        // The server stamps `updatedAt`: the optimistic row's would make the next catch-up resend this row.
         if (mutation.type === 'update') {
-          await serverMutation('update')(
+          const stored = await serverMutation('update')(
             mutation.key,
             mutation.changes,
             mutation.modified
           )
-          writeSynced?.([{ type: 'update', value: mutation.modified }])
+          writeSynced?.([
+            { type: 'update', value: stored ?? mutation.modified },
+          ])
           return
         }
 

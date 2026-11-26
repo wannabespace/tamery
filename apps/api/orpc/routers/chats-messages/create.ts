@@ -13,7 +13,7 @@ import { publisher } from './events'
 export const create = orpc
   .use(permissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
-  .input(chatsMessagesInsertSchema)
+  .input(chatsMessagesInsertSchema.omit('updatedAt'))
   .errors({
     NOT_FOUND: { message: 'Chat not found' },
   })

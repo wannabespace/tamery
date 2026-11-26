@@ -14,8 +14,8 @@ export const update = orpc
   .use(authMiddleware)
   .input(
     connectionsUpdateSchema
-      .omit('createdAt', 'userId', 'workspaceId', 'syncType')
-      .merge(connectionsUpdateSchema.pick('id', 'updatedAt').required())
+      .omit('createdAt', 'updatedAt', 'userId', 'workspaceId', 'syncType')
+      .merge(connectionsUpdateSchema.pick('id').required())
   )
   .errors({
     NOT_FOUND: { message: 'Connection not found' },
@@ -72,4 +72,5 @@ export const update = orpc
       type: 'update',
       value: connection,
     })
+    return connection
   })

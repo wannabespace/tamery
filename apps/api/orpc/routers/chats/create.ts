@@ -9,7 +9,7 @@ import { publisher } from './events'
 export const create = orpc
   .use(permissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
-  .input(chatsInsertSchema.omit('userId', 'title'))
+  .input(chatsInsertSchema.omit('userId', 'title', 'updatedAt'))
   .errors({
     NOT_FOUND: { message: 'Chat not found' },
   })

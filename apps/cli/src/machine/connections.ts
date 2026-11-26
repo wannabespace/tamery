@@ -53,7 +53,7 @@ const getServerCopy = async (
   const result = await Result.tryPromise(() =>
     api.connections.resolve({
       id: connectionId,
-      ...(cached?.updatedAt && { updatedAt: cached.updatedAt }),
+      ...(cached?.updatedAt && { version: cached.updatedAt }),
     })
   )
   if (result.isErr()) {
