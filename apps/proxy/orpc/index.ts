@@ -3,6 +3,7 @@ import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
 import { isDevelopmentOrigin, ORIGINS } from '@tamery/shared/origins'
 import { type } from 'arktype'
 
+import { createApiClient } from '~/api-client'
 import { env, nodeEnv } from '~/env'
 
 import type { Context } from './context'
@@ -32,6 +33,23 @@ export const authenticate = async ({ addLogData, headers }: Context) => {
   const { userId } = sessionResponse.assert(data).session
   addLogData({ userId })
   return userId
+}
+
+export const resolveConnection = async (
+  context: Context,
+  input: { connectionId: string } | { resourceId: string }
+) => {
+  // No `authenticate` here: the API refuses this call without a valid session, and the user it answers with is the caller.
+  const resolved = await createApiClient({
+    authorization: context.headers.get('authorization'),
+    cookie: context.headers.get('cookie'),
+  }).internal.proxy.resolveConnectionString({ ...input, withUserId: true })
+  // An API deployed before `withUserId` ignores it and answers with the bare string.
+  if (typeof resolved === 'string') {
+    return { connectionString: resolved, userId: await authenticate(context) }
+  }
+  context.addLogData({ userId: resolved.userId })
+  return resolved
 }
 
 export const originMiddleware = orpc

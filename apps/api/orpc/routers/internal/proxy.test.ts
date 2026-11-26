@@ -56,7 +56,9 @@ const { proxy } = await import('./proxy')
 const BY_RESOURCE = { resourceId: 'resource' }
 
 const resolve = (
-  input: { resourceId: string } | { connectionId: string } = BY_RESOURCE
+  input:
+    | { resourceId: string }
+    | { connectionId: string; withUserId?: true } = BY_RESOURCE
 ) =>
   call(proxy.resolveConnectionString, input, {
     context: {
@@ -73,18 +75,21 @@ const resolve = (
   })
 
 test('resource resolution selects the resource database and preserves credentials and SSL', async () => {
-  expect(await resolve()).toEqual({
-    connectionString:
-      'postgres://user:p@ss@host/other%20database?sslmode=require',
-    userId: 'user',
-  })
+  expect(await resolve()).toBe(
+    'postgres://user:p@ss@host/other%20database?sslmode=require'
+  )
 })
 
 test('connection resolution returns the stored string unchanged', async () => {
-  expect(await resolve({ connectionId: 'connection' })).toEqual({
-    connectionString: stored.connectionString,
-    userId: 'user',
-  })
+  expect(await resolve({ connectionId: 'connection' })).toBe(
+    stored.connectionString
+  )
+})
+
+test('a proxy that asks for the user gets it beside the string', async () => {
+  expect(
+    await resolve({ connectionId: 'connection', withUserId: true })
+  ).toEqual({ connectionString: stored.connectionString, userId: 'user' })
 })
 
 test('refuses a connection synced without secrets whose password was stripped', async () => {

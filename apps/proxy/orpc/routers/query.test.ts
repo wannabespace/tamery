@@ -4,11 +4,10 @@ import { call, ORPCError } from '@orpc/server'
 import { SESSION_NOT_FOUND_MESSAGE } from '@tamery/shared/constants'
 import { noop } from '@tamery/shared/utils'
 
-const resolve = mock(() =>
-  Promise.resolve({
-    connectionString: 'postgres://user:password@10.0.0.5/db',
-    userId: 'user',
-  })
+const PRIVATE_STRING = 'postgres://user:password@10.0.0.5/db'
+const resolve = mock(
+  (): Promise<string | { connectionString: string; userId: string }> =>
+    Promise.resolve({ connectionString: PRIVATE_STRING, userId: 'user' })
 )
 mock.module('~/api-client', () => ({
   createApiClient: () => ({
@@ -47,7 +46,23 @@ test('a string resolved by id costs one API call and is held to public hosts too
     )
   ).rejects.toThrow('only public hosts')
   expect(resolve).toHaveBeenCalledTimes(1)
+  expect(resolve).toHaveBeenCalledWith({
+    resourceId: 'resource',
+    withUserId: true,
+  })
   expect(getSession).not.toHaveBeenCalled()
+})
+
+test('an API that answers with the bare string still needs a session here', async () => {
+  resolve.mockResolvedValueOnce(PRIVATE_STRING)
+  await expect(
+    call(
+      query.postgres.execute,
+      { connectionId: 'connection', query: 'SELECT 1' },
+      { context }
+    )
+  ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+  expect(getSession).toHaveBeenCalledTimes(1)
 })
 
 test('a session the API refuses stops a query by id', async () => {

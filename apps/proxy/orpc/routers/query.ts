@@ -1,7 +1,6 @@
 import { createQueryRouter } from '@tamery/query-proxy'
 
-import { createApiClient } from '~/api-client'
-import { authenticate, orpc, originMiddleware } from '~/orpc'
+import { authenticate, orpc, originMiddleware, resolveConnection } from '~/orpc'
 import { assertReachable } from '~/public-host'
 
 export const query = createQueryRouter(orpc.use(originMiddleware), {
@@ -12,16 +11,12 @@ export const query = createQueryRouter(orpc.use(originMiddleware), {
       return { connectionString: input.connectionString, ownerId }
     }
 
-    // No `authenticate` here: the API refuses this call without a valid session, and the user it answers with is the owner.
-    const { connectionString, userId } = await createApiClient({
-      authorization: context.headers.get('authorization'),
-      cookie: context.headers.get('cookie'),
-    }).internal.proxy.resolveConnectionString(
+    const { connectionString, userId } = await resolveConnection(
+      context,
       'connectionId' in input
         ? { connectionId: input.connectionId }
         : { resourceId: input.resourceId }
     )
-    context.addLogData({ userId })
     await assertReachable(connectionString)
     return { connectionString, ownerId: userId }
   },
