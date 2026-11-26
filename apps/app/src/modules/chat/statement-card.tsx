@@ -87,6 +87,26 @@ export const ResultGrid = ({
   </div>
 )
 
+export type StatementSource =
+  | { kind: 'combined' }
+  | { connection: Connection; kind: 'connection' }
+  | { kind: 'missing' }
+
+const SOURCE_TITLES = {
+  combined: 'Combined results',
+  missing: 'Deleted connection',
+}
+
+const SourceIcon = ({ source }: { source: StatementSource }) =>
+  source.kind === 'connection' ? (
+    <ConnectionIcon
+      type={source.connection.type}
+      provider={source.connection.provider}
+    />
+  ) : (
+    <HugeiconsIcon icon={DatabaseIcon} strokeWidth={2} />
+  )
+
 const connectionTitle = (connection: Connection, resource?: string | null) => (
   <span data-mask>
     {connection.name}
@@ -96,23 +116,24 @@ const connectionTitle = (connection: Connection, resource?: string | null) => (
 
 /** One statement the agent ran or wants to run: where and its state (or the decision it waits on), the SQL, then its rows or its error. */
 export const StatementCard = ({
-  connection,
   error,
   sets,
+  source,
   statement,
   status,
   target,
 }: {
-  /** Null for combined results, which run in the chat's own SQLite; undefined when the call's connection is gone. */
-  connection: Connection | null | undefined
   error?: string
   sets?: ResultSets
+  /** Combined results run in the chat's own SQLite; a missing connection was deleted after the call. */
+  source: StatementSource
   statement: string | undefined
   /** Replaces the result's row count while the statement is not done; a pending change's decision sits here. */
   status: ReactNode
   target?: Omit<ChatTools['query']['input'], 'statement'>
 }) => {
   const [asChart, setAsChart] = useState(false)
+  const connection = source.kind === 'connection' ? source.connection : null
   const dialect = connection ? getDialect(connection.type) : Dialect.SQLite
   const set = sets?.findLast(({ columns }) => columns.length > 0)
   const grid = set && set.rows.length > 0 ? resultGrid(set, '') : null
@@ -121,20 +142,11 @@ export const StatementCard = ({
   return (
     <ToolCard>
       <ToolCardHeader
-        icon={
-          connection ? (
-            <ConnectionIcon
-              type={connection.type}
-              provider={connection.provider}
-            />
-          ) : (
-            <HugeiconsIcon icon={DatabaseIcon} strokeWidth={2} />
-          )
-        }
+        icon={<SourceIcon source={source} />}
         title={
-          connection
-            ? connectionTitle(connection, target?.resource)
-            : connection === null && 'Combined results'
+          source.kind === 'connection'
+            ? connectionTitle(source.connection, target?.resource)
+            : SOURCE_TITLES[source.kind]
         }
         status={status ?? (sets && summarize(sets))}
         actions={
@@ -143,7 +155,7 @@ export const StatementCard = ({
             {statement && (
               <CopyIconButton text={statement} label="Copy SQL" side="top" />
             )}
-            {statement && target && (
+            {statement && target && connection && (
               <IconButton
                 icon={PlayIcon}
                 label="Open in a Query tab"

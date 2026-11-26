@@ -38,13 +38,10 @@ import { useRef, useState } from 'react'
 import { useCollections } from '~/core/collections'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { useShortcut } from '~/core/keyboard/use-shortcuts'
-import { schemaNotes } from '~/core/schema-notes/notes'
+import { getNoteLabel, schemaNotes } from '~/core/schema-notes/notes'
 import type { SchemaNote } from '~/core/schema-notes/sync'
 
 const SEARCH_FROM = 11
-
-const getTarget = ({ column, table }: SchemaNote) =>
-  table && (column ? `${table}.${column}` : table)
 
 const NoteRow = ({
   note,
@@ -56,7 +53,7 @@ const NoteRow = ({
   const [draft, setDraft] = useState<string | null>(null)
   const fieldRef = useRef<HTMLTextAreaElement>(null)
   const kept = draft?.trim()
-  const target = getTarget(note)
+  const target = getNoteLabel(note)
 
   useHotkey('Escape', () => setDraft(null), {
     enabled: draft !== null,
@@ -148,7 +145,7 @@ const DeleteNoteDialog = ({
   if (note && note !== shown) {
     setShown(note)
   }
-  const target = shown && getTarget(shown)
+  const target = shown && getNoteLabel(shown)
 
   return (
     <AlertDialog
@@ -238,7 +235,7 @@ export const SchemaNotesSettings = () => {
         search,
         connection.name,
         resource.name,
-        getTarget(note),
+        getNoteLabel(note),
         note.note
       )
     ),

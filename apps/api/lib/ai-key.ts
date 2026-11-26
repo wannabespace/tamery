@@ -48,16 +48,10 @@ export const aiKey = {
     db.update(aiKeys).set({ enabled }).where(ofProvider(userId, provider)),
 }
 
-export type AiPayer = Awaited<ReturnType<typeof payForAi>>
-
-/** Who pays for a chat call: the user's own keys, else Tamery's budget for Pro. `key` is the first of them, which the chat's helper calls run on. A call on a key is recorded as `ownKey`, so AI usage shows it while it never counts toward the budget or spends credits. */
-export const payForAi = async (userId: string, refused: () => Error) => {
-  const keys = await aiKey.enabled(userId)
+/** Who pays for a call: the user's own keys, else Tamery. `key` is the first of them, which the chat's helper calls run on, null on Tamery's account. A call on a key is recorded as `ownKey`, so AI usage shows it while it never counts toward the budget or spends credits. */
+export const getAiPayer = (keys: AiKey[]) => {
   const [key = null] = keys
-  if (!(key || (await credits.canUseAi(userId)))) {
-    throw refused()
-  }
-  const scoped = (scope: AiUsageScope) => ({ ...scope, ownKey: !!key })
+  const scoped = (scope: AiUsageScope) => ({ ...scope, ownKey: key !== null })
   return {
     key,
     keys,
@@ -67,4 +61,15 @@ export const payForAi = async (userId: string, refused: () => Error) => {
         aiUsage.recordPriced(scoped(scope), usage),
     telemetry: (scope: AiUsageScope) => aiUsage.telemetry(scoped(scope)),
   }
+}
+
+export type AiPayer = ReturnType<typeof getAiPayer>
+
+/** The payer of a chat call, refused when the user has no key and Tamery's budget for them is spent. */
+export const payForAi = async (userId: string, refused: () => Error) => {
+  const keys = await aiKey.enabled(userId)
+  if (!(keys.length > 0 || (await credits.canUseAi(userId)))) {
+    throw refused()
+  }
+  return getAiPayer(keys)
 }

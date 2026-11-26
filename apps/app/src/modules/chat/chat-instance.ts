@@ -1,6 +1,7 @@
 import { Chat } from '@ai-sdk/react'
 import { asyncIteratorToStream } from '@orpc/client'
 import type { AppUIMessage } from '@tamery/ai/message'
+import type { ChatModelId, ChatModelPick } from '@tamery/ai/models/list'
 import type { ChatOnFinishCallback } from 'ai'
 import { lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
 import { memoize } from 'memoza'
@@ -16,8 +17,8 @@ import {
   unreadChatsValue,
 } from './stores'
 
-const modelPick = (model = chatModelValue.get() ?? undefined) => ({
-  ...(model && chatModelOptionsValue.get()[model]),
+const modelPick = (model: ChatModelPick = chatModelValue.get()) => ({
+  ...chatModelOptionsValue.get()[model],
   model,
 })
 
@@ -39,7 +40,7 @@ export const getChatInstance = memoize(
     chatId: string
     connectionResourceId: string
     /** The model the parent agent picked for its subagent, used on every turn instead of the user's pick. */
-    model?: string
+    model?: ChatModelId
     /** Sent with every turn: only the first creates the chat, as a subagent of `parentChatId`. */
     subagent?: { parentChatId: string; title: string }
   }) => {

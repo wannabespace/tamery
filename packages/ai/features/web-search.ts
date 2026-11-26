@@ -68,7 +68,7 @@ const openPage = async (page: { title: string | null; url: string }) => {
 
 /** Answers one question from a live web search, with the pages it read. */
 export const searchWeb = async (data: {
-  key?: AiKey | null
+  key: AiKey | null
   query: string
   signal?: AbortSignal
   telemetry?: TelemetryOptions

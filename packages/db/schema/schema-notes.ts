@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import {
   createInsertSchema,
   createSelectSchema,
@@ -28,7 +29,13 @@ export const schemaNotes = d.snakeCase.table(
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),
   },
-  (t) => [d.index().on(t.connectionResourceId)]
+  (t) => [
+    d.index().on(t.connectionResourceId),
+    d.check(
+      'schema_notes_column_needs_table',
+      sql`${t.column} IS NULL OR ${t.table} IS NOT NULL`
+    ),
+  ]
 )
 
 export const schemaNotesSelectSchema = createSelectSchema(schemaNotes)

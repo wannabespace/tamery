@@ -6,13 +6,15 @@ import { useCollections } from '~/core/collections'
 
 import type { ChatToolPart, ToolPartActions } from './chat-tool-types'
 import { decidedElsewhereStore } from './chat-tools'
+import type { StatementSource } from './statement-card'
 import { StatementCard, summarize } from './statement-card'
 import { getStatus, isAnsweredByApp, isSkipped } from './tool-status'
 import { WriteApproval } from './write-approval'
 
-const usePartConnection = (connectionId: string | undefined) => {
+const usePartSource = (connectionId: string | undefined): StatementSource => {
   const { connectionsCollection } = useCollections()
-  return connectionId ? connectionsCollection.get(connectionId) : undefined
+  const connection = connectionId && connectionsCollection.get(connectionId)
+  return connection ? { connection, kind: 'connection' } : { kind: 'missing' }
 }
 
 /** A call that names no resource runs on its connection's default one, which its card names too. */
@@ -39,27 +41,27 @@ export const ExplainPlan = ({
   input: ChatTools['explain']['input']
   sets: ChatTools['explain']['output']
 }) => {
-  const connection = usePartConnection(input.connectionId)
+  const source = usePartSource(input.connectionId)
   const target = usePartTarget(input)
   return (
     <StatementCard
-      connection={connection}
       sets={sets}
+      source={source}
       statement={input.statement}
       status={null}
-      target={connection && target}
+      target={target}
     />
   )
 }
 
 /** A statement the user ran themselves, from the composer or a skipped change's card. */
 export const SqlRunCard = ({ data }: { data: ChatDataParts['sql'] }) => {
-  const connection = usePartConnection(data.connectionId)
+  const source = usePartSource(data.connectionId)
   const target = usePartTarget(data)
   return (
     <StatementCard
-      connection={connection}
       error={data.error ?? undefined}
+      source={source}
       statement={data.statement}
       sets={data.output ?? undefined}
       status={
@@ -67,7 +69,7 @@ export const SqlRunCard = ({ data }: { data: ChatDataParts['sql'] }) => {
           {data.output ? `You ran · ${summarize(data.output)}` : 'Failed'}
         </span>
       }
-      target={connection && target}
+      target={target}
     />
   )
 }
@@ -106,7 +108,7 @@ export const StatementPart = ({
   part: Extract<ChatToolPart, { type: 'tool-execute' | 'tool-query' }>
 }) => {
   const { input } = part
-  const connection = usePartConnection(input?.connectionId)
+  const source = usePartSource(input?.connectionId)
   const target = usePartTarget(
     part.state === 'input-streaming' ? undefined : part.input
   )
@@ -118,7 +120,7 @@ export const StatementPart = ({
     part.state === 'input-available' &&
     !!actions.decide
 
-  if (part.state === 'input-streaming' && !connection) {
+  if (part.state === 'input-streaming' && source.kind === 'missing') {
     return null
   }
 
@@ -130,10 +132,10 @@ export const StatementPart = ({
   } else if (awaitsApproval && actions.decide) {
     status = (
       <WriteApproval
-        connection={connection}
         auto={actions.decide.auto}
         decideWrite={actions.decide.write}
         input={part.input}
+        source={source}
         toolCallId={part.toolCallId}
       />
     )
@@ -149,16 +151,16 @@ export const StatementPart = ({
 
   return (
     <StatementCard
-      connection={connection}
       error={
         part.state === 'output-error' && !isAnsweredByApp(part)
           ? part.errorText
           : undefined
       }
       sets={part.state === 'output-available' ? part.output : undefined}
+      source={source}
       statement={input?.statement}
       status={status}
-      target={connection && target}
+      target={target}
     />
   )
 }

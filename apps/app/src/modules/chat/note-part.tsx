@@ -2,6 +2,8 @@ import { NoteIcon } from '@hugeicons/core-free-icons'
 import { InlineCode } from '@tamery/ui/components/custom/inline-code'
 import { Response } from '@tamery/ui/components/response'
 
+import { getNoteLabel } from '~/core/schema-notes/notes'
+
 import { ChatDisclosure } from './chat-disclosure'
 import type { ChatToolPart } from './chat-tool-types'
 import { MODEL_DISALLOWED_ELEMENTS } from './model-elements'
@@ -10,8 +12,11 @@ import { getStatus, isRunning } from './tool-status'
 type NoteToolPart = Extract<ChatToolPart, { type: 'tool-propose_note' }>
 
 const getTarget = ({ input }: NoteToolPart) =>
-  input?.table &&
-  (input.column ? `${input.table}.${input.column}` : input.table)
+  getNoteLabel({
+    column: input?.column ?? null,
+    schema: input?.schema ?? null,
+    table: input?.table ?? null,
+  })
 
 const getVerb = (part: NoteToolPart) => {
   if (part.state !== 'output-available') {

@@ -1,5 +1,6 @@
 import { openrouter } from '@openrouter/ai-sdk-provider'
 import { createRetryableModel } from 'ai-retry/language-model'
+import { type } from 'arktype'
 import { memoize } from 'memoza'
 
 /** The models the chat offers, first is the default; the picker groups them by provider in this order. Every id is an OpenRouter id that takes tools and `reasoning.effort`; `context` is its window in tokens, from OpenRouter's catalog. */
@@ -141,6 +142,23 @@ export type ChatModelId = (typeof chatModels)[number]['id']
 
 export const DEFAULT_CHAT_MODEL: ChatModelId = chatModels[0].id
 
+export const AUTO_MODEL = 'auto'
+
+export const chatModelPick = type.enumerated(
+  AUTO_MODEL,
+  ...chatModels.map(({ id }) => id)
+)
+
+export type ChatModelPick = typeof chatModelPick.infer
+
+export const MODEL_UNAVAILABLE_MESSAGE =
+  'None of your AI keys runs the picked model. Pick another model or Auto.'
+
+export interface ChatRouting {
+  auto: boolean
+  fast: boolean
+}
+
 /** Auto's models, lightest first; a chat on Auto answers with one of them. */
 export const AUTO_CHAT_MODELS: ChatModelId[] = [
   'anthropic/claude-haiku-5.5',
@@ -181,7 +199,7 @@ export const openRouterModels = (provider: typeof openrouter) => {
   return {
     // `:nitro` is OpenRouter's shortcut for routing to the fastest providers of a model, not a separate model.
     // Only Auto falls back to another company's model: a model the user picked answers or fails.
-    chat: (id: ChatModelId, fast: boolean, auto: boolean) =>
+    chat: (id: ChatModelId, { auto, fast }: ChatRouting) =>
       createRetryableModel({
         model: model(fast ? `${id}:nitro` : id),
         retries: auto
@@ -204,7 +222,7 @@ export const openRouterModels = (provider: typeof openrouter) => {
 const tamery = openRouterModels(openrouter)
 
 export const chatModel = memoize(tamery.chat, {
-  cacheKey: (id, fast, auto) => `${id}:${fast}:${auto}`,
+  cacheKey: (id, { auto, fast }) => `${id}:${fast}:${auto}`,
 })
 
 export const { models } = tamery

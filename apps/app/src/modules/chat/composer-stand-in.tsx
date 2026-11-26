@@ -57,19 +57,23 @@ export const ComposerStandIn = (props: ComponentProps<'textarea'>) => (
   </div>
 )
 
-/** Undefined until something looks: until then the boot shell's composer, if shown, is the one typed into. */
-let typedInto: HTMLTextAreaElement | null | undefined
+/** Until something looks, the boot shell's composer, if shown, is the one typed into. */
+let typedInto:
+  | { resolved: false }
+  | { resolved: true; textarea: HTMLTextAreaElement | null } = {
+  resolved: false,
+}
 
 const currentStandIn = () =>
-  typedInto === undefined
-    ? document.querySelector<HTMLTextAreaElement>(
+  typedInto.resolved
+    ? typedInto.textarea
+    : document.querySelector<HTMLTextAreaElement>(
         '.shell-chat [data-shell-composer]'
       )
-    : typedInto
 
 /** Call before the boot shell goes: the removed textarea still holds what was typed into it. */
 export const holdShellComposer = () => {
-  typedInto = currentStandIn()
+  typedInto = { resolved: true, textarea: currentStandIn() }
 }
 
 /** Ref for a stand-in shown while the chat loads: it takes over the text and focus of the one before it. */
@@ -79,7 +83,7 @@ export const adoptStandIn =
       return
     }
     textarea.value = currentStandIn()?.value || draft
-    typedInto = textarea
+    typedInto = { resolved: true, textarea }
     textarea.focus()
     textarea.setSelectionRange(textarea.value.length, textarea.value.length)
   }
@@ -88,5 +92,5 @@ export const adoptStandIn =
 export const standInText = () => currentStandIn()?.value || null
 
 export const releaseStandIn = () => {
-  typedInto = null
+  typedInto = { resolved: true, textarea: null }
 }
