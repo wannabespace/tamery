@@ -19,5 +19,5 @@ export const TabError = ({ error }: ErrorComponentProps) => {
   ) {
     throw error
   }
-  return <TableError error={failure} />
+  return <TableError error={failure} title="Couldn’t open this tab" />
 }

@@ -17,6 +17,7 @@ export {
 export type { TokenizerState } from './tokenizer'
 export { INITIAL_STATE, tokenize } from './tokenizer'
 export {
+  additiveOnly,
   destructiveKeywords,
   invalidatesCatalog,
   readsOnly,

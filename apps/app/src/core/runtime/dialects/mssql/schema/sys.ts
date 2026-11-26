@@ -126,6 +126,7 @@ interface Indexes {
   is_unique_constraint: boolean
   type_desc: string
   has_filter: boolean
+  filter_definition: string | null
   is_disabled: boolean
   ignore_dup_key: boolean
   is_padded: boolean

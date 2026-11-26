@@ -7,6 +7,7 @@ import type {
   ScrollToCell,
 } from '@tamery/table'
 import { Grid } from '@tamery/table'
+import { cn } from '@tamery/ui/lib/utils'
 import type { CSSProperties, ReactNode, Ref } from 'react'
 
 import type { CellGeometry } from './cell/cell'
@@ -31,7 +32,11 @@ const PlainHeader = (
   <div
     role="columnheader"
     style={style}
-    className="flex min-w-0 flex-col justify-center px-2 py-1.5 select-none"
+    className={cn(
+      'flex min-h-8 min-w-0 flex-col justify-center px-2 py-1.5 select-none',
+      column.align === 'center' && 'text-center',
+      column.align === 'right' && 'text-right'
+    )}
     {...dragHandle}
   >
     <div data-mask className="truncate text-xs font-medium">
@@ -76,6 +81,7 @@ export const ColumnGrid = ({
   const gridColumns: GridColumn[] = [
     ...(leading ? [{ id: leading.id, pinned: true, size: leading.size }] : []),
     ...columns.map((column) => ({
+      grow: !!column.align && column === columns.at(-1),
       id: column.id,
       pinned: !!pinned?.includes(column.id),
       size: getSize(column),

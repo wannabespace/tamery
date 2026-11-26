@@ -37,11 +37,12 @@ import {
   Labelled,
   OptionSelect,
   OptionsField,
-  resetFields,
   SchemaField,
+  SearchSelectField,
   SelectField,
   SqlField,
   TextField,
+  resetFields,
 } from '../components/fields'
 import type {
   InspectorWarning,
@@ -438,7 +439,7 @@ const ConstraintInspector = ({
       >
         <form.AppField name="table">
           {() => (
-            <SelectField
+            <SearchSelectField
               label="Table"
               disabled={readOnly || !!item}
               options={
@@ -500,7 +501,7 @@ const ConstraintInspector = ({
           </form.AppField>
           <form.AppField name="foreignTable">
             {() => (
-              <SelectField
+              <SearchSelectField
                 label="Table"
                 disabled={shapeLocked}
                 options={getRelationNames(draft.foreignSchema, 'table')}

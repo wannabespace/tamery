@@ -1,19 +1,21 @@
 import {
   ArrowRight01Icon,
-  Key01Icon,
   LeftToRightListDashIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
-import {
-  uppercaseFirst,
-  matchesSearch,
-  pushUnique,
-  sameList,
-} from '@tamery/shared/utils'
+import { fileSize } from '@tamery/shared/files'
+import { matchesSearch, pushUnique, sameList } from '@tamery/shared/utils'
+import { Badge } from '@tamery/ui/components/badge'
 import { MotionCollapse } from '@tamery/ui/components/collapse.motion'
+import { HighlightText } from '@tamery/ui/components/custom/highlight'
 import { FieldDescription } from '@tamery/ui/components/field'
 import { useAppForm } from '@tamery/ui/components/tanstack-form'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@tamery/ui/components/tooltip'
 import { useSelector } from '@tanstack/react-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { type } from 'arktype'
@@ -23,7 +25,6 @@ import { toast } from 'sonner'
 import { Link } from '~/components/link'
 import type { SectionCapabilities } from '~/core/catalog/capabilities'
 import { getCapabilities } from '~/core/catalog/capabilities'
-import type { ObjectNames } from '~/core/catalog/capability-presets'
 import { definitionKey } from '~/core/catalog/definition-keys'
 import { submittedName, suggestedName } from '~/core/catalog/engine-name'
 import { useObjectNames } from '~/core/catalog/names'
@@ -43,11 +44,12 @@ import { queryClient } from '~/lib/query-client'
 
 import {
   OptionsField,
-  resetFields,
   SchemaField,
+  SearchSelectField,
   SelectField,
   SwitchField,
   TextField,
+  resetFields,
 } from '../components/fields'
 import type { SectionInspectorProps } from '../components/inspector'
 import {
@@ -60,7 +62,7 @@ import type { RunQuery } from '../hooks/use-definitions-state'
 import { useDefinitionsState } from '../hooks/use-definitions-state'
 import { useFilter } from '../hooks/use-filter'
 import type { DefinitionsColumn } from '../lib/columns'
-import { labelColumn, nameColumn, textColumn } from '../lib/columns'
+import { nameColumn, numberColumn } from '../lib/columns'
 import { MongoIndexInspector } from './mongo-index-inspector'
 
 type IndexItem = typeof indexesType.infer
@@ -84,11 +86,13 @@ interface IndexDraft {
   unique: boolean
 }
 
-const kindLabels: Record<IndexKind, string> = {
-  primary: 'Primary key',
-  regular: 'Index',
+const kindLabels: Record<IndexKind, string | null> = {
+  primary: 'Primary',
+  regular: null,
   unique: 'Unique',
 }
+
+const scanCount = new Intl.NumberFormat()
 
 const getKind = (item: IndexItem): IndexKind => {
   if (item.isPrimary) {
@@ -367,7 +371,7 @@ const IndexInspector = ({
       >
         <form.AppField name="table">
           {() => (
-            <SelectField
+            <SearchSelectField
               label="Table"
               disabled={locked.readOnly || !!item}
               options={
@@ -447,30 +451,116 @@ const IndexInspector = ({
   )
 }
 
-const indexColumns = (
-  names: ObjectNames
-): DefinitionsColumn<GroupedIndex>[] => [
+const coveringIndex = (item: GroupedIndex, all: GroupedIndex[]) =>
+  item.kind === 'regular' && !item.custom && !item.predicate
+    ? all.find(
+        (other) =>
+          other !== item &&
+          other.schema === item.schema &&
+          other.table === item.table &&
+          other.type === item.type &&
+          !other.custom &&
+          !other.predicate &&
+          item.columns.every(
+            (column, index) => other.columns[index] === column
+          ) &&
+          (other.columns.length > item.columns.length ||
+            other.kind !== 'regular' ||
+            other.name < item.name)
+      )
+    : undefined
+
+const StatusBadge = ({ hint, label }: { hint: string; label: string }) => (
+  <Tooltip>
+    <TooltipTrigger render={<Badge variant="warning" />}>
+      {label}
+    </TooltipTrigger>
+    <TooltipContent>{hint}</TooltipContent>
+  </Tooltip>
+)
+
+const indexColumns = ({
+  all,
+  plainTypes,
+  stats,
+}: {
+  all: GroupedIndex[]
+  plainTypes: readonly string[]
+  stats: boolean
+}): DefinitionsColumn<GroupedIndex>[] => [
   nameColumn({
-    icon: (item: GroupedIndex) =>
-      item.kind === 'primary' ? Key01Icon : LeftToRightListDashIcon,
+    after: (item) => {
+      const kind = kindLabels[item.kind]
+      const covering = coveringIndex(item, all)
+      return (
+        <>
+          {kind && <Badge variant="secondary">{kind}</Badge>}
+          {covering && (
+            <StatusBadge
+              label="Redundant"
+              hint={`${covering.name} starts with the same columns, so queries can use it instead.`}
+            />
+          )}
+          {item.kind === 'regular' && item.scans === 0 && (
+            <StatusBadge
+              label="Unused"
+              hint="No query has read it since the statistics were last reset."
+            />
+          )}
+        </>
+      )
+    },
+    icon: () => LeftToRightListDashIcon,
     width: '4/12',
   }),
-  textColumn({
-    header: uppercaseFirst(names.table),
-    valueOf: (item: GroupedIndex) => item.table,
-    width: '2/12',
-  }),
-  textColumn({
-    header: `${uppercaseFirst(names.column)}s`,
-    valueOf: (item: GroupedIndex) => item.columns.join(', '),
-  }),
-  labelColumn({
-    align: 'end',
-    getLabel: (item: GroupedIndex) =>
-      [kindLabels[item.kind], item.type].filter(Boolean).join(' · '),
-    header: 'Type',
-    width: '3/12',
-  }),
+  {
+    cell: (item, { search }) => {
+      const method =
+        item.type && !plainTypes.includes(item.type)
+          ? item.type.toLowerCase()
+          : null
+      return (
+        <span className="flex min-w-0 items-baseline gap-2">
+          <span data-mask className="truncate font-mono">
+            <HighlightText text={item.columns.join(', ')} match={search} />
+            {item.included && (
+              <span className="text-muted-foreground">
+                {' '}
+                include ({item.included})
+              </span>
+            )}
+            {item.predicate && (
+              <span className="text-muted-foreground">
+                {' '}
+                where {item.predicate}
+              </span>
+            )}
+          </span>
+          {method && (
+            <span className="text-muted-foreground shrink-0">{method}</span>
+          )}
+        </span>
+      )
+    },
+    header: 'Columns',
+    sortValue: (item) => item.columns.join(', '),
+  },
+  ...(stats
+    ? [
+        numberColumn<GroupedIndex>({
+          format: fileSize,
+          header: 'Size',
+          valueOf: (item) => item.sizeBytes,
+          width: '2/12',
+        }),
+        numberColumn<GroupedIndex>({
+          format: (value) => scanCount.format(value),
+          header: 'Scans',
+          valueOf: (item) => item.scans ?? undefined,
+          width: '2/12',
+        }),
+      ]
+    : []),
 ]
 
 export const Indexes = () => {
@@ -484,8 +574,8 @@ export const Indexes = () => {
     selectedSchema,
   } = state
   const names = useObjectNames()
-  const documentIndexes =
-    getCapabilities(dialect).flags.includes('documentIndexes')
+  const { flags, indexes: indexCapabilities } = getCapabilities(dialect)
+  const documentIndexes = flags.includes('documentIndexes')
   const query = resourceIndexesQueryOptions({ connectionResource })
   const { data: indexes = [], isPending } = useQuery(query)
   const kindFilter = useFilter<IndexKind>('All types', [
@@ -494,10 +584,16 @@ export const Indexes = () => {
     { label: 'Regular', value: 'regular' },
   ])
 
+  const items = groupIndexes(indexes, selectedSchema)
+
   return (
     <DefinitionsPage
       canDropItem={(item) => !item.constraintOwned && item.name !== '_id_'}
-      columns={indexColumns(names)}
+      columns={indexColumns({
+        all: items,
+        plainTypes: indexCapabilities.plainTypes,
+        stats: flags.includes('indexStats'),
+      })}
       createBlocked={
         getRelationNames(selectedSchema ?? '', 'table').length === 0
           ? `This schema has no ${names.table}s to index.`
@@ -513,12 +609,19 @@ export const Indexes = () => {
         )
       }
       Inspector={documentIndexes ? MongoIndexInspector : IndexInspector}
-      items={groupIndexes(indexes, selectedSchema)}
+      items={items}
       getKey={definitionKey.index}
+      groupOf={(item) => item.table}
       loading={isPending}
       match={(item) =>
         kindFilter.matches(item.kind) &&
-        matchesSearch(search, item.name, item.table, ...item.columns)
+        matchesSearch(
+          search,
+          item.name,
+          item.table,
+          ...item.columns,
+          item.predicate ?? ''
+        )
       }
       queryKey={structureQueryKey(connectionResource)}
       state={state}

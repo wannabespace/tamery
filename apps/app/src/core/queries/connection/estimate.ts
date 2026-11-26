@@ -11,20 +11,18 @@ import { createQuery } from '~/core/runtime/query'
 
 import { runInTransaction } from './transaction'
 
-const postgresRows = type([
+const postgresPlan = type([
   {
     Plan: {
       'Node Type': 'string',
+      'Operation?': 'string',
       'Plan Rows': 'number',
       'Plans?': type({ 'Plan Rows': 'number' }).array(),
+      'Relation Name?': 'string',
+      'Schema?': 'string',
     },
   },
-]).pipe(
-  ([{ Plan }]) =>
-    (Plan['Node Type'] === 'ModifyTable'
-      ? Plan.Plans?.[0]?.['Plan Rows']
-      : Plan['Plan Rows']) ?? null
-)
+]).pipe(([{ Plan }]) => Plan)
 
 // Only a statement that opens with a data verb: EXPLAIN takes no `ANALYZE …` or procedure call that would make it run. Planning can still call its functions (architecture.md → MCP server).
 const ESTIMATED_COMMANDS = new Set([
@@ -83,9 +81,33 @@ export const estimateQuery = (text: string, dialect: Dialect) => {
         const [set] = await runInTransaction(
           db,
           { accessMode: 'read only', commit: false },
-          [CompiledQuery.raw(`EXPLAIN (FORMAT JSON) ${text}`)]
+          [CompiledQuery.raw(`EXPLAIN (FORMAT JSON, VERBOSE) ${text}`)]
         )
-        return postgresRows.assert(set?.rows[0]?.[0])
+        const plan = postgresPlan.assert(set?.rows[0]?.[0])
+        const rows =
+          (plan['Node Type'] === 'ModifyTable'
+            ? plan.Plans?.[0]?.['Plan Rows']
+            : plan['Plan Rows']) ?? null
+        if (
+          plan.Operation === 'Insert' ||
+          !plan.Schema ||
+          !plan['Relation Name']
+        ) {
+          return rows
+        }
+        const target = await db
+          .selectFrom('pg_catalog.pg_class')
+          .innerJoin(
+            'pg_catalog.pg_namespace',
+            'pg_catalog.pg_namespace.oid',
+            'pg_catalog.pg_class.relnamespace'
+          )
+          .select('pg_catalog.pg_class.reltuples as count')
+          .where('pg_catalog.pg_namespace.nspname', '=', plan.Schema)
+          .where('pg_catalog.pg_class.relname', '=', plan['Relation Name'])
+          .executeTakeFirst()
+        // A table never analyzed has no row count (-1, or 0 before Postgres 14), so the planner guesses from its pages: a thousand rows for a handful.
+        return (target?.count ?? 0) > 0 ? rows : null
       },
       sqlite: unsupported('Row estimates'),
     },

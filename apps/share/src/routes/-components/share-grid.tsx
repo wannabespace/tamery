@@ -135,7 +135,7 @@ export const ShareGrid = ({
               data-cursor={isCursor(rowIndex, column.id) || undefined}
               style={style}
               className={cn(
-                'relative flex h-full scroll-mt-8 items-center gap-1 px-2 text-xs',
+                'relative flex h-full scroll-mt-8 items-center gap-1 px-2 text-xs outline-none',
                 typeof value !== 'string' && 'text-muted-foreground/60'
               )}
               onPointerDown={() => place(rowIndex, gridColumns.indexOf(column))}

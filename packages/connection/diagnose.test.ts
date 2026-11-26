@@ -300,6 +300,15 @@ describe('diagnoseConnectionError', () => {
     ).toStrictEqual({ label: 'Use http://', patch: { https: false } })
   })
 
+  it('names an ended MotherDuck trial', () => {
+    expect(
+      diagnose(
+        "Could not connect to database: Invalid Input Error: Invalid Error: Your MotherDuck trial has ended. For more info, please open: https://app.motherduck.com. An organization admin must select from Free, Lite, or Business plans to restore access. (request id: '81a1dc56-123f-4e67-9f97-62c81d5aa765')",
+        { type: ConnectionType.DuckDB }
+      )
+    ).toMatchObject({ title: 'Your MotherDuck trial has ended' })
+  })
+
   it('explains the cloud proxy refusing a private host without blaming the password', () => {
     expect(diagnose(PRIVATE_HOST_MESSAGE, { password: '' })).toStrictEqual({
       hint: 'The web app reaches databases through a cloud proxy, which only connects to public hosts. Run this connection on a machine (Edit → Runs on), or open it in the desktop app.',

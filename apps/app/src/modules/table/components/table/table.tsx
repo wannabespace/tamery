@@ -169,7 +169,16 @@ export const Table = ({
     )
   }
   if (error) {
-    return <TableError error={error} />
+    return (
+      <TableError
+        error={error}
+        title={
+          <>
+            Couldn’t load <span data-mask>{table}</span>
+          </>
+        }
+      />
+    )
   }
   if (visible.length === 0) {
     return (

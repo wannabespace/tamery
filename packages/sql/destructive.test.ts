@@ -3,6 +3,7 @@ import { describe, expect, it } from 'bun:test'
 import { Dialect } from '@tamery/shared/enums/connection-type'
 
 import {
+  additiveOnly,
   destructiveKeywords,
   invalidatesCatalog,
   readsOnly,
@@ -28,6 +29,18 @@ describe('destructiveKeywords', () => {
     expect(
       destructiveKeywords('update t set a = 1; delete from t', mysql)
     ).toEqual(['UPDATE', 'DELETE'])
+  })
+
+  it('flags CREATE OR REPLACE, which swaps out an existing object', () => {
+    expect(
+      destructiveKeywords('CREATE OR REPLACE VIEW v AS SELECT 1', pg)
+    ).toEqual(['REPLACE'])
+    expect(
+      destructiveKeywords(
+        'CREATE OR REPLACE TRIGGER g INSTEAD OF DELETE ON v FOR EACH ROW BEGIN NULL; END;',
+        dialects[Dialect.Oracle]
+      )
+    ).toEqual(['REPLACE'])
   })
 
   it('flags code it cannot see into', () => {
@@ -96,7 +109,7 @@ describe('destructiveKeywords', () => {
     ).toEqual([])
     expect(
       destructiveKeywords(
-        'CREATE OR REPLACE TRIGGER g INSTEAD OF DELETE ON v FOR EACH ROW BEGIN NULL; END;',
+        'CREATE TRIGGER g INSTEAD OF DELETE ON v FOR EACH ROW BEGIN NULL; END;',
         dialects[Dialect.Oracle]
       )
     ).toEqual([])
@@ -336,5 +349,60 @@ describe('readsOnly', () => {
     expect(readsOnly('COMMIT', pg)).toBe(false)
     expect(readsOnly('SET search_path TO evil', pg)).toBe(false)
     expect(readsOnly('', pg)).toBe(false)
+  })
+})
+
+describe('additiveOnly', () => {
+  it('admits inserts and new objects', () => {
+    expect(additiveOnly('INSERT INTO t (a) VALUES (1)', pg)).toBe(true)
+    expect(additiveOnly('INSERT INTO t SELECT * FROM s', pg)).toBe(true)
+    expect(additiveOnly('CREATE TABLE t (a int)', pg)).toBe(true)
+    expect(additiveOnly('CREATE INDEX i ON t (a)', pg)).toBe(true)
+  })
+
+  it('refuses anything that touches existing data', () => {
+    expect(additiveOnly('UPDATE t SET a = 1 WHERE id = 2', pg)).toBe(false)
+    expect(additiveOnly('DELETE FROM t WHERE id = 2', pg)).toBe(false)
+    expect(additiveOnly('ALTER TABLE t ADD COLUMN b int', pg)).toBe(false)
+    expect(
+      additiveOnly(
+        'INSERT INTO t (a) VALUES (1) ON CONFLICT (a) DO UPDATE SET a = 2',
+        pg
+      )
+    ).toBe(false)
+    expect(
+      additiveOnly(
+        'INSERT INTO t (a) VALUES (1) ON DUPLICATE KEY UPDATE a = 2',
+        mysql
+      )
+    ).toBe(false)
+    expect(additiveOnly('REPLACE INTO t VALUES (1)', mysql)).toBe(false)
+    expect(additiveOnly('CREATE OR REPLACE VIEW v AS SELECT 1', pg)).toBe(false)
+  })
+
+  it('allows a committed transaction of additive statements', () => {
+    expect(
+      additiveOnly(
+        'BEGIN;\nCREATE TABLE log (id int);\nINSERT INTO log VALUES (1);\nCOMMIT;',
+        pg
+      )
+    ).toBe(true)
+  })
+
+  it('refuses writes that are not plainly additive', () => {
+    expect(additiveOnly('GRANT SELECT ON t TO bob', pg)).toBe(false)
+    expect(additiveOnly("COMMENT ON TABLE t IS 'x'", pg)).toBe(false)
+    expect(additiveOnly('CALL refresh()', pg)).toBe(false)
+    expect(
+      additiveOnly(
+        'BEGIN; INSERT INTO t VALUES (1); UPDATE t SET a = 2; COMMIT',
+        pg
+      )
+    ).toBe(false)
+    expect(additiveOnly('BEGIN; INSERT INTO t VALUES (1); ROLLBACK', pg)).toBe(
+      false
+    )
+    expect(additiveOnly('BEGIN; COMMIT', pg)).toBe(false)
+    expect(additiveOnly('', pg)).toBe(false)
   })
 })

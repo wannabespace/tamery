@@ -11,6 +11,7 @@ export interface Column extends Partial<
     'attributes' | 'collation' | 'comment' | 'declaredType'
   >
 > {
+  align?: 'center' | 'right'
   id: string
   uiType: 'select' | 'list' | 'boolean' | 'date' | 'time' | 'datetime' | 'raw'
   type?: string

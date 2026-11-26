@@ -10,10 +10,10 @@ import { queryClient } from '~/lib/query-client'
 
 import {
   OptionsField,
-  resetFields,
-  SelectField,
+  SearchSelectField,
   SwitchField,
   TextField,
+  resetFields,
 } from '../components/fields'
 import type { SectionInspectorProps } from '../components/inspector'
 import {
@@ -144,7 +144,7 @@ export const MongoIndexInspector = ({
       >
         <form.AppField name="table">
           {() => (
-            <SelectField
+            <SearchSelectField
               label="Collection"
               disabled={readOnly || !!item}
               options={

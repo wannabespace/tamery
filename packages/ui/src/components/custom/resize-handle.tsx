@@ -77,7 +77,7 @@ export const ResizeHandle = ({
       tabIndex={-1}
       data-resizing={isResizing || undefined}
       className={cn(
-        'group/resize-handle cursor-col-resize select-none',
+        'group/resize-handle cursor-col-resize outline-none select-none',
         className
       )}
       onMouseDown={(event) => {

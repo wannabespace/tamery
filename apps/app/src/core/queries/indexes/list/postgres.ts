@@ -37,6 +37,25 @@ export const postgresIndexes = (db: Kysely<PostgresDatabase>) =>
       'ix.indisprimary as is_primary',
       'am.amname as index_type',
       sql<string>`pg_get_indexdef(ix.indexrelid)`.as('index_definition'),
+      sql<string | null>`pg_get_expr(ix.indpred, ix.indrelid, true)`.as(
+        'predicate'
+      ),
+      sql<string | null>`(
+        SELECT string_agg(ia.attname, ', ' ORDER BY inc.ordinality)
+        FROM unnest(ix.indkey::int2[]) WITH ORDINALITY AS inc(attnum, ordinality)
+        JOIN pg_catalog.pg_attribute ia
+          ON ia.attrelid = ix.indrelid AND ia.attnum = inc.attnum
+        WHERE inc.ordinality > ix.indnkeyatts
+      )`.as('included_columns'),
+      sql<number>`pg_relation_size(ix.indexrelid)::float8`.as('size_bytes'),
+      (eb) =>
+        eb
+          .selectFrom('pg_catalog.pg_stat_user_indexes as st')
+          .select((sub) =>
+            sub.cast<number>('st.idx_scan', 'float8').as('scans')
+          )
+          .whereRef('st.indexrelid', '=', 'ix.indexrelid')
+          .as('scans'),
       (eb) =>
         eb
           .exists(

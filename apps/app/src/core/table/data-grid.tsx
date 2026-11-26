@@ -106,7 +106,8 @@ export const DataGrid = ({
     rows,
     scrollRef,
   })
-  const pointer = useGridPointer(cursor)
+  const barRef = useRef<HTMLDivElement>(null)
+  const pointer = useGridPointer(cursor, scrollRef, barRef)
   const scrollToCell = useGridHandle({
     cursor,
     cursorRef,
@@ -194,7 +195,7 @@ export const DataGrid = ({
           renderCell={renderDataCell}
         />
       )}
-      <GridBar cursor={cursor} items={bar} />
+      <GridBar ref={barRef} cursor={cursor} items={bar} />
     </CursorContext>
   )
 }

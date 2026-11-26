@@ -7,6 +7,11 @@ import { memoize } from 'memoza'
 import { getCapabilities, getDefaultSchema } from '~/core/catalog/capabilities'
 import { getConnectionResourceStore } from '~/core/connection/stores'
 import type { ConnectionResource } from '~/core/connection/sync'
+import {
+  nullableBoolean,
+  nullableString,
+  oneOf,
+} from '~/core/queries/shared/catalog-fields'
 import { currentDatabase } from '~/core/queries/shared/duckdb-catalog'
 import { userTables } from '~/core/queries/shared/sqlite-catalog'
 import {
@@ -25,18 +30,16 @@ const tableTypes = ['base table', 'view', 'materialized view'] as const
 export type RelationKind = 'table' | 'view'
 
 export const tablesAndSchemasType = type({
-  comment: 'string | null',
-  'partition?': 'boolean | null',
-  'row_level_security?': 'boolean | null',
+  comment: nullableString,
+  'partition?': nullableBoolean,
+  'row_level_security?': nullableBoolean,
   schema: 'string',
-  table: 'string | null',
-  type: type.or(
-    type.enumerated(...tableTypes),
-    type.enumerated(
-      ...(tableTypes.map((t) => t.toUpperCase()) as Uppercase<
-        (typeof tableTypes)[number]
-      >[])
-    )
+  table: nullableString,
+  type: oneOf(
+    ...tableTypes,
+    ...(tableTypes.map((t) => t.toUpperCase()) as Uppercase<
+      (typeof tableTypes)[number]
+    >[])
   ),
 }).pipe(({ row_level_security: rowLevelSecurity, type: rawType, ...props }) => {
   const formattedType = rawType.toLowerCase() as (typeof tableTypes)[number]

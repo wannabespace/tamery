@@ -6,6 +6,12 @@ import { sql } from 'kysely'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import type { ConnectionResource } from '~/core/connection/sync'
+import {
+  bitFlag,
+  nullableBoolean,
+  nullableString,
+  oneOf,
+} from '~/core/queries/shared/catalog-fields'
 import { mssqlModuleParts } from '~/core/queries/shared/definition'
 import {
   connectionResourceToQueryParams,
@@ -44,26 +50,27 @@ const mysqlArguments = sql<string | null>`(
 )`
 
 export const functionsType = type({
-  'args?': 'string | null',
-  'behavior?': 'string | null',
-  'body?': 'string | null',
-  'custom?': 'boolean | 1 | 0',
-  'extras?': 'string | null',
+  'args?': nullableString,
+  'behavior?': nullableString,
+  'body?': nullableString,
+  'custom?': bitFlag,
+  'extras?': nullableString,
   'identity?': 'string',
-  'inline?': 'boolean | 1 | 0',
+  'inline?': bitFlag,
   'language?': 'string',
   name: 'string',
   'oid?': 'number',
-  return_type: 'string | null',
+  return_type: nullableString,
   schema: 'string',
-  'schema_bound?': 'boolean | null',
+  'schema_bound?': nullableBoolean,
   'security_definer?': 'boolean',
-  type: '"function" | "procedure"',
+  type: oneOf('function', 'procedure'),
 }).pipe(({ custom, inline, schema_bound, security_definer, ...item }) => ({
   ...item,
   args: item.args ?? null,
   behavior: item.behavior || '',
-  body: item.body || '',
+  // Only blank lines go: PL/Python bodies break if the first line's indent is trimmed.
+  body: item.body?.replace(/^\s*\n/u, '').trimEnd() || '',
   custom: !!custom,
   extras: item.extras || '',
   inline: !!inline,

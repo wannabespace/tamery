@@ -27,6 +27,17 @@ export const invalidatesCatalog = (text: string) =>
 export const writesData = (text: string) =>
   effectsIn(text).some(({ effect }) => DATA.has(effect))
 
+const ADDITIVE = new Set<MethodEffect>(['create', 'insert'])
+
+/** Calls that add without touching what exists (inserts, new collections and indexes), as SQL's `additiveOnly` admits INSERT and CREATE. */
+export const additiveOnly = (text: string) => {
+  const effects = effectsIn(text)
+  return (
+    effects.some(({ effect }) => ADDITIVE.has(effect)) &&
+    effects.every(({ effect }) => ADDITIVE.has(effect) || effect === 'read')
+  )
+}
+
 /** Text that does not parse is not read-only: nothing proves what it would run. */
 export const readsOnly = (text: string) => {
   const effects = effectsIn(text)

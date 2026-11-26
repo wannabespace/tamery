@@ -6,6 +6,8 @@ export interface GridColumn {
   id: string
   size: number
   fixed?: boolean
+  /** Takes the room the columns leave in the row; only for the last column. */
+  grow?: boolean
   /** Pinned columns must lead the list. */
   pinned?: boolean
 }
@@ -51,6 +53,7 @@ export const columnStyle = (
     flexShrink: 0,
     translate: `calc(var(${vars.shift}, 0) * 1px)`,
     width: liveWidth(column),
+    ...(column.grow && { flexGrow: 1, marginRight: GUTTER_WIDTH }),
     ...(column.pinned && {
       left: pinnedLeft(columns, index),
       position: 'sticky',

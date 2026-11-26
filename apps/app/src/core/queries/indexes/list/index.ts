@@ -2,6 +2,7 @@ import { queryOptions } from '@tanstack/react-query'
 import { type } from 'arktype'
 
 import type { ConnectionResource } from '~/core/connection/sync'
+import { bitFlag, nullableString } from '~/core/queries/shared/catalog-fields'
 import {
   connectionResourceToQueryParams,
   createQuery,
@@ -17,17 +18,21 @@ import { postgresIndexes } from './postgres'
 import { sqliteIndexes } from './sqlite'
 
 export const indexesType = type({
-  column: 'string | null',
-  'custom_expression?': 'string | null',
+  column: nullableString,
+  'custom_expression?': nullableString,
   'granularity?': 'number',
-  'index_definition?': 'string | null',
+  'index_definition?': nullableString,
+  'included_columns?': nullableString,
   'index_type?': 'string',
-  'is_constraint?': 'boolean | 1 | 0',
-  'is_custom?': 'boolean | 1 | 0',
-  is_primary: 'boolean | 1 | 0',
-  is_unique: 'boolean | 1 | 0',
+  'is_constraint?': bitFlag,
+  'is_custom?': bitFlag,
+  is_primary: bitFlag,
+  is_unique: bitFlag,
   name: 'string',
+  'predicate?': nullableString,
+  'scans?': 'number | null',
   schema: 'string',
+  'size_bytes?': 'number | null',
   table: 'string',
 }).pipe(
   ({
@@ -38,6 +43,8 @@ export const indexesType = type({
     index_type,
     index_definition,
     custom_expression,
+    included_columns,
+    size_bytes,
     ...data
   }) => ({
     ...data,
@@ -45,8 +52,10 @@ export const indexesType = type({
     custom: !!is_custom,
     customExpression: custom_expression ?? undefined,
     definition: index_definition,
+    included: included_columns ?? undefined,
     isPrimary: !!is_primary,
     isUnique: !!is_unique,
+    sizeBytes: size_bytes ?? undefined,
     type: index_type,
   })
 )

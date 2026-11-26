@@ -105,7 +105,10 @@ const CellValue = ({
     const localTime = getLocalTime(value)
     if (localTime) {
       return (
-        <span data-mask className="flex min-w-0 flex-1 items-baseline gap-1.5">
+        <span
+          data-mask
+          className="flex min-w-0 flex-1 items-baseline [justify-content:inherit] gap-1.5"
+        >
           <span className="max-w-full shrink-0 truncate tabular-nums">
             {transformer.toDisplay(value, size)}
           </span>
@@ -157,6 +160,8 @@ const overlayClass = (
       'inset-ring-foreground/20 group-focus-within/grid:inset-ring-ring/50 inset-ring-3',
     (state === 'range' || state === 'range-cursor') && 'bg-primary/10'
   )
+
+const ALIGN_CLASSES = { center: 'justify-center', right: 'justify-end' }
 
 export interface CellGeometry {
   isDragging?: boolean
@@ -211,11 +216,12 @@ export const TableCell = ({
       className={cn(
         'group/cell relative isolate flex h-full scroll-mt-(--table-header-height) items-center gap-1 px-2 text-xs select-none',
         layout === 'documents' && 'min-w-0 py-1.5',
+        column.align && ALIGN_CLASSES[column.align],
         (value === null || value === undefined || value === '') &&
           'text-muted-foreground/60',
         draft?.isCommitting && 'animate-pulse',
-        pinned && 'bg-background group-hover/row:bg-accent z-10',
-        isDragging && 'bg-background z-10'
+        pinned && 'group-hover/row:bg-accent bg-grid-surface z-10',
+        isDragging && 'bg-grid-surface z-10'
       )}
     >
       {flash !== undefined && (
