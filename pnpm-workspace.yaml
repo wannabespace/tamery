@@ -10,12 +10,8 @@ packages:
   - packages/*
   - apps/*
 catalog:
-  '@journeyapps/wa-sqlite': ^1.7.2
   '@paper-design/shaders-react': ^0.0.82
   # Pinned to the providers built on the same @ai-sdk/provider-utils as `ai`: a second copy splits the tool types.
-  '@ai-sdk/anthropic': 4.0.107
-  '@ai-sdk/google': 4.0.123
-  '@ai-sdk/openai': 4.0.122
   '@ai-sdk/react': ^4.0.183
   '@base-ui/react': ^1.9.0
   '@blobatar/react': ^2.7.0
@@ -190,7 +186,6 @@ catalog:
   schema-dts: ^2.1.0
   takumi-js: ^2.22.1
   mermaid: ^12.3.0
-  yaml: ^2.9.1
 allowBuilds:
   '@firebase/util': false
   '@google/genai': false
