@@ -33,13 +33,15 @@ import {
 
 import { pickRunsOn, useConnectionRunsOnOptions } from './runs-on-options'
 
-const RunsOnMenu = ({ connectionId }: { connectionId: string }) => {
+/** Where the open connection runs for this user; absent while there is only one place to pick. */
+export const RunsOn = () => {
+  const connectionId = useOpenConnectionId()
   const runsOn = useConnectionRunsOn(connectionId)
   const options = useConnectionRunsOnOptions(connectionId)
   const route = useMachineRouteById(runsOn, connectionId)
   const status = useMachineStatus(route?.pairing ?? null)
   const current = options.find(({ value }) => value === runsOn)
-  if (!current) {
+  if (!connectionId || !current) {
     return null
   }
   const down =
@@ -132,10 +134,4 @@ const RunsOnMenu = ({ connectionId }: { connectionId: string }) => {
       </DropdownMenuContent>
     </DropdownMenu>
   )
-}
-
-/** Where the open connection runs for this user; absent while there is only one place to pick. */
-export const RunsOn = () => {
-  const connectionId = useOpenConnectionId()
-  return connectionId ? <RunsOnMenu connectionId={connectionId} /> : null
 }

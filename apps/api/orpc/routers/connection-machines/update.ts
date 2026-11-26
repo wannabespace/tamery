@@ -7,7 +7,7 @@ import { and, eq } from 'drizzle-orm'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
-import { canRunOn, TAMERY_CLOUD } from './machine'
+import { canRunOn } from './machine'
 
 export const update = orpc
   .use(authMiddleware)
@@ -21,10 +21,7 @@ export const update = orpc
     NOT_FOUND: { message: 'Machine not found' },
   })
   .handler(async ({ context, errors, input }) => {
-    if (
-      input.machineId !== TAMERY_CLOUD &&
-      !(await canRunOn(context.user.id, input.machineId))
-    ) {
+    if (!(await canRunOn(context.user.id, input.machineId))) {
       throw errors.NOT_FOUND()
     }
 
