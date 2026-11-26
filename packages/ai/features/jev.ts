@@ -2,6 +2,7 @@ import { APICallError } from 'ai'
 import { type } from 'arktype'
 
 import { env } from '../env'
+import type { AiUsageRecord } from '../usage/record'
 
 const DECISIONS_URL = 'https://openrouter.ai/api/alpha/decisions'
 export const JEV_MODEL = 'typesafe/jev-1.14'
@@ -13,12 +14,10 @@ const jevResponse = type({
   usage: { cost: 'number', input_tokens: 'number', output_tokens: 'number' },
 })
 
-export interface JevUsage {
-  cost: number
-  inputTokens: number
-  model: string
-  outputTokens: number
-}
+export type JevUsage = Pick<
+  AiUsageRecord,
+  'cost' | 'inputTokens' | 'model' | 'outputTokens'
+>
 
 /** Asks Jev, TypeSafe's decision model on OpenRouter, and reports its usage. Throws when it fails or takes too long, so each caller keeps its own fallback. */
 export const askJev = async (data: {

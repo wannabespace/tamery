@@ -13,7 +13,8 @@ import { ConnectionIcon } from '@tamery/ui/components/icons/connection-icon'
 import { tableTypeIcon } from '~/core/catalog/table-type'
 
 import { DrillInButton } from './drill-in-button'
-import type { ChatCommand, PromptSuggestion } from './prompt-mentions'
+import type { PromptSuggestion } from './prompt-mentions'
+import type { ChatCommand } from './slash-commands'
 
 const COMMAND_ICONS = {
   compact: Layers01Icon,

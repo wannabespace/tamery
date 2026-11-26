@@ -80,12 +80,7 @@ export const chatTools = {
   }),
   column_values: tool({
     description: COLUMN_VALUES_DESCRIPTION,
-    inputSchema: type({
-      '...': target,
-      column: 'string',
-      schema: type.string.describe('Schema from list_tables'),
-      table: 'string',
-    }),
+    inputSchema: type({ '...': tableTarget, column: 'string' }),
     outputSchema: type.unknown,
     toModelOutput: asDatabaseData,
   }),
@@ -108,11 +103,7 @@ export const chatTools = {
   describe_table: tool({
     description:
       'Describe one table or view: its columns (type, nullability, default, enum values), constraints (primary key, foreign keys with what they reference, unique, check) and indexes.',
-    inputSchema: type({
-      '...': target,
-      schema: type.string.describe('Schema from list_tables'),
-      table: 'string',
-    }),
+    inputSchema: tableTarget,
     outputSchema: type.unknown,
     toModelOutput: asDatabaseData,
   }),

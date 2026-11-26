@@ -8,7 +8,7 @@ import type { ChatToolPart } from './chat-tool-types'
 import { DECLINED, READ_ONLY } from './chat-tools'
 import { startNewChat } from './open-chat'
 
-export const isDeclined = (part: ChatToolPart) =>
+const isDeclined = (part: ChatToolPart) =>
   part.state === 'output-error' && part.errorText === DECLINED
 
 const isReadOnly = (

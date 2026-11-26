@@ -3,6 +3,7 @@ import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { type } from 'arktype'
 
 import { payForAi } from '~/lib/ai-key'
+import { chatCompaction } from '~/lib/chat-compaction'
 import { chatPersist } from '~/lib/chat-persist'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
@@ -23,11 +24,11 @@ export const compact = orpc
     if (history.length === 0) {
       return
     }
-    await chatPersist.compact({
+    await chatCompaction.compact({
       chatId: input.chatId,
       history,
       key,
-      previous: await chatPersist.compaction(input.chatId),
+      previous: await chatCompaction.get(input.chatId),
       telemetry: telemetry({
         chatId: input.chatId,
         feature: AiFeature.Chat,

@@ -1,15 +1,6 @@
 import { ORPCError } from '@orpc/server'
-import {
-  afterCompaction,
-  compactMessages,
-  generateChatTitle,
-  generateNextPrompt,
-} from '@tamery/ai/features'
-import type { AppUIMessage, ChatCompaction } from '@tamery/ai/message'
+import type { AppUIMessage } from '@tamery/ai/message'
 import { messagesFromPartRows } from '@tamery/ai/message'
-import type { AiKey } from '@tamery/ai/models'
-import { logProviderError } from '@tamery/ai/provider-error'
-import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import {
   chats,
@@ -17,81 +8,17 @@ import {
   chatsMessagesParts,
   schemaNotes,
 } from '@tamery/db/schema'
-import { redactSecrets } from '@tamery/shared/sanitize-log'
-import { silently } from '@tamery/shared/utils'
-import type { TelemetryOptions } from 'ai'
 import { isDeepEqualData, isToolUIPart } from 'ai'
-import { and, asc, desc, eq, gte, inArray, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray } from 'drizzle-orm'
 
-import type { AiPayer } from '~/lib/ai-key'
 import { attachments } from '~/lib/attachments'
+import { chatCompaction } from '~/lib/chat-compaction'
 import { inMemberWorkspace } from '~/lib/workspace'
 import { publisher as chatsMessagesPartsPublisher } from '~/orpc/routers/chats-messages-parts/events'
 import { publisher as chatsMessagesPublisher } from '~/orpc/routers/chats-messages/events'
 import { publisher as chatsPublisher } from '~/orpc/routers/chats/events'
 
-const saveCompaction = async (data: {
-  chatId: string
-  compaction: ChatCompaction | null
-  userId: string
-}) => {
-  const [updated] = await db
-    .update(chats)
-    .set({ compaction: data.compaction })
-    .where(and(eq(chats.id, data.chatId), eq(chats.userId, data.userId)))
-    .returning()
-  if (updated) {
-    chatsPublisher.publish(data.userId, { type: 'update', value: updated })
-  }
-}
-
 export const chatPersist = {
-  /** Summarizes everything before the last user message into the chat's compaction, keeping the latest exchange whole so a turn in progress keeps its own messages. Returns the compaction the model should read, the previous one when there is nothing new to fold in or the summary fails. */
-  compact: async (data: {
-    chatId: string
-    history: AppUIMessage[]
-    key: AiKey | null
-    previous: ChatCompaction | null
-    telemetry?: TelemetryOptions
-    userId: string
-  }) => {
-    const { previous } = data
-    const lastUser = data.history.findLastIndex(
-      (message) => message.role === 'user'
-    )
-    const older = afterCompaction(
-      data.history.slice(0, Math.max(lastUser, 0)),
-      previous
-    )
-    if (older.length === 0) {
-      return previous
-    }
-    const next = await compactMessages({
-      key: data.key,
-      messages: older,
-      previous: previous?.summary,
-      telemetry: data.telemetry,
-    }).catch((error: unknown) => {
-      logProviderError('chat compaction', error)
-      return null
-    })
-    if (!next) {
-      return previous
-    }
-    await saveCompaction({
-      chatId: data.chatId,
-      compaction: next,
-      userId: data.userId,
-    })
-    return next
-  },
-  compaction: async (chatId: string) => {
-    const chat = await db.query.chats.findFirst({
-      columns: { compaction: true },
-      where: { id: { eq: chatId } },
-    })
-    return chat?.compaction ?? null
-  },
   connection: async (data: {
     connectionResourceId: string
     userId: string
@@ -171,9 +98,9 @@ export const chatPersist = {
       }
       chatsMessagesPublisher.publish(data.userId, { key: id, type: 'delete' })
     }
-    const compaction = await chatPersist.compaction(data.chatId)
+    const compaction = await chatCompaction.get(data.chatId)
     if (deleted.some((id) => id === compaction?.throughMessageId)) {
-      await saveCompaction({
+      await chatCompaction.save({
         chatId: data.chatId,
         compaction: null,
         userId: data.userId,
@@ -450,93 +377,5 @@ export const chatPersist = {
         })
       }
     }
-  },
-  persistSuggestion: async (data: {
-    chatId: string
-    history: AppUIMessage[]
-    message: AppUIMessage
-    payer: AiPayer
-    userId: string
-  }) => {
-    await silently(async () => {
-      const suggestion = await generateNextPrompt({
-        key: data.payer.key,
-        messages: [...data.history, data.message],
-        telemetry: data.payer.telemetry({
-          chatId: data.chatId,
-          feature: AiFeature.ChatSuggestion,
-          userId: data.userId,
-        }),
-      })
-      if (!suggestion) {
-        return
-      }
-
-      const where = and(
-        eq(chatsMessages.id, data.message.id),
-        eq(chatsMessages.chatId, data.chatId),
-        eq(chatsMessages.role, 'assistant')
-      )
-      const updated = await db.transaction(async (tx) => {
-        const [current] = await tx
-          .select({ metadata: chatsMessages.metadata })
-          .from(chatsMessages)
-          .where(where)
-        if (!current) {
-          return null
-        }
-        const [value] = await tx
-          .update(chatsMessages)
-          .set({ metadata: { ...current.metadata, suggestion } })
-          .where(where)
-          .returning()
-        return value
-      })
-
-      if (updated) {
-        chatsMessagesPublisher.publish(data.userId, {
-          type: 'update',
-          value: updated,
-        })
-      }
-    })
-  },
-  persistTitle: async (data: {
-    chatId: string
-    messages: AppUIMessage[]
-    payer: AiPayer
-    userId: string
-  }) => {
-    await silently(async () => {
-      const title = await generateChatTitle({
-        key: data.payer.key,
-        messages: data.messages,
-        telemetry: data.payer.telemetry({
-          chatId: data.chatId,
-          feature: AiFeature.ChatTitle,
-          userId: data.userId,
-        }),
-      })
-      if (!title) {
-        return
-      }
-
-      const [updated] = await db
-        .update(chats)
-        // A title summarizing a pasted connection string would carry its password into every chat list.
-        .set({ title: redactSecrets(title) })
-        .where(
-          and(
-            eq(chats.id, data.chatId),
-            eq(chats.userId, data.userId),
-            isNull(chats.title)
-          )
-        )
-        .returning()
-
-      if (updated) {
-        chatsPublisher.publish(data.userId, { type: 'update', value: updated })
-      }
-    })
   },
 }

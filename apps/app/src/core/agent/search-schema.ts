@@ -14,7 +14,7 @@ export const searchSchema = async ({
   ...target
 }: AgentTarget & { query: string }) => {
   const { resource: connectionResource } = resolveResource(target)
-  const terms = query.toLowerCase().split(/\s+/u).filter(Boolean)
+  const terms = query.split(/\s+/u).filter(Boolean)
   const matches = (...texts: (string | null)[]) =>
     terms.some((term) => matchesSearch(term, ...texts))
   const [{ schemas }, columns] = await Promise.all([

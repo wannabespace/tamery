@@ -10,7 +10,7 @@ import { posthog } from '~/lib/posthog'
 
 import { getChatInstance, onChatFinish } from './chat-instance'
 import { awaitsUser } from './chat-tool-types'
-import { messageParts } from './prompt-mentions'
+import { messageParts } from './message-parts'
 import { chatQueueStore } from './stores'
 import { setSubagentStatus, subagentsStore } from './subagents-store'
 
@@ -23,7 +23,7 @@ const lastStep = (message: AppUIMessage) =>
   )
 
 /** The parent only sees the report, so it is the subagent's whole conversation after its task: each answer, and what the user told it along the way, or the parent reads the extra work as the subagent's own and loses the answer to its task. */
-const reportOf = (messages: AppUIMessage[]) =>
+const getReport = (messages: AppUIMessage[]) =>
   messages
     .slice(1)
     .map((message) => {
@@ -102,7 +102,7 @@ export const spawnSubagent = async ({
           )
         } else {
           report.resolve({
-            answer: reportOf(child.messages),
+            answer: getReport(child.messages),
             chatId,
           })
         }

@@ -11,7 +11,6 @@ import { useSelector } from '@tanstack/react-form'
 
 import { isReachableFromWeb } from '~/core/connection/fetching-config'
 import type { RunsOn } from '~/core/runtime/machine/pairing'
-import { parseRunsOn } from '~/core/runtime/machine/pairing'
 import { connectPickedMachine } from '~/modules/machine/connect-machine'
 import { useRunsOnOptions } from '~/modules/machine/runs-on-options'
 
@@ -45,9 +44,8 @@ export const RunsOnField = ({ form }: { form: ConnectionForm }) => {
               if (next === null) {
                 return
               }
-              const picked = parseRunsOn(next)
-              field.handleChange(picked)
-              connectPickedMachine(picked)
+              field.handleChange(next)
+              connectPickedMachine(next)
             }}
           >
             <SelectTrigger

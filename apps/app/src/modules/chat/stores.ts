@@ -71,7 +71,7 @@ export const unreadChatsValue = createWebStorageValue({
   type: 'localStorage',
 })
 
-export interface ChatDraft {
+interface ChatDraft {
   resourceId: string
   text: string
   updatedAt: number
