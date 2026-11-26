@@ -82,12 +82,15 @@ export const diagnosisQueryOptions = (connectionId: string, error: Error) => {
           connectionId
         )
       )
-      const diagnosis = diagnoseConnectionError({
-        desktop: !!window.electron,
-        message: redactConnectionSecrets(error.message, parts),
-        online: attempt.online,
-        parts,
-      })
+      const diagnosis = diagnoseConnectionError(
+        {
+          desktop: !!window.electron,
+          message: error.message,
+          online: attempt.online,
+          parts,
+        },
+        redactConnectionSecrets(error.message, parts)
+      )
       return (
         diagnosis && {
           hint: diagnosis.hint,

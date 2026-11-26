@@ -345,8 +345,10 @@ const RECONNECTED_DIAGNOSIS: Diagnosis = {
 export const adviseRetry = (diagnosis: Diagnosis | null, online: boolean) =>
   online && diagnosis?.offline ? RECONNECTED_DIAGNOSIS : diagnosis
 
+/** The rules read `context.message` as the driver wrote it; a diagnosis quotes only `shownMessage`, which may have a secret redacted out of a word the rules match. */
 export const diagnoseConnectionError = (
-  context: DiagnosisContext
+  context: DiagnosisContext,
+  shownMessage = context.message
 ): Diagnosis | null => {
   const { message, online, parts } = context
   const rule = RULES.find(
@@ -359,7 +361,7 @@ export const diagnoseConnectionError = (
   if (!online && isLostWithNetwork(rule, context)) {
     return OFFLINE_DIAGNOSIS
   }
-  const diagnosis = rule.diagnose(context)
+  const diagnosis = rule.diagnose({ ...context, message: shownMessage })
   const { host, password } = parts
   if (rule.tunnel || diagnosis.focus || password || isLocalHost(host)) {
     return diagnosis
