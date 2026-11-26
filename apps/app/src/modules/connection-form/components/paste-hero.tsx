@@ -15,6 +15,7 @@ import {
 import { useEffect } from 'react'
 
 import { useLocalMachineIds } from '~/core/local-machine'
+import type { RunsOn } from '~/core/runtime/machine/pairing'
 
 import { getFileType } from '../lib/engine-fields'
 import type { FormMode } from '../lib/form-mode'
@@ -55,7 +56,7 @@ export const PasteHero = ({
   mode: FormMode
   onAgent: () => void
   onClipboard: () => void
-  onLocalDatabase: (database: LocalDatabase, machineId: string | null) => void
+  onLocalDatabase: (database: LocalDatabase, machineId: RunsOn) => void
   pasteable: boolean
 }) => {
   const reduceMotion = useReducedMotion()
@@ -140,7 +141,7 @@ export const PasteHero = ({
           {window.electron && <AgentButton onClick={onAgent} />}
           {localMachineIds.map((machineId) => (
             <LocalDatabases
-              key={machineId ?? 'here'}
+              key={machineId}
               machineId={machineId}
               onPick={(database) => onLocalDatabase(database, machineId)}
             />

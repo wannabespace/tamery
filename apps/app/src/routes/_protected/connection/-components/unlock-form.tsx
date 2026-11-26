@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { useCollections } from '~/core/collections'
 import { useConnectionContext } from '~/core/connection/route'
 import { saveConnectionString } from '~/core/connection/save'
+import { getConnectionRunsOn } from '~/core/runtime/machine/pairing'
 import { ConnectionPage } from '~/modules/connection-form/components/connection-page'
 import { getEditMode } from '~/modules/connection-form/lib/form-mode'
 
@@ -28,6 +29,7 @@ export const UnlockForm = ({ scope }: { scope: 'credentials' | 'details' }) => {
       const opened = await saveConnectionString({
         connectionId: connection.id,
         connectionString: saved.connectionString,
+        runsOn: getConnectionRunsOn(connection.id),
         updatedAt: connection.updatedAt,
       })
       toast.success(scope === 'details' ? 'Details saved' : 'Credentials saved')

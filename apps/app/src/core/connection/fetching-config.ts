@@ -4,7 +4,8 @@ import { SyncType } from '@tamery/shared/enums/sync-type'
 import type { ConnectionString } from '~/core/connection/connection-strings'
 import type { Connection } from '~/core/connection/sync'
 import { getNotPairedMessage } from '~/core/runtime/machine/not-paired'
-import type { MachineRoute } from '~/core/runtime/machine/pairing'
+import type { MachineRoute, RunsOn } from '~/core/runtime/machine/pairing'
+import { CLOUD, THIS_COMPUTER } from '~/core/runtime/machine/pairing'
 
 type FetchingType =
   | 'machine'
@@ -27,8 +28,7 @@ type FetchingConnection = Pick<
 > | null
 
 interface FetchingOptions {
-  /** The desktop sends it through the cloud proxy; on the web that is where everything without a machine runs. */
-  inCloud: boolean
+  runsOn: RunsOn
   machine: MachineRoute | null
   /** `null` while the row loads leaves the password unresolved. */
   connectionString: Pick<
@@ -80,7 +80,6 @@ const resolveFlags = (
   connection: FetchingConnection,
   options: FetchingOptions
 ) => {
-  const isElectron = !!window.electron && !options.inCloud
   const { connectionString } = options
   const isPasswordPopulated = connectionString?.isPasswordPopulated
 
@@ -88,8 +87,9 @@ const resolveFlags = (
     connectionStringMissing:
       connection?.syncType === SyncType.CloudWithoutConnectionString &&
       !connectionString,
-    isElectron,
+    isCloudOnDesktop: !!window.electron && options.runsOn === CLOUD,
     isInternal: !!connectionString?.isInternal,
+    isThisComputer: options.runsOn === THIS_COMPUTER,
     missingSecrets: connectionString?.missingSecrets ?? [],
     needsPassword:
       !!connection?.isPasswordExists && isPasswordPopulated === false,
@@ -132,8 +132,9 @@ export const fetchingConfig = (
 ): FetchingConfig => {
   const {
     connectionStringMissing,
-    isElectron,
+    isCloudOnDesktop,
     isInternal,
+    isThisComputer,
     missingSecrets,
     needsPassword,
     passwordUnresolved,
@@ -149,7 +150,7 @@ export const fetchingConfig = (
   }
 
   if (
-    options.inCloud &&
+    isCloudOnDesktop &&
     (needsPassword ||
       missingSecrets.length > 0 ||
       (connection && !isReachableFromWeb(connection, options.connectionString)))
@@ -157,7 +158,7 @@ export const fetchingConfig = (
     return blocked('cloud-proxy', REASONS.notInCloud)
   }
 
-  if (usesSsh && !isElectron) {
+  if (usesSsh && !isThisComputer) {
     return blocked('local', SSH_ELSEWHERE)
   }
 
@@ -165,7 +166,7 @@ export const fetchingConfig = (
     return blocked('resolving-password')
   }
 
-  if ((needsPassword || missingSecrets.length > 0) && !isElectron) {
+  if ((needsPassword || missingSecrets.length > 0) && !isThisComputer) {
     return blocked('cloud-proxy', REASONS.secretsNotStoredInWeb)
   }
 
@@ -177,7 +178,7 @@ export const fetchingConfig = (
     return blocked('waiting-for-password', REASONS.secretsMissing)
   }
 
-  if (isElectron) {
+  if (isThisComputer) {
     return allowed('local')
   }
 

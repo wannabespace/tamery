@@ -16,11 +16,12 @@ export interface PricingPlan {
 }
 
 export const HOBBY_PLAN = {
-  description: 'Every database feature, with a taste of AI',
+  description: 'Every database feature, a taste of AI',
   features: [
     'Table browser, SQL editor and visualizer',
     'Unlimited synced connections',
     `${FREE_WEEKLY_LIMITS.filters} AI filters a week`,
+    `${FREE_WEEKLY_LIMITS.complete} AI SQL completions a week`,
     'AI connection diagnosis',
     `${FREE_WEEKLY_LIMITS.mcp} MCP agent queries a week`,
     `${FREE_SHARE_LIMIT} shared table links`,
@@ -39,11 +40,11 @@ export const HOBBY_PLAN = {
 export const PRO_PLAN = {
   description: 'The full AI assistant, without limits',
   features: [
-    'Schema-aware AI assistant',
-    'Unlimited AI filters and MCP queries',
-    'Included AI credits',
-    'Extra workspaces',
-    'Unlimited shared table links',
+    'AI chat for any query or error',
+    'Edit and fix SQL with AI',
+    'No weekly quota on AI filters, completions or MCP',
+    'Team workspaces with roles',
+    'Unlimited shared table links and test-data runs',
   ],
   highlighted: true,
   id: 'pro',
@@ -59,9 +60,10 @@ export const PRO_PLAN = {
 export const TEAM_PLAN = {
   description: 'Pro for everyone you work with',
   features: [
-    'Pro for every seat',
+    'Every Pro feature on each seat',
     'One subscription and one invoice',
-    'Assign and move seats by email',
+    'Assign and reassign seats by email',
+    'Add seats as your team grows',
   ],
   highlighted: false,
   id: 'team',

@@ -6,7 +6,7 @@ import { nextSort, sortRows } from './use-sort'
 interface Row {
   group: string
   name: string
-  size?: number
+  size: number | null
 }
 
 const name: DefinitionsColumn<Row> = {
@@ -25,7 +25,7 @@ const groupOf = (row: Row) => row.group
 
 const rows: Row[] = [
   { group: 'b', name: 'item10', size: 5 },
-  { group: 'a', name: 'item9' },
+  { group: 'a', name: 'item9', size: null },
   { group: 'b', name: 'item2', size: 30 },
   { group: 'a', name: 'item1', size: 1 },
 ]
