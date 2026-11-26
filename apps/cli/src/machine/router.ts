@@ -216,7 +216,7 @@ export const createRouter = ({
       list: authed.handler(() => localSkills.list()),
     },
     query: createQueryRouter(authed.errors(queryErrors), {
-      connectionString: async (input, _context, dialect, errors) => {
+      connection: async (input, context, dialect, errors) => {
         const connectionString = await connections.resolve(
           input,
           dialect,
@@ -231,7 +231,7 @@ export const createRouter = ({
           const hostKey = hostKeys.getRefused(connectionString, error)
           throw hostKey ? errors.UNKNOWN_HOST_KEY({ data: hostKey }) : error
         })
-        return connectionString
+        return { connectionString, ownerId: context.browserId }
       },
       owner: (context) => context.browserId,
     }),

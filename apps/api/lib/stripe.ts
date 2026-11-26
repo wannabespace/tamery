@@ -1,7 +1,8 @@
 import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
 import type { SubscriptionPlan } from '@tamery/shared/permissions'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
+import { DrizzleQueryError } from 'drizzle-orm/errors'
 import { Stripe } from 'stripe'
 
 import { env } from '~/env'
@@ -16,11 +17,26 @@ export const stripe = env.STRIPE_SECRET_KEY
     })
   : null
 
-/** The user's Stripe customer, created on their first checkout and kept on the user row. A caller that locked the row passes its transaction. */
+// A call made while holding a database lock keeps the lock and a pool connection as long as it runs, so it gets far less than the client's 80 s and 2 retries.
+export const STRIPE_UNDER_LOCK = { maxNetworkRetries: 1, timeout: 15_000 }
+
+export const LOCK_TIMEOUT = sql`SET LOCAL lock_timeout = '5s'`
+
+const LOCK_NOT_AVAILABLE = '55P03'
+
+export const timedOutUnderLock = (error: unknown) =>
+  error instanceof Stripe.errors.StripeConnectionError ||
+  (error instanceof DrizzleQueryError &&
+    error.cause !== undefined &&
+    'code' in error.cause &&
+    error.cause.code === LOCK_NOT_AVAILABLE)
+
+/** The user's Stripe customer, created on their first checkout and kept on the user row. A caller holding the row's lock passes its transaction and `STRIPE_UNDER_LOCK`. */
 export const getStripeCustomerId = async (
   client: Stripe,
   userId: string,
-  tx: Pick<typeof db, 'select' | 'update'> = db
+  tx: Pick<typeof db, 'select' | 'update'> = db,
+  options?: Stripe.RequestOptions
 ) => {
   const [user] = await tx.select().from(users).where(eq(users.id, userId))
   if (!user) {
@@ -29,11 +45,14 @@ export const getStripeCustomerId = async (
   if (user.stripeCustomerId) {
     return user.stripeCustomerId
   }
-  const customer = await client.customers.create({
-    email: user.email,
-    metadata: { userId: user.id },
-    name: user.name,
-  })
+  const customer = await client.customers.create(
+    {
+      email: user.email,
+      metadata: { userId: user.id },
+      name: user.name,
+    },
+    options
+  )
   await tx
     .update(users)
     .set({ stripeCustomerId: customer.id })

@@ -2,10 +2,17 @@ import { db } from '@tamery/db'
 import type { SubscriptionStatus } from '@tamery/db/schema'
 import { subscriptions, subscriptionSeats, users } from '@tamery/db/schema'
 import { ACTIVE_SUBSCRIPTION_STATUSES } from '@tamery/shared/constants'
+import { Result } from 'better-result'
 import { and, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import { v7 } from 'uuid'
 
-import { stripe, stripePrices } from './stripe'
+import {
+  LOCK_TIMEOUT,
+  STRIPE_UNDER_LOCK,
+  stripe,
+  stripePrices,
+  timedOutUnderLock,
+} from './stripe'
 
 // Conar's subscriptions share this table without a price id; they never grant Tamery's plan.
 export const tamerySubscriptions = isNotNull(subscriptions.stripePriceId)
@@ -85,20 +92,24 @@ export const getSubscription = async (userId: string) => {
 const toDate = (seconds: number | null) =>
   seconds ? new Date(seconds * 1000) : null
 
-/** The only writer of a Tamery subscription row and its seats: it stores what Stripe holds now, so a late, replayed or out-of-order event changes nothing. */
-export const syncSubscription = (stripeSubscriptionId: string) =>
+const storeSubscription = (stripeSubscriptionId: string) =>
   db.transaction(async (tx) => {
     if (!stripe) {
       throw new Error('Stripe is not configured')
     }
+
+    await tx.execute(LOCK_TIMEOUT)
 
     // Held across the Stripe read: two deliveries that read in one order and write in the other would store the older state.
     await tx.execute(
       sql`SELECT pg_advisory_xact_lock(hashtext(${stripeSubscriptionId}))`
     )
 
-    const subscription =
-      await stripe.subscriptions.retrieve(stripeSubscriptionId)
+    const subscription = await stripe.subscriptions.retrieve(
+      stripeSubscriptionId,
+      {},
+      STRIPE_UNDER_LOCK
+    )
     const [item] = subscription.items.data
 
     if (!item) {
@@ -155,7 +166,11 @@ export const syncSubscription = (stripeSubscriptionId: string) =>
           !subscription.cancel_at_period_end &&
           !subscription.cancel_at
         ) {
-          await stripe.subscriptions.cancel(subscription.id)
+          await stripe.subscriptions.cancel(
+            subscription.id,
+            {},
+            STRIPE_UNDER_LOCK
+          )
         }
 
         return
@@ -192,3 +207,23 @@ export const syncSubscription = (stripeSubscriptionId: string) =>
         )
       )
   })
+
+/** The only writer of a Tamery subscription row and its seats: it stores what Stripe holds now, so a late, replayed or out-of-order event changes nothing. */
+export const syncSubscription = async (stripeSubscriptionId: string) => {
+  const result = await Result.tryPromise(() =>
+    storeSubscription(stripeSubscriptionId)
+  )
+
+  if (result.isOk()) {
+    return
+  }
+
+  const { cause } = result.error
+
+  throw timedOutUnderLock(cause)
+    ? new Error(
+        `Timed out waiting for Stripe or another sync of ${stripeSubscriptionId}; Stripe retries the event`,
+        { cause }
+      )
+    : cause
+}

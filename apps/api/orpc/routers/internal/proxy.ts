@@ -22,7 +22,12 @@ export const proxy = {
   resolveConnectionString: orpc
     .use(proxySecretMiddleware)
     .use(authMiddleware)
-    .input(type({ resourceId: 'string' }).or({ connectionId: 'string' }))
+    .input(
+      type({ resourceId: 'string', 'withUserId?': 'true' }).or({
+        connectionId: 'string',
+        'withUserId?': 'true',
+      })
+    )
     .errors({
       FORBIDDEN: {
         message:
@@ -72,8 +77,12 @@ export const proxy = {
         throw errors.FORBIDDEN()
       }
 
-      return resource
+      const resolved = resource
         ? resourceConnectionString(connectionString, resource.name)
         : connectionString
+      // The API and the proxy deploy separately: a proxy that does not send `withUserId` reads the bare string.
+      return input.withUserId
+        ? { connectionString: resolved, userId: context.user.id }
+        : resolved
     }),
 }

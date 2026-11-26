@@ -13,7 +13,10 @@ import { createQueryRouter } from '.'
 const builder = os.$context<{ userId: string }>()
 const orpc = builder.use(builder.middleware(({ next }) => next()))
 const router = createQueryRouter(orpc, {
-  connectionString: () => '',
+  connection: (_input, context) => ({
+    connectionString: '',
+    ownerId: context.userId,
+  }),
   owner: (context) => context.userId,
 })
 
@@ -23,7 +26,10 @@ test('only the query owner can cancel a running query', async () => {
   const connectionString = 'postgres://db.example.test/test'
   const queryId = 'test-query'
   const caller = createQueryRouter(orpc, {
-    connectionString: () => connectionString,
+    connection: (_input, context) => ({
+      connectionString,
+      ownerId: context.userId,
+    }),
     owner: (context) => context.userId,
   }).postgres
   const started = Promise.withResolvers<null>()

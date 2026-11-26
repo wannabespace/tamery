@@ -52,42 +52,42 @@ type BannerItem = NonNullable<RouterOutputs['banner']>[number]
 
 const typeConfig = {
   error: {
-    className: 'bg-red-500/5 border-red-500/20 text-red-400',
+    className: 'bg-destructive/5 border-destructive/20',
     icon: (
       <HugeiconsIcon
         icon={Alert02Icon}
         strokeWidth={2}
-        className="size-4 shrink-0"
+        className="text-destructive size-4 shrink-0"
       />
     ),
   },
   info: {
-    className: 'bg-blue-500/5 border-blue-500/20 text-blue-400',
+    className: 'bg-info/5 border-info/20',
     icon: (
       <HugeiconsIcon
         icon={InformationCircleIcon}
         strokeWidth={2}
-        className="size-4 shrink-0"
+        className="text-info size-4 shrink-0"
       />
     ),
   },
   success: {
-    className: 'bg-green-500/5 border-green-500/20 text-green-400',
+    className: 'bg-success/5 border-success/20',
     icon: (
       <HugeiconsIcon
         icon={CheckmarkCircle02Icon}
         strokeWidth={2}
-        className="size-4 shrink-0"
+        className="text-success size-4 shrink-0"
       />
     ),
   },
   warning: {
-    className: 'bg-orange-500/5 border-orange-500/20 text-orange-400',
+    className: 'bg-warning/5 border-warning/20',
     icon: (
       <HugeiconsIcon
         icon={Alert02Icon}
         strokeWidth={2}
-        className="size-4 shrink-0"
+        className="text-warning size-4 shrink-0"
       />
     ),
   },

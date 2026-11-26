@@ -48,9 +48,11 @@ export const TeamSeats = ({
     orpc.account.subscription.seats.add.mutationOptions({
       meta: { event: 'team_seat_assigned' },
       onSettled: () => refetch(),
-      onSuccess: ({ emailed }) => {
+      onSuccess: ({ alreadyAssigned, emailed }) => {
         setEmail('')
-        if (emailed) {
+        if (alreadyAssigned) {
+          toast.info('This email already has a seat')
+        } else if (emailed) {
           toast.success('Seat assigned')
         } else {
           toast.warning(

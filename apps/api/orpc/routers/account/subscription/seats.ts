@@ -79,16 +79,7 @@ const add = orpc
       throw errors.NOT_FOUND()
     }
 
-    const [byOwner, byRecipient] = await Promise.all([
-      seatEmails.byOwner.limit(user.id),
-      seatEmails.byRecipient.limit(normalizedEmail),
-    ])
-
-    if (!byOwner.success || !byRecipient.success) {
-      throw errors.TOO_MANY_REQUESTS()
-    }
-
-    await db.transaction(async (tx) => {
+    const inserted = await db.transaction(async (tx) => {
       // Serializes assignments with each other and with the Stripe sync that lowers the seat count.
       const [locked] = await tx
         .select({
@@ -106,7 +97,7 @@ const add = orpc
         .where(eq(subscriptionSeats.subscriptionId, team.id))
 
       if (assigned.some((seat) => seat.normalizedEmail === normalizedEmail)) {
-        return
+        return false
       }
 
       if (!locked) {
@@ -131,10 +122,25 @@ const add = orpc
           : errors.CONFLICT()
       }
 
+      const [byOwner, byRecipient] = await Promise.all([
+        seatEmails.byOwner.limit(user.id),
+        seatEmails.byRecipient.limit(normalizedEmail),
+      ])
+
+      if (!byOwner.success || !byRecipient.success) {
+        throw errors.TOO_MANY_REQUESTS()
+      }
+
       await tx
         .insert(subscriptionSeats)
         .values({ email, normalizedEmail, subscriptionId: team.id })
+
+      return true
     })
+
+    if (!inserted) {
+      return { alreadyAssigned: true, emailed: false }
+    }
 
     const emailed = await sendEmail({
       props: { ownerEmail: user.email, url: `${env.MAIN_URL}/account/plan` },
@@ -143,7 +149,7 @@ const add = orpc
       to: email,
     })
 
-    return { emailed }
+    return { alreadyAssigned: false, emailed }
   })
 
 const remove = orpc

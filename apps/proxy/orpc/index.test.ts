@@ -7,10 +7,10 @@ mock.module('~/env', () => ({
   env: { API_URL: 'https://api.test' },
   nodeEnv: 'test',
 }))
-const { authMiddleware, orpc } = await import('./index')
+const { authenticate, orpc, originMiddleware } = await import('./index')
 const whoami = orpc
-  .use(authMiddleware)
-  .handler(({ context }) => context.session.userId)
+  .use(originMiddleware)
+  .handler(({ context }) => authenticate(context))
 
 const contextWith = (headers: HeadersInit = {}) => ({
   addLogData: mock(),

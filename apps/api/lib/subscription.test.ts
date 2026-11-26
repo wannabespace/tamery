@@ -40,12 +40,12 @@ const redisClient = {
   on: () => redisClient,
 }
 mock.module('redis', () => ({ createClient: () => redisClient }))
+const limit = mock(() => Promise.resolve({ success: true }))
 mock.module('@orpc/ratelimit/redis', () => ({
-  RedisRateLimiter: mock(() => ({
-    limit: () => Promise.resolve({ success: true }),
-  })),
+  RedisRateLimiter: mock(() => ({ limit })),
 }))
-mock.module('~/lib/resend', () => ({ sendEmail: () => Promise.resolve(true) }))
+const sendEmail = mock(() => Promise.resolve(true))
+mock.module('~/lib/resend', () => ({ sendEmail }))
 
 let signedIn = { email: '', id: '' }
 const orpc = os.$context<Context>()
@@ -82,6 +82,7 @@ const { stripe } = await import('~/lib/stripe')
 const { getSubscription, syncSubscription } = await import('~/lib/subscription')
 const { seats } = await import('~/orpc/routers/account/subscription/seats')
 const { list } = await import('~/orpc/routers/account/subscription/list')
+const { upgrade } = await import('~/orpc/routers/account/subscription/upgrade')
 
 if (!stripe) {
   throw new Error('Stripe is not configured')
@@ -89,6 +90,9 @@ if (!stripe) {
 
 const retrieve = spyOn(stripe.subscriptions, 'retrieve')
 const cancel = spyOn(stripe.subscriptions, 'cancel')
+const createCustomer = spyOn(stripe.customers, 'create')
+const createCheckout = spyOn(stripe.checkout.sessions, 'create')
+const listCheckouts = spyOn(stripe.checkout.sessions, 'list')
 
 beforeAll(async () => {
   await migrate(db, {
@@ -100,8 +104,14 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
+  createCustomer.mockReset()
+  createCheckout.mockReset()
+  listCheckouts.mockReset()
+  listCheckouts.mockResolvedValue({ data: [] } as never)
   retrieve.mockReset()
   cancel.mockReset()
+  limit.mockClear()
+  sendEmail.mockClear()
   await db.execute('TRUNCATE users, subscriptions CASCADE')
 })
 
@@ -246,6 +256,21 @@ test('the last seat goes to one of two concurrent assignments', async () => {
   expect(await assignedEmails()).toHaveLength(2)
 })
 
+test('an email that already has a seat, or a full Team, sends no email and spends no email quota', async () => {
+  const owner = await createTeam({ quantity: 2 })
+  await assign(owner, 'jane@tamery.test')
+
+  expect(await assign(owner, 'Jane@tamery.test')).toEqual({
+    alreadyAssigned: true,
+    emailed: false,
+  })
+  await expect(assign(owner, 'bob@tamery.test')).rejects.toThrow(
+    'Every seat is taken'
+  )
+  expect(limit).toHaveBeenCalledTimes(2)
+  expect(sendEmail).toHaveBeenCalledTimes(1)
+})
+
 test('a trial gives one seat besides the owner whatever count it will bill', async () => {
   const owner = await createTeam({ quantity: 5, status: 'trialing' })
 
@@ -352,6 +377,41 @@ test('overlapping deliveries store the state Stripe returned last', async () => 
   expect(rows).toEqual([{ seats: 2 }])
 })
 
+test('a sync waiting on another sync of the same subscription gives up with a retryable error', async () => {
+  const owner = await createUser('owner@tamery.test')
+  const { promise: stripeAnswer, resolve } = Promise.withResolvers<never>()
+  const { promise: lockHeld, resolve: holdLock } =
+    Promise.withResolvers<undefined>()
+  retrieve.mockImplementationOnce(() => {
+    holdLock(undefined)
+    return stripeAnswer
+  })
+
+  const first = syncSubscription('sub_test')
+  await lockHeld
+
+  await expect(syncSubscription('sub_test')).rejects.toThrow(
+    'Stripe retries the event'
+  )
+  resolve(
+    stripeSubscription({ quantity: 1, status: 'active', userId: owner.id })
+  )
+  await first
+  expect(await db.select().from(subscriptions)).toHaveLength(1)
+}, 10_000)
+
+test('a Stripe read that times out during a sync answers a retryable error', async () => {
+  retrieve.mockRejectedValue(
+    new stripe.errors.StripeConnectionError({
+      message: 'Request aborted due to timeout being reached (15000ms)',
+    })
+  )
+
+  await expect(syncSubscription('sub_test')).rejects.toThrow(
+    'Stripe retries the event'
+  )
+})
+
 test.each([
   ['has ended', { status: 'canceled' }, false],
   ['is set to cancel', { cancelAtPeriodEnd: true, status: 'active' }, false],
@@ -368,7 +428,56 @@ test.each([
 
     await syncSubscription('sub_test')
 
-    expect(cancel.mock.calls).toEqual(cancels ? [['sub_test']] : [])
+    expect(cancel.mock.calls.map(([id]) => id)).toEqual(
+      cancels ? ['sub_test'] : []
+    )
     expect(await db.select().from(subscriptions)).toEqual([])
   }
 )
+
+const startCheckout = (user: { email: string; id: string }) => {
+  signedIn = user
+  return call(
+    upgrade,
+    {
+      cancelUrl: 'https://tamery.test/account',
+      returnUrl: 'https://tamery.test/account',
+      successUrl: 'https://tamery.test/account',
+    },
+    { context }
+  )
+}
+
+test('a checkout waiting on another one for the account gives up with a retryable error', async () => {
+  const buyer = await createUser('buyer@tamery.test')
+  const { promise: stripeAnswer, resolve } = Promise.withResolvers<never>()
+  createCustomer.mockResolvedValue({ id: 'cus_test' } as never)
+  const { promise: lockHeld, resolve: holdLock } =
+    Promise.withResolvers<undefined>()
+  createCheckout.mockImplementationOnce(() => {
+    holdLock(undefined)
+    return stripeAnswer
+  })
+
+  const first = startCheckout(buyer)
+  await lockHeld
+
+  await expect(startCheckout(buyer)).rejects.toMatchObject({
+    code: 'GATEWAY_TIMEOUT',
+  })
+  resolve({ url: 'https://checkout.stripe.test' } as never)
+  expect(await first).toEqual({ url: 'https://checkout.stripe.test' })
+}, 10_000)
+
+test('a Stripe call that times out under the lock answers a retryable error', async () => {
+  const buyer = await createUser('buyer@tamery.test')
+  createCustomer.mockRejectedValue(
+    new stripe.errors.StripeConnectionError({
+      message: 'Request aborted due to timeout being reached (15000ms)',
+    })
+  )
+
+  await expect(startCheckout(buyer)).rejects.toMatchObject({
+    code: 'GATEWAY_TIMEOUT',
+  })
+})
