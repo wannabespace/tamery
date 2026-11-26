@@ -69,6 +69,23 @@ describe('sanitizeLogData', () => {
     expect(logged({ error })).not.toContain('SECRET')
   })
 
+  it('redacts the bound values of a failed query, wrapped errors included', () => {
+    const driver = Object.assign(new Error('duplicate key value'), {
+      detail: 'Key (token)=(SESSIONTOKEN) already exists.',
+    })
+    const query = Object.assign(
+      new Error(
+        'Failed query: insert into "session" values ($1, $2)\nparams: SESSIONTOKEN,first line\nSECONDLINE',
+        { cause: driver }
+      ),
+      { params: ['SESSIONTOKEN', 'first line\nSECONDLINE'] }
+    )
+    const text = logged(new Error('Failed to get session', { cause: query }))
+    expect(text).not.toContain('SESSIONTOKEN')
+    expect(text).not.toContain('SECONDLINE')
+    expect(text).toContain('Failed query: insert')
+  })
+
   it('keeps an email after a connection string', () => {
     const text = logged({
       error: 'postgres://u:pw@h failed for me@example.com',

@@ -104,6 +104,10 @@ const start = async (account: VaultAccount | null) => {
   )
   child = forked
   forked.on('message', async (reply: MachineProcessReply) => {
+    // A reply that lands after this process exited or was stopped would overwrite the state of the one that replaced it.
+    if (child !== forked) {
+      return
+    }
     if (reply.type === 'approval') {
       send(forked, {
         allowed: await askApproval(reply),
@@ -131,7 +135,11 @@ const start = async (account: VaultAccount | null) => {
     }
     child = null
     if (state.status !== 'failed') {
-      state = { status: 'off' }
+      state = {
+        message:
+          'This computer’s machine stopped unexpectedly. Turn it off and on again.',
+        status: 'failed',
+      }
     }
   })
   send(forked, {

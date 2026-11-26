@@ -11,19 +11,23 @@ import { encryptedText } from '../utils'
 import { users } from './auth'
 import { connectionsResources } from './connections'
 
-export const queries = d.snakeCase.table('queries', {
-  ...baseTable,
-  connectionResourceId: d
-    .uuid()
-    .references(() => connectionsResources.id, { onDelete: 'cascade' })
-    .notNull(),
-  name: d.text().notNull(),
-  query: encryptedText().notNull(),
-  userId: d
-    .uuid()
-    .references(() => users.id, { onDelete: 'cascade' })
-    .notNull(),
-})
+export const queries = d.snakeCase.table(
+  'queries',
+  {
+    ...baseTable,
+    connectionResourceId: d
+      .uuid()
+      .references(() => connectionsResources.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: d.text().notNull(),
+    query: encryptedText().notNull(),
+    userId: d
+      .uuid()
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+  },
+  (t) => [d.index().on(t.userId), d.index().on(t.connectionResourceId)]
+)
 
 export const queriesSelectSchema = createSelectSchema(queries)
 export const queriesInsertSchema = createInsertSchema(queries)

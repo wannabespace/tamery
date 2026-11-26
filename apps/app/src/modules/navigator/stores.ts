@@ -1,5 +1,6 @@
 import { type } from 'arktype'
 import { memoize } from 'memoza'
+import { createRef } from 'react'
 import { createStore } from 'seitu'
 import { createWebStorageValue } from 'seitu/web'
 
@@ -13,6 +14,10 @@ export const navigatorOpenValue = createWebStorageValue({
   schema: type('boolean'),
   type: 'localStorage',
 })
+
+export const createViewDialogRef = createRef<{
+  create: (schema?: string) => void
+}>()
 
 export const toggleNavigator = () => {
   navigatorOpenValue.set((open) => !open)

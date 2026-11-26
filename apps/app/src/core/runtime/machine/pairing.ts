@@ -41,6 +41,8 @@ export const machinePairings = createWebStorageValue({
 
 /** While starting, the status settles within a second or two. */
 const STARTING_POLL_MS = 1000
+/** Once on, the process can still die, and main has no way to tell an open window. */
+const ON_POLL_MS = 5000
 
 /**
  * Desktop only: main's state of this computer's own machine. Kept for the session, never collected: its id routes a
@@ -51,8 +53,12 @@ export const thisMachineQuery = queryOptions({
   gcTime: Infinity,
   queryFn: async () => (await window.electron?.machine.status()) ?? null,
   queryKey: ['this-machine'],
-  refetchInterval: ({ state: { data } }) =>
-    data?.status === 'starting' ? STARTING_POLL_MS : false,
+  refetchInterval: ({ state: { data } }) => {
+    if (data?.status === 'starting') {
+      return STARTING_POLL_MS
+    }
+    return data?.status === 'on' ? ON_POLL_MS : false
+  },
 })
 
 export const getThisMachineId = () =>

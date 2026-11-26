@@ -46,10 +46,13 @@ import { startNewChat, useIsBlankChatOpen } from '~/modules/chat/open-chat'
 
 import { createSchemaDialogRef } from './create-schema-dialog'
 import { createTableDialogRef } from './create-table-dialog'
-import { createViewDialogRef } from './create-view-dialog'
 import { focusSearchAfter, revealNavigatorSearch } from './keyboard'
 import type { NavigatorMode } from './stores'
-import { getNavigatorStore, navigatorOpenValue } from './stores'
+import {
+  createViewDialogRef,
+  getNavigatorStore,
+  navigatorOpenValue,
+} from './stores'
 import { TablesRefresh } from './tables-refresh'
 
 const ROLL = {

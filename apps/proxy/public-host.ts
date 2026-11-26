@@ -4,6 +4,7 @@ import { BlockList, connect } from 'node:net'
 
 import { ORPCError } from '@orpc/server'
 import { connectionParts } from '@tamery/connection/connection-parts'
+import { PRIVATE_HOST_MESSAGE } from '@tamery/connection/diagnose-network'
 import type { Destination, Forwarding } from '@tamery/connection/forwarding'
 import { readConnectionString } from '@tamery/connection/parse-connection-string'
 import { SSH_ELSEWHERE } from '@tamery/connection/ssh/params'
@@ -32,9 +33,6 @@ for (const [network, prefix, family] of [
 ] as const) {
   NON_PUBLIC_NETWORKS.addSubnet(network, prefix, family)
 }
-
-export const PRIVATE_HOST_MESSAGE =
-  'The cloud proxy reaches only public hosts. Run `tamery machine` or open this connection in the desktop app.'
 
 const SRV_SCHEME = 'mongodb+srv'
 

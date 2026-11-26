@@ -25,7 +25,6 @@ export interface TxHandle {
 
 interface OwnedTx {
   handle: TxHandle
-  keepAlive: () => void
   ownerId?: string
 }
 
@@ -38,9 +37,13 @@ const activeTransactions = new Map<string, OwnedTx>()
 export const registerTransaction = (handle: TxHandle, ownerId?: string) => {
   const txId = randomUUID()
   let timeout: ReturnType<typeof setTimeout> | undefined
+  let running = 0
 
   const keepAlive = () => {
     clearTimeout(timeout)
+    if (running > 0) {
+      return
+    }
     timeout = setTimeout(() => {
       void (async () => {
         const current = activeTransactions.get(txId)
@@ -56,13 +59,23 @@ export const registerTransaction = (handle: TxHandle, ownerId?: string) => {
 
   const wrapped: TxHandle = {
     ...handle,
+    execute: async (...args) => {
+      running += 1
+      keepAlive()
+      try {
+        return await handle.execute(...args)
+      } finally {
+        running -= 1
+        keepAlive()
+      }
+    },
     release: async () => {
       clearTimeout(timeout)
       await handle.release()
     },
   }
 
-  activeTransactions.set(txId, { handle: wrapped, keepAlive, ownerId })
+  activeTransactions.set(txId, { handle: wrapped, ownerId })
   keepAlive()
 
   return txId
@@ -107,7 +120,7 @@ export const transactionQueries = {
     }
   ),
   executeTransaction: handleQueryError(
-    async ({
+    ({
       query,
       txId,
       values,
@@ -118,15 +131,8 @@ export const transactionQueries = {
       query: string
       values: unknown[]
       ownerId?: string
-    } & RunOptions) => {
-      const entry = requireTransaction(txId, ownerId)
-      entry.keepAlive()
-      try {
-        return await entry.handle.execute(query, values, options)
-      } finally {
-        entry.keepAlive()
-      }
-    }
+    } & RunOptions) =>
+      requireTransaction(txId, ownerId).handle.execute(query, values, options)
   ),
   rollbackTransaction: handleQueryError(
     async ({ txId, ownerId }: { txId: string; ownerId?: string }) => {

@@ -85,9 +85,17 @@ const sessionCache = createWebStorageValue({
   type: 'localStorage',
 })
 
+// Nothing reads the token from this cache: requests carry the cookie or `bearerToken`.
+const withoutToken = (data: typeof authClient.$Infer.Session | null) =>
+  data && { ...data, session: { ...data.session, token: '' } }
+
+// Rewritten before hydrating, since an offline boot never emits the session atom that would rewrite it.
+sessionCache.set(withoutToken(sessionCache.get()))
 // Must run before anything subscribes to the session atom; hydrateSession only fills an empty atom.
 authClient.hydrateSession(sessionCache.get())
-authClient.$store.atoms.session?.listen(({ data }) => sessionCache.set(data))
+authClient.$store.atoms.session?.listen(({ data }) =>
+  sessionCache.set(withoutToken(data))
+)
 
 // The desktop's machine process signed in with the replaced token, and a session Tamery ended stops it.
 const restartDesktopMachine = async (token: string) => {

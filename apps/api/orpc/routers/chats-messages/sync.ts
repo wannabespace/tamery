@@ -5,13 +5,19 @@ import {
   chatsMessagesSelectSchema,
 } from '@tamery/db/schema'
 import { type } from 'arktype'
-import { addSeconds } from 'date-fns'
-import { and, eq, getColumns, gte, inArray, notInArray, or } from 'drizzle-orm'
+import { and, eq, getColumns } from 'drizzle-orm'
+import type { SelectedFields } from 'drizzle-orm/pg-core'
 
 import { authMiddleware, orpc } from '~/orpc'
-import { createSyncOutputSchema, syncDiff } from '~/orpc/lib/sync'
+import { createSyncOutputSchema, idIn, syncDiff } from '~/orpc/lib/sync'
 
 const output = createSyncOutputSchema(chatsMessagesSelectSchema).array()
+
+const userMessages = <TSelection extends SelectedFields>(fields: TSelection) =>
+  db
+    .select(fields)
+    .from(chatsMessages)
+    .innerJoin(chats, eq(chatsMessages.chatId, chats.id))
 
 export const sync = orpc
   .use(authMiddleware)
@@ -23,50 +29,19 @@ export const sync = orpc
   )
   .output(output)
   .handler(async ({ input, context }) => {
+    const owned = eq(chats.userId, context.user.id)
     const { updatedItems, newItems, missingIds } = await syncDiff({
       input,
       queries: {
-        existing: (includeIds) =>
-          db
-            .select({ id: chatsMessages.id })
-            .from(chatsMessages)
-            .innerJoin(chats, eq(chatsMessages.chatId, chats.id))
-            .where(
-              and(
-                eq(chats.userId, context.user.id),
-                inArray(chatsMessages.id, includeIds)
-              )
-            )
-            .then((r) => r.map((i) => i.id)),
-        new: (excludeIds) =>
-          db
-            .select(getColumns(chatsMessages))
-            .from(chatsMessages)
-            .innerJoin(chats, eq(chatsMessages.chatId, chats.id))
-            .where(
-              and(
-                eq(chats.userId, context.user.id),
-                notInArray(chatsMessages.id, excludeIds)
-              )
-            ),
-        updated: (items) =>
-          db
-            .select(getColumns(chatsMessages))
-            .from(chatsMessages)
-            .innerJoin(chats, eq(chatsMessages.chatId, chats.id))
-            .where(
-              and(
-                eq(chats.userId, context.user.id),
-                or(
-                  ...items.map((m) =>
-                    and(
-                      eq(chatsMessages.id, m.id),
-                      gte(chatsMessages.updatedAt, addSeconds(m.updatedAt, 1))
-                    )
-                  )
-                )
-              )
-            ),
+        rows: (ids) =>
+          userMessages(getColumns(chatsMessages)).where(
+            and(owned, idIn(chatsMessages.id, ids))
+          ),
+        versions: () =>
+          userMessages({
+            id: chatsMessages.id,
+            updatedAt: chatsMessages.updatedAt,
+          }).where(owned),
       },
     })
 

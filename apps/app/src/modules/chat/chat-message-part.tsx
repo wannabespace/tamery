@@ -6,6 +6,7 @@ import { isStaticToolUIPart } from 'ai'
 import { ChatDisclosure } from './chat-disclosure'
 import { ToolPart } from './chat-tool-part'
 import type { ToolPartActions } from './chat-tool-types'
+import { MODEL_DISALLOWED_ELEMENTS } from './model-elements'
 import { useResponseSlots } from './response-slots'
 
 export const MessagePart = ({
@@ -23,14 +24,18 @@ export const MessagePart = ({
   switch (part.type) {
     case 'text': {
       return part.text.trim() ? (
-        <Response {...slots}>{part.text}</Response>
+        <Response {...slots} disallowedElements={MODEL_DISALLOWED_ELEMENTS}>
+          {part.text}
+        </Response>
       ) : null
     }
     case 'reasoning': {
       return part.text.trim() ? (
         <ChatDisclosure icon={BrainIcon} label="Thinking">
           <div className="text-muted-foreground">
-            <Response>{part.text}</Response>
+            <Response disallowedElements={MODEL_DISALLOWED_ELEMENTS}>
+              {part.text}
+            </Response>
           </div>
         </ChatDisclosure>
       ) : null

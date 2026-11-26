@@ -58,7 +58,7 @@ const STORED: Record<string, (value: unknown) => unknown> = {
       ? { $date: new Date(value).toISOString() }
       : value,
   decimal: (value) => ({ $numberDecimal: String(value) }),
-  double: (value) => (isText(value) ? Number(value) : value),
+  double: (value) => ({ $numberDouble: String(value) }),
   int: (value) => ({ $numberInt: String(value) }),
   long: (value) => ({ $numberLong: String(value) }),
   objectId: (value) => (isText(value) ? { $oid: value } : value),

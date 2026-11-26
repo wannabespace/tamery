@@ -7,6 +7,7 @@ import { useConnectionContext } from '~/core/connection/route'
 import type { ConnectionResource } from '~/core/connection/sync'
 import { resourceConstraintsQueryOptions } from '~/core/queries/constraints/list'
 import { findEnum, resourceEnumsQueryOptions } from '~/core/queries/enums/list'
+import { uniqueKeyOf } from '~/core/queries/rows/shape'
 import { resourceTableColumnsQueryOptions } from '~/core/queries/tables/columns'
 import type { Column } from '~/core/table/cell/utils'
 import { getColumnUiType } from '~/core/table/cell/utils'
@@ -67,17 +68,16 @@ export const useTableColumnsQuery = ({
       }
 
       const constraintsData = constraints.data || []
+      const tableConstraints = constraintsData.filter(
+        (c) => c.schema === schema && c.table === table
+      )
       const data = columns.data
         ?.map((column): Column => {
-          const columnConstraints = constraintsData.filter(
-            (c) =>
-              c.column === column.id && c.schema === schema && c.table === table
+          const columnConstraints = tableConstraints.filter(
+            (c) => c.column === column.id
           )
           const foreignConstraint = columnConstraints.find(
             (c) => c.type === 'foreignKey'
-          )
-          const uniqueConstraint = columnConstraints.find(
-            (c) => c.type === 'unique'
           )
           const primaryConstraint = columnConstraints.find(
             (c) => c.type === 'primaryKey'
@@ -141,7 +141,7 @@ export const useTableColumnsQuery = ({
               })
               .filter((ref) => ref !== null),
             uiType: getColumnUiType(dialect, column),
-            unique: uniqueConstraint?.name,
+            unique: uniqueKeyOf(tableConstraints, column.id),
           } satisfies Column
         })
         .toSorted((a, b) => {

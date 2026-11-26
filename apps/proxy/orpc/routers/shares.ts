@@ -1,3 +1,4 @@
+import { PRIVATE_HOST_MESSAGE } from '@tamery/connection/diagnose-network'
 import { CLIENT_IP_HEADER } from '@tamery/shared/constants'
 import { hasErrorCode } from '@tamery/shared/orpc-error'
 import {
@@ -14,7 +15,6 @@ import { Result } from 'better-result'
 
 import { createApiClient } from '~/api-client'
 import { authMiddleware, orpc } from '~/orpc'
-import { PRIVATE_HOST_MESSAGE } from '~/public-host'
 import { readCachedShareRows, readShareRows } from '~/share-rows'
 
 const proxyApi = createApiClient({})
