@@ -12,7 +12,7 @@ import type {
 } from '@tamery/shared/enums/connection-type'
 import { noop } from '@tamery/shared/utils'
 import type { SqlCatalog } from '@tamery/sql'
-import { dialects, findTableWithSchema } from '@tamery/sql'
+import { CASE_INSENSITIVE, dialects, findTableWithSchema } from '@tamery/sql'
 import { matchQuery } from '@tanstack/react-query'
 import type { editor } from 'monaco-editor'
 
@@ -46,7 +46,9 @@ const getSqlCatalog = (
       table: metadata?.table,
       values,
     })),
-    nameCase: isSqlDialect(dialect) ? dialects[dialect].nameCase : null,
+    nameCase: isSqlDialect(dialect)
+      ? dialects[dialect].nameCase
+      : CASE_INSENSITIVE,
     schemas: tables.schemas.map((schema) => ({
       name: schema.name,
       tables: schema.tables.map((table) => ({

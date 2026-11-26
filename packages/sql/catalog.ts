@@ -1,4 +1,4 @@
-import type { NameCase } from './dialect'
+import type { CASE_INSENSITIVE, NameCase } from './dialect'
 
 export interface SqlColumn {
   name: string
@@ -29,7 +29,7 @@ interface SqlEnum {
 
 export interface SqlCatalog {
   defaultSchema: string | null
-  nameCase: NameCase | null
+  nameCase: NameCase | typeof CASE_INSENSITIVE
   schemas: SqlSchema[]
   enums: SqlEnum[]
 }
