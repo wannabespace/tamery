@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import type { ConnectionDetails } from '~/core/connection/save'
 import { testConnectionQuery } from '~/core/queries/connection/test'
-import { getMachineRouteById } from '~/core/runtime/machine/pairing'
+import { CLOUD, getMachineRouteById } from '~/core/runtime/machine/pairing'
 import { generateRandomName } from '~/utils/faker'
 
 import type { ConnectionForm, ConnectionFormValues } from './connection-form'
@@ -32,8 +32,11 @@ export type OnSave = (
 export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
   const test = useMutation({
     meta: { event: 'connection_tested' },
-    mutationFn: (params: { connectionString: string; dialect: Dialect }) =>
-      testConnectionQuery.run(params),
+    mutationFn: (params: {
+      connectionString: string
+      dialect: Dialect
+      inCloud: boolean
+    }) => testConnectionQuery.run(params),
   })
   const inFlight = useRef<Promise<Result<unknown, unknown>>>(null)
 
@@ -62,7 +65,8 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
         syncType: values.syncType,
       },
       {
-        machine: getMachineRouteById(values.machineId),
+        inCloud: values.runsOn === CLOUD,
+        machine: getMachineRouteById(values.runsOn),
         connectionString: editing
           ? described
           : { ...described, missingSecrets: [] },
@@ -71,7 +75,8 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
     )
     const tested =
       test.variables?.connectionString === connectionString &&
-      test.variables.dialect === getDialect(values.type)
+      test.variables.dialect === getDialect(values.type) &&
+      test.variables.inCloud === (values.runsOn === CLOUD)
     return {
       canSend,
       connectionString,
@@ -89,6 +94,7 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
       test.mutateAsync({
         connectionString,
         dialect: getDialect(values.type),
+        inCloud: values.runsOn === CLOUD,
       })
     )
     return inFlight.current
@@ -127,9 +133,9 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
           connectionString,
           foundConnectionString: getFoundDatabase(values)?.connectionString,
           label: values.label.trim() || null,
-          machineId: values.machineId,
           name: values.name.trim() || generateRandomName(),
           provider: values.provider,
+          runsOn: values.runsOn,
           type: values.type,
         },
         {

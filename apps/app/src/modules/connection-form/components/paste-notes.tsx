@@ -40,8 +40,8 @@ export const PasteNotes = ({
   const foundDatabase = useSelector(form.store, ({ values }) =>
     getFoundDatabase(values)
   )
-  const machineId = useSelector(form.store, ({ values }) => values.machineId)
-  const machine = useLocalMachine(machineId)
+  const runsOn = useSelector(form.store, ({ values }) => values.runsOn)
+  const machine = useLocalMachine(runsOn)
   const withheld =
     passwordWithheldBy && missing.includes('password')
       ? ` (${passwordWithheldBy} keeps it in the Keychain)`

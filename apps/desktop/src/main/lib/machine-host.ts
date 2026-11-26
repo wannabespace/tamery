@@ -84,7 +84,7 @@ const start = async (account: VaultAccount | null) => {
   if (key.isErr() || !key.value) {
     state = {
       message:
-        'The keychain refused this computer’s machine key. Unlock it, then turn this on again.',
+        'The keychain refused this computer’s machine key. Unlock it, then restart Tamery.',
       status: 'failed',
     }
     return
@@ -190,12 +190,6 @@ const inTurn = <T>(change: () => Promise<T>) => {
 }
 
 export const machineHost = {
-  disable: () =>
-    inTurn(async () => {
-      store.set('enabled', false)
-      await stop()
-      return getStatus()
-    }),
   enable: ({
     account,
     publicUrl,

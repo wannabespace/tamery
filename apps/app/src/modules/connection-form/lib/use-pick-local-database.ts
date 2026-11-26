@@ -27,7 +27,7 @@ export const usePickLocalDatabase = ({
     // Replaces the form rather than merging like a paste: another pick on the same host would keep the previous password, database and options.
     form.reset()
     read(connectionString, 'found')
-    form.setFieldValue('machineId', machineId)
+    form.setFieldValue('runsOn', machineId)
     form.setFieldValue('name', name)
     form.setFieldValue('type', type)
     if (machineId !== null || !window.electron) {

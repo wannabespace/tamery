@@ -1,0 +1,1 @@
+ALTER TABLE "connection_machines" ALTER COLUMN "machine_id" DROP NOT NULL;

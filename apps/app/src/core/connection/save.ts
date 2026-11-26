@@ -17,7 +17,8 @@ import { findResource } from '~/core/connection/resources'
 import { rememberOpenedResource } from '~/core/connection/stores'
 import type { Connection } from '~/core/connection/sync'
 import { machine } from '~/core/runtime/machine/machine'
-import { writeConnectionMachine } from '~/core/runtime/machine/pairing'
+import type { RunsOn } from '~/core/runtime/machine/pairing'
+import { writeRunsOn } from '~/core/runtime/machine/pairing'
 
 export interface ConnectionDetails {
   color?: string | null
@@ -25,8 +26,8 @@ export interface ConnectionDetails {
   /** A string `find` returned on the machine, which keeps its password: `machine.keepFoundPassword`. */
   foundConnectionString?: string
   label?: string | null
-  /** Where it runs for this user; omitted leaves that as it is. */
-  machineId?: string | null
+  /** For this user; omitted leaves that as it is. */
+  runsOn?: RunsOn
   name: string
   provider: Provider | null
   type: ConnectionType
@@ -57,12 +58,12 @@ export const saveConnectionString = async ({
   connectionString,
   connectionId,
   foundConnectionString,
-  machineId,
+  runsOn,
   updatedAt,
   writeRow,
 }: ConnectionStringInput & {
   foundConnectionString?: string
-  machineId?: string | null
+  runsOn?: RunsOn
   writeRow?: (isPasswordExists: boolean) => void
 }) => {
   const {
@@ -104,8 +105,8 @@ export const saveConnectionString = async ({
       })
     }
   })
-  if (machineId !== undefined) {
-    writeConnectionMachine(connectionId, machineId)
+  if (runsOn !== undefined) {
+    writeRunsOn(connectionId, runsOn)
   }
 
   const settle = async () => {
@@ -144,7 +145,7 @@ const saveConnection = async (
   {
     connectionString,
     foundConnectionString,
-    machineId,
+    runsOn,
     ...details
   }: ConnectionDetails,
   writeRow: (
@@ -156,7 +157,7 @@ const saveConnection = async (
     connectionId,
     connectionString: connectionString.trim(),
     foundConnectionString,
-    machineId,
+    runsOn,
     updatedAt,
     writeRow: (isPasswordExists) =>
       writeRow({
@@ -169,8 +170,8 @@ const saveConnection = async (
         updatedAt,
       }),
   })
-  // The web can query through the server, and a machine checks the server's row, so either must hold it before the connection opens.
-  if ((!window.electron || machineId) && navigator.onLine) {
+  // The cloud proxy and a machine both read the server's row, so it must hold it before the connection opens.
+  if ((!window.electron || runsOn) && navigator.onLine) {
     const persisted = await saved.settled
     if (persisted.isErr()) {
       throw persisted.error.cause

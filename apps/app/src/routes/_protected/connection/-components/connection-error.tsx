@@ -12,6 +12,7 @@ import { MachineNotPaired } from '~/modules/machine/machine-not-paired'
 import { MachineUnconfirmed } from '~/modules/machine/machine-unconfirmed'
 
 import { ConnectionFailure } from './connection-failure'
+import { useRetryOnRouteChange } from './use-retry-on-route-change'
 
 export const ConnectionError = (props: ErrorComponentProps) => {
   const queryErrors = useQueryErrorResetBoundary()
@@ -20,11 +21,12 @@ export const ConnectionError = (props: ErrorComponentProps) => {
     queryErrors.reset()
     props.reset()
   }
+  useRetryOnRouteChange(retry)
   if (props.error instanceof MachineError) {
     return <MachineFailure error={props.error} retry={retry} />
   }
   if (props.error instanceof MachineNotPairedError) {
-    return <MachineNotPaired route={props.error.route} retry={retry} />
+    return <MachineNotPaired route={props.error.route} />
   }
   if (props.error instanceof UnconfirmedConnectionError) {
     return <MachineUnconfirmed error={props.error} retry={retry} />

@@ -172,13 +172,7 @@ contextBridge.exposeInMainWorld('electron', {
     'reset',
   ]),
   localDatabases: namespaceBridge('localDatabases', ['find', 'unlock']),
-  machine: namespaceBridge('machine', [
-    'disable',
-    'enable',
-    'fetch',
-    'forget',
-    'status',
-  ]),
+  machine: namespaceBridge('machine', ['enable', 'fetch', 'forget', 'status']),
   mcp: {
     ...namespaceBridge('mcp', [
       'calls',

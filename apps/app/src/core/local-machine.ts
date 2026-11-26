@@ -2,6 +2,7 @@ import { isMac } from '@tamery/ui/lib/os'
 import { useSubscription } from 'seitu/react'
 
 import { machine } from '~/core/runtime/machine/machine'
+import type { RunsOn } from '~/core/runtime/machine/pairing'
 import {
   MACHINE_QUERY_KEY,
   machinePairings,
@@ -9,24 +10,24 @@ import {
   useMachines,
 } from '~/core/runtime/machine/pairing'
 
-/** The computer whose databases a connection running on `machineId` can reach: this desktop when `null`, else a paired machine. */
-export const useLocalMachine = (machineId: string | null) => {
-  const route = useMachineRouteById(machineId)
+/** The computer whose databases a connection can reach: a paired machine it runs on, else this desktop. */
+export const useLocalMachine = (runsOn: RunsOn) => {
+  const route = useMachineRouteById(runsOn)
   if (route?.pairing) {
-    const { pairing } = route
+    const client = machine.client(route.pairing)
     return {
-      find: () => machine.client(pairing).localDatabases.find(),
+      findDatabases: () => client.localDatabases.find(),
       name: route.name,
       // Under the pairing's key, which unpairing drops, so another pairing never shows this computer's databases.
-      queryKey: [MACHINE_QUERY_KEY, pairing.browserId, 'localDatabases'],
+      queryKey: [MACHINE_QUERY_KEY, route.pairing.browserId],
     }
   }
   if (!route && window.electron) {
     const { localDatabases } = window.electron
     return {
-      find: () => localDatabases.find(),
+      findDatabases: () => localDatabases.find(),
       name: isMac ? 'this Mac' : 'this computer',
-      queryKey: ['localDatabases'],
+      queryKey: ['localMachine'],
     }
   }
   return null

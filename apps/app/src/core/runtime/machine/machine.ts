@@ -8,7 +8,7 @@ import { omit, silently } from '@tamery/shared/utils'
 import { memoize } from 'memoza'
 
 import { getCollections } from '~/core/collections'
-import { getSessionUser } from '~/lib/auth'
+import { bearerToken, getSessionUser } from '~/lib/auth'
 import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
@@ -127,7 +127,7 @@ const getPairedClient = memoize((pairing: MachinePairing): MachineRouter =>
 )
 
 /** The machine at one of these URLs: a listed machine names every address it listens at, and this browser may reach only some. */
-const findMachineUrl = async (urls: string[], machineId: string | null) => {
+const findMachineUrl = async (urls: string[], machineId: string) => {
   const origins = urls.flatMap((url) => parseMachineUrl(url) ?? [])
   if (origins.length === 0) {
     throw new Error(
@@ -140,7 +140,7 @@ const findMachineUrl = async (urls: string[], machineId: string | null) => {
         browserId: null,
         nonce: machineKey.nonce(),
       })
-      return { isOther: machineId !== null && info.id !== machineId, origin }
+      return { isOther: info.id !== machineId, origin }
     })
   )
   const reached = answers.find(
@@ -188,8 +188,7 @@ export const machine = {
     urls,
   }: {
     browserNonce: string
-    /** `null` for a URL typed or opened from a link, which pairs with whichever machine answers there. */
-    machineId: string | null
+    machineId: string
     urls: string[]
   }) => {
     const user = await getSessionUser()
@@ -227,6 +226,14 @@ export const machine = {
       toStatus(info)
     )
     machinePairings.set((all) => ({ ...all, [info.id]: pairing }))
+    // What failed for want of this pairing stays failed for an error boundary until dropped.
+    const { connectionMachinesCollection, connectionStringsCollection } =
+      getCollections()
+    for (const row of connectionMachinesCollection.toArray) {
+      if (row.machineId === info.id) {
+        connectionStringsCollection.utils.dropQueries(row.connectionId)
+      }
+    }
     return pairing
   },
   /** `false` when this browser lacks part of the string too, or the connection runs on no machine it is paired with. */
@@ -249,6 +256,20 @@ export const machine = {
   unpair,
   unpairAll: () =>
     Promise.all(Object.values(machinePairings.get()).map(unpair)),
+  /** Restarts it when it already runs. A guest has no other device to serve. */
+  startThisComputer: async (publicUrl: string | null) => {
+    const [user, token] = [await getSessionUser(), bearerToken.get()]
+    if (!window.electron || !user || user.isAnonymous || !token) {
+      return
+    }
+    queryClient.setQueryData(
+      thisMachineQuery.queryKey,
+      await window.electron.machine.enable({
+        account: { email: user.email, id: user.id, token },
+        publicUrl,
+      })
+    )
+  },
   /** On sign-out or a guest's upgrade: this desktop's machine leaves the account with it, and forgets the browsers it allowed. */
   forgetThisComputer: async () => {
     const id = getThisMachineId()

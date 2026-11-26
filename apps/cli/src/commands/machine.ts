@@ -3,7 +3,7 @@ import process from 'node:process'
 
 import { intro, log, outro } from '@clack/prompts'
 import { hasErrnoCode } from '@tamery/shared/errno'
-import { MACHINE_PAIR_PATH, MACHINE_URL } from '@tamery/shared/machine'
+import { MACHINE_PAIR_PATH } from '@tamery/shared/machine'
 import { PORTS } from '@tamery/shared/ports'
 import { Result } from 'better-result'
 
@@ -58,7 +58,6 @@ export const machine = async (options: {
   }
   const { registerError, stop, url } = started.value
   void updates.check()
-  const reachedAt = publicUrl?.origin ?? url
   if (registerError) {
     log.warn(
       `Could not list this machine in your account: ${registerError} No connection runs on it until it is listed; it tries again every 5 minutes.`
@@ -77,7 +76,7 @@ export const machine = async (options: {
     )
   }
 
-  const connectUrl = `${env.WEB_URL}${MACHINE_PAIR_PATH}${reachedAt === MACHINE_URL ? '' : `#${new URLSearchParams({ url: reachedAt })}`}`
+  const connectUrl = `${env.WEB_URL}${MACHINE_PAIR_PATH}`
   const paired = [...new Set(pairings.labels())]
   await analytics.capture('machine_started', {
     custom_port: options.port !== PORTS.MACHINE,

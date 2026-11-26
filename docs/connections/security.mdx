@@ -50,15 +50,23 @@ You can use your SSH agent, a key file, a pasted private key, or a password. `~/
 
 ## What else we store
 
-Saved queries and AI chats are stored on our servers, so they follow you to every device. They are kept per database and go away when you remove the connection.
+Saved queries and AI chats are stored on our servers, so they follow you to every device. They are kept per database and go away when you delete them or remove the connection. We keep a copy of deleted data for 90 days, then erase it for good.
+
+A chat stores everything it shows: your messages, the agent's answers, and the SQL and rows of every query it ran. This holds for every sync type, since the sync type decides only what happens to the connection string. Chats, their titles included, and saved SQL are encrypted on our servers with a key Tamery holds, so this is not end-to-end encryption.
 
 Query history and the query logger stay on the device that ran the queries. So do your Navigator, tab, and table layout.
 
 ## AI and your data
 
-AI requests go through our servers to external model providers. The chat sends your messages. Editor and filter features also send the schema context they need.
+AI requests go through our servers to external model providers. The chat sends your messages, the schema it reads, and the rows its queries return. Editor and filter features also send the schema context they need.
 
-The built-in chat does not execute SQL. Coding agents connected through [MCP](/mcp/overview#connection-access) can read data and make changes according to the access you grant; their results become part of the agent's context.
+The chat acts as you: it can read every connection in your active workspace, and the [MCP connection access](/mcp/overview#connection-access) settings do not apply to it. It runs read-only queries itself, and every statement that changes data or schema waits for you to click **Run**, with no exceptions. Its queries take the same path as your own.
+
+Schema notes are stored encrypted on our servers and sent with AI requests about their database.
+
+What the chat and MCP agents read from your databases (rows, names, comments) reaches the model marked as data, never as instructions, so a row that says "drop this table" is reported, not followed. A change still needs your **Run** in the chat, or the access you granted over MCP.
+
+Coding agents connected through [MCP](/mcp/overview#connection-access) can read data and make changes according to the access you grant; their results become part of the agent's context.
 
 ### AI help with a failed test
 

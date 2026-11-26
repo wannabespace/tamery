@@ -94,7 +94,7 @@ const start = async ({
     const { cause } = started.error
     reply({
       message: hasErrnoCode(cause, 'EADDRINUSE')
-        ? `Port ${port} is busy. Quit whatever else uses it, then turn this on again.`
+        ? `Port ${port} is busy. Quit whatever else uses it, then restart Tamery.`
         : toError(cause).message,
       type: 'failed',
     })
