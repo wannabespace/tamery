@@ -1,5 +1,4 @@
-import { PASSKEY_ERROR_CODES, passkeyClient } from '@better-auth/passkey/client'
-import type { WebAuthnErrorCode } from '@simplewebauthn/browser'
+import { passkeyClient } from '@better-auth/passkey/client'
 import { queryOptions } from '@tanstack/react-query'
 import { createIsomorphicFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
@@ -44,18 +43,6 @@ export const authClient = createAuthClient({
     passkeyClient(),
   ],
 })
-
-// A dismissed or timed-out browser prompt reports NotAllowedError, which arrives as the passthrough code, not AUTH_CANCELLED.
-const PASSKEY_DISMISSED_CODES = new Set<string>([
-  PASSKEY_ERROR_CODES.AUTH_CANCELLED.code,
-  ...([
-    'ERROR_CEREMONY_ABORTED',
-    'ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY',
-  ] satisfies WebAuthnErrorCode[]),
-])
-
-export const isPasskeyPromptDismissed = ({ code }: { code?: string }) =>
-  code !== undefined && PASSKEY_DISMISSED_CODES.has(code)
 
 // The router drops this only on Better Auth's session signal: a session change made outside the auth client must remove it too.
 export const sessionQueryOptions = queryOptions({
