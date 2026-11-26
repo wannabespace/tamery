@@ -4,8 +4,9 @@ import { toShell } from '@tamery/mongo/shell'
 import { toWire } from '@tamery/mongo/values'
 
 import { mongodb, parseShellValue } from './client'
+import { rowsOf } from './result'
 
-const { EJSON } = mongodb.BSON
+const { deserialize, Double, EJSON, Int32, serialize } = mongodb.BSON
 
 describe('values the app writes as mongosh', () => {
   it.each([
@@ -46,4 +47,19 @@ it('stores a whole number typed into a double field as a double', () => {
   expect(
     EJSON.serialize({ value: parsed }, { legacy: false, relaxed: false }).value
   ).toStrictEqual({ $numberDouble: '5.0' })
+})
+
+it('keeps a nested whole-number double a double when the document is written back', () => {
+  const read = deserialize(
+    serialize({ dims: { h: new Int32(3), w: new Double(5) } }),
+    { promoteValues: false }
+  )
+  const [[wire]] = rowsOf([read], 1).rows as [[unknown]]
+  expect(wire).toStrictEqual({ h: 3, w: { $numberDouble: '5.0' } })
+  const parsed = parseShellValue(toShell({ dims: wire }), { mode: 'loose' })
+  expect(
+    EJSON.serialize({ value: parsed }, { legacy: false, relaxed: false }).value
+  ).toStrictEqual({
+    dims: { h: { $numberInt: '3' }, w: { $numberDouble: '5.0' } },
+  })
 })

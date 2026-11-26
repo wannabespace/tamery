@@ -200,6 +200,8 @@ export const runScript = async (
   }
   const options = {
     ...(queryId && { comment: queryId }),
+    // Promoted, a Double, an Int32 and a Long all read as one JS number, so `rowsOf` could not keep an integral Double typed.
+    promoteValues: false,
     ...(session && { session }),
   }
 
