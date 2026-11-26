@@ -36,6 +36,11 @@ type Statement = AgentTarget & { statement: string }
 /** What a statement does, read from its text, never from what the agent says it does: approvals, policies and the audit log go by it. */
 export type OperationKind = 'destructive' | 'read' | 'write'
 
+export type RowEstimate =
+  | { kind: 'rows'; rows: number }
+  | { kind: 'unavailable' }
+  | { kind: 'failed' }
+
 const ESTIMATE_BUDGET_MS = 3000
 
 const EXPLAINED_COMMANDS = new Set([
@@ -121,19 +126,26 @@ export const agentDatabase = {
       /** Leaves existing data as it was, the only kind auto mode may run without asking. */
       additive: language.additiveOnly(sql),
       connection,
-      /** Rows the planner expects the statement to change, or null when the engine or statement has none or the planner is slow. The pool holds one connection, so settle it before `run`. */
-      estimate: async (signal: AbortSignal) => {
-        const rows = await Result.tryPromise(
-          async () =>
-            (await estimator?.run({
-              ...params,
-              signal: AbortSignal.any([
-                signal,
-                AbortSignal.timeout(ESTIMATE_BUDGET_MS),
-              ]),
-            })) ?? null
+      /** The pool holds one connection, so settle it before `run`. */
+      estimate: async (signal: AbortSignal): Promise<RowEstimate> => {
+        if (!estimator) {
+          return { kind: 'unavailable' }
+        }
+        const rows = await Result.tryPromise(() =>
+          estimator.run({
+            ...params,
+            signal: AbortSignal.any([
+              signal,
+              AbortSignal.timeout(ESTIMATE_BUDGET_MS),
+            ]),
+          })
         )
-        return rows.unwrapOr(null)
+        if (rows.isErr()) {
+          return { kind: 'failed' }
+        }
+        return rows.value === null
+          ? { kind: 'unavailable' }
+          : { kind: 'rows', rows: rows.value }
       },
       kind,
       resource,
