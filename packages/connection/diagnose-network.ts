@@ -1,3 +1,4 @@
+import { PROXY_ERROR_MESSAGE } from '@tamery/shared/constants'
 import {
   ConnectionType,
   getDialect,
@@ -138,6 +139,16 @@ export const NETWORK_RULES: DiagnosisRule[] = [
       title: "The web app can't reach a private host",
     }),
     match: /cloud proxy reaches only public hosts/u,
+    tunnel: true,
+  },
+  {
+    diagnose: ({ desktop }) => ({
+      hint: desktop
+        ? 'Its proxy did not answer. Try again, or set Runs on to This computer to query it from here.'
+        : 'Its proxy did not answer. Try again in a moment.',
+      title: "Tamery Cloud isn't answering",
+    }),
+    match: new RegExp(`^${RegExp.escape(PROXY_ERROR_MESSAGE)}$`, 'u'),
     tunnel: true,
   },
 ]

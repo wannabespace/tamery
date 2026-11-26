@@ -1,4 +1,5 @@
-import type { machineNeedsSecrets } from '@tamery/shared/machine'
+import type { MachineId, machineNeedsSecrets } from '@tamery/shared/machine'
+import { machineIdSchema } from '@tamery/shared/machine'
 import { omit } from '@tamery/shared/utils'
 import { useLiveQuery } from '@tanstack/react-db'
 import { queryOptions, useQuery } from '@tanstack/react-query'
@@ -80,7 +81,7 @@ const toRoute = ({
 }: {
   asks: MachineRoute['asks']
   machine: Machine | null
-  machineId: string
+  machineId: MachineId
   pairing: MachinePairing | null
 }) => ({
   asks,
@@ -91,24 +92,27 @@ const toRoute = ({
 
 export interface MachineRoute {
   asks: (typeof machineNeedsSecrets.infer)['fields'] | null
-  machineId: string
+  machineId: MachineId
   name: string
   /** `null` until this browser is allowed on the machine. */
   pairing: MachinePairing | null
 }
 
-export const CLOUD = 'cloud'
-export const THIS_COMPUTER = 'this-computer'
-
-type MachineId = string
+export const CLOUD = 'cloud' as const
+export const THIS_COMPUTER = 'this-computer' as const
 
 export type RunsOn = typeof CLOUD | typeof THIS_COMPUTER | MachineId
 
 export const defaultRunsOn = (): RunsOn =>
   window.electron ? THIS_COMPUTER : CLOUD
 
-export const isMachine = (runsOn: RunsOn) =>
+export const isMachine = (runsOn: RunsOn): runsOn is MachineId =>
   runsOn !== CLOUD && runsOn !== THIS_COMPUTER
+
+export const parseRunsOn = (value: string): RunsOn =>
+  value === CLOUD || value === THIS_COMPUTER
+    ? value
+    : machineIdSchema.assert(value)
 
 const toRunsOn = (
   row: ConnectionMachine | null,
@@ -117,7 +121,9 @@ const toRunsOn = (
   if (row?.machineId === null) {
     return CLOUD
   }
-  return !row || row.machineId === ownId ? defaultRunsOn() : row.machineId
+  return !row || row.machineId === ownId
+    ? defaultRunsOn()
+    : machineIdSchema.assert(row.machineId)
 }
 
 const findRow = (connectionId: string) =>
@@ -153,7 +159,10 @@ export const useMachines = () => {
       .from({ machine: machinesCollection })
       .orderBy(({ machine }) => machine.createdAt)
   )
-  return data
+  return data.map((machine) => ({
+    ...machine,
+    id: machineIdSchema.assert(machine.id),
+  }))
 }
 
 export const useMachineRouteById = (
@@ -228,7 +237,7 @@ export const writeRunsOn = (connectionId: string, runsOn: RunsOn) => {
   const { connectionMachinesCollection } = getCollections()
   const row = findRow(connectionId)
   const isDefault = runsOn === defaultRunsOn()
-  const machineId = runsOn === CLOUD ? null : runsOn
+  const rowMachineId = isMachine(runsOn) ? runsOn : null
   const now = new Date()
   mutateOffline(() => {
     if (isDefault) {
@@ -237,7 +246,7 @@ export const writeRunsOn = (connectionId: string, runsOn: RunsOn) => {
       }
     } else if (row) {
       connectionMachinesCollection.update(row.id, (draft) => {
-        draft.machineId = machineId
+        draft.machineId = rowMachineId
         draft.updatedAt = now
       })
     } else {
@@ -245,7 +254,7 @@ export const writeRunsOn = (connectionId: string, runsOn: RunsOn) => {
         connectionId,
         createdAt: now,
         id: v7(),
-        machineId,
+        machineId: rowMachineId,
         updatedAt: now,
       })
     }
