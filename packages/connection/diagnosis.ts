@@ -23,6 +23,7 @@ export interface Diagnosis {
 export interface DiagnosisContext {
   desktop: boolean
   message: string
+  online: boolean
   parts: ConnectionParts
 }
 
@@ -31,5 +32,7 @@ export interface DiagnosisRule {
   diagnose: (context: DiagnosisContext) => Diagnosis
   /** Only this engine's errors carry the matched text. */
   engine?: ConnectionType
+  /** A device with no network fails this way too. */
+  offline?: true
   tunnel?: true
 }
