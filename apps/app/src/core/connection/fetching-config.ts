@@ -1,10 +1,12 @@
 import { SSH_ELSEWHERE } from '@tamery/connection/ssh/params'
 import { SyncType } from '@tamery/shared/enums/sync-type'
+import { ALL_SECRET_FIELDS } from '@tamery/shared/machine'
 
 import type { ConnectionString } from '~/core/connection/connection-strings'
 import type { Connection } from '~/core/connection/sync'
 import { getNotPairedMessage } from '~/core/runtime/machine/not-paired'
-import type { MachineRoute } from '~/core/runtime/machine/pairing'
+import type { MachineRoute, RunsOn } from '~/core/runtime/machine/pairing'
+import { CLOUD, THIS_COMPUTER } from '~/core/runtime/machine/pairing'
 
 type FetchingType =
   | 'machine'
@@ -27,6 +29,7 @@ type FetchingConnection = Pick<
 > | null
 
 interface FetchingOptions {
+  runsOn: RunsOn
   machine: MachineRoute | null
   /** `null` while the row loads leaves the password unresolved. */
   connectionString: Pick<
@@ -41,6 +44,8 @@ const REASONS = {
   connectionStringNotStored:
     'Only the name and color of this connection sync. Add its server details on this device to use it here.',
   passwordMissing: 'Enter the password to query this connection.',
+  notInCloud:
+    'Tamery Cloud cannot reach this connection. Set Runs on to This computer to query it.',
   notInWeb:
     'You cannot reach this connection from the web app. Run it on a machine (Edit → Runs on) or open it in the desktop app.',
   secretsMissing:
@@ -48,6 +53,14 @@ const REASONS = {
   secretsNotStoredInWeb:
     'This connection was saved without its credentials, so the web app cannot reach it. Run it on a machine (Edit → Runs on) or open it in the desktop app.',
 }
+
+export const isReachableFromWeb = (
+  { syncType }: Pick<Connection, 'syncType'>,
+  connectionString: Pick<ConnectionString, 'isInternal' | 'usesSsh'> | null
+) =>
+  syncType === SyncType.Cloud &&
+  !connectionString?.isInternal &&
+  !connectionString?.usesSsh
 
 const allowed = (type: FetchingType): FetchingConfig => ({
   canSend: true,
@@ -68,7 +81,6 @@ const resolveFlags = (
   connection: FetchingConnection,
   options: FetchingOptions
 ) => {
-  const isElectron = !!window.electron
   const { connectionString } = options
   const isPasswordPopulated = connectionString?.isPasswordPopulated
 
@@ -76,8 +88,9 @@ const resolveFlags = (
     connectionStringMissing:
       connection?.syncType === SyncType.CloudWithoutConnectionString &&
       !connectionString,
-    isElectron,
+    isCloudOnDesktop: !!window.electron && options.runsOn === CLOUD,
     isInternal: !!connectionString?.isInternal,
+    isThisComputer: options.runsOn === THIS_COMPUTER,
     missingSecrets: connectionString?.missingSecrets ?? [],
     needsPassword:
       !!connection?.isPasswordExists && isPasswordPopulated === false,
@@ -87,14 +100,42 @@ const resolveFlags = (
   }
 }
 
+const machineConfig = (
+  { asks, name, pairing }: MachineRoute,
+  draft: boolean
+): FetchingConfig => {
+  if (draft) {
+    return blocked(
+      'machine',
+      `Saved connections run on ${name}, so save it to try it.`
+    )
+  }
+  if (!pairing) {
+    return blocked('machine', getNotPairedMessage(name))
+  }
+  if (asks === ALL_SECRET_FIELDS) {
+    return blocked('waiting-for-details', REASONS.connectionStringNotStored)
+  }
+  if (asks) {
+    return blocked(
+      'waiting-for-password',
+      asks.includes('password')
+        ? REASONS.passwordMissing
+        : REASONS.secretsMissing
+    )
+  }
+  return allowed('machine')
+}
+
 export const fetchingConfig = (
   connection: FetchingConnection,
   options: FetchingOptions
 ): FetchingConfig => {
   const {
     connectionStringMissing,
-    isElectron,
+    isCloudOnDesktop,
     isInternal,
+    isThisComputer,
     missingSecrets,
     needsPassword,
     passwordUnresolved,
@@ -106,31 +147,19 @@ export const fetchingConfig = (
   }
 
   if (options.machine) {
-    const { asks, name, pairing } = options.machine
-    if (options.draft) {
-      return blocked(
-        'machine',
-        `Saved connections run on ${name}, so save it to try it.`
-      )
-    }
-    if (!pairing) {
-      return blocked('machine', getNotPairedMessage(name))
-    }
-    if (asks === 'all') {
-      return blocked('waiting-for-details', REASONS.connectionStringNotStored)
-    }
-    if (asks) {
-      return blocked(
-        'waiting-for-password',
-        asks.includes('password')
-          ? REASONS.passwordMissing
-          : REASONS.secretsMissing
-      )
-    }
-    return allowed('machine')
+    return machineConfig(options.machine, !!options.draft)
   }
 
-  if (usesSsh && !isElectron) {
+  if (
+    isCloudOnDesktop &&
+    (needsPassword ||
+      missingSecrets.length > 0 ||
+      (connection && !isReachableFromWeb(connection, options.connectionString)))
+  ) {
+    return blocked('cloud-proxy', REASONS.notInCloud)
+  }
+
+  if (usesSsh && !isThisComputer) {
     return blocked('local', SSH_ELSEWHERE)
   }
 
@@ -138,7 +167,7 @@ export const fetchingConfig = (
     return blocked('resolving-password')
   }
 
-  if ((needsPassword || missingSecrets.length > 0) && !isElectron) {
+  if ((needsPassword || missingSecrets.length > 0) && !isThisComputer) {
     return blocked('cloud-proxy', REASONS.secretsNotStoredInWeb)
   }
 
@@ -150,7 +179,7 @@ export const fetchingConfig = (
     return blocked('waiting-for-password', REASONS.secretsMissing)
   }
 
-  if (isElectron) {
+  if (isThisComputer) {
     return allowed('local')
   }
 

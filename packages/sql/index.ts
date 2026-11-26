@@ -2,6 +2,7 @@ export type { SqlCatalog } from './catalog'
 export type { CompletionKind } from './completion-items'
 export { completionContext } from './completion-context'
 export { completionItems } from './completion'
+export { CASE_INSENSITIVE } from './dialect'
 export type { DialectSpec } from './dialect'
 export { dialects } from './dialects'
 export { diagnose } from './diagnostics'
@@ -24,4 +25,4 @@ export {
   writesData,
 } from './destructive'
 export { statementScope } from './scope'
-export { findTable, findTableWithSchema } from './catalog'
+export { COLUMNS_NOT_LOADED, findTable, findTableWithSchema } from './catalog'

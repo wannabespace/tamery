@@ -3,6 +3,9 @@ import { useSelector } from '@tanstack/react-form'
 import { Result } from 'better-result'
 import { useRef, useState } from 'react'
 
+import type { RunsOn } from '~/core/runtime/machine/pairing'
+import { THIS_COMPUTER } from '~/core/runtime/machine/pairing'
+
 import type { ConnectionForm } from './connection-form'
 import type { PasteVia } from './use-paste-connection'
 
@@ -21,16 +24,16 @@ export const usePickLocalDatabase = ({
 
   const pick = async (
     { connectionString, hasPassword, name, source, type }: LocalDatabase,
-    machineId: string | null
+    machineId: RunsOn
   ) => {
     setWithheld(undefined)
     // Replaces the form rather than merging like a paste: another pick on the same host would keep the previous password, database and options.
     form.reset()
     read(connectionString, 'found')
-    form.setFieldValue('machineId', machineId)
+    form.setFieldValue('runsOn', machineId)
     form.setFieldValue('name', name)
     form.setFieldValue('type', type)
-    if (machineId !== null || !window.electron) {
+    if (machineId !== THIS_COMPUTER || !window.electron) {
       form.setFieldValue(
         'foundDatabase',
         hasPassword ? { connectionString, source } : null

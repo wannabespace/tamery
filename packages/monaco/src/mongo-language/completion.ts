@@ -36,7 +36,7 @@ const catalogOf = (source: QuerySource | undefined): MongoCatalog => {
     fields: (collection) =>
       tables
         .find(({ name }) => name === collection)
-        ?.columns?.map(({ name, type }) => ({ name, type })) ?? null,
+        ?.columns?.map(({ name, type }) => ({ name, type })) ?? [],
   }
 }
 
@@ -91,7 +91,7 @@ const DOCUMENT_WRAPPER = 'db.getCollection("_").insertOne('
 
 const EMPTY_MONGO_CATALOG: MongoCatalog = {
   collections: [],
-  fields: () => null,
+  fields: () => [],
 }
 
 export const registerMongoDocumentCompletion = (id: string) =>

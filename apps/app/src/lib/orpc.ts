@@ -1,4 +1,9 @@
-import { createORPCClient, onError, ORPCError } from '@orpc/client'
+import {
+  createORPCClient,
+  MalformedResponseError,
+  onError,
+  ORPCError,
+} from '@orpc/client'
 import { RPCLink } from '@orpc/client/fetch'
 import type { InferRouterInputs, InferRouterOutputs } from '@orpc/server'
 import { createTanstackQueryUtils } from '@orpc/tanstack-query'
@@ -70,7 +75,10 @@ export const orpcProxy = createORPCClient(
             throw error
           }
 
-          if (error instanceof Error && isConnectionError(error)) {
+          if (
+            error instanceof MalformedResponseError ||
+            (error instanceof Error && isConnectionError(error))
+          ) {
             throw new Error(PROXY_ERROR_MESSAGE, { cause: error })
           }
 

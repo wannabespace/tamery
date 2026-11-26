@@ -20,6 +20,7 @@ import {
 import type { ConnectionCapabilities } from './capability-presets'
 import {
   full,
+  LOGIN_SCHEMA,
   noFunctions,
   noPolicies,
   noTriggers,
@@ -45,7 +46,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
   [Dialect.ClickHouse]: {
     columnTypes: COLUMN_TYPE_CAPABILITIES[Dialect.ClickHouse],
     constraintKinds: ['check'],
-    defaultSchema: null,
+    defaultSchema: LOGIN_SCHEMA,
     fixedConstraintNames: {},
     flags: [
       'alterColumns',
@@ -116,7 +117,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
   [Dialect.MongoDB]: {
     columnTypes: COLUMN_TYPE_CAPABILITIES[Dialect.MongoDB],
     constraintKinds: [],
-    defaultSchema: null,
+    defaultSchema: LOGIN_SCHEMA,
     fixedConstraintNames: {},
     flags: ['documentIndexes', 'ilike', 'uniqueKeys'],
     functions: noFunctions,
@@ -190,7 +191,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
   [Dialect.MySQL]: {
     columnTypes: COLUMN_TYPE_CAPABILITIES[Dialect.MySQL],
     constraintKinds: CONSTRAINT_KINDS,
-    defaultSchema: null,
+    defaultSchema: LOGIN_SCHEMA,
     fixedConstraintNames: { primaryKey: 'PRIMARY' },
     flags: [
       'alterColumns',
@@ -242,7 +243,7 @@ const capabilities: Record<Dialect, ConnectionCapabilities> = {
   [Dialect.Oracle]: {
     columnTypes: COLUMN_TYPE_CAPABILITIES[Dialect.Oracle],
     constraintKinds: CONSTRAINT_KINDS,
-    defaultSchema: null,
+    defaultSchema: LOGIN_SCHEMA,
     fixedConstraintNames: {},
     // renameViews stays off: RENAME reaches only the session's own schema, and ALTER VIEW cannot rename.
     flags: [

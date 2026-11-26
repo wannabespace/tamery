@@ -14,7 +14,11 @@ import { Result } from 'better-result'
 import type { UtilityProcess } from 'electron'
 import { app, dialog, safeStorage, utilityProcess } from 'electron'
 
-import type { MachineProcessReply, MachineProcessRequest } from '../machine'
+import type {
+  MachineAccount,
+  MachineProcessReply,
+  MachineProcessRequest,
+} from '../machine'
 import { createPrivateStore } from './private-store'
 
 const KEY_BYTES = 32
@@ -75,7 +79,7 @@ const askApproval = async ({
 const send = (forked: UtilityProcess, request: MachineProcessRequest) =>
   forked.postMessage(request)
 
-const start = async (account: VaultAccount | null) => {
+const start = async (account: MachineAccount) => {
   if (child) {
     return
   }
@@ -84,7 +88,7 @@ const start = async (account: VaultAccount | null) => {
   if (key.isErr() || !key.value) {
     state = {
       message:
-        'The keychain refused this computer’s machine key. Unlock it, then turn this on again.',
+        'The keychain refused this computer’s machine key. Unlock it, then restart Tamery.',
       status: 'failed',
     }
     return
@@ -190,12 +194,6 @@ const inTurn = <T>(change: () => Promise<T>) => {
 }
 
 export const machineHost = {
-  disable: () =>
-    inTurn(async () => {
-      store.set('enabled', false)
-      await stop()
-      return getStatus()
-    }),
   enable: ({
     account,
     publicUrl,
@@ -215,7 +213,7 @@ export const machineHost = {
     return inTurn(async () => {
       await stop()
       store.set({ enabled: true, publicUrl: parsed?.origin ?? null })
-      await start(account)
+      await start({ account, kind: 'switch' })
       return getStatus()
     })
   },
@@ -234,6 +232,6 @@ export const machineHost = {
 export const restoreMachine = () =>
   inTurn(async () => {
     if (store.get('enabled')) {
-      await start(null)
+      await start({ kind: 'keep' })
     }
   })

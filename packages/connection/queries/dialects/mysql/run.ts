@@ -4,7 +4,7 @@ import type { Connection, PoolOptions, ResultSetHeader } from 'mysql2'
 import type * as mysql2Promise from 'mysql2/promise'
 
 import type { ResultSet, RunOptions } from '../..'
-import { resultSet } from '../..'
+import { NO_ROW_COUNT, resultSet } from '../..'
 import { cancellable } from '../../cancellation'
 import { mysql2 } from './client'
 
@@ -69,7 +69,7 @@ export const runOn = async (
       })
       .on('fields', (fields?: mysql2Promise.FieldPacket[]) => {
         sets.push({
-          affectedRows: null,
+          affectedRows: NO_ROW_COUNT,
           columns: fields?.map((field) => field.name) ?? [],
           rows: [],
         })

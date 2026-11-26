@@ -1,4 +1,5 @@
-import type { machineNeedsSecrets } from '@tamery/shared/machine'
+import type { MachineId, machineNeedsSecrets } from '@tamery/shared/machine'
+import { machineIdSchema, TAMERY_CLOUD } from '@tamery/shared/machine'
 import { omit } from '@tamery/shared/utils'
 import { useLiveQuery } from '@tanstack/react-db'
 import { queryOptions, useQuery } from '@tanstack/react-query'
@@ -17,13 +18,13 @@ import {
 import { posthog } from '~/lib/posthog'
 import { queryClient } from '~/lib/query-client'
 
-import type { Machine } from './sync'
+import type { ConnectionMachine, Machine } from './sync'
 
 export const MACHINE_QUERY_KEY = 'machine'
 
 const pairingSchema = type({
   browserId: 'string',
-  machineId: 'string',
+  machineId: machineIdSchema,
   name: 'string',
   secret: 'string',
   url: 'string',
@@ -46,7 +47,8 @@ const ON_POLL_MS = 5000
 
 /**
  * Desktop only: main's state of this computer's own machine. Kept for the session, never collected: its id routes a
- * connection on it here, never over HTTP to itself.
+ * connection on it here, never over HTTP to itself. Never starts the machine: sign-out drops this query while the session
+ * still lives, so a mounted observer's refetch would start it again for the account leaving.
  */
 export const thisMachineQuery = queryOptions({
   gcTime: Infinity,
@@ -79,7 +81,7 @@ const toRoute = ({
 }: {
   asks: MachineRoute['asks']
   machine: Machine | null
-  machineId: string
+  machineId: MachineId
   pairing: MachinePairing | null
 }) => ({
   asks,
@@ -90,34 +92,63 @@ const toRoute = ({
 
 export interface MachineRoute {
   asks: (typeof machineNeedsSecrets.infer)['fields'] | null
-  machineId: string
+  machineId: MachineId
   name: string
   /** `null` until this browser is allowed on the machine. */
   pairing: MachinePairing | null
 }
 
-export const getConnectionMachineId = (connectionId: string) =>
+export const CLOUD = 'cloud' as const
+export const THIS_COMPUTER = 'this-computer' as const
+
+export type RunsOn = typeof CLOUD | typeof THIS_COMPUTER | MachineId
+
+export const defaultRunsOn = (): RunsOn =>
+  window.electron ? THIS_COMPUTER : CLOUD
+
+export const isMachine = (runsOn: RunsOn): runsOn is MachineId =>
+  runsOn !== CLOUD && runsOn !== THIS_COMPUTER
+
+export const parseRunsOn = (value: string): RunsOn =>
+  value === CLOUD || value === THIS_COMPUTER
+    ? value
+    : machineIdSchema.assert(value)
+
+const toRunsOn = (
+  row: ConnectionMachine | null,
+  ownId: string | null
+): RunsOn => {
+  if (row?.machineId === TAMERY_CLOUD) {
+    return CLOUD
+  }
+  return !row || row.machineId === ownId ? defaultRunsOn() : row.machineId
+}
+
+const findRow = (connectionId: string) =>
   getCollections().connectionMachinesCollection.toArray.find(
     (row) => row.connectionId === connectionId
-  )?.machineId ?? null
+  ) ?? null
+
+export const getConnectionRunsOn = (connectionId: string) =>
+  toRunsOn(findRow(connectionId), getThisMachineId())
 
 export const getMachineRouteById = (
-  machineId: string | null,
+  runsOn: RunsOn,
   connectionId: string | null = null
 ): MachineRoute | null =>
-  machineId === null || machineId === getThisMachineId()
-    ? null
-    : toRoute({
+  isMachine(runsOn)
+    ? toRoute({
         asks: (connectionId && machineAsks.get()[connectionId]) || null,
-        machine: getCollections().machinesCollection.get(machineId) ?? null,
-        machineId,
-        pairing: machinePairings.get()[machineId] ?? null,
+        machine: getCollections().machinesCollection.get(runsOn) ?? null,
+        machineId: runsOn,
+        pairing: machinePairings.get()[runsOn] ?? null,
       })
+    : null
 
 export const getMachineRoute = (connectionId: string | null) =>
   connectionId === null
     ? null
-    : getMachineRouteById(getConnectionMachineId(connectionId), connectionId)
+    : getMachineRouteById(getConnectionRunsOn(connectionId), connectionId)
 
 export const useMachines = () => {
   const { machinesCollection } = useCollections()
@@ -126,43 +157,46 @@ export const useMachines = () => {
       .from({ machine: machinesCollection })
       .orderBy(({ machine }) => machine.createdAt)
   )
-  return data
+  return data.map((machine) => ({
+    ...machine,
+    id: machineIdSchema.assert(machine.id),
+  }))
 }
 
 export const useMachineRouteById = (
-  machineId: string | null,
+  runsOn: RunsOn,
   connectionId: string | null = null
 ): MachineRoute | null => {
   const machines = useMachines()
   const pairing = useSubscription(machinePairings, {
-    selector: (all) => (machineId && all[machineId]) || null,
+    selector: (all) => all[runsOn] ?? null,
   })
   const asks = useSubscription(machineAsks, {
     selector: (all) => (connectionId && all[connectionId]) || null,
   })
-  const ownId = useThisMachineId()
-  return machineId === null || machineId === ownId
-    ? null
-    : toRoute({
+  return isMachine(runsOn)
+    ? toRoute({
         asks,
-        machine: machines.find((machine) => machine.id === machineId) ?? null,
-        machineId,
+        machine: machines.find((machine) => machine.id === runsOn) ?? null,
+        machineId: runsOn,
         pairing,
       })
+    : null
 }
 
-export const useConnectionMachineId = (connectionId: string | null) => {
+export const useConnectionRunsOn = (connectionId: string | null) => {
   const { connectionMachinesCollection } = useCollections()
   const { data = [] } = useLiveQuery((q) =>
     q.from({ row: connectionMachinesCollection })
   )
-  return (
-    data.find((row) => row.connectionId === connectionId)?.machineId ?? null
+  return toRunsOn(
+    data.find((row) => row.connectionId === connectionId) ?? null,
+    useThisMachineId()
   )
 }
 
 export const useMachineRoute = (connectionId: string | null) =>
-  useMachineRouteById(useConnectionMachineId(connectionId), connectionId)
+  useMachineRouteById(useConnectionRunsOn(connectionId), connectionId)
 
 /** Query keys name the connection, not the computer, so a connection that moves must not keep what the previous one answered. */
 export const useDropQueriesOnMachineChange = () => {
@@ -193,26 +227,24 @@ export const clearMachinePairing = (pairing: MachinePairing) => {
 }
 
 /** Its own `mutateOffline`, after the connection's: the server checks the connection exists, and a refusal must not undo it. */
-export const writeConnectionMachine = (
-  connectionId: string,
-  machineId: string | null
-) => {
-  const { connectionMachinesCollection } = getCollections()
-  const row = connectionMachinesCollection.toArray.find(
-    (item) => item.connectionId === connectionId
-  )
-  if ((row?.machineId ?? null) === machineId) {
+export const writeRunsOn = (connectionId: string, runsOn: RunsOn) => {
+  // As this app reads it: a save on the web must not drop the desktop's `CLOUD`, nor one on desktop its own machine's row.
+  if (getConnectionRunsOn(connectionId) === runsOn) {
     return
   }
+  const { connectionMachinesCollection } = getCollections()
+  const row = findRow(connectionId)
+  const isDefault = runsOn === defaultRunsOn()
+  const rowMachineId = isMachine(runsOn) ? runsOn : TAMERY_CLOUD
   const now = new Date()
   mutateOffline(() => {
-    if (machineId === null) {
+    if (isDefault) {
       if (row) {
         connectionMachinesCollection.delete(row.id)
       }
     } else if (row) {
       connectionMachinesCollection.update(row.id, (draft) => {
-        draft.machineId = machineId
+        draft.machineId = rowMachineId
         draft.updatedAt = now
       })
     } else {
@@ -220,10 +252,14 @@ export const writeConnectionMachine = (
         connectionId,
         createdAt: now,
         id: v7(),
-        machineId,
+        machineId: rowMachineId,
         updatedAt: now,
       })
     }
   })
-  posthog.capture('connection_machine_set', { on_machine: machineId !== null })
+  posthog.capture('connection_machine_set', {
+    // A stored cloud row only: on the web Tamery Cloud is the default, which writes no row.
+    on_cloud: !isDefault && runsOn === CLOUD,
+    on_machine: isMachine(runsOn),
+  })
 }

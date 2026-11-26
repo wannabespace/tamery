@@ -2,7 +2,12 @@ import type { Dialect } from '@tamery/shared/enums/connection-type'
 import { isSqlDialect } from '@tamery/shared/enums/connection-type'
 import { silently } from '@tamery/shared/utils'
 import type { SqlCatalog } from '@tamery/sql'
-import { dialects, splitStatements, statementScope } from '@tamery/sql'
+import {
+  CASE_INSENSITIVE,
+  dialects,
+  splitStatements,
+  statementScope,
+} from '@tamery/sql'
 import type { editor } from 'monaco-editor'
 import { Range } from 'monaco-editor'
 
@@ -30,7 +35,7 @@ export const boundSources = new WeakMap<editor.ITextModel, QuerySource>()
 export const EMPTY_CATALOG: SqlCatalog = {
   defaultSchema: null,
   enums: [],
-  nameCase: null,
+  nameCase: CASE_INSENSITIVE,
   schemas: [],
 }
 

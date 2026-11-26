@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import type { ConnectionDetails } from '~/core/connection/save'
 import { testConnectionQuery } from '~/core/queries/connection/test'
+import type { RunsOn } from '~/core/runtime/machine/pairing'
 import { getMachineRouteById } from '~/core/runtime/machine/pairing'
 import { generateRandomName } from '~/utils/faker'
 
@@ -32,8 +33,11 @@ export type OnSave = (
 export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
   const test = useMutation({
     meta: { event: 'connection_tested' },
-    mutationFn: (params: { connectionString: string; dialect: Dialect }) =>
-      testConnectionQuery.run(params),
+    mutationFn: (params: {
+      connectionString: string
+      dialect: Dialect
+      runsOn: RunsOn
+    }) => testConnectionQuery.run(params),
   })
   const inFlight = useRef<Promise<Result<unknown, unknown>>>(null)
 
@@ -62,7 +66,8 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
         syncType: values.syncType,
       },
       {
-        machine: getMachineRouteById(values.machineId),
+        runsOn: values.runsOn,
+        machine: getMachineRouteById(values.runsOn),
         connectionString: editing
           ? described
           : { ...described, missingSecrets: [] },
@@ -71,7 +76,8 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
     )
     const tested =
       test.variables?.connectionString === connectionString &&
-      test.variables.dialect === getDialect(values.type)
+      test.variables.dialect === getDialect(values.type) &&
+      test.variables.runsOn === values.runsOn
     return {
       canSend,
       connectionString,
@@ -89,6 +95,7 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
       test.mutateAsync({
         connectionString,
         dialect: getDialect(values.type),
+        runsOn: values.runsOn,
       })
     )
     return inFlight.current
@@ -127,9 +134,9 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
           connectionString,
           foundConnectionString: getFoundDatabase(values)?.connectionString,
           label: values.label.trim() || null,
-          machineId: values.machineId,
           name: values.name.trim() || generateRandomName(),
           provider: values.provider,
+          runsOn: values.runsOn,
           type: values.type,
         },
         {

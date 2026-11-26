@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { useCollections } from '~/core/collections'
 import { createConnection } from '~/core/connection/save'
 import type { Connection } from '~/core/connection/sync'
+import { defaultRunsOn } from '~/core/runtime/machine/pairing'
 import { checkOrUpgrade } from '~/core/user/permissions'
 import { useActiveWorkspace } from '~/core/workspace/hooks'
 import { orpc } from '~/lib/orpc'
@@ -38,6 +39,7 @@ export const useConnectionTransfer = (connection: Connection) => {
           workspaceId === connection.workspaceId
             ? `${connection.name} copy`
             : connection.name,
+        runsOn: defaultRunsOn(),
         workspaceId,
       }),
     onError: (copyError) => toast.error(copyError.message),

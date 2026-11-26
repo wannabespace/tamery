@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 
 import { useLocalMachine } from '~/core/local-machine'
+import type { RunsOn } from '~/core/runtime/machine/pairing'
 import { plural } from '~/utils/plural'
 
 import type { LocalDatabase } from '../lib/use-pick-local-database'
@@ -12,14 +13,14 @@ export const LocalDatabases = ({
   machineId,
   onPick,
 }: {
-  machineId: string | null
+  machineId: RunsOn
   onPick: (database: LocalDatabase) => void
 }) => {
   const machine = useLocalMachine(machineId)
   const { data: databases = [] } = useQuery({
     enabled: !!machine,
-    queryFn: () => machine?.find() ?? [],
-    queryKey: machine?.queryKey ?? ['localDatabases'],
+    queryFn: () => machine?.findDatabases() ?? [],
+    queryKey: [...(machine?.queryKey ?? []), 'localDatabases'],
     staleTime: 0,
     throwOnError: false,
   })

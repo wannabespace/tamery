@@ -3,19 +3,23 @@ import {
   connectionMachines,
   connectionMachinesInsertSchema,
   connections,
-  machines,
 } from '@tamery/db/schema'
+import { machineIdSchema, TAMERY_CLOUD } from '@tamery/shared/machine'
+import { type } from 'arktype'
 import { and, eq } from 'drizzle-orm'
 
 import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
+import { canRunOn } from './machine'
 
 export const create = orpc
   .use(authMiddleware)
   .input(
-    connectionMachinesInsertSchema.omit('userId', 'createdAt', 'updatedAt')
+    connectionMachinesInsertSchema
+      .omit('userId', 'createdAt', 'updatedAt')
+      .merge(type({ machineId: machineIdSchema.and('string.uuid').or('null') }))
   )
   .errors({
     NOT_FOUND: { message: 'Connection or machine not found' },
@@ -30,17 +34,12 @@ export const create = orpc
           inMemberWorkspace(context.user.id)(connections)
         )
       )
-    const [machine] = await db
-      .select({ id: machines.id })
-      .from(machines)
-      .where(
-        and(
-          eq(machines.id, input.machineId),
-          eq(machines.userId, context.user.id)
-        )
-      )
 
-    if (!connection || !machine) {
+    if (
+      !connection ||
+      (input.machineId !== TAMERY_CLOUD &&
+        !(await canRunOn(context.user.id, input.machineId)))
+    ) {
       throw errors.NOT_FOUND()
     }
 
