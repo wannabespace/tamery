@@ -21,7 +21,7 @@ import type { AppMenuNode } from '~/components/app-menu'
 import type { ConnectionResource } from '~/core/connection/sync'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { openTab, renameTab } from '~/core/tabs/actions'
-import { resolveTab } from '~/core/tabs/kinds'
+import { renameTabTitle, resolveTab } from '~/core/tabs/kinds'
 import type { ConnectionTab } from '~/core/tabs/types'
 import { tabViews } from '~/core/tabs/views'
 import { pressNavProps } from '~/utils/press-nav'
@@ -76,11 +76,13 @@ export const Tab = ({
     }
 
     const next = draft.trim()
+    const isTitleRenamed =
+      !!next && next !== label && renameTabTitle(tab.id, next)
 
     renameTab(
       connectionResource.id,
       tab.id,
-      next && next !== defaultLabel ? next : null
+      !isTitleRenamed && next && next !== defaultLabel ? next : null
     )
     setDraft(null)
   }
@@ -156,7 +158,7 @@ export const Tab = ({
     })
 
   const tabClasses = cn(
-    `group text-muted-foreground hover:bg-background/50 font-row relative flex h-full cursor-default items-center gap-1.5 border-r border-b pr-8 pl-3 text-sm whitespace-nowrap transition-colors duration-40`,
+    `group text-muted-foreground hover:bg-background/50 font-row relative flex h-full w-full cursor-default items-center gap-1.5 border-r border-b px-3 text-sm whitespace-nowrap transition-colors duration-40`,
     isActive &&
       `bg-background text-foreground hover:bg-background border-b-transparent`,
     isPreview && 'italic'
@@ -182,7 +184,7 @@ export const Tab = ({
         drag={false}
         layout="position"
         transition={{ layout: { duration: 0 } }}
-        className="relative shrink-0"
+        className="relative max-w-60 min-w-28"
       >
         <div data-mask className={tabClasses}>
           {icon}
@@ -210,7 +212,7 @@ export const Tab = ({
       transition={{ layout: isDragging ? REORDER_TRANSITION : { duration: 0 } }}
       onDragStart={() => onDragStateChange(true)}
       onDragEnd={() => onDragStateChange(false)}
-      className="relative shrink-0 aria-pressed:z-10"
+      className="relative max-w-60 min-w-28 aria-pressed:z-10"
     >
       <AppContextMenu
         open={contextMenuOpen}
@@ -241,7 +243,9 @@ export const Tab = ({
           {...pressNavProps(goToTab)}
         >
           {icon}
-          <span>{label}</span>
+          <span className="group-hover:row-action-fade group-has-data-popup-open:row-action-fade min-w-0 flex-1 truncate text-left">
+            {label}
+          </span>
           <Tooltip
             shortcut={
               isActive && window.electron && <ShortcutKbd shortcut="closeTab" />

@@ -1,22 +1,130 @@
 ---
 title: 'AI assistant'
-description: 'Ask about a query or an error in chat. AI also filters rows and fixes queries in the editor.'
+description: 'Ask the AI agent about your data. It reads your schema, runs queries, and changes data after you approve.'
 keywords: ['copilot', 'llm', 'natural language', 'assistant']
 ---
 
-Open a connection and click the chat button in the tab bar, or press **Cmd+L** (**Ctrl+L**). Paste a query, an error, or a table definition and ask away.
+Open a connection and press **Cmd+L** (**Ctrl+L**), pick **New chat** from the **+** menu in the tab bar, or click **New chat** at the top of **Chats** in the [Navigator](/features/navigator). The chat opens in its own tab, next to your tables and queries. Ask about your data in plain words.
 
 Try:
 
-- “Explain this query.”
+- “Which customers ordered the most last month?”
 - “Why does this SQL fail?”
-- “Write a monthly sales query using these tables.”
+- “Set the status of order 1042 to shipped.”
 
-Each database keeps its own chats. **New chat** starts fresh, and the chat history in the header brings back an older one, on any of your devices. You can stop an answer halfway, and an answer still being written survives a window reload.
+Each database keeps its own chats, on all your devices. Every chat is a tab you can switch to, close and reopen; a new one takes its title from your first question. **New chat** goes back to an open chat you have not written in yet instead of opening another; text you typed but did not send stays in its chat as a draft, listed under **Chats** until you send or clear it. You can stop an answer halfway, and an answer still being written survives a window reload.
 
-## Give it context
+To show the agent something, attach up to four images or PDFs of 5 MB each: click **+** under the message box, paste them, or drop them on it. Attached files are stored apart from the chat, so a chat with many of them still opens quickly; they are deleted along with the chat. To speak instead of typing, click the microphone, talk for up to two minutes, and click its stop button; what you said lands in the message box for you to check before sending, and nothing can be sent while you record. **Esc** drops a recording. The desktop app asks for microphone access the first time.
 
-The chat knows only what you send it. It does not read your schema, query your data, or change anything on its own. Include the table and column names that matter, then read the SQL it suggests and run it yourself.
+While the agent works you can keep typing: **Enter** queues your message, and it goes out as soon as the answer ends. When the answer ends on a question or a change waiting for **Run**, the queued message waits until you answer or decide. **⌘ Enter**, or the **Send now** button, stops the agent and sends your message at once. Queued messages show above the message box, where the arrow sends one at once and **×** takes one back. Typing anywhere in the chat goes to the message box. In an empty message box, **Up arrow** brings back your last message. After an answer, the empty box suggests a likely next question; press **Tab** to take it, then edit or send it.
+
+Hover over a message of yours to copy or edit it; an edited message is asked again, and everything after it is replaced by the new answer. Under an answer you can copy it, ask again, and mark it as good or bad (click the mark again to clear it); it also says which model wrote it and how long it took; hover over the time to see when it was asked. Click an attached image to see it whole; clicking a PDF saves it.
+
+## What the agent does
+
+A new chat opens with the message box in the middle. Until you have a chat about a database, a few ways to start sit under it, such as an overview of the database or a data quality check; pick one to send it. On a database with no tables they offer to design the tables with you or to create a sample schema to practise on instead.
+
+The agent reads your schema and runs read-only queries on its own. On a large database it searches table and column names and comments instead of listing everything, and before filtering on a value you named, it checks how that value is spelled in the column. It also looks through your saved queries and builds on them instead of starting from scratch, and when you refer to an earlier conversation ("like last time"), it searches your chats and reads the one you mean, including the SQL it ran there. Each query shows as a card with the connection, its SQL and the rows it returned. From the card you can copy the SQL, open it in a new Query tab to change and rerun it, and, for a result with dates or categories and a number, show it as a chart. The agent reads at most 200 rows and about 60 KB per query, and a value longer than 2 KB reaches it cut short, so it filters and aggregates in SQL instead of reading whole tables.
+
+The agent's reasoning and schema lookups between the parts of an answer fold into one line, such as **5 steps**; click it to see each step and what it found, such as **Read `orders` 12 columns**. Click a step to open what it read: a table's columns with their types and keys, the tables it listed or found (click one to open it), or a column's most common values with their counts. Queries and changes waiting for you always stay in view.
+
+While it works, the chat names the step in progress, such as **Reading orders**. One message lets the agent take up to 25 steps. When it reaches that, the agent stops, says what it found and what is left, and **Continue** lets it carry on. **Continue** also appears when you stop the agent yourself.
+
+Each month of Pro includes $5 of AI, which the chat shares with every other AI feature; past that, the chat spends [AI credits](/account/ai-credits), which you add by hand or top up automatically. With [your own AI key](/account/ai-key), your provider bills the chat instead.
+
+When a choice is yours, such as which of several matching rows you meant or what a new table should hold, the agent asks you instead of guessing. Its questions appear in the answer with a few answers to pick from, and you can always type your own; with several questions, **Next** and **Previous** step through them, and **Answer** sends them all. The agent waits until you answer, and the chat list marks the chat with a yellow dot meanwhile. To skip the questions, write your next message instead.
+
+For what your database can't tell it, such as how a feature of your database engine works, which version added it, or what an error message means, the agent searches the web. Its line in the answer, such as **Searched the web for** and the question, opens the pages it read. The search sees only the question the agent writes, never your data, and it spends your AI budget like the rest of the chat.
+
+When a query is slow, the agent reads its plan and recommends the index that would help, and creates it if you ask.
+
+To change rows or the schema, the agent writes a statement. In **Ask** mode, the default, a statement that changes data or schema never runs on its own. The chat shows it with **Run** and **Decline**, and the agent continues once you choose; until you choose on a first one, the card also says that changes wait for **Run** unless Auto is on. Statements that belong together come as one transaction, so you approve them once. The card waits for you when you reload or switch chats. With the chat open in several windows or on several devices, each statement runs only once: the first **Run** or **Decline** decides it, and the other windows show **Decided in another window**. On PostgreSQL and MySQL the card also says how many rows the database expects it to change, unless the table has no statistics yet to estimate from. **Run** turns red when the statement changes or removes existing data or schema.
+
+In **Auto** mode, picked under the message box, every statement is checked against your last message, and against the agent's reply before it when you answered that reply, such as with "yes, do it". A statement runs on its own when the check is sure it does only what you asked, also while you work in another tab or a subagent's panel is closed. The check needs to be surer for a statement that changes or removes existing data than for one that only adds rows, tables or indexes. A statement the check is unsure of is skipped: the agent goes on without it and ends its answer by saying what it could not run, with each skipped card under the answer offering **Run**. The chat list marks the chat with a yellow dot until you run a skipped statement or send your next message. **Run** and **Decline** work while the check runs.
+
+### Run SQL yourself
+
+Type `!` in an empty message box to switch it to SQL: the `!` turns into an **SQL** label above the text, and what you write runs on the chat's database instead of going to the agent. The box becomes the Query tab's editor, with its table and column suggestions and AI completions: **Tab** takes a grey AI completion, **Enter** runs the statement, **Shift+Enter** starts a new line. **Backspace** at the start of the text or **Esc** switches back to a message. It runs at once, with no approval, like a Query tab, and asks first only when the statement modifies or deletes data. Its result appears in the chat as a card, and the agent answers right away with what it shows, or why it failed and how to fix it. The agent knows about this too, and suggests the exact `!` message when you want to rerun or tweak a statement yourself. While the agent works, the statement waits in the queue like a message. **Run** on a change Auto skipped runs it on the database shown on its card.
+
+### Models
+
+The menu under the message box picks the model that answers. It starts on **Auto model**: for each message, Tamery weighs how hard the question is and answers with Claude Haiku, Sonnet or Opus at **Low**, **Medium** or **High** effort, so a quick lookup costs less of your budget and a hard analysis still gets the strongest model thinking hardest. Within one chat, Auto never drops to a lighter model, so a long conversation stays consistent, but the effort follows each message: a quick follow-up in a long analysis gets a quick answer. Auto has no options of its own; pick a model to set them.
+
+Below **Auto**, every model is listed, grouped by company: Anthropic, OpenAI, Google, xAI, DeepSeek, Moonshot, Qwen, Z.ai and Mistral; type to search them. The models you picked lately sit under **Recent**; the cross next to one, or **Backspace** on it while the search is empty, removes it from there. Pointing at a model, or highlighting it with the arrow keys, opens its options next to it. **Right arrow** moves into them, **Up** and **Down arrow** move between them, **Left** and **Right arrow** change the effort, **Enter** picks a context or turns Fast mode on and off, and **Esc** goes back to the list:
+
+- **Effort**, from **Low** to **Max**: how hard the model thinks before answering. More effort is slower and spends more of your budget.
+- **Context**: how much of the chat the model reads. **200K** keeps each answer cheaper and faster; the full window lets a chat run longer before it is summarized.
+- **Fast mode**: sends the model to its fastest providers, which can cost more.
+
+Each model keeps its own options, and both the pick and the options apply to every chat on this device. On **Auto**, when a model's provider fails, the agent answers with another company's model instead. A model you picked yourself always answers itself: if its provider fails, the chat shows the error and you can retry or pick another model.
+
+### Long chats
+
+The circle next to the model shows how full the chat's context is. Click it to see the tokens, what the chat has cost so far, and **Compact now**. When a chat fills 80% of the window, its earlier messages are summarized before your next one is answered, so the agent keeps the facts and SQL it found without rereading the whole chat. A line in the chat marks where the summary ends, and your newest exchange always stays whole. **/compact** summarizes on demand.
+
+When a chat is longer than the window, a mark for each of your messages and its answer runs down the right edge, and the marks for what is on screen are wider and brighter. Hover a mark to read the start of the message and the answer, and click it to scroll back to them. With the messages focused (click them, or **Tab** to them), **Option+↑** (**Alt+↑**) and **Option+↓** (**Alt+↓**) jump to the previous and next message.
+
+### Subagents
+
+For work that splits into independent pieces, such as checking several tables or connections, the agent can start subagents: separate agents with the same tools, each given one task. Up to four run side by side, and each reports back to the agent that started it. The agent picks each subagent's model, a lighter one for a quick lookup or a stronger one for a hard analysis, or leaves it on yours; the model shows under the subagent's answers. A subagent cannot start subagents of its own, and its changes wait for your **Run** like any other.
+
+Each subagent shows as a line in the answer with whether it is working, needs your approval, is done or failed; open the line to read the task the agent gave it. The panel button beside it opens the subagent's chat in a panel over the right side of the chat, where you read its work and approve its changes; **Esc** or its **×** closes it. While subagents are working or waiting for you, a **Subagents** button above the message box lists them.
+
+While a subagent works, you can write to it in its panel: your message waits until it finishes its current step, and the agent that started it hears what you asked along with its report.
+
+Once a subagent is done its chat is read-only: it answers the agent, not you. Subagents do not appear in your list of chats.
+
+### In the app
+
+Ask the agent to open things for you: a table with filters and a sort ("show me last week's refunded orders"), SQL in a new Query tab, a download of a result as CSV or JSON, or the share dialog for a table. The share dialog opens filled in, and nothing is shared until you save it.
+
+A table named in an answer opens when you click it. When a picture helps, such as how tables link, the agent draws a diagram.
+
+To ask about one row, right-click it in a table and choose **Ask AI About Row**: a new chat opens with the row in the message box, ready for your question. When a table fails to load, **Ask AI** under the error does the same with the error.
+
+## Your chats
+
+Pick **Chats** from the menu at the top of the [Navigator](/features/navigator), or press **Cmd+3** (**Ctrl+3**), to list every chat of the connection, grouped by date with pinned chats on top. Search finds a chat by its title or by anything said in it; click one to open it in a tab. The end of a chat's row shows how it stands: a spinner while the agent answers, a yellow dot when a change waits for you or Auto skipped one, a blue dot for an answer you have not opened yet, and a red dot when the answer failed. Right-click a chat, or use its **⋯** button, to rename, pin or delete it; renaming a chat's tab (double-click it, or **Rename** in its menu) renames the chat too. Deleting a chat can't be undone; a draft has only its delete button, and goes without asking.
+
+## Schema notes
+
+Notes tell the AI what your schema doesn't: "amounts are in cents", "status 3 means refunded", "use `orders_v2`, not `orders`". A note can be about the whole database, a table or one column. Every AI feature that works with that database reads them: the chat, **Ask AI** filters, and the Query editor's completions, edits and fixes.
+
+When the agent learns something like this, it saves a note right away and says so in the chat, such as **Saved a schema note on `orders.amount`**; click the line to read the note. **Settings → Schema notes** lists every note, grouped by connection and database, where you can edit or delete any of them; once there are more than 10, a search field (**⌘F**) filters them by table, column, database or text. To add a note yourself, click a table in the [Schema visualizer](/features/schema-visualizer) and use **Notes** in its panel.
+
+Notes sync to your other devices with the connection and are stored encrypted.
+
+## Mentions and commands
+
+Type **@** in the message box to mention:
+
+| Mention | What the agent gets |
+| --- | --- |
+| A table of this connection | Its columns, keys, and indexes, so it can write SQL right away |
+| Another connection | Points the agent at it, for example to compare data across two databases |
+| An earlier chat of this connection | Its title; the agent reads what was said there when it needs to |
+
+Each connection is one row, standing for the database you opened in it most recently; **Enter** mentions that one. When a connection has more databases, **Right arrow** (or the arrow at the row's end) lists them, and **Left arrow** or **Esc** goes back. Typing a database's name finds it directly.
+
+Chats show up only once you type part of a title, at most three, below the connections and tables.
+
+In a sent message, click a mentioned database or chat to open it, or a mentioned table to see its first rows.
+
+The agent queries each connection on its own, then joins or compares the results with SQL in the chat itself, so matching rows across databases is exact rather than done by eye. The joined table shows as a **Combined results** card.
+
+The agent works in the chat's connection, and reads your workspace's other connections on its own when a question needs them, such as a table that lives elsewhere, saying which one it read. It changes only the connection the chat belongs to and only reads the others, so mentioning your production database in a chat on your development one can't change production, not even in **Auto** mode. A change the agent aims at another connection shows as **Read-only**, and **Open chat** next to it starts a chat in that connection, where the agent can make it.
+
+Type **/** at the start of a message for commands. Picking one writes it in the message box, and **Enter** runs it:
+
+| Command      | What it does                      |
+| ------------ | --------------------------------- |
+| **/new**     | Starts a new chat                 |
+| **/model**   | Opens the model and effort picker |
+| **/retry**   | Asks your last message again      |
+| **/copy**    | Copies the last answer            |
+| **/compact** | Summarizes the chat so far        |
+
+On desktop, and in the web app on a connection that runs on a [machine](/cli/overview), the same menu lists your own agent skills and commands from that computer, read from `~/.claude/skills`, `~/.claude/commands`, `~/.agents/skills` and `~/.codex/skills`, each as **/skill:** and its name, so a skill never looks like one of the commands above. Picking one sends its instructions with your message; they never let a change skip **Run**. A file over 32 KB is left out.
 
 Chats are stored on our servers and processed by external AI providers. See [Security and privacy](/connections/security#ai-and-your-data).
 
@@ -28,6 +136,6 @@ In the Query editor, [**Edit with AI**, **Fix with AI**, and completions](/featu
 
 When a connection test fails, **Explain with AI** tells you what probably went wrong.
 
-The chat and SQL help need [Pro](/account/plans). On Free you get 20 AI filters a week, and **Explain with AI** is free for everyone. Tamery picks the model for each task, so there is nothing to configure.
+The chat needs [Pro](/account/plans) or [your own AI key](/account/ai-key), and SQL help needs Pro. On Free you get 20 AI filters a week, and **Explain with AI** is free for everyone. Tamery picks the model for each task, so there is nothing to configure.
 
 To let a coding agent look at your tables and run SQL itself, connect it through [MCP](/mcp/overview).

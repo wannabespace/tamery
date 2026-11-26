@@ -118,6 +118,7 @@ export const renderWebNodes = (
                 value={option.value}
                 disabled={option.disabled}
               >
+                {menuIcon(option.icon)}
                 {option.label}
               </parts.RadioItem>
             ))}

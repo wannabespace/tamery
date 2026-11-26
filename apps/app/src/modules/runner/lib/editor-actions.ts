@@ -85,27 +85,31 @@ export const useEditorActions = (
       return
     }
     const disposables = [
-      // Monaco claims ⌘L (expand line selection) and stops it bubbling, so the app's shortcut is re-dispatched.
-      ...SHORTCUTS.aiChat.hotkeys.map((hotkey) =>
-        codeEditor.addAction({
-          id: `tamery.app-${hotkey}`,
-          keybindings: [monacoKeybinding(hotkey)],
-          label: SHORTCUTS.aiChat.title,
-          run: () => {
-            const { alt, ctrl, key, meta, shift } = parseHotkey(hotkey)
-            document.dispatchEvent(
-              new KeyboardEvent('keydown', {
-                altKey: alt,
-                bubbles: true,
-                ctrlKey: ctrl,
-                key,
-                metaKey: meta,
-                shiftKey: shift,
-              })
-            )
-          },
-        })
-      ),
+      // Monaco claims ⌘L (expand line selection) and ⌘E (find with selection) and stops them bubbling, so the app's shortcuts are re-dispatched.
+      ...(['aiChat', 'newQuery'] as const)
+        .flatMap((shortcut) =>
+          SHORTCUTS[shortcut].hotkeys.map((hotkey) => ({ hotkey, shortcut }))
+        )
+        .map(({ hotkey, shortcut }) =>
+          codeEditor.addAction({
+            id: `tamery.app-${hotkey}`,
+            keybindings: [monacoKeybinding(hotkey)],
+            label: SHORTCUTS[shortcut].title,
+            run: () => {
+              const { alt, ctrl, key, meta, shift } = parseHotkey(hotkey)
+              document.dispatchEvent(
+                new KeyboardEvent('keydown', {
+                  altKey: alt,
+                  bubbles: true,
+                  ctrlKey: ctrl,
+                  key,
+                  metaKey: meta,
+                  shiftKey: shift,
+                })
+              )
+            },
+          })
+        ),
       ...EDITOR_ACTIONS.map(({ name, shortcut, ...action }) =>
         codeEditor.addAction({
           label: SHORTCUTS[shortcut].title,

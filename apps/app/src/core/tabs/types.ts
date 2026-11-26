@@ -25,6 +25,8 @@ export interface TabKind<Params = unknown> {
   onActivate?(resourceId: string, params: Params): void
   onClose?(resourceId: string, id: string): void
   onRename?(resourceId: string, from: Params, to: Params): void
+  /** Renames what the tab shows rather than the tab itself, such as a chat; false leaves it to the tab's own name. */
+  renameTitle?(params: Params, title: string): boolean
   title(params: Params): string
   type: string
 }

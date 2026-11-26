@@ -20,16 +20,27 @@ export const SHORTCUT_GROUPS: { shortcuts: ShortcutId[]; title: string }[] = [
   {
     shortcuts: [
       'newTab',
+      'newQuery',
       'closeTab',
       'switchTabs',
       'toggleNavigator',
       'queryLogger',
       'aiChat',
+      'chatSendNow',
+      'chatPreviousTurn',
+      'chatNextTurn',
     ],
     title: 'Tabs and panels',
   },
   {
-    shortcuts: ['navigatorMove', 'navigatorOpen', 'navigatorCollapse'],
+    shortcuts: [
+      'navigatorTables',
+      'navigatorSchema',
+      'navigatorChats',
+      'navigatorMove',
+      'navigatorOpen',
+      'navigatorCollapse',
+    ],
     title: 'Navigator',
   },
   {
