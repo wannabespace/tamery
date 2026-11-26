@@ -13,7 +13,8 @@ import { toast } from 'sonner'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import type { ConnectionDetails } from '~/core/connection/save'
 import { testConnectionQuery } from '~/core/queries/connection/test'
-import { CLOUD, getMachineRouteById } from '~/core/runtime/machine/pairing'
+import type { RunsOn } from '~/core/runtime/machine/pairing'
+import { getMachineRouteById } from '~/core/runtime/machine/pairing'
 import { generateRandomName } from '~/utils/faker'
 
 import type { ConnectionForm, ConnectionFormValues } from './connection-form'
@@ -35,7 +36,7 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
     mutationFn: (params: {
       connectionString: string
       dialect: Dialect
-      inCloud: boolean
+      runsOn: RunsOn
     }) => testConnectionQuery.run(params),
   })
   const inFlight = useRef<Promise<Result<unknown, unknown>>>(null)
@@ -65,7 +66,7 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
         syncType: values.syncType,
       },
       {
-        inCloud: values.runsOn === CLOUD,
+        runsOn: values.runsOn,
         machine: getMachineRouteById(values.runsOn),
         connectionString: editing
           ? described
@@ -76,7 +77,7 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
     const tested =
       test.variables?.connectionString === connectionString &&
       test.variables.dialect === getDialect(values.type) &&
-      test.variables.inCloud === (values.runsOn === CLOUD)
+      test.variables.runsOn === values.runsOn
     return {
       canSend,
       connectionString,
@@ -94,7 +95,7 @@ export const useTestThenSave = (mode: FormMode, onSave: OnSave) => {
       test.mutateAsync({
         connectionString,
         dialect: getDialect(values.type),
-        inCloud: values.runsOn === CLOUD,
+        runsOn: values.runsOn,
       })
     )
     return inFlight.current

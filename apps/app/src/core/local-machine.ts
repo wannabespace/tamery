@@ -6,6 +6,7 @@ import type { RunsOn } from '~/core/runtime/machine/pairing'
 import {
   MACHINE_QUERY_KEY,
   machinePairings,
+  THIS_COMPUTER,
   useMachineRouteById,
   useMachines,
 } from '~/core/runtime/machine/pairing'
@@ -33,15 +34,12 @@ export const useLocalMachine = (runsOn: RunsOn) => {
   return null
 }
 
-/**
- * Every computer this app can list databases on: this desktop, as `null`, and each machine it is paired with that the
- * account lists, since a connection runs only on a listed one.
- */
-export const useLocalMachineIds = () => {
+/** Every computer this app can list databases on: this desktop and each paired machine the account lists, since a connection runs only on a listed one. */
+export const useLocalMachineIds = (): RunsOn[] => {
   const pairings = useSubscription(machinePairings)
   const listed = useMachines()
   return [
-    ...(window.electron ? [null] : []),
+    ...(window.electron ? [THIS_COMPUTER] : []),
     ...listed.flatMap(({ id }) => (pairings[id] ? [id] : [])),
   ]
 }

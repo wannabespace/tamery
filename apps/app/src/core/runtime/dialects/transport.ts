@@ -6,10 +6,12 @@ import { fetchingConfig } from '~/core/connection/fetching-config'
 import type { QueryLogEntry } from '~/core/runtime/log'
 import { machine } from '~/core/runtime/machine/machine'
 import { MachineNotPairedError } from '~/core/runtime/machine/not-paired'
+import type { RunsOn } from '~/core/runtime/machine/pairing'
 import {
-  CLOUD,
+  defaultRunsOn,
   getConnectionRunsOn,
   getMachineRoute,
+  THIS_COMPUTER,
 } from '~/core/runtime/machine/pairing'
 import { orpcProxy } from '~/lib/orpc'
 
@@ -17,7 +19,7 @@ export interface DialectOptions {
   connectionString: string
   connectionId?: string
   /** For a string under test only: a saved connection's own choice wins. */
-  inCloud?: boolean
+  runsOn?: RunsOn
   resourceId?: string
   resultSets?: { maxRows: number }
   signal?: AbortSignal
@@ -36,6 +38,11 @@ const getCloudProxyInput = (options: DialectOptions) => {
   return { connectionString: options.connectionString }
 }
 
+const getRunsOn = (connectionId: string | undefined, options: DialectOptions) =>
+  connectionId
+    ? getConnectionRunsOn(connectionId)
+    : (options.runsOn ?? defaultRunsOn())
+
 const getTransport = (dialect: Dialect, options: DialectOptions) => {
   const { connectionsCollection, connectionsResourcesCollection } =
     getCollections()
@@ -47,11 +54,9 @@ const getTransport = (dialect: Dialect, options: DialectOptions) => {
     ? (connectionsCollection.get(connectionId) ?? null)
     : null
   const machineRoute = getMachineRoute(connectionId ?? null)
-  const inCloud = connectionId
-    ? getConnectionRunsOn(connectionId) === CLOUD
-    : !!options.inCloud
+  const runsOn = getRunsOn(connectionId, options)
   const config = fetchingConfig(connection, {
-    inCloud,
+    runsOn,
     machine: machineRoute,
     connectionString: describeConnectionString(options.connectionString),
     draft: !connectionId,
@@ -74,7 +79,7 @@ const getTransport = (dialect: Dialect, options: DialectOptions) => {
   }
 
   const electron = window.electron?.query[dialect]
-  if (electron && !inCloud) {
+  if (electron && runsOn === THIS_COMPUTER) {
     return { electron, kind: 'electron' as const }
   }
 

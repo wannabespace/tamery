@@ -98,24 +98,27 @@ export interface MachineRoute {
 }
 
 export const CLOUD = 'cloud'
+export const THIS_COMPUTER = 'this-computer'
 
-/**
- * A machine's id, `CLOUD`, or `null` for here: the cloud proxy on the web, where `CLOUD` never appears, and this computer on
- * desktop, which its own machine's id reads as too.
- */
-export type RunsOn = string | null
+type MachineId = string
+
+export type RunsOn = typeof CLOUD | typeof THIS_COMPUTER | MachineId
+
+/** What a connection without a row runs on. */
+export const defaultRunsOn = (): RunsOn =>
+  window.electron ? THIS_COMPUTER : CLOUD
+
+export const isMachine = (runsOn: RunsOn) =>
+  runsOn !== CLOUD && runsOn !== THIS_COMPUTER
 
 const toRunsOn = (
   row: ConnectionMachine | null,
   ownId: string | null
 ): RunsOn => {
-  if (!row) {
-    return null
+  if (row?.machineId === null) {
+    return CLOUD
   }
-  if (row.machineId === null) {
-    return window.electron ? CLOUD : null
-  }
-  return row.machineId === ownId ? null : row.machineId
+  return !row || row.machineId === ownId ? defaultRunsOn() : row.machineId
 }
 
 const findRow = (connectionId: string) =>
@@ -130,14 +133,14 @@ export const getMachineRouteById = (
   runsOn: RunsOn,
   connectionId: string | null = null
 ): MachineRoute | null =>
-  runsOn === null || runsOn === CLOUD
-    ? null
-    : toRoute({
+  isMachine(runsOn)
+    ? toRoute({
         asks: (connectionId && machineAsks.get()[connectionId]) || null,
         machine: getCollections().machinesCollection.get(runsOn) ?? null,
         machineId: runsOn,
         pairing: machinePairings.get()[runsOn] ?? null,
       })
+    : null
 
 export const getMachineRoute = (connectionId: string | null) =>
   connectionId === null
@@ -160,19 +163,19 @@ export const useMachineRouteById = (
 ): MachineRoute | null => {
   const machines = useMachines()
   const pairing = useSubscription(machinePairings, {
-    selector: (all) => (runsOn && all[runsOn]) || null,
+    selector: (all) => all[runsOn] ?? null,
   })
   const asks = useSubscription(machineAsks, {
     selector: (all) => (connectionId && all[connectionId]) || null,
   })
-  return runsOn === null || runsOn === CLOUD
-    ? null
-    : toRoute({
+  return isMachine(runsOn)
+    ? toRoute({
         asks,
         machine: machines.find((machine) => machine.id === runsOn) ?? null,
         machineId: runsOn,
         pairing,
       })
+    : null
 }
 
 export const useConnectionRunsOn = (connectionId: string | null) => {
@@ -225,10 +228,11 @@ export const writeRunsOn = (connectionId: string, runsOn: RunsOn) => {
   }
   const { connectionMachinesCollection } = getCollections()
   const row = findRow(connectionId)
+  const isDefault = runsOn === defaultRunsOn()
   const machineId = runsOn === CLOUD ? null : runsOn
   const now = new Date()
   mutateOffline(() => {
-    if (runsOn === null) {
+    if (isDefault) {
       if (row) {
         connectionMachinesCollection.delete(row.id)
       }
@@ -248,7 +252,8 @@ export const writeRunsOn = (connectionId: string, runsOn: RunsOn) => {
     }
   })
   posthog.capture('connection_machine_set', {
-    on_cloud: runsOn === CLOUD,
-    on_machine: machineId !== null,
+    // A stored cloud row only: on the web Tamery Cloud is the default, which writes no row.
+    on_cloud: !isDefault && runsOn === CLOUD,
+    on_machine: isMachine(runsOn),
   })
 }
