@@ -9,7 +9,10 @@ import { Client } from 'ssh2'
 
 import type { ConnectionParts } from './connection-parts'
 import { connectionParts } from './connection-parts'
-import { getDiagnosisRequest } from './diagnosis-request'
+import {
+  getDiagnosisRequest,
+  sanitizeDiagnosisRequest,
+} from './diagnosis-request'
 import { EMPTY_SSH_TUNNEL } from './ssh/params'
 import { connectSsh } from './ssh/session'
 
@@ -166,6 +169,37 @@ describe('getDiagnosisRequest', () => {
     expect(
       request(message, { ssh: EMPTY_SSH_TUNNEL, user: 'admin' }).error
     ).toBe(error)
+  })
+
+  it.each([
+    ['database "database" does not exist', { database: 'database' }],
+    ['(SSH) Channel open failure: open failed', {}],
+    ['(SSH) Channel open failure: Connection refused by bastion.corp.io', {}],
+    [
+      "SSH tunnel: Can't reach the SSH host at [2001:db8::5%eth0]:2222: ECONNREFUSED",
+      {},
+    ],
+    [
+      'Failed to connect to db:1433 - SSH tunnel: Several containers run the service db: app-db-1, staging-db-1. Use the container name as the host.',
+      { host: 'db' },
+    ],
+    ['SSH tunnel: SSH connection failed: Disconnected by bastion.corp.io', {}],
+    ['SSH tunnel: Timed out reaching the SSH host', {}],
+  ])('the API sends %s as the client did', (message, overrides) => {
+    const sent = request(message, {
+      ...overrides,
+      ssh: { ...EMPTY_SSH_TUNNEL, host: 'prod' },
+    })
+    expect(sanitizeDiagnosisRequest(sent)).toStrictEqual(sent)
+  })
+
+  it('keeps a driver error of a tunneled connection', () => {
+    expect(
+      request('database "database" does not exist', {
+        database: 'database',
+        ssh: EMPTY_SSH_TUNNEL,
+      }).error
+    ).toBe('<database> "<database>" does not exist')
   })
 
   it('keeps only option values that name nothing', () => {

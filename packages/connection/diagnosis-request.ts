@@ -47,7 +47,6 @@ const ANY_IPV6 = new RegExp(
 
 const SSH_HOST = '<ssh-host>'
 const HOST = '<host>'
-const PLACEHOLDER = /<[\w-]+>/u
 const ANY = '\0'
 const SOCKET_CODES = new Set([
   'connection failed',
@@ -106,49 +105,21 @@ const SSH_TEMPLATES: [RegExp, (code: string) => string][] = [
     () => tunnel(serviceAmbiguous(HOST, '<containers>')),
   ],
 ]
-const SSH_PREFIXES = [SSH_TUNNEL_ERROR, '(SSH) ']
-// Older apps and CLIs pass ssh-config's parse error on bare, with the line it stopped at.
-const BARE_SSH_CONFIG_ERROR = /^Unexpected line break at /u
 // ssh2 writes the SSH host's own description after it; `ssh/docker.ts` reads the unresolved-name wording.
-const CHANNEL_FAILURE = /\(SSH\) Channel open failure: (?<reason>.*)/isu
+const CHANNEL_FAILURE = '(SSH) Channel open failure'
 const CHANNEL_REASONS: [RegExp, string][] = [
   [/administratively prohibited/iu, 'administratively prohibited'],
   [/open failed/iu, 'open failed'],
   [/resol|not known|no address/iu, `the SSH host can't resolve ${HOST}`],
 ]
-
-/** Older apps replaced each value the form holds wherever it occurred, a word of these prefixes included, so a placeholder there still marks a tunnel failure. */
-const isSshFailure = (message: string) => {
-  const placeholder = message.search(PLACEHOLDER)
-  return (
-    message.includes(SSH_HOST) ||
-    BARE_SSH_CONFIG_ERROR.test(message) ||
-    /channel open failure/iu.test(message) ||
-    SSH_PREFIXES.some(
-      (prefix) =>
-        message.startsWith(prefix) ||
-        (placeholder !== -1 &&
-          placeholder < prefix.length &&
-          message.startsWith(prefix.slice(0, placeholder)))
-    )
-  )
+const toChannelFailure = (reason: string) => {
+  const known = CHANNEL_REASONS.find(([pattern]) => pattern.test(reason))
+  return known ? `${CHANNEL_FAILURE}: ${known[1]}` : CHANNEL_FAILURE
 }
-
-/** Sends a tunnel failure only as one of the fixed texts above: the detail ssh2, ssh-config or the SSH host wrote can name the host `~/.ssh/config` resolved. */
-const toSshFailure = (message: string) => {
+const toTunnelFailure = (detail: string) => {
+  const message = tunnel(detail)
   if (FIXED_SSH_FAILURES.has(message)) {
     return message
-  }
-  if (!isSshFailure(message)) {
-    return null
-  }
-  if (BARE_SSH_CONFIG_ERROR.test(message)) {
-    return tunnel(SSH_CONFIG_UNREADABLE)
-  }
-  const reason = CHANNEL_FAILURE.exec(message)?.groups?.reason
-  if (reason !== undefined) {
-    const known = CHANNEL_REASONS.find(([pattern]) => pattern.test(reason))
-    return `(SSH) Channel open failure${known ? `: ${known[1]}` : ''}`
   }
   for (const [pattern, write] of SSH_TEMPLATES) {
     const match = pattern.exec(message)
@@ -158,6 +129,108 @@ const toSshFailure = (message: string) => {
     }
   }
   return tunnel(SSH_CONNECTION_FAILED)
+}
+/** Text only an SSH or tunnel failure carries, with what follows it. The last two are ssh-config's parse errors, which older apps and CLIs pass on bare. */
+const SSH_SIGNATURES: [string, (rest: string) => string][] = [
+  [SSH_TUNNEL_ERROR, toTunnelFailure],
+  ['Channel open failure', toChannelFailure],
+  ['Unexpected line break at ', () => tunnel(SSH_CONFIG_UNREADABLE)],
+  ['Missing value for match criteria ', () => tunnel(SSH_CONFIG_UNREADABLE)],
+]
+
+interface Token {
+  end: number
+  start: number
+  /** Undefined for a placeholder. */
+  text?: string
+}
+
+const placeholderEnd = (message: string, start: number) => {
+  let depth = 0
+  for (let index = start; index < message.length; index += 1) {
+    const char = message.charAt(index)
+    if (/\s/u.test(char)) {
+      return null
+    }
+    depth += char === '<' ? 1 : 0
+    depth -= char === '>' ? 1 : 0
+    if (depth === 0) {
+      return index > start + 1 ? index + 1 : null
+    }
+  }
+  return null
+}
+
+/** A placeholder an older renderer wrote holds no space and may nest: an alias `SSH` and a database `ssh` give `<<database>-host>`. */
+const tokenize = (message: string) => {
+  const tokens: Token[] = []
+  for (let start = 0; start < message.length;) {
+    const end = message[start] === '<' ? placeholderEnd(message, start) : null
+    tokens.push(
+      end ? { end, start } : { end: start + 1, start, text: message[start] }
+    )
+    start = end ?? start + 1
+  }
+  return tokens
+}
+
+interface Step {
+  literal: number
+  start: number
+}
+
+/**
+ * Where `signature` occurs in the message with any run of its characters possibly replaced by one placeholder, as an
+ * older renderer replaced each form value wherever it appeared. At least half of it must survive as text, so a
+ * placeholder alone (a database named `database`) never makes a driver error look like a tunnel failure.
+ */
+const findLoosely = (tokens: Token[], signature: string) => {
+  let steps: (Step | undefined)[] = []
+  let found: { end: number; start: number } | undefined
+  for (const token of tokens) {
+    const next: (Step | undefined)[] = []
+    const advance = (to: number, step: Step) => {
+      if (step.literal > (next[to]?.literal ?? -1)) {
+        next[to] = step
+      }
+    }
+    const current = [{ literal: 0, start: token.start }, ...steps.slice(1)]
+    for (const [position, step] of current.entries()) {
+      if (!step) {
+        continue
+      }
+      if (token.text === undefined) {
+        for (let to = position + 1; to <= signature.length; to += 1) {
+          advance(to, step)
+        }
+      } else if (signature[position] === token.text) {
+        advance(position + 1, { ...step, literal: step.literal + 1 })
+      }
+    }
+    const done = next[signature.length]
+    if (
+      done &&
+      done.literal >= signature.length / 2 &&
+      (!found || done.start < found.start)
+    ) {
+      found = { end: token.end, start: done.start }
+    }
+    steps = next.slice(0, signature.length)
+  }
+  return found
+}
+
+/** Sends a tunnel failure only as one of the fixed texts above: the detail ssh2, ssh-config or the SSH host wrote can name the host `~/.ssh/config` resolved. Returns null for any other error, and the same text for one it returned before. */
+const toSshFailure = (message: string) => {
+  if (FIXED_SSH_FAILURES.has(message)) {
+    return message
+  }
+  const tokens = tokenize(message)
+  const [first] = SSH_SIGNATURES.flatMap(([signature, classify]) => {
+    const found = findLoosely(tokens, signature)
+    return found ? [{ ...found, classify }] : []
+  }).toSorted((a, b) => a.start - b.start)
+  return first ? first.classify(message.slice(first.end)) : null
 }
 
 /** Any other key's value can be a secret or a name, however harmless it looks (`sslpassword=123456`). */
