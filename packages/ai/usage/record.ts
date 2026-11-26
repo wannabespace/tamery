@@ -9,7 +9,7 @@ export interface AiUsageScope {
   chatId?: string
   feature: AiFeature
   /** Paid by the user's own provider key, so the cost is an estimate that spends nothing. */
-  ownKey?: boolean
+  ownKey: boolean
   userId: string
 }
 
@@ -30,9 +30,11 @@ const usageCost = type({
 // With the provider's own key (BYOK) OpenRouter reports only its fee as `cost`, often 0, and the provider's bill apart; a total of 0 is a bill it left out, never a free call.
 const openRouterCost = (metadata?: ProviderMetadata) => {
   const usage = usageCost(metadata?.openrouter?.usage)
-  return usage instanceof type.errors
-    ? undefined
-    : usage.cost + (usage.costDetails?.upstreamInferenceCost ?? 0) || undefined
+  const total =
+    usage instanceof type.errors
+      ? 0
+      : usage.cost + (usage.costDetails?.upstreamInferenceCost ?? 0)
+  return total > 0 ? total : undefined
 }
 
 export const usageTelemetry = (

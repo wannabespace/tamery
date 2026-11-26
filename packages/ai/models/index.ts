@@ -18,7 +18,8 @@ export {
   dictationFor,
   chatModelsFor,
   OWN_KEY_AUTO_MODELS,
+  TAMERY_ACCOUNT,
   verifyAiKey,
 } from './own-key'
-export type { AiKey } from './own-key'
+export type { AiKey, PayingKey } from './own-key'
 export { getModelCost } from './price'

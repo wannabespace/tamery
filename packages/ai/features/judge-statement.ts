@@ -2,7 +2,7 @@ import type { TelemetryOptions } from 'ai'
 import { generateText, Output } from 'ai'
 import { type } from 'arktype'
 
-import type { AiKey } from '../models/own-key'
+import type { PayingKey } from '../models/own-key'
 import { modelsFor } from '../models/own-key'
 import { logProviderError } from '../provider-error'
 import type { JevUsage } from './jev'
@@ -27,7 +27,7 @@ interface JudgeInput {
   /** Leaves existing data as it was, so the judge may be less sure before it runs. */
   additive: boolean
   dialect: string
-  key: AiKey | null
+  key: PayingKey
   /** The agent's reply before `request`, which the request may agree to. */
   proposal: string
   request: string

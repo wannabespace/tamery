@@ -16,6 +16,9 @@ export interface AiKey {
   provider: AiKeyProvider
 }
 
+export const TAMERY_ACCOUNT = null
+export type PayingKey = AiKey | typeof TAMERY_ACCOUNT
+
 type FixedModels = Record<'fast' | 'search' | 'summary', LanguageModel>
 
 /** A chat model reading the recording from its prompt, or a provider's own speech-to-text model. */
@@ -116,14 +119,14 @@ export const chatModelsFor = (keys: AiKey[]) =>
     : chatModels
 
 /** The chat's helper models (titles, suggestions, compaction, web search, dictation) on the user's key; Tamery's otherwise. */
-export const modelsFor = (key: AiKey | null): FixedModels =>
+export const modelsFor = (key: PayingKey): FixedModels =>
   key ? providerModels[key.provider](key.key).models : models
 
 /** Only an OpenRouter account has cross-provider fallbacks and `:nitro` routing. */
 export const chatModelFor = (
   id: ChatModelId,
   routing: ChatRouting,
-  key: AiKey | null
+  key: PayingKey
 ) =>
   key
     ? providerModels[key.provider](key.key).chat(id, routing)
@@ -150,9 +153,7 @@ export const dictationFor = (
   )
 }
 
-export const ownKeyWebSearchTools = (
-  key: AiKey | null
-): ToolSet | undefined => {
+export const ownKeyWebSearchTools = (key: PayingKey): ToolSet | undefined => {
   const webSearch = key && providerModels[key.provider](key.key).webSearch
   return webSearch?.kind === 'tool' ? { web_search: webSearch.tool } : undefined
 }
