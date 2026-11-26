@@ -2,13 +2,19 @@ import { glob, readFile } from 'node:fs/promises'
 import { homedir, userInfo } from 'node:os'
 import path from 'node:path'
 
+import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import type { ConnectConfig } from 'ssh2'
 
 import { localPath } from '../local-path'
 import { knownHosts } from './known-hosts'
 import type { SshTunnel } from './params'
-import { DEFAULT_SSH_PORT, SSH_AUTH_ERRORS, tunnelError } from './params'
+import {
+  DEFAULT_SSH_PORT,
+  SSH_AUTH_ERRORS,
+  SSH_CONFIG_UNREADABLE,
+  tunnelError,
+} from './params'
 
 export const AGENT_UNAVAILABLE =
   'SSH agent not available. Start ssh-agent or pick another method.'
@@ -100,10 +106,18 @@ export const getSshConfig = async (tunnel: SshTunnel) => {
     path.join(homedir(), '.ssh', 'config')
   )
   // OpenSSH keywords are case-insensitive, and `Match exec` runs through spawnSync, which would freeze the desktop database process.
-  const computed = parse(userConfig).compute(tunnel.host, {
-    ignoreCase: true,
-    matchExec: false,
-  })
+  const parsed = Result.try(() =>
+    parse(userConfig).compute(tunnel.host, {
+      ignoreCase: true,
+      matchExec: false,
+    })
+  )
+  if (parsed.isErr()) {
+    throw tunnelError(
+      `${SSH_CONFIG_UNREADABLE}: ${toError(parsed.error.cause).message}`
+    )
+  }
+  const computed = parsed.value
   const sshConfig = (key: string): string | undefined =>
     [computed[key.toLowerCase()]].flat()[0]
   const proxy = PROXY_KEYWORDS.find((keyword) => {

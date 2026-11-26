@@ -2,6 +2,7 @@ import { ratelimit } from '@orpc/ratelimit'
 import { RedisRateLimiter } from '@orpc/ratelimit/redis'
 import { diagnoseConnection as diagnose } from '@tamery/ai/features'
 import { AiFeature } from '@tamery/ai/usage'
+import { redactSshFailure } from '@tamery/connection/diagnosis-request'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { type } from 'arktype'
@@ -37,7 +38,7 @@ export const diagnoseConnection = orpc
   )
   .handler(({ context, input: { error, ...settings }, signal }) =>
     diagnose({
-      error,
+      error: redactSshFailure(error, settings.sshEnabled),
       settings: { ...settings, runtime: context.isDesktop ? 'desktop' : 'web' },
       signal,
       telemetry: aiUsage.telemetry({

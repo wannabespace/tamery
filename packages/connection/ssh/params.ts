@@ -35,6 +35,10 @@ export const SSH_HOST_UNREACHABLE = "Can't reach the SSH host: "
 /** Followed by the host `~/.ssh/config` resolved, which the renderer never knows, so `diagnosis-request.ts` redacts what follows them. */
 export const SSH_HOST_TIMEOUT_AT = 'Timed out connecting to the SSH host at '
 export const SSH_HOST_UNREACHABLE_AT = "Can't reach the SSH host at "
+/** Followed by a detail ssh2 or ssh-config wrote, which can name that host too, so `diagnosis-request.ts` sends the AI only these words; installed apps send the first verbatim. */
+export const SSH_CONNECTION_FAILED = 'SSH connection failed'
+export const SSH_CONFIG_UNREADABLE = "~/.ssh/config couldn't be parsed"
+export const SSH_HOST_CLOSED = 'the SSH host closed the connection'
 
 export const tunnelError = (message: string) =>
   new Error(`${SSH_TUNNEL_ERROR}${message}`)

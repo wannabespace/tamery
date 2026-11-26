@@ -13,6 +13,8 @@ import { knownHosts } from './known-hosts'
 import type { SshTunnel } from './params'
 import {
   SSH_AUTH_ERRORS,
+  SSH_CONNECTION_FAILED,
+  SSH_HOST_CLOSED,
   SSH_HOST_TIMEOUT,
   SSH_HOST_TIMEOUT_AT,
   SSH_HOST_UNREACHABLE,
@@ -48,7 +50,7 @@ const sshErrorMessage = (
       ? `${SSH_HOST_UNREACHABLE}${code}`
       : `${SSH_HOST_UNREACHABLE_AT}${host}: ${code}`
   }
-  return `SSH connection failed: ${error.message}`
+  return `${SSH_CONNECTION_FAILED}: ${error.message}`
 }
 
 // ssh2 names the passphrase in both its "no passphrase given" and "bad passphrase?" parse errors, and in nothing else.
@@ -139,7 +141,7 @@ export const connectSsh = async (
   // ssh2 emits only `close`, never `error`, when the host hangs up after its banner (sshd's LoginGraceTime while the host-key prompt is open).
   const hungUp = async () => {
     await once(client, 'close')
-    throw new Error('the SSH host closed the connection')
+    throw new Error(SSH_HOST_CLOSED)
   }
   // `connect` throws synchronously for a key it cannot parse; arming the timer or the race before it leaves an unawaited rejection that crashes the desktop database process.
   const connecting = Result.try(() =>

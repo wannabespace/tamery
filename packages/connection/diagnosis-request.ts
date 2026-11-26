@@ -3,6 +3,9 @@ import type { DiagnosisContext } from './diagnosis'
 import type { HostKind } from './hosts'
 import { getHostHint, getHostKind } from './hosts'
 import {
+  SSH_CONFIG_UNREADABLE,
+  SSH_CONNECTION_FAILED,
+  SSH_HOST_CLOSED,
   SSH_HOST_TIMEOUT_AT,
   SSH_HOST_UNREACHABLE_AT,
   SSH_TUNNEL_ERROR,
@@ -22,10 +25,27 @@ const ANY_IPV6 = new RegExp(
   `(?<![\\w:])(?:(?:${HEX_GROUP}:){7}${HEX_GROUP}|(?:${HEX_GROUP}(?::${HEX_GROUP})*)?::(?:${HEX_GROUP}(?::${HEX_GROUP})*)?)(?:%[\\w.]+)?(?![\\w:])`,
   'giu'
 )
-const RESOLVED_SSH_HOST = new RegExp(
-  `(?<=^${RegExp.escape(SSH_TUNNEL_ERROR)}(?:${RegExp.escape(SSH_HOST_TIMEOUT_AT)}|${RegExp.escape(SSH_HOST_UNREACHABLE_AT)})).+?(?=: [^:]+$|$)`,
-  'u'
+const RESOLVED_SSH_HOST = `(?<=^${RegExp.escape(SSH_TUNNEL_ERROR)}(?:${RegExp.escape(SSH_HOST_TIMEOUT_AT)}|${RegExp.escape(SSH_HOST_UNREACHABLE_AT)})).+?(?=: [^:]+$|$)`
+const SSH_FAILURE_DETAIL = new RegExp(
+  `^(${RegExp.escape(SSH_TUNNEL_ERROR)}(?:${RegExp.escape(SSH_CONNECTION_FAILED)}|${RegExp.escape(SSH_CONFIG_UNREADABLE)})): (?!${RegExp.escape(SSH_HOST_CLOSED)}$).*`,
+  'su'
 )
+// Older apps and CLIs pass ssh-config's parse error on bare, with the line it stopped at.
+const BARE_SSH_CONFIG_ERROR = /^Unexpected line break at /u
+const SSH_HOST_PLACEHOLDER = '<ssh-host>'
+
+const toSshFailureCategory = (message: string, sshEnabled: boolean) =>
+  sshEnabled && BARE_SSH_CONFIG_ERROR.test(message)
+    ? `${SSH_TUNNEL_ERROR}${SSH_CONFIG_UNREADABLE}`
+    : message.replace(SSH_FAILURE_DETAIL, '$1')
+
+/** The API runs this too: installed apps send the host and the detail as their own renderer left them. */
+export const redactSshFailure = (message: string, sshEnabled: boolean) =>
+  toSshFailureCategory(message, sshEnabled).replace(
+    new RegExp(RESOLVED_SSH_HOST, 'u'),
+    SSH_HOST_PLACEHOLDER
+  )
+
 /** Any other key's value can be a secret or a name, however harmless it looks (`sslpassword=123456`). */
 const SETTING_KEYS = new Set([
   'connect_timeout',
@@ -70,9 +90,8 @@ export const getDiagnosisRequest = ({
     [parts.ssh?.user, '<ssh-user>'],
     [parts.database, '<database>'],
   ]
-  let error = message.replace(RESOLVED_SSH_HOST, '<ssh-host>')
   // A driver may echo the string's own percent-encoded form.
-  for (const [value, placeholder] of identifying
+  const replacements = identifying
     .flatMap(([text, label]): [string, string][] =>
       text && text.length > 1
         ? [
@@ -81,9 +100,21 @@ export const getDiagnosisRequest = ({
           ]
         : []
     )
-    .toSorted(([a], [b]) => b.length - a.length)) {
-    error = error.replaceAll(value, placeholder)
-  }
+    .toSorted(([a], [b]) => b.length - a.length)
+  // One pass, so a value never matches inside a placeholder written before it (an SSH alias named `ssh-host`).
+  const error = toSshFailureCategory(message, !!parts.ssh).replaceAll(
+    new RegExp(
+      [
+        `(${RESOLVED_SSH_HOST})`,
+        ...replacements.map(([value]) => RegExp.escape(value)),
+      ].join('|'),
+      'gu'
+    ),
+    (match: string, resolved?: string) =>
+      resolved === undefined
+        ? (replacements.find(([value]) => value === match)?.[1] ?? match)
+        : SSH_HOST_PLACEHOLDER
+  )
   return {
     // IPv4 goes first: an IPv4-mapped IPv6 address would otherwise keep its IPv4 tail.
     error: error.replaceAll(ANY_IPV4, '<ip>').replaceAll(ANY_IPV6, '<ip>'),

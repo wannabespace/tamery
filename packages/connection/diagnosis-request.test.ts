@@ -1,11 +1,17 @@
-import { describe, expect, it } from 'bun:test'
+import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import * as os from 'node:os'
+import path from 'node:path'
 
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { toError } from '@tamery/shared/utils'
+import { Client } from 'ssh2'
 
 import type { ConnectionParts } from './connection-parts'
 import { connectionParts } from './connection-parts'
-import { getDiagnosisRequest } from './diagnosis-request'
+import { getDiagnosisRequest, redactSshFailure } from './diagnosis-request'
 import { EMPTY_SSH_TUNNEL } from './ssh/params'
+import { connectSsh } from './ssh/session'
 
 const parts = connectionParts.parse('postgres://me:pw@db.acme.io')
 
@@ -85,6 +91,48 @@ describe('getDiagnosisRequest', () => {
     ])
   })
 
+  it('never writes a value into a placeholder', () => {
+    expect(
+      request(
+        "SSH tunnel: Can't reach the SSH host at bastion.corp.io: ECONNREFUSED",
+        { ssh: { ...EMPTY_SSH_TUNNEL, host: 'ssh-host' }, user: 'user' }
+      ).error
+    ).toBe("SSH tunnel: Can't reach the SSH host at <ssh-host>: ECONNREFUSED")
+  })
+
+  it.each([
+    [
+      'SSH tunnel: SSH connection failed: Disconnected by bastion.corp.io',
+      'SSH tunnel: SSH connection failed',
+    ],
+    [
+      "SSH tunnel: ~/.ssh/config couldn't be parsed: Unexpected line break at bastion.corp.io",
+      "SSH tunnel: ~/.ssh/config couldn't be parsed",
+    ],
+    [
+      'Unexpected line break at bastion.corp.io',
+      "SSH tunnel: ~/.ssh/config couldn't be parsed",
+    ],
+    [
+      'SSH tunnel: SSH connection failed: the SSH host closed the connection',
+      'SSH tunnel: SSH connection failed: the SSH host closed the connection',
+    ],
+    [
+      'SSH tunnel: Timed out reaching the SSH host',
+      'SSH tunnel: Timed out reaching the SSH host',
+    ],
+  ])('sends the SSH failure %s only as its kind', (message, error) => {
+    expect(
+      request(message, { ssh: EMPTY_SSH_TUNNEL, user: 'admin' }).error
+    ).toBe(error)
+  })
+
+  it('keeps a bare parse error of a connection without SSH', () => {
+    expect(redactSshFailure('Unexpected line break at x', false)).toBe(
+      'Unexpected line break at x'
+    )
+  })
+
   it('keeps only option values that name nothing', () => {
     expect(
       request('timeout', {
@@ -112,6 +160,75 @@ describe('getDiagnosisRequest', () => {
       }).options
     ).toBe(
       'SSLPassword=%3Credacted%3E&ssh_passphrase=%3Credacted%3E&sslMode=require'
+    )
+  })
+})
+
+const refuseHostKey = () => Promise.resolve(false)
+
+describe('a failed SSH session', () => {
+  const ssh = {
+    ...EMPTY_SSH_TUNNEL,
+    auth: 'password' as const,
+    host: 'prod',
+    password: 'pw',
+  }
+
+  afterEach(() => {
+    mock.restore()
+  })
+
+  const sessionError = async (config: string, failure?: Error) => {
+    const home = await mkdtemp(path.join(os.tmpdir(), 'tamery-ssh-'))
+    try {
+      spyOn(os, 'homedir').mockReturnValue(home)
+      await mkdir(path.join(home, '.ssh'))
+      await writeFile(path.join(home, '.ssh', 'config'), config)
+      spyOn(Client.prototype, 'connect').mockImplementation(
+        function failConnect(this: Client) {
+          queueMicrotask(() => this.emit('error', failure))
+          return this
+        }
+      )
+      const connected = await connectSsh(ssh, refuseHostKey).catch(toError)
+      return request(toError(connected).message, { ssh }).error
+    } finally {
+      await rm(home, { force: true, recursive: true })
+    }
+  }
+
+  it.each([
+    ['fe80::1%en0', 'ECONNREFUSED'],
+    ['10.0.0.20', 'EHOSTUNREACH'],
+  ])('sends neither %s nor its port, and keeps %s', async (host, code) => {
+    expect(
+      await sessionError(
+        `Host prod\n  HostName ${host}\n  Port 2222\n`,
+        Object.assign(new Error(`connect ${code} ${host}:2222`), {
+          code,
+          level: 'client-socket',
+        })
+      )
+    ).toBe(`SSH tunnel: Can't reach the SSH host at <ssh-host>: ${code}`)
+  })
+
+  it('sends the kind of a failure ssh2 described', async () => {
+    expect(
+      await sessionError(
+        'Host prod\n  HostName 10.0.0.20\n',
+        Object.assign(
+          new Error('Disconnected by 10.0.0.20 (bastion.internal)'),
+          {
+            level: 'protocol',
+          }
+        )
+      )
+    ).toBe('SSH tunnel: SSH connection failed')
+  })
+
+  it('sends the kind of a config it could not parse', async () => {
+    expect(await sessionError('Host prod\n  HostName "bastion.internal')).toBe(
+      "SSH tunnel: ~/.ssh/config couldn't be parsed"
     )
   })
 })
