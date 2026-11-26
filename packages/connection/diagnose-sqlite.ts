@@ -4,6 +4,18 @@ import type { DiagnosisRule } from './diagnosis'
 
 const RULES: Omit<DiagnosisRule, 'engine'>[] = [
   {
+    diagnose: ({ parts }) => ({
+      hint: 'The request never got an answer. Check your internet connection, VPN or proxy, then try again.',
+      title:
+        parts.provider === Provider.CloudflareD1
+          ? "Couldn't reach Cloudflare's API"
+          : "Couldn't reach Turso",
+    }),
+    // D1's own transport failure (`d1.ts`), before the network rules, which would blame the fixed Cloudflare host.
+    match: /^fetch failed(?:: [A-Z_]+)?$/iu,
+    offline: 'host',
+  },
+  {
     diagnose: () => ({
       focus: 'database',
       hint: 'Choose the database file itself, not a backup, journal or other file. An encrypted database cannot be opened.',

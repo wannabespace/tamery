@@ -11,6 +11,8 @@ import type {
   TransactionSettings,
 } from 'kysely'
 
+import { reportConnectionFailure } from '~/core/connection/diagnosis'
+
 import { createTransport } from './transport'
 import type { DialectOptions } from './transport'
 
@@ -138,11 +140,21 @@ export const createStatementRunner = (
     signal?.throwIfAborted()
     const cancel = () => silently(() => provider.cancel(payload.queryId))
     signal?.addEventListener('abort', cancel, { once: true })
-    const promise: Promise<QueryExecuteResult> = (
-      txId
-        ? provider.executeTransaction({ txId, ...payload })
-        : provider.execute(payload)
-    ).finally(() => signal?.removeEventListener('abort', cancel))
+    const execute = async () => {
+      try {
+        return await (txId
+          ? provider.executeTransaction({ txId, ...payload })
+          : provider.execute(payload))
+      } catch (error) {
+        if (options.connectionId || options.resourceId) {
+          reportConnectionFailure(error, options.connectionString)
+        }
+        throw error
+      } finally {
+        signal?.removeEventListener('abort', cancel)
+      }
+    }
+    const promise: Promise<QueryExecuteResult> = execute()
     options.log?.({
       promise: promise.then(({ duration, result }) => ({
         duration,
