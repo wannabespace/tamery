@@ -1,4 +1,5 @@
 import { challenge } from '@tamery/shared/challenge'
+import type { MachineId } from '@tamery/shared/machine'
 import { machineKey } from '@tamery/shared/machine'
 import { useIsMutating, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -10,7 +11,7 @@ export const useConnectMachine = ({
   machineId,
   urls,
 }: {
-  machineId: string
+  machineId: MachineId
   urls: string[]
 }) => {
   const options = connectMachineMutation(machineId, urls)
