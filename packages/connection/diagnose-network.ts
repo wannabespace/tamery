@@ -54,7 +54,7 @@ export const NETWORK_RULES: DiagnosisRule[] = [
         }
       }
       return {
-        hint: `No DNS record for "${host}". Check the spelling.`,
+        hint: `No DNS record for "${host}". Check the spelling and your internet connection.`,
         title: 'Host not found',
       }
     },

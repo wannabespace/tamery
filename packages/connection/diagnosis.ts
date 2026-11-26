@@ -23,6 +23,7 @@ export interface Diagnosis {
 export interface DiagnosisContext {
   desktop: boolean
   message: string
+  online: boolean
   parts: ConnectionParts
 }
 
