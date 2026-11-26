@@ -1,15 +1,24 @@
 import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
 
+import type { ConnectionParts } from './connection-parts'
 import type { DiagnosisRule } from './diagnosis'
+
+const TURSO_HOST = /\.turso\.io$/iu
+
+const getUnreachableTitle = ({ host, provider }: ConnectionParts) => {
+  if (provider === Provider.CloudflareD1) {
+    return "Couldn't reach Cloudflare's API"
+  }
+  return TURSO_HOST.test(host)
+    ? "Couldn't reach Turso"
+    : "Couldn't reach the libSQL server"
+}
 
 const RULES: Omit<DiagnosisRule, 'engine'>[] = [
   {
     diagnose: ({ parts }) => ({
       hint: 'The request never got an answer. Check your internet connection, VPN or proxy, then try again.',
-      title:
-        parts.provider === Provider.CloudflareD1
-          ? "Couldn't reach Cloudflare's API"
-          : "Couldn't reach Turso",
+      title: getUnreachableTitle(parts),
     }),
     // D1's own transport failure (`d1.ts`), before the network rules, which would blame the fixed Cloudflare host.
     match: /^fetch failed$/iu,

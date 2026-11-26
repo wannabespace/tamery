@@ -447,6 +447,15 @@ describe('diagnoseConnectionError', () => {
     })
 
     it.each([
+      ['libsql://db-acme.aws-eu-west-1.turso.io', "Couldn't reach Turso"],
+      ['libsql://sqld.acme.io:8080', "Couldn't reach the libSQL server"],
+    ])('names the libSQL server %s failed to reach', (url, title) => {
+      expect(diagnose('fetch failed', connectionParts.parse(url))?.title).toBe(
+        title
+      )
+    })
+
+    it.each([
       'postgres://me:pw@localhost.:5432/app',
       'postgres://me:pw@[::ffff:127.0.0.1]:5432/app',
       'postgres://me:pw@db.internal.:5432/app',
