@@ -320,9 +320,9 @@ const isLostWithNetwork = (
   { message, parts }: DiagnosisContext
 ) => {
   if (parts.ssh) {
-    return (
-      getHostKind(parts.ssh.host) === 'public' && SSH_HOST_LOST.test(message)
-    )
+    // The SSH host as saved: an ~/.ssh/config alias like `prod` reads as a service name, and only the session saw the HostName it points to.
+    const kind = getHostKind(parts.ssh.host)
+    return kind !== 'local' && kind !== 'private' && SSH_HOST_LOST.test(message)
   }
   return (
     offline === 'device' ||
