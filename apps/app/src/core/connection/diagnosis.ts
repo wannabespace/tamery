@@ -21,7 +21,7 @@ const NETWORK_ERROR_CODES = [
 export const useDiagnosis = (connectionId: string, error: Error) => {
   const { connectionStringsCollection } = useCollections()
   const online = useIsOnline()
-  const { data } = useQuery({
+  const diagnoses = useQuery({
     queryFn: async () => {
       const parts = connectionParts.parse(
         await connectionStringsCollection.utils.decrypt(connectionId)
@@ -33,17 +33,18 @@ export const useDiagnosis = (connectionId: string, error: Error) => {
           'other',
         is_local: isLocalHost(parts.host),
       })
-      return parts
+      const context = {
+        desktop: !!window.electron,
+        message: error.message,
+        parts,
+      }
+      return {
+        offline: diagnoseConnectionError({ ...context, online: false }),
+        online: diagnoseConnectionError({ ...context, online: true }),
+      }
     },
     queryKey: ['connection', connectionId, 'diagnosis', error.message],
     throwOnError: false,
-  })
-  return data
-    ? diagnoseConnectionError({
-        desktop: !!window.electron,
-        message: error.message,
-        online,
-        parts: data,
-      })
-    : null
+  }).data
+  return diagnoses?.[online ? 'online' : 'offline'] ?? null
 }

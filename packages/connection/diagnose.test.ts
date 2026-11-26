@@ -22,6 +22,17 @@ const diagnose = (message: string, overrides: Partial<ConnectionParts> = {}) =>
     parts: { ...parts, ...overrides },
   })
 
+const diagnoseOffline = (
+  message: string,
+  overrides: Partial<ConnectionParts> = {}
+) =>
+  diagnoseConnectionError({
+    desktop: true,
+    message,
+    online: false,
+    parts: { ...parts, ...overrides },
+  })?.title
+
 describe('diagnoseConnectionError', () => {
   it.each([
     'SSH authentication failed. Check the SSH user and credentials.',
@@ -317,27 +328,67 @@ describe('diagnoseConnectionError', () => {
     })
   })
 
-  it('blames a lost internet connection, not the host, while offline', () => {
-    const offline = { desktop: true, online: false, parts }
-    expect(
-      diagnoseConnectionError({
-        ...offline,
-        message: 'getaddrinfo ENOTFOUND db.acme.io',
-      })?.title
-    ).toBe("You're offline")
-    expect(
-      diagnoseConnectionError({
-        ...offline,
-        message: 'connect ECONNREFUSED 127.0.0.1:5432',
-        parts: { ...parts, host: 'localhost' },
-      })?.title
-    ).toBe("The database isn't running here")
-    expect(
-      diagnoseConnectionError({
-        ...offline,
-        message: 'role "me" does not exist',
-      })?.title
-    ).toBe('User "me" doesn\'t exist')
+  describe('while offline', () => {
+    it.each([
+      'getaddrinfo ENOTFOUND db.acme.io',
+      'connect ETIMEDOUT 34.1.2.3:5432',
+      'connect ENETUNREACH 34.1.2.3:5432',
+    ])('blames the lost connection, not the remote host, for %s', (message) => {
+      expect(diagnoseOffline(message)).toBe("You're offline")
+    })
+
+    it.each([
+      [
+        'connect ECONNREFUSED 34.1.2.3:3306',
+        'Wrong engine for this port?',
+        { port: '3306' },
+      ],
+      [PRIVATE_HOST_MESSAGE, "The web app can't reach a private host", {}],
+      [
+        'password authentication failed for user "me", timeout expired',
+        'Wrong user or password',
+        {},
+      ],
+      ['role "me" does not exist', 'User "me" doesn\'t exist', {}],
+      [
+        'getaddrinfo ENOTFOUND postgres',
+        '"postgres" isn\'t reachable from here',
+        { host: 'postgres' },
+      ],
+    ] as const)(
+      'keeps the specific diagnosis for %s',
+      (message, title, overrides) => {
+        expect(diagnoseOffline(message, overrides)).toBe(title)
+      }
+    )
+
+    it('keeps blaming a local database', () => {
+      expect(
+        diagnoseOffline('connect ECONNREFUSED 127.0.0.1:5432', {
+          host: 'localhost',
+        })
+      ).toBe("The database isn't running here")
+    })
+
+    it('blames the lost connection when the SSH host is out of reach', () => {
+      expect(
+        diagnoseOffline(
+          `${SSH_TUNNEL_ERROR}Can't reach the SSH host: ENOTFOUND`,
+          {
+            ssh: { ...EMPTY_SSH_TUNNEL, host: 'bastion.acme.io' },
+          }
+        )
+      ).toBe("You're offline")
+    })
+
+    it('keeps blaming the connected SSH host for the database it cannot find', () => {
+      expect(
+        diagnoseOffline('(SSH) Channel open failure: Name does not resolve', {
+          host: 'db.railway.internal',
+          ssh: { ...EMPTY_SSH_TUNNEL, host: 'bastion.acme.io' },
+        })
+      ).toBe('The SSH host can\'t find "db.railway.internal"')
+    })
   })
 
   it('returns nothing for an error it does not know', () => {
