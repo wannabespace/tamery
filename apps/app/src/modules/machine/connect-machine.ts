@@ -1,4 +1,5 @@
 import { challenge } from '@tamery/shared/challenge'
+import type { MachineId } from '@tamery/shared/machine'
 import { machineKey } from '@tamery/shared/machine'
 import { mutationOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -10,7 +11,7 @@ import { getMachineRouteById } from '~/core/runtime/machine/pairing'
 import { queryClient } from '~/lib/query-client'
 
 /** The key is shared, so a machine already asked from one place is not asked again from another. */
-export const connectMachineMutation = (machineId: string, urls: string[]) =>
+export const connectMachineMutation = (machineId: MachineId, urls: string[]) =>
   mutationOptions({
     meta: { event: 'machine_paired' },
     mutationFn: (browserNonce: string) =>

@@ -4,7 +4,7 @@ import {
   connectionMachinesInsertSchema,
   connections,
 } from '@tamery/db/schema'
-import { machineIdSchema } from '@tamery/shared/machine'
+import { machineIdSchema, TAMERY_CLOUD } from '@tamery/shared/machine'
 import { type } from 'arktype'
 import { and, eq } from 'drizzle-orm'
 
@@ -12,7 +12,7 @@ import { inMemberWorkspace } from '~/lib/workspace'
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
-import { canRunOn, TAMERY_CLOUD } from './machine'
+import { canRunOn } from './machine'
 
 export const create = orpc
   .use(authMiddleware)
