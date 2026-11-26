@@ -19,7 +19,7 @@ const TITLE_INSTRUCTIONS = [
 export const generateChatTitle = async (data: {
   messages: AppUIMessage[]
   signal?: AbortSignal
-  key?: AiKey | null
+  key: AiKey | null
   telemetry?: TelemetryOptions
 }) => {
   const prompt =

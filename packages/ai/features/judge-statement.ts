@@ -19,17 +19,15 @@ const autoRunAnswer = type({ noul: 'number', type: "'noul'" })
 
 const fallbackOutput = type({ autoRun: 'boolean' })
 
-export interface StatementVerdict {
-  autoRun: boolean
-  judge: 'fallback' | 'jev'
-  probability: number | null
-}
+export type StatementVerdict =
+  | { autoRun: boolean; judge: 'jev'; probability: number }
+  | { autoRun: boolean; judge: 'fallback' }
 
 interface JudgeInput {
   /** Leaves existing data as it was, so the judge may be less sure before it runs. */
   additive: boolean
   dialect: string
-  key?: AiKey | null
+  key: AiKey | null
   /** The agent's reply before `request`, which the request may agree to. */
   proposal: string
   request: string
@@ -106,7 +104,6 @@ export const judgeStatement = async (
     return {
       autoRun: await askFallback(data, data.telemetry),
       judge: 'fallback',
-      probability: null,
     }
   } catch (error) {
     logProviderError('fallback judge', error)
