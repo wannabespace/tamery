@@ -6,7 +6,11 @@ import { SQLITE_RULES } from './diagnose-sqlite'
 import type { Diagnosis, DiagnosisContext, DiagnosisRule } from './diagnosis'
 import { getHostHint, getHostKind, isLocalHost } from './hosts'
 import { SSH_RULES } from './ssh/diagnose'
-import { SSH_TUNNEL_ERROR } from './ssh/params'
+import {
+  SSH_HOST_TIMEOUT,
+  SSH_HOST_UNREACHABLE,
+  SSH_TUNNEL_ERROR,
+} from './ssh/params'
 import type { SslSetting } from './ssl/setting'
 import { getSslOptions } from './ssl/setting'
 
@@ -300,6 +304,43 @@ const RULES: DiagnosisRule[] = [
 export const isConnectionFailure = (message: string) =>
   RULES.some(({ match }) => match.test(message))
 
+// Only these session outcomes mean this device never reached the SSH host; a refusal came from a host it did reach, and everything after the session opened ran on the bastion.
+const SSH_HOST_LOST = new RegExp(
+  `^${RegExp.escape(SSH_TUNNEL_ERROR)}(?:${RegExp.escape(SSH_HOST_TIMEOUT)}|${RegExp.escape(SSH_HOST_UNREACHABLE)}(?:ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ENETUNREACH|EHOSTUNREACH))$`,
+  'u'
+)
+
+const isLostWithNetwork = (
+  { offline }: DiagnosisRule,
+  { message, parts }: DiagnosisContext
+) => {
+  if (parts.ssh) {
+    return (
+      getHostKind(parts.ssh.host) === 'public' && SSH_HOST_LOST.test(message)
+    )
+  }
+  return (
+    offline === 'device' ||
+    (offline === 'host' && getHostKind(parts.host) === 'public')
+  )
+}
+
+export const OFFLINE_DIAGNOSIS: Diagnosis = {
+  hint: "This device isn't connected to the internet. Reconnect, then try again.",
+  title: "You're offline",
+}
+
+const RECONNECTED_DIAGNOSIS: Diagnosis = {
+  hint: 'This device is back online. Try again.',
+  title: 'This failed while you were offline',
+}
+
+/** A diagnosis belongs to the attempt that failed; the network since then only says whether to try again. */
+export const adviseRetry = (diagnosis: Diagnosis | null, online: boolean) =>
+  online && diagnosis?.title === OFFLINE_DIAGNOSIS.title
+    ? RECONNECTED_DIAGNOSIS
+    : diagnosis
+
 export const diagnoseConnectionError = (
   context: DiagnosisContext
 ): Diagnosis | null => {
@@ -311,17 +352,8 @@ export const diagnoseConnectionError = (
   if (!rule) {
     return null
   }
-  // Through SSH only the leg to the SSH host leaves this device; a channel the connected bastion could not open keeps its own diagnosis.
-  const lostWithNetwork = parts.ssh
-    ? message.startsWith(SSH_TUNNEL_ERROR) &&
-      !isLocalHost(parts.ssh.host) &&
-      NETWORK_RULES.some(({ match, offline }) => offline && match.test(message))
-    : !!rule.offline && getHostKind(parts.host) === 'public'
-  if (!online && lostWithNetwork) {
-    return {
-      hint: "This device isn't connected to the internet. Reconnect, then try again.",
-      title: "You're offline",
-    }
+  if (!online && isLostWithNetwork(rule, context)) {
+    return OFFLINE_DIAGNOSIS
   }
   const diagnosis = rule.diagnose(context)
   const { host, password } = parts

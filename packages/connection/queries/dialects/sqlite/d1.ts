@@ -60,7 +60,12 @@ const send = async (
       },
       method: 'POST',
     }
-  )
+  ).catch((error: unknown) => {
+    // Fetch names the failed lookup or socket only in its cause, and the desktop worker forwards nothing but the message.
+    throw error instanceof Error && error.cause instanceof Error
+      ? new Error(`${error.message}: ${error.cause.message}`, { cause: error })
+      : error
+  })
   const answer = d1Answer(await response.json().catch(() => null))
   if (answer instanceof type.errors || !answer.success || !answer.result) {
     const messages =

@@ -1,9 +1,11 @@
 import {
   keepPreviousData,
   MutationCache,
+  QueryCache,
   QueryClient,
 } from '@tanstack/react-query'
 
+import { failedAttempt } from './failed-attempt'
 import { posthog } from './posthog'
 
 declare module '@tanstack/react-query' {
@@ -26,12 +28,14 @@ export const queryClient = new QueryClient({
     },
   },
   mutationCache: new MutationCache({
+    onError: failedAttempt,
     onSettled: (_data, error, _variables, _context, mutation) => {
       if (mutation.meta?.event) {
         posthog.capture(mutation.meta.event, { success: !error })
       }
     },
   }),
+  queryCache: new QueryCache({ onError: failedAttempt }),
 })
 
 queryClient.setQueryDefaults([API_QUERY_KEY], {

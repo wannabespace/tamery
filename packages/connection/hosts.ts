@@ -156,53 +156,72 @@ export const TYPE_OF_PORT: Record<string, ConnectionType> = {
   [PGBOUNCER_PORT]: ConnectionType.Postgres,
 }
 
-const LOCAL_HOSTS = new Set([
-  'localhost',
-  '0.0.0.0',
-  '::',
-  '[::]',
-  '::1',
-  '[::1]',
-])
+const LOCAL_HOSTS = new Set(['localhost', '0.0.0.0', '::', '::1'])
 const LOOPBACK_IPV4 = /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/u
 const PRIVATE_IPV4 =
   /^(?:10\.|192\.168\.|169\.254\.|172\.(?:1[6-9]|2\d|3[01])\.|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/u
-const PRIVATE_IPV6 = /^\[?(?:f[cd][\da-f]{2}|fe[89ab][\da-f]):/iu
+const PRIVATE_IPV6 = /^(?:f[cd][\da-f]{2}|fe[89ab][\da-f]):/iu
 const PRIVATE_NAME =
   /\.(?:internal|local|lan|svc|cluster\.local|corp|intranet|home\.arpa|ts\.net)$/iu
 
+const MAPPED_IPV4 =
+  /^::ffff:(?:(?<dotted>\d{1,3}(?:\.\d{1,3}){3})|(?<high>[\da-f]{1,4}):(?<low>[\da-f]{1,4}))$/u
+
+const BYTE = 256
+
+/** A resolver ignores a name's root dot, and an IPv4-mapped IPv6 address reaches that IPv4 address, which URL parsing spells as hex groups (`[::ffff:7f00:1]`). */
+const normalizeHost = (host: string) => {
+  const name = host
+    .toLowerCase()
+    .replace(/^\[(?<address>.*)\]$/u, '$<address>')
+    .replace(/\.$/u, '')
+  const mapped = MAPPED_IPV4.exec(name)?.groups
+  if (!mapped?.high || !mapped.low) {
+    return mapped?.dotted ?? name
+  }
+  return [mapped.high, mapped.low]
+    .map((group) => Number.parseInt(group, 16))
+    .flatMap((group) => [Math.trunc(group / BYTE), group % BYTE])
+    .join('.')
+}
+
 export const getHostHint = (host: string): HostHint | undefined => {
-  const lowerHost = host.toLowerCase()
+  const name = normalizeHost(host)
   return HOST_HINTS.find((hint) =>
-    hint.suffixes.some((suffix) => lowerHost.endsWith(suffix))
+    hint.suffixes.some((suffix) => name.endsWith(suffix))
   )
 }
 
-export const isLocalHost = (host: string) =>
-  LOCAL_HOSTS.has(host.toLowerCase()) || LOOPBACK_IPV4.test(host)
+const isLocalName = (name: string) =>
+  LOCAL_HOSTS.has(name) || LOOPBACK_IPV4.test(name)
 
-const isPrivateHost = (host: string) =>
-  PRIVATE_IPV4.test(host) || PRIVATE_IPV6.test(host) || PRIVATE_NAME.test(host)
+const isPrivateName = (name: string) =>
+  PRIVATE_IPV4.test(name) || PRIVATE_IPV6.test(name) || PRIVATE_NAME.test(name)
 
-const isServiceName = (host: string) =>
-  !host.includes('.') && !host.includes(':')
+const isServiceName = (name: string) =>
+  !name.includes('.') && !name.includes(':')
 
-export const isInternalHost = (host: string) =>
-  isLocalHost(host) || isPrivateHost(host) || isServiceName(host)
+export const isLocalHost = (host: string) => isLocalName(normalizeHost(host))
+
+export const isInternalHost = (host: string) => {
+  const name = normalizeHost(host)
+  return isLocalName(name) || isPrivateName(name) || isServiceName(name)
+}
 
 export type HostKind = 'ipv6-only' | 'local' | 'private' | 'public' | 'service'
 
 export const getHostKind = (host: string): HostKind => {
-  if (isLocalHost(host)) {
+  const name = normalizeHost(host)
+  if (isLocalName(name)) {
     return 'local'
   }
-  if (isServiceName(host)) {
+  if (isServiceName(name)) {
     return 'service'
   }
-  if (isPrivateHost(host)) {
+  if (isPrivateName(name)) {
     return 'private'
   }
-  return getHostHint(host)?.ipv6Only?.test(host) ? 'ipv6-only' : 'public'
+  return getHostHint(name)?.ipv6Only?.test(name) ? 'ipv6-only' : 'public'
 }
 
 /** A pasted scheme or port already says how to reach the host, so only a bare one takes its provider from the hint. */

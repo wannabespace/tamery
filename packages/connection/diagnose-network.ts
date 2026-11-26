@@ -1,3 +1,4 @@
+import { PROXY_ERROR_MESSAGE } from '@tamery/shared/constants'
 import {
   ConnectionType,
   getDialect,
@@ -60,7 +61,7 @@ export const NETWORK_RULES: DiagnosisRule[] = [
     },
     match:
       /enotfound|eai_again|getaddrinfo|could not translate host name|name or service not known|name does not resolve|nodename nor servname/iu,
-    offline: true,
+    offline: 'host',
   },
   {
     diagnose: ({ parts }) => {
@@ -121,7 +122,7 @@ export const NETWORK_RULES: DiagnosisRule[] = [
       }
     },
     match: /etimedout|timed? ?out|esockettimedout|err_timed_out/iu,
-    offline: true,
+    offline: 'host',
   },
   {
     diagnose: (context) => ({
@@ -133,7 +134,16 @@ export const NETWORK_RULES: DiagnosisRule[] = [
       title: "This network can't reach the server",
     }),
     match: /enetunreach|ehostunreach|no route to host/iu,
-    offline: true,
+    offline: 'host',
+  },
+  {
+    diagnose: () => ({
+      hint: 'The web app reaches databases through it. Check your internet connection, then try again.',
+      title: "Couldn't reach Tamery's cloud proxy",
+    }),
+    match: new RegExp(RegExp.escape(PROXY_ERROR_MESSAGE), 'u'),
+    offline: 'device',
+    tunnel: true,
   },
   {
     diagnose: () => ({

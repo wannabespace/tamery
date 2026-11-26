@@ -10,7 +10,12 @@ import type { ConfirmHostKey } from './host-key'
 import { HOST_KEY_REFUSALS, hostKeyTrust } from './host-key'
 import { knownHosts } from './known-hosts'
 import type { SshTunnel } from './params'
-import { SSH_AUTH_ERRORS, tunnelError } from './params'
+import {
+  SSH_AUTH_ERRORS,
+  SSH_HOST_TIMEOUT,
+  SSH_HOST_UNREACHABLE,
+  tunnelError,
+} from './params'
 
 const READY_TIMEOUT = 20_000
 // The two errors ssh2's `connect` throws for a key it cannot parse, an encrypted one without its passphrase included.
@@ -30,10 +35,10 @@ const sshErrorMessage = (
     return AGENT_UNAVAILABLE
   }
   if (error.level === 'client-timeout' || hasErrnoCode(error, 'ETIMEDOUT')) {
-    return 'Timed out reaching the SSH host'
+    return SSH_HOST_TIMEOUT
   }
   if (error.level === 'client-socket') {
-    return `Can't reach the SSH host: ${error.code ?? 'connection failed'}`
+    return `${SSH_HOST_UNREACHABLE}${error.code ?? 'connection failed'}`
   }
   return `SSH connection failed: ${error.message}`
 }

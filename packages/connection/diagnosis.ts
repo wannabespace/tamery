@@ -23,6 +23,7 @@ export interface Diagnosis {
 export interface DiagnosisContext {
   desktop: boolean
   message: string
+  /** This device's network when the attempt failed; true for an error the cloud proxy or a machine answered with. */
   online: boolean
   parts: ConnectionParts
 }
@@ -32,7 +33,7 @@ export interface DiagnosisRule {
   diagnose: (context: DiagnosisContext) => Diagnosis
   /** Only this engine's errors carry the matched text. */
   engine?: ConnectionType
-  /** A device with no network fails this way too. */
-  offline?: true
+  /** A device with no network fails this way too: reaching a public database host (`host`), or its own request to the cloud proxy (`device`). */
+  offline?: 'device' | 'host'
   tunnel?: true
 }

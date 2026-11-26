@@ -204,4 +204,18 @@ describe('D1', () => {
       query.execute({ connectionString: CONNECTION, query: 'select titel' })
     ).rejects.toThrow(/^No such column: titel \(at offset 7\)$/u)
   })
+
+  test('names the lookup or socket a failed request lost', async () => {
+    stubbed = spyOn(globalThis, 'fetch').mockRejectedValueOnce(
+      new TypeError('fetch failed', {
+        cause: new Error('getaddrinfo ENOTFOUND api.cloudflare.com'),
+      })
+    )
+
+    await expect(
+      query.execute({ connectionString: CONNECTION, query: 'select 1' })
+    ).rejects.toThrow(
+      /^fetch failed: getaddrinfo ENOTFOUND api\.cloudflare\.com$/iu
+    )
+  })
 })
