@@ -1,6 +1,5 @@
 import type { ColumnKind } from '@tamery/shared/column-kind'
 import type { Dialect } from '@tamery/shared/enums/connection-type'
-import type { ColumnAlign } from '@tamery/ui/components/response'
 import { format, isValid, parseISO } from 'date-fns'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
@@ -12,7 +11,7 @@ export interface Column extends Partial<
     'attributes' | 'collation' | 'comment' | 'declaredType'
   >
 > {
-  align?: ColumnAlign
+  align?: 'center' | 'right'
   id: string
   uiType: 'select' | 'list' | 'boolean' | 'date' | 'time' | 'datetime' | 'raw'
   type?: string

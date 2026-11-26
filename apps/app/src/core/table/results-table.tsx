@@ -1,6 +1,5 @@
 import type { Dialect } from '@tamery/shared/enums/connection-type'
 import { valueToText } from '@tamery/shared/value-text'
-import type { ColumnAlign } from '@tamery/ui/components/response'
 
 import type { Column } from '~/core/table/cell/utils'
 import { DataGrid } from '~/core/table/data-grid'
@@ -35,7 +34,7 @@ export const ResultsTable = ({
   rows,
   dialect,
 }: {
-  aligns?: ColumnAlign[]
+  aligns?: Column['align'][]
   columns: string[]
   rows: Record<string, unknown>[]
   dialect: Dialect
