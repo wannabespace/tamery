@@ -1,14 +1,17 @@
 import { Alert02Icon } from '@hugeicons/core-free-icons'
+import { isProxyFailure } from '@tamery/connection/diagnose'
 import { toError } from '@tamery/shared/utils'
 import { Button } from '@tamery/ui/components/button'
 import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import { useQueryErrorResetBoundary } from '@tanstack/react-query'
 import type { ErrorComponentProps } from '@tanstack/react-router'
 import { useNavigate } from '@tanstack/react-router'
+import { useEffect } from 'react'
 
 import { useDiagnosis } from '~/core/connection/diagnosis'
 import { useConnectionContext } from '~/core/connection/route'
 import { useGoBack } from '~/hooks/use-go-back'
+import { failedAttempt } from '~/lib/failed-attempt'
 import { posthog } from '~/lib/posthog'
 
 export const ConnectionFailure = ({
@@ -22,6 +25,12 @@ export const ConnectionFailure = ({
   const navigate = useNavigate()
   const diagnosis = useDiagnosis(connection.id, error)
 
+  useEffect(() => {
+    if (isProxyFailure(error.message) && failedAttempt(error).online) {
+      posthog.captureException(error)
+    }
+  }, [error])
+
   return (
     <div className="flex h-screen min-h-[inherit] flex-col">
       <IconEmpty
@@ -30,9 +39,8 @@ export const ConnectionFailure = ({
         title={<span data-mask>{diagnosis?.title ?? "Couldn't connect"}</span>}
         description={
           <span data-mask className="flex flex-col gap-2 select-text">
-            {diagnosis ? (
-              <span>{diagnosis.hint}</span>
-            ) : (
+            {diagnosis && <span>{diagnosis.hint}</span>}
+            {diagnosis === null && (
               <span className="font-mono wrap-anywhere">{error.message}</span>
             )}
           </span>

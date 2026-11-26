@@ -1,4 +1,7 @@
-import { isConnectionFailure } from '@tamery/connection/diagnose'
+import {
+  isConnectionFailure,
+  isProxyFailure,
+} from '@tamery/connection/diagnose'
 import { isKeychainLocked } from '@tamery/shared/keychain'
 import { toError } from '@tamery/shared/utils'
 import type { ErrorComponentProps } from '@tanstack/react-router'
@@ -15,7 +18,7 @@ export const TabError = ({ error }: ErrorComponentProps) => {
     error instanceof MachineError ||
     error instanceof MachineNotPairedError ||
     error instanceof UnconfirmedConnectionError ||
-    isConnectionFailure(failure.message)
+    (isConnectionFailure(failure.message) && !isProxyFailure(failure.message))
   ) {
     throw error
   }

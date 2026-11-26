@@ -51,7 +51,7 @@ const applyAnalyticsChoice = (client: PostHog) => {
 const init = async () => {
   const [
     { default: posthogJs },
-    { isConnectionFailure },
+    { isConnectionFailure, isProxyFailure },
     { sanitizeLogData },
     { history },
   ] = await Promise.all([
@@ -75,7 +75,8 @@ const init = async () => {
         event?.event === '$exception' &&
         event.properties.$exception_list.some(
           ({ value }: { value: string }) =>
-            isExpectedError(value) || isConnectionFailure(value)
+            isExpectedError(value) ||
+            (isConnectionFailure(value) && !isProxyFailure(value))
         )
       if (!event || isExpectedException) {
         return null
