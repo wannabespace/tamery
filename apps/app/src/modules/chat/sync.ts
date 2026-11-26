@@ -11,11 +11,12 @@ import { orpc } from '~/lib/orpc'
 import type { BaseTable } from '~/lib/sync'
 import { PERSISTED_SCHEMA_VERSION, syncCollectionOptions } from '~/lib/sync'
 
+// Rows desktop v0.99.6 stored lack compaction, parentChatId and pinnedAt, and PERSISTED_SCHEMA_VERSION still reads them: keep the three optional.
 export interface Chat extends BaseTable {
   compaction?: ChatCompaction | null
   connectionResourceId: string
   /** Set on a subagent's chat; lists of chats leave those out. */
-  parentChatId: string | null
+  parentChatId?: string | null
   pinnedAt?: Date | null
   title: string | null
 }

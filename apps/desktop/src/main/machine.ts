@@ -11,11 +11,14 @@ import { hasErrnoCode } from '@tamery/shared/errno'
 import { toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 
+export type MachineAccount =
+  | { kind: 'keep' }
+  | { kind: 'switch'; account: VaultAccount }
+
 export type MachineProcessRequest =
   | {
       type: 'start'
-      /** `null` keeps the account this computer's machine already signed in with. */
-      account: VaultAccount | null
+      account: MachineAccount
       /** The vault's key, which main keeps through `safeStorage` so the vault never asks the keychain itself. */
       key: string
       name: string
@@ -64,8 +67,8 @@ const start = async ({
 }: Extract<MachineProcessRequest, { type: 'start' }>) => {
   vault.useKey(key)
   const saved = await Result.tryPromise(async () => {
-    if (account) {
-      await localAccount.set(account)
+    if (account.kind === 'switch') {
+      await localAccount.set(account.account)
     }
     return vault.account()
   })

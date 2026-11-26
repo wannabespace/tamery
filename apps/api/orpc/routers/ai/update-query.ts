@@ -47,6 +47,7 @@ export const updateQuery = orpc
       query: input.query,
       telemetry: aiUsage.telemetry({
         feature: AiFeature.UpdateQuery,
+        ownKey: false,
         userId: context.user.id,
       }),
     })

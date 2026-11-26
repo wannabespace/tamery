@@ -121,7 +121,6 @@ const getDetailValue = (part: ChatToolPart, key: string | undefined) => {
   return typeof value === 'string' && value ? value : null
 }
 
-/** False for a tool this version dropped, whose calls older transcripts still hold. */
 export const hasLabel = (type: string) => type in LABELS
 
 const getLabel = (part: ChatToolPart) => {

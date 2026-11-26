@@ -1,4 +1,4 @@
-import type { NameCase } from './dialect'
+import type { CASE_INSENSITIVE, NameCase } from './dialect'
 
 export interface SqlColumn {
   name: string
@@ -7,11 +7,12 @@ export interface SqlColumn {
   comment?: string | null
 }
 
+export const COLUMNS_NOT_LOADED = null
+
 export interface SqlTable {
   name: string
   kind: string
-  /** `null` while the columns have not been loaded — column checks and suggestions skip the table. */
-  columns: SqlColumn[] | null
+  columns: SqlColumn[] | typeof COLUMNS_NOT_LOADED
   comment?: string | null
 }
 
@@ -29,7 +30,7 @@ interface SqlEnum {
 
 export interface SqlCatalog {
   defaultSchema: string | null
-  nameCase: NameCase | null
+  nameCase: NameCase | typeof CASE_INSENSITIVE
   schemas: SqlSchema[]
   enums: SqlEnum[]
 }

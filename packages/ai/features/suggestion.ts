@@ -3,7 +3,7 @@ import { generateText } from 'ai'
 
 import type { AppUIMessage } from '../message'
 import { textFromMessage } from '../message'
-import type { AiKey } from '../models/own-key'
+import type { PayingKey } from '../models/own-key'
 import { modelsFor } from '../models/own-key'
 import { SKIPPED } from '../tools'
 import { section } from './prompt'
@@ -22,7 +22,7 @@ const SUGGESTION_INSTRUCTIONS = [
 
 export const generateNextPrompt = async (data: {
   messages: AppUIMessage[]
-  key: AiKey | null
+  key: PayingKey
   telemetry?: TelemetryOptions
 }) => {
   const asked = data.messages.findLast((message) => message.role === 'user')

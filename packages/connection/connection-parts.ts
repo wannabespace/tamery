@@ -12,8 +12,8 @@ export interface ConnectionParts {
   /** A SQLite or DuckDB file's path, D1's database ID. */
   database: string
   host: string
-  /** ClickHouse's transport as the string named it (`https://` or `http://`); `null` infers it from the port. */
-  https: boolean | null
+  /** ClickHouse's transport as the string named it (`https://` or `http://`). */
+  https: boolean | typeof HTTPS_FROM_PORT
   /** Driver options as a query string, without the leading `?` and without the `ssh_*` params. */
   options: string
   /** Also a libSQL, D1 or MotherDuck token, so every secret path treats it as the password. */
@@ -25,6 +25,8 @@ export interface ConnectionParts {
   type: ConnectionType | null
   user: string
 }
+
+export const HTTPS_FROM_PORT = null
 
 export const DEFAULT_PORTS: Record<ConnectionType, number | null> = {
   [ConnectionType.ClickHouse]: 8123,
@@ -242,7 +244,7 @@ const parse = (connectionString: string): ConnectionParts => {
 
   return {
     ...parts,
-    https: HTTPS_OF_SCHEME[scheme] ?? null,
+    https: HTTPS_OF_SCHEME[scheme] ?? HTTPS_FROM_PORT,
     options: searchParams.toString(),
     provider: parts.host ? getProviderOfScheme(scheme) : null,
     ssh,

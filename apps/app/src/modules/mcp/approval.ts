@@ -1,6 +1,6 @@
 import { createStore } from 'seitu'
 
-import type { OperationKind } from '~/core/agent/database'
+import type { OperationKind, RowEstimate } from '~/core/agent/database'
 import type { Connection } from '~/core/connection/sync'
 import { notifications } from '~/lib/notifications'
 import { posthog } from '~/lib/posthog'
@@ -8,7 +8,7 @@ import { posthog } from '~/lib/posthog'
 interface Approval {
   connection: Connection
   decide: (approved: boolean) => void
-  estimate: { status: 'pending' } | { rows: number | null; status: 'done' }
+  estimate: { kind: 'pending' } | RowEstimate
   id: string
   kind: OperationKind
   resourceName: string | null
@@ -26,7 +26,7 @@ const request = async ({
   sql,
 }: {
   connection: Connection
-  estimate: (signal: AbortSignal) => Promise<number | null>
+  estimate: (signal: AbortSignal) => Promise<RowEstimate>
   kind: OperationKind
   resourceName: string | null
   signal: AbortSignal
@@ -36,15 +36,13 @@ const request = async ({
   const id = crypto.randomUUID()
   const decided = new AbortController()
   const estimated = estimate(AbortSignal.any([signal, decided.signal])).then(
-    (rows) => {
+    (result) => {
       store.set(({ pending }) => ({
         pending: pending.map((item) =>
-          item.id === id
-            ? { ...item, estimate: { rows, status: 'done' } }
-            : item
+          item.id === id ? { ...item, estimate: result } : item
         ),
       }))
-      return rows
+      return result
     }
   )
 
@@ -60,7 +58,7 @@ const request = async ({
       {
         connection,
         decide: decision.resolve,
-        estimate: { status: 'pending' },
+        estimate: { kind: 'pending' },
         id,
         kind,
         resourceName,

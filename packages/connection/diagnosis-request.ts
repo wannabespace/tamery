@@ -2,6 +2,11 @@ import { connectionParts } from './connection-parts'
 import type { DiagnosisContext } from './diagnosis'
 import type { HostKind } from './hosts'
 import { getHostHint, getHostKind } from './hosts'
+import {
+  SSH_HOST_TIMEOUT_AT,
+  SSH_HOST_UNREACHABLE_AT,
+  SSH_TUNNEL_ERROR,
+} from './ssh/params'
 
 const HOST_KIND_LABELS: Record<HostKind, string> = {
   'ipv6-only': 'direct host (IPv6-only)',
@@ -16,6 +21,10 @@ const ANY_IPV4 = /\b\d{1,3}(?:\.\d{1,3}){3}\b/gu
 const ANY_IPV6 = new RegExp(
   `(?<![\\w:])(?:(?:${HEX_GROUP}:){7}${HEX_GROUP}|(?:${HEX_GROUP}(?::${HEX_GROUP})*)?::(?:${HEX_GROUP}(?::${HEX_GROUP})*)?)(?:%[\\w.]+)?(?![\\w:])`,
   'giu'
+)
+const RESOLVED_SSH_HOST = new RegExp(
+  `(?<=^${RegExp.escape(SSH_TUNNEL_ERROR)}(?:${RegExp.escape(SSH_HOST_TIMEOUT_AT)}|${RegExp.escape(SSH_HOST_UNREACHABLE_AT)})).+?(?=: [^:]+$|$)`,
+  'u'
 )
 /** Any other key's value can be a secret or a name, however harmless it looks (`sslpassword=123456`). */
 const SETTING_KEYS = new Set([
@@ -61,7 +70,7 @@ export const getDiagnosisRequest = ({
     [parts.ssh?.user, '<ssh-user>'],
     [parts.database, '<database>'],
   ]
-  let error = message
+  let error = message.replace(RESOLVED_SSH_HOST, '<ssh-host>')
   // A driver may echo the string's own percent-encoded form.
   for (const [value, placeholder] of identifying
     .flatMap(([text, label]): [string, string][] =>

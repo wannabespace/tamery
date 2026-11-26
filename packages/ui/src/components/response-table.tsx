@@ -30,7 +30,7 @@ const getTexts = (cells: HastNode[]) =>
   cells.map((cell) => getText(cell).trim())
 
 const getAlign = ({ properties: { align } }: HastNode): ColumnAlign =>
-  align === 'center' || align === 'right' ? align : undefined
+  align === 'center' || align === 'right' ? align : 'start'
 
 export const ResponseTable = ({
   className,

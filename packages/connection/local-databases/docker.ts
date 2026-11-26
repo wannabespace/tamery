@@ -11,7 +11,11 @@ import {
 } from '@tamery/shared/enums/connection-type'
 import { type } from 'arktype'
 
-import { getConnectionType, TYPE_OF_DEFAULT_PORT } from '../connection-parts'
+import {
+  getConnectionType,
+  HTTPS_FROM_PORT,
+  TYPE_OF_DEFAULT_PORT,
+} from '../connection-parts'
 import { partsOfVariables } from '../guess/env'
 import { mergeParts } from '../guess/parts'
 import type { Finder } from './local-database'
@@ -119,7 +123,7 @@ export const docker: Finder = {
           {
             ...server,
             // The image's HTTP port is plain text whatever port it is published on, which would read as HTTPS.
-            https: dialect === Dialect.ClickHouse ? false : null,
+            https: dialect === Dialect.ClickHouse ? false : HTTPS_FROM_PORT,
             type:
               named.find(
                 (candidate) => candidate && getDialect(candidate) === dialect

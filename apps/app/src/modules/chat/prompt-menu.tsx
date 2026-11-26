@@ -84,6 +84,17 @@ export const PromptMenu = ({
                   ))}
                 </CommandGroup>
               ))}
+              {menu.skillsOutdatedOn && (
+                <CommandGroup heading={GROUPS.skill}>
+                  <CommandItem disabled value="skills-outdated">
+                    <span>
+                      Update the Tamery CLI on{' '}
+                      <span data-mask>{menu.skillsOutdatedOn}</span> to list
+                      your skills
+                    </span>
+                  </CommandItem>
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         </motion.div>

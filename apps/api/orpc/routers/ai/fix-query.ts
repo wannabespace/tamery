@@ -37,6 +37,7 @@ export const fixQuery = orpc
       query: input.query,
       telemetry: aiUsage.telemetry({
         feature: AiFeature.FixQuery,
+        ownKey: false,
         userId: context.user.id,
       }),
     })
