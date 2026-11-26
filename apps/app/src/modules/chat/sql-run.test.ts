@@ -14,7 +14,7 @@ mock.module('~/core/collections', () => ({
   }),
 }))
 mock.module('~/lib/posthog', () => ({ posthog: { capture: () => {} } }))
-mock.module('./auto-approval', () => ({ getJudgedProbability: () => null }))
+mock.module('./auto-approval', () => ({ getJudgedVerdict: () => {} }))
 
 const { runSql } = await import('./sql-run')
 

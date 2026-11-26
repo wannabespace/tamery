@@ -23,3 +23,8 @@ export const topUpChargeCents = (credits: number) =>
 /** What any AI feature answers once the month's included budget and the credits are spent; the app matches it to offer Add credits. */
 export const AI_BUDGET_SPENT_MESSAGE =
   "You've used this month's included AI budget and your credits. Add credits or turn on auto top-up to keep going."
+
+// TOO_MANY_REQUESTS also answers the free plan's weekly limit, so only the message tells a spent budget.
+
+export const isBudgetSpent = (error: Error) =>
+  error.message === AI_BUDGET_SPENT_MESSAGE

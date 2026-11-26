@@ -104,9 +104,9 @@ export const SuggestionContent = ({
       <span data-mask className="truncate">
         {mention.table.table}
       </span>
-      {suggestion.schema && (
+      {suggestion.showsSchema && (
         <span data-mask className="text-muted-foreground truncate">
-          {suggestion.schema}
+          {mention.table.schema}
         </span>
       )}
     </>

@@ -1,4 +1,5 @@
 import type { Chat } from '@ai-sdk/react'
+import type { StatementVerdict } from '@tamery/ai/features'
 import type { AppUIMessage } from '@tamery/ai/message'
 import type { ChatTools } from '@tamery/ai/tools'
 import { getDialect } from '@tamery/shared/enums/connection-type'
@@ -26,11 +27,10 @@ export const estimateKey = (toolCallId: string) => [
   toolCallId,
 ]
 
-const probabilities = new Map<string, number>()
+const verdicts = new Map<string, StatementVerdict>()
 
-/** How sure Jev was that the change matches the request, for the user's Run or Decline to be measured against; null when the fallback judged it or nothing did. */
-export const getJudgedProbability = (toolCallId: string) =>
-  probabilities.get(toolCallId) ?? null
+/** The judge's verdict on the change, for the user's Run or Decline to be measured against. */
+export const getJudgedVerdict = (toolCallId: string) => verdicts.get(toolCallId)
 
 const setApproval = (toolCallId: string, approval: AutoApproval) =>
   autoApprovalsStore.set((approvals) => ({
@@ -100,9 +100,8 @@ export const autoApprove = async ({
       { context: { silent: true }, signal }
     )
     .catch(() => null)
-  const probability = verdict?.judge === 'jev' ? verdict.probability : null
-  if (probability !== null) {
-    probabilities.set(toolCallId, probability)
+  if (verdict) {
+    verdicts.set(toolCallId, verdict)
   }
   let outcome = verdict ? 'skip' : 'none'
   if (verdict?.autoRun) {
@@ -114,7 +113,7 @@ export const autoApprove = async ({
     dialect: getDialect(connection.type),
     judge: verdict?.judge ?? null,
     outcome,
-    probability,
+    probability: verdict?.judge === 'jev' ? verdict.probability : null,
   })
   if (signal.aborted) {
     forget(toolCallId)

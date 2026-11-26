@@ -18,7 +18,7 @@ import {
   setChatDraft,
   setNewChatId,
 } from './stores'
-import { openSubagentStore } from './subagents-store'
+import { openSubagentStore, PARENT_CHAT } from './subagents-store'
 import { chatTabId, newChatTabId } from './tab'
 
 export const openChat = (resourceId: string, chatId: string) => {
@@ -28,7 +28,7 @@ export const openChat = (resourceId: string, chatId: string) => {
       ? newChatTabId
       : chatTabId(chatId)
   )
-  openSubagentStore(resourceId).set(null)
+  openSubagentStore(resourceId).set(PARENT_CHAT)
   history.push(tabPath(resourceId, tabId))
 }
 

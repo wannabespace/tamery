@@ -8,7 +8,7 @@ import { agentDatabase } from '~/core/agent/database'
 import { getCollections } from '~/core/collections'
 import { posthog } from '~/lib/posthog'
 
-import { getJudgedProbability } from './auto-approval'
+import { getJudgedVerdict } from './auto-approval'
 import type { QueuedMessage } from './stores'
 
 export const sqlRuns = (message: AppUIMessage) =>
@@ -40,6 +40,7 @@ export const runSql = async ({
     resource: resource.name,
   }
   const toolCallId = skipped?.toolCallId ?? null
+  const verdict = toolCallId ? getJudgedVerdict(toolCallId) : undefined
   const result = await Result.tryPromise(async () => {
     if (target.connectionId !== resource.connectionId) {
       throw new Error('This chat can only run changes on its own connection.')
@@ -49,7 +50,7 @@ export const runSql = async ({
   })
   posthog.capture('ai_chat_sql_run', {
     kind: result.isOk() ? result.value.kind : null,
-    probability: toolCallId ? getJudgedProbability(toolCallId) : null,
+    probability: verdict?.judge === 'jev' ? verdict.probability : null,
     skipped_change: !!toolCallId,
     success: result.isOk(),
   })
