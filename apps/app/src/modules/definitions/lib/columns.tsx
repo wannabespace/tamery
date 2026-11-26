@@ -16,6 +16,7 @@ export interface DefinitionsColumn<T> {
   align?: 'end'
   cell: (item: T, context: CellContext) => ReactNode
   header: string
+  numeric?: boolean
   sortValue?: (item: T) => SortValue
   width?: ColumnWidth
 }
@@ -87,6 +88,7 @@ export const numberColumn = <T,>({
     )
   },
   header,
+  numeric: true,
   sortValue: valueOf,
   width,
 })
