@@ -1,21 +1,30 @@
 import { db } from '@tamery/db'
 import { connectionMachines } from '@tamery/db/schema'
+import { machineIdSchema } from '@tamery/shared/machine'
 import { type } from 'arktype'
 import { and, eq } from 'drizzle-orm'
 
 import { authMiddleware, orpc } from '~/orpc'
 
 import { publisher } from './events'
-import { canRunOn } from './machine'
+import { canRunOn, TAMERY_CLOUD } from './machine'
 
 export const update = orpc
   .use(authMiddleware)
-  .input(type({ id: 'string.uuid.v7', machineId: 'string.uuid.v7 | null' }))
+  .input(
+    type({
+      id: 'string.uuid.v7',
+      machineId: machineIdSchema.and('string.uuid.v7').or('null'),
+    })
+  )
   .errors({
     NOT_FOUND: { message: 'Machine not found' },
   })
   .handler(async ({ context, errors, input }) => {
-    if (!(await canRunOn(context.user.id, input.machineId))) {
+    if (
+      input.machineId !== TAMERY_CLOUD &&
+      !(await canRunOn(context.user.id, input.machineId))
+    ) {
       throw errors.NOT_FOUND()
     }
 

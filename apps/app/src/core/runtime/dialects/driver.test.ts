@@ -2,6 +2,7 @@ import { beforeEach, expect, mock, test } from 'bun:test'
 
 import { Dialect } from '@tamery/shared/enums/connection-type'
 import { SyncType } from '@tamery/shared/enums/sync-type'
+import { machineIdSchema } from '@tamery/shared/machine'
 import { sql } from 'kysely'
 import { clearMemoizeCache, getCacheStore } from 'memoza'
 
@@ -66,7 +67,7 @@ const { dialects } = await import('./index')
 
 const paired: MachineRoute = {
   asks: null,
-  machineId: pairing.machineId,
+  machineId: machineIdSchema.assert(pairing.machineId),
   name: pairing.name,
   pairing,
 }

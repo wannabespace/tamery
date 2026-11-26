@@ -30,6 +30,10 @@ export const machineAttestationInput = type({
   origin: 'string.url',
 })
 
+export const machineIdSchema = type('string').brand('MachineId')
+
+export type MachineId = typeof machineIdSchema.infer
+
 export const machineUnconfirmed = type({ connectionId: 'string' })
 
 export const machineHostKey = type({

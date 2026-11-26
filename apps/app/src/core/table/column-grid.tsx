@@ -25,15 +25,21 @@ export interface ExtraColumn {
   size: number
 }
 
-const PlainHeader = (
-  column: Column,
-  { dragHandle, style }: GridHeaderProps
-) => (
+export const PlainHeader = ({
+  children,
+  column,
+  header: { dragHandle, style },
+}: {
+  children?: ReactNode
+  column: Column
+  header: GridHeaderProps
+}) => (
   <div
     role="columnheader"
+    // oxlint-disable-next-line shadcn/no-inline-styles -- column geometry comes from the grid's per-column variables
     style={style}
     className={cn(
-      'flex min-h-8 min-w-0 flex-col justify-center px-2 py-1.5 select-none',
+      'group/header relative flex min-h-8 min-w-0 flex-col justify-center px-2 py-1.5 select-none',
       column.align === 'center' && 'text-center',
       column.align === 'right' && 'text-right'
     )}
@@ -47,7 +53,12 @@ const PlainHeader = (
         {column.typeLabel}
       </div>
     )}
+    {children}
   </div>
+)
+
+const renderPlainHeader = (column: Column, header: GridHeaderProps) => (
+  <PlainHeader column={column} header={header} />
 )
 
 export const ColumnGrid = ({
@@ -56,7 +67,7 @@ export const ColumnGrid = ({
   onReorder,
   pinned,
   renderCell,
-  renderHeader = PlainHeader,
+  renderHeader = renderPlainHeader,
   rows,
   scrollToRef,
   getSize,

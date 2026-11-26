@@ -71,8 +71,8 @@ const SettingsPage = () => {
 
   const leave = useGoBack()
 
-  // Scoped to the page so Escape in a portalled popup closes only the popup; the page's tabIndex keeps clicks on empty space in scope.
-  useHotkey('Escape', leave, { target: pageRef })
+  // Scoped to the page so Escape in a portalled popup closes only the popup; the page's tabIndex keeps clicks on empty space in scope. Fields ignore it so a half-typed value is never dropped by leaving.
+  useHotkey('Escape', leave, { ignoreInputs: true, target: pageRef })
 
   return (
     <div ref={pageRef} tabIndex={-1} className={settingsPageClassName}>
@@ -97,6 +97,15 @@ const SettingsPage = () => {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           onClear={() => setSearch('')}
+          onKeyDown={(event) => {
+            if (
+              event.key === 'Escape' &&
+              !search &&
+              !event.nativeEvent.isComposing
+            ) {
+              leave()
+            }
+          }}
           start={
             <HugeiconsIcon
               icon={Search01Icon}
