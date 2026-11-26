@@ -7,7 +7,7 @@ import { Result } from 'better-result'
 import { parse } from 'yaml'
 
 /** An agent skill or command from the user's home folder, offered in the chat's `/` menu by the desktop app and the bridge. */
-export interface LocalSkill {
+interface LocalSkill {
   description: string | null
   instructions: string
   kind: 'command' | 'skill'
