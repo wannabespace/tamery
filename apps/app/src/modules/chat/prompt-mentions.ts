@@ -189,7 +189,8 @@ export const usePromptMentions = ({
         .orderBy(({ chats: chat }) => chat.updatedAt, 'desc'),
   })
   const { tabId } = useParams({ strict: false })
-  const currentChatId = tabId && chatTab.match(tabId)?.chatId
+  const currentChatId =
+    tabId && chatTab.match(tabId, connectionResource.id)?.chatId
   const { data: resources } = useLiveQuery({
     query: (q) =>
       q

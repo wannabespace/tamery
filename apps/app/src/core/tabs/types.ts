@@ -21,7 +21,7 @@ export interface TabKind<Params = unknown> {
   fullTitle?(params: Params): string
   icon(params: Params): IconSvgElement
   label?(params: Params, siblings: Params[]): string
-  match(id: string): Params | null
+  match(id: string, resourceId: string): Params | null
   onActivate?(resourceId: string, params: Params): void
   onClose?(resourceId: string, id: string): void
   onRename?(resourceId: string, from: Params, to: Params): void

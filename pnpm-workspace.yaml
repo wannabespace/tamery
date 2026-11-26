@@ -191,6 +191,7 @@ catalog:
   takumi-js: ^2.22.1
   mermaid: ^12.3.0
   yaml: ^2.9.1
+  entities: ^6.0.1
 allowBuilds:
   '@firebase/util': false
   '@google/genai': false

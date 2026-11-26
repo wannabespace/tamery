@@ -23,6 +23,7 @@ import { payForAi } from '~/lib/ai-key'
 import { attachments } from '~/lib/attachments'
 import { chatCompaction } from '~/lib/chat-compaction'
 import { chatPersist } from '~/lib/chat-persist'
+import { chatSession } from '~/lib/chat-session'
 import { persistChatSuggestion } from '~/lib/chat-suggestion'
 import { persistChatTitle } from '~/lib/chat-title'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
@@ -98,7 +99,7 @@ export const stream = orpc
 
     const payer = await payForAi(context.user.id, errors.TOO_MANY_REQUESTS)
 
-    const { connection, isSubagent, title } = await chatPersist.ensureChat({
+    const { connection, isSubagent, title } = await chatSession.ensureChat({
       chatId: input.chatId,
       connectionResourceId: input.connectionResourceId,
       subagent: input.subagent,

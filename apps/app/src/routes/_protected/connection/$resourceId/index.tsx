@@ -66,7 +66,7 @@ export const Route = createFileRoute('/_protected/connection/$resourceId/')({
 
     const isOpenable =
       !!activeTabId &&
-      !!resolveTab(activeTabId) &&
+      !!resolveTab(activeTabId, params.resourceId) &&
       tabs.some((tab) => tab.id === activeTabId)
 
     if (isOpenable) {

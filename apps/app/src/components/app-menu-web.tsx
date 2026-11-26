@@ -66,13 +66,11 @@ export const renderWebNodes = (
   nodes.map((node, index) => {
     switch (node.type) {
       case 'separator': {
-        // oxlint-disable-next-line react/no-array-index-key
         return <parts.Separator key={index} />
       }
       case 'label': {
         // Base UI's label must sit inside a group, or it throws on render.
         return (
-          // oxlint-disable-next-line react/no-array-index-key
           <parts.Group key={index}>
             <parts.Label>{node.label}</parts.Label>
           </parts.Group>
@@ -80,7 +78,6 @@ export const renderWebNodes = (
       }
       case 'group': {
         return (
-          // oxlint-disable-next-line react/no-array-index-key
           <parts.Group key={index}>
             {node.label && <parts.Label>{node.label}</parts.Label>}
             {renderWebNodes(node.items, parts)}
@@ -89,7 +86,6 @@ export const renderWebNodes = (
       }
       case 'sub': {
         return (
-          // oxlint-disable-next-line react/no-array-index-key
           <parts.Sub key={index}>
             <parts.SubTrigger disabled={node.disabled}>
               {menuIcon(node.icon)}
@@ -107,7 +103,6 @@ export const renderWebNodes = (
         }
         return (
           <parts.RadioGroup
-            // oxlint-disable-next-line react/no-array-index-key
             key={index}
             value={node.value}
             onValueChange={handleValueChange}
@@ -131,7 +126,6 @@ export const renderWebNodes = (
         }
         return (
           <parts.Item
-            // oxlint-disable-next-line react/no-array-index-key
             key={index}
             disabled={node.disabled}
             variant={node.variant}

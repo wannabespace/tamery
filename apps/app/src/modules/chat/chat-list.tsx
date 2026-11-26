@@ -143,11 +143,10 @@ export const ChatList = () => {
     return unread.includes(chatId) ? 'unread' : undefined
   }
   const { tabId } = useParams({ strict: false })
-  const newChatId = useSubscription(newChatIdsValue, {
-    selector: (ids) => ids[connectionResource.id],
+  const activeId = useSubscription(newChatIdsValue, {
+    selector: () =>
+      tabId ? chatTab.match(tabId, connectionResource.id)?.chatId : undefined,
   })
-  const activeParams = tabId ? chatTab.match(tabId) : null
-  const activeId = activeParams && (activeParams.chatId ?? newChatId)
   const [search, setSearch] = useState('')
   const [deleting, setDeleting] = useState<ChatRow | null>(null)
   const [renaming, setRenaming] = useState<ChatRow | null>(null)
