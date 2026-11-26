@@ -485,6 +485,9 @@ catalogs:
     electron-store:
       specifier: ^12.0.0
       version: 12.0.0
+    entities:
+      specifier: ^6.0.1
+      version: 6.0.1
     fast-xml-parser:
       specifier: ^5.12.1
       version: 5.12.1
@@ -1799,6 +1802,9 @@ importers:
       arktype:
         specifier: 'catalog:'
         version: 2.2.10
+      entities:
+        specifier: 'catalog:'
+        version: 6.0.1
       memoza:
         specifier: 'catalog:'
         version: 1.4.0

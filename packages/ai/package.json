@@ -17,6 +17,7 @@
     "ai-resumable-stream": "catalog:",
     "ai-retry": "catalog:",
     "arktype": "catalog:",
+    "entities": "catalog:",
     "memoza": "catalog:",
     "redis": "catalog:",
     "uuid": "catalog:"

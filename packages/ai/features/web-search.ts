@@ -1,5 +1,6 @@
 import type { TelemetryOptions } from 'ai'
 import { generateText } from 'ai'
+import { decodeHTML } from 'entities'
 
 import type { AiKey } from '../models/own-key'
 import { modelsFor, ownKeyWebSearchTools } from '../models/own-key'
@@ -9,37 +10,11 @@ const GROUNDING_REDIRECT =
   'https://vertexaisearch.cloud.google.com/grounding-api-redirect/'
 const PAGE_TIMEOUT_MS = 3000
 const TITLE = /<title[^>]*>(?<title>[^<]+)<\/title>/iu
-const ENTITIES: Record<string, string> = {
-  amp: '&',
-  apos: "'",
-  gt: '>',
-  lt: '<',
-  nbsp: ' ',
-  quot: '"',
-}
 
 const SEARCH_INSTRUCTIONS = [
   'Search the web for the question and answer it from what you find: the facts, numbers, versions and dates it asks for, in a few sentences.',
   'Say so when the results do not answer it. Never invent a source.',
 ].join('\n')
-
-const decodeEntities = (text: string) =>
-  text.replaceAll(
-    /&(?:#x(?<hex>[\da-f]+)|#(?<decimal>\d+)|(?<name>[a-z]+));/giu,
-    (entity, ...args: unknown[]) => {
-      const { decimal, hex, name } = args.at(-1) as Record<
-        'decimal' | 'hex' | 'name',
-        string | undefined
-      >
-      if (hex) {
-        return String.fromCodePoint(Number.parseInt(hex, 16))
-      }
-      if (decimal) {
-        return String.fromCodePoint(Number(decimal))
-      }
-      return ENTITIES[name?.toLowerCase() ?? ''] ?? entity
-    }
-  )
 
 const withoutProtocol = (url: string) => url.replace(/^https?:\/\//u, '')
 
@@ -49,7 +24,7 @@ const readTitle = async (response: Response) => {
   }
   const html = await response.text().catch(() => '')
   const title = TITLE.exec(html)?.groups?.title?.trim()
-  return title ? decodeEntities(title) : null
+  return title ? decodeHTML(title) : null
 }
 
 // An own Google key searches through Google, whose grounding links are redirects that expire and name only the site, so each is opened for the page it lands on and that page's title.
