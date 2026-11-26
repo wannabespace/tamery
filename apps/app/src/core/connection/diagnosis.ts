@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { useCollections } from '~/core/collections'
 import { posthog } from '~/lib/posthog'
+import { useIsOnline } from '~/store'
 
 const NETWORK_ERROR_CODES = [
   'ECONNREFUSED',
@@ -19,7 +20,8 @@ const NETWORK_ERROR_CODES = [
 
 export const useDiagnosis = (connectionId: string, error: Error) => {
   const { connectionStringsCollection } = useCollections()
-  return useQuery({
+  const online = useIsOnline()
+  const diagnoses = useQuery({
     queryFn: async () => {
       const parts = connectionParts.parse(
         await connectionStringsCollection.utils.decrypt(connectionId)
@@ -31,13 +33,18 @@ export const useDiagnosis = (connectionId: string, error: Error) => {
           'other',
         is_local: isLocalHost(parts.host),
       })
-      return diagnoseConnectionError({
+      const context = {
         desktop: !!window.electron,
         message: error.message,
         parts,
-      })
+      }
+      return {
+        offline: diagnoseConnectionError({ ...context, online: false }),
+        online: diagnoseConnectionError({ ...context, online: true }),
+      }
     },
     queryKey: ['connection', connectionId, 'diagnosis', error.message],
     throwOnError: false,
   }).data
+  return diagnoses?.[online ? 'online' : 'offline'] ?? null
 }
