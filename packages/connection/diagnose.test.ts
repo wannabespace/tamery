@@ -423,19 +423,28 @@ describe('diagnoseConnectionError', () => {
       ).toBe("You're offline")
     })
 
+    it.each(['bastion.acme.io', 'bastion', 'db.abc.supabase.co'])(
+      'takes the session at its word that SSH host %p was never reached',
+      (host) => {
+        expect(
+          diagnoseOffline(tunnelError(SSH_HOST_TIMEOUT).message, {
+            ssh: { ...EMPTY_SSH_TUNNEL, host },
+          })
+        ).toBe("You're offline")
+      }
+    )
+
     it.each([
-      ['a public SSH host that timed out', 'bastion.acme.io', true],
-      ['a private SSH host that timed out', '10.0.0.20', false],
-      ['an SSH config alias that timed out', 'bastion', true],
-      ['an IPv6-only SSH host that timed out', 'db.abc.supabase.co', true],
-      ['an expanded mapped loopback', '0:0:0:0:0:ffff:7f00:1', false],
-    ])('for %s says offline: %p', (_, host, offline) => {
-      expect(
-        diagnoseOffline(tunnelError(SSH_HOST_TIMEOUT).message, {
-          ssh: { ...EMPTY_SSH_TUNNEL, host },
-        }) === "You're offline"
-      ).toBe(offline)
-    })
+      'getaddrinfo ENOTFOUND db.abc.supabase.co',
+      'connect ENETUNREACH 2600:1f18::1:5432',
+    ])(
+      'blames the lost connection for an IPv6-only host with %s',
+      (message) => {
+        expect(diagnoseOffline(message, { host: 'db.abc.supabase.co' })).toBe(
+          "You're offline"
+        )
+      }
+    )
 
     it.each([
       "Can't reach the SSH host: ECONNREFUSED",

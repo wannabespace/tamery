@@ -6,7 +6,7 @@ import type { ConnectionParts } from './connection-parts'
 import { NETWORK_RULES } from './diagnose-network'
 import { SQLITE_RULES } from './diagnose-sqlite'
 import type { Diagnosis, DiagnosisContext, DiagnosisRule } from './diagnosis'
-import { getHostHint, getHostKind, isLocalHost } from './hosts'
+import { getHostHint, isInternetHost, isLocalHost } from './hosts'
 import { SSH_RULES } from './ssh/diagnose'
 import {
   SSH_HOST_TIMEOUT,
@@ -321,13 +321,10 @@ const isLostWithNetwork = (
   { message, parts }: DiagnosisContext
 ) => {
   if (parts.ssh) {
-    // The SSH host as saved: an ~/.ssh/config alias like `prod` reads as a service name, and only the session saw the HostName it points to.
-    const kind = getHostKind(parts.ssh.host)
-    return kind !== 'local' && kind !== 'private' && SSH_HOST_LOST.test(message)
+    return SSH_HOST_LOST.test(message)
   }
   return (
-    offline === 'device' ||
-    (offline === 'host' && getHostKind(parts.host) === 'public')
+    offline === 'device' || (offline === 'host' && isInternetHost(parts.host))
   )
 }
 

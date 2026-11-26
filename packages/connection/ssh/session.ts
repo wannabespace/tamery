@@ -5,7 +5,7 @@ import { noop, toError } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import type { Client, ConnectConfig } from 'ssh2'
 
-import { getHostKind } from '../hosts'
+import { isInternetHost } from '../hosts'
 import { AGENT_UNAVAILABLE, getSshConfig } from './config'
 import type { ConfirmHostKey } from './host-key'
 import { HOST_KEY_REFUSALS, hostKeyTrust } from './host-key'
@@ -80,10 +80,9 @@ export const connectSsh = async (
   let refusal: string | undefined
   let verifiedKey: Buffer | undefined
   let answered = false
-  const kind = getHostKind(host)
   const failure = () => ({
     host,
-    lost: !answered && (kind === 'public' || kind === 'ipv6-only'),
+    lost: !answered && isInternetHost(host),
   })
   let readyTimer: ReturnType<typeof setTimeout> | undefined
   const startReadyTimer = () => {
