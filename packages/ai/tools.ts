@@ -14,6 +14,7 @@ import { tool } from 'ai'
 import { type } from 'arktype'
 
 import { chatModels } from './models/list'
+import { SCHEMA_NOTE_LIMIT } from './schema-notes'
 
 const target = type({
   connectionId: type.string.describe(
@@ -164,7 +165,7 @@ export const chatTools = {
     inputSchema: type({
       '...': target,
       column: 'string | null',
-      note: 'string',
+      note: `string <= ${SCHEMA_NOTE_LIMIT}`,
       schema: 'string | null',
       table: 'string | null',
     }),

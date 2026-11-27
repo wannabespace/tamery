@@ -1,12 +1,18 @@
 import { ORPCError } from '@orpc/server'
 import { db } from '@tamery/db'
-import { chats, schemaNotes } from '@tamery/db/schema'
+import { chats, copies, deletedRecords, schemaNotes } from '@tamery/db/schema'
 import { and, eq } from 'drizzle-orm'
 
 import { inMemberWorkspace } from '~/lib/workspace'
 import { publisher as chatsPublisher } from '~/orpc/routers/chats/events'
 
 export const chatSession = {
+  /** A chat's id names its attachments in the bucket until the purge removes its deleted copy, so a client-minted id of a deleted chat is never taken again: its new owner would read the old files, and the purge would erase the new ones. */
+  isDeletedId: async (chatId: string) =>
+    (await db.$count(
+      deletedRecords,
+      and(copies.of(chats), eq(deletedRecords.recordId, chatId))
+    )) > 0,
   connection: async (data: {
     connectionResourceId: string
     userId: string
@@ -58,6 +64,10 @@ export const chatSession = {
         },
       })
     const existing = await findOwnedChat()
+
+    if (!existing && (await chatSession.isDeletedId(data.chatId))) {
+      throw new ORPCError('NOT_FOUND', { message: 'Chat not found' })
+    }
 
     if (!existing && data.subagent) {
       // A subagent hangs off a top-level chat of the same user and resource, never off another subagent.

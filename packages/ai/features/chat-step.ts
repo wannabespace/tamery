@@ -3,7 +3,6 @@ import { UNTRUSTED_DATA_NOTE } from '@tamery/shared/mcp'
 import type { DataUIPart, TelemetryOptions } from 'ai'
 import {
   convertToModelMessages,
-  isToolUIPart,
   smoothStream,
   streamText,
   toUIMessageStream,
@@ -56,12 +55,6 @@ const chatInstructions = (connection: ChatConnection) =>
   ]
     .filter(Boolean)
     .join('\n')
-
-const ASSISTANT_INSTRUCTIONS = [
-  'You are Tamery AI, an assistant built into the Tamery database client.',
-  'Help the user with their databases: SQL, schema design, data questions, and anything else they ask.',
-  'Be concise. Use fenced code blocks with a language tag for SQL and code.',
-].join('\n')
 
 const SUBAGENT_INSTRUCTION =
   'You are a subagent: another agent gave you one task and sees only your final message. Do the task with your tools, then end with a complete, concise report of what you found or changed, with the exact numbers and names. Ask the user nothing; if the task cannot be done, say why in the report.'
@@ -122,17 +115,6 @@ const fitContext = (messages: AppUIMessage[], budget: number) => {
   return messages.slice(firstUser === -1 ? start : firstUser)
 }
 
-// A provider refuses tool calls in the transcript of a request that offers no tools.
-const withoutToolCalls = (messages: AppUIMessage[]) =>
-  messages
-    .map((message) => ({
-      ...message,
-      parts: message.parts.filter((part) => !isToolUIPart(part)),
-    }))
-    .filter((message) =>
-      message.parts.some((part) => part.type !== 'step-start')
-    )
-
 export const toModelMessages = (messages: AppUIMessage[]) =>
   convertToModelMessages<AppUIMessage>(messages, {
     convertDataPart: (part) => ({ text: dataPartText(part), type: 'text' }),
@@ -148,8 +130,6 @@ const PROMPT_CACHE = {
 
 export interface ChatStepInput {
   abortSignal?: AbortSignal
-  /** The client answers tool calls. Installed desktop apps (v0.99.6) cannot, so without it the chat runs with no tools: a tool call would leave their answer spinning. */
-  agent: boolean
   auto?: boolean
   /** The transcript is cut to this many tokens, oldest turns first; the model's full window when unset. */
   contextTokens?: number
@@ -171,20 +151,13 @@ export interface ChatStepInput {
 
 const stepInstructions = (data: ChatStepInput, capped: boolean) =>
   [
-    data.agent ? chatInstructions(data.connection) : ASSISTANT_INSTRUCTIONS,
+    chatInstructions(data.connection),
     data.isSubagent && SUBAGENT_INSTRUCTION,
     data.summary && section('EARLIER IN THIS CHAT, SUMMARIZED', data.summary),
     capped && CAPPED_INSTRUCTION,
   ]
     .filter(Boolean)
     .join('\n')
-
-const stepTranscript = (data: ChatStepInput) => {
-  const history = data.contextTokens
-    ? fitContext(data.messages, data.contextTokens)
-    : data.messages
-  return data.agent ? history : withoutToolCalls(history)
-}
 
 /** One model step of the chat agent as a UI message stream: the instructions, tools and turn limits every caller (the API, the eval) runs. A step that calls tools ends the stream; the caller answers them and sends the turn back. */
 export const streamChatStep = async (data: ChatStepInput) => {
@@ -210,7 +183,11 @@ export const streamChatStep = async (data: ChatStepInput) => {
       providerOptions: PROMPT_CACHE,
       role: 'system',
     },
-    messages: await toModelMessages(stepTranscript(data)),
+    messages: await toModelMessages(
+      data.contextTokens
+        ? fitContext(data.messages, data.contextTokens)
+        : data.messages
+    ),
     model: chatModelFor(
       model,
       { auto: data.auto ?? false, fast: data.fast ?? false },
@@ -225,7 +202,7 @@ export const streamChatStep = async (data: ChatStepInput) => {
     reasoning: effort,
     telemetry: data.telemetry,
     toolChoice: capped ? 'none' : 'auto',
-    tools: data.agent ? tools : undefined,
+    tools,
   })
 
   return toUIMessageStream({

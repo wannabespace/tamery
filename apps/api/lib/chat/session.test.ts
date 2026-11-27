@@ -1,15 +1,18 @@
 import { expect, mock, test } from 'bun:test'
 
 const findFirst = mock()
+const insert = mock(() => ({
+  values: () => ({
+    onConflictDoNothing: () => ({
+      returning: () => Promise.resolve([]),
+    }),
+  }),
+}))
+let deletedCopies = 0
 mock.module('@tamery/db', () => ({
   db: {
-    insert: () => ({
-      values: () => ({
-        onConflictDoNothing: () => ({
-          returning: () => Promise.resolve([]),
-        }),
-      }),
-    }),
+    $count: () => Promise.resolve(deletedCopies),
+    insert,
     query: {
       chats: { findFirst },
       connectionsResources: {
@@ -23,6 +26,8 @@ mock.module('@tamery/db', () => ({
 }))
 mock.module('@tamery/db/schema', () => ({
   chats: {},
+  copies: { of: () => null },
+  deletedRecords: {},
   schemaNotes: {},
 }))
 mock.module('~/lib/workspace', () => ({ inMemberWorkspace: () => null }))
@@ -62,4 +67,16 @@ test('a concurrent insert for the same chat returns the stored metadata', async 
     isSubagent: true,
     title: 'Stored title',
   })
+})
+
+test('the id of a deleted chat is never taken again', async () => {
+  findFirst.mockResolvedValue(undefined)
+  insert.mockClear()
+  deletedCopies = 1
+
+  await expect(chatSession.ensureChat(session)).rejects.toMatchObject({
+    code: 'NOT_FOUND',
+  })
+  expect(insert).not.toHaveBeenCalled()
+  deletedCopies = 0
 })
