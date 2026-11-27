@@ -29,7 +29,7 @@ import { createPrivateStore } from './private-store'
 const KEY_BYTES = 32
 
 const store = createPrivateStore<{
-  /** The account the machine runs for: an address save from a window of another account is refused. */
+  /** The account the machine runs for, recorded by sign-in or Turn on: only it can change the address. */
   accountId?: string
   enabled: boolean
   /** What a tunnel on this computer serves the machine at, as `tamery machine --public-url`. */
@@ -282,11 +282,9 @@ export const machineHost = {
       )
     }
     return inTurn(async () => {
-      assertSignedIn(account)
-      const runsFor = store.get('accountId')
-      if (runsFor && runsFor !== account.id) {
+      if (account.id !== store.get('accountId')) {
         throw new Error(
-          'This computer’s machine runs for another account. Sign in as it to change the address.'
+          'Sign in as the account this computer’s machine runs for to change its address.'
         )
       }
       store.set('publicUrl', parsed?.origin ?? null)
