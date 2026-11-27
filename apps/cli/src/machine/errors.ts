@@ -20,7 +20,7 @@ export const queryErrors = {
   },
   UNKNOWN_HOST_KEY: {
     data: machineHostKey,
-    message: `${SSH_TUNNEL_ERROR}The machine's computer doesn't know this SSH host's key. Trust it when Tamery asks (update Tamery if it doesn't), or connect to it once with ssh on that computer.`,
+    message: `${SSH_TUNNEL_ERROR}The machine's computer doesn't know this SSH host's key. Trust it when Tamery asks, or connect to it once with ssh on that computer.`,
   },
 }
 

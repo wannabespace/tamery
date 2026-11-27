@@ -27,7 +27,7 @@ Object.defineProperty(globalThis.navigator, 'onLine', {
   get: () => network.online,
 })
 
-const { diagnosisQueryOptions, reportConnectionFailure } =
+const { diagnoseProxyFailure, diagnosisQueryOptions, reportConnectionFailure } =
   await import('./diagnosis')
 const { failedAttempt } = await import('~/lib/failed-attempt')
 const { queryClient } = await import('~/lib/query-client')
@@ -96,6 +96,16 @@ test.each([
   expect(JSON.stringify(diagnosis)).not.toContain(SECRET)
 })
 
+test('diagnoses a failure whose words include the saved password', async () => {
+  stored.connectionString = 'postgres://me:authentication@db.acme.io/app'
+  const diagnosis = await diagnose(
+    new Error('password authentication failed for user "me"')
+  )
+
+  expect(diagnosis?.title).toBe('Wrong user or password')
+  expect(JSON.stringify(diagnosis)).not.toContain('authentication')
+})
+
 test("never shows another attempt's diagnosis while a new one loads", async () => {
   const previous = new Error(SSL_REQUIRED)
   await diagnose(previous)
@@ -151,4 +161,17 @@ test('a rejection that is not an Error keeps its reason', async () => {
       .build(queryClient, { mutationFn: () => Promise.reject('y') })
       .execute(undefined)
   ).rejects.toBe('y')
+})
+
+test('titles a cloud proxy failure by the network it failed on', () => {
+  network.online = false
+  const error = new Error(PROXY_ERROR_MESSAGE)
+  failedAttempt(error)
+
+  expect(diagnoseProxyFailure(error, false)?.title).toBe("You're offline")
+  expect(diagnoseProxyFailure(error, true)?.title).toBe(
+    'This failed while you were offline'
+  )
+  network.online = true
+  expect(diagnoseProxyFailure(new Error(PROXY_ERROR_MESSAGE), true)).toBeNull()
 })

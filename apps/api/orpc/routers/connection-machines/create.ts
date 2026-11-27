@@ -19,7 +19,13 @@ export const create = orpc
   .input(
     connectionMachinesInsertSchema
       .omit('userId', 'createdAt', 'updatedAt')
-      .merge(type({ machineId: machineIdSchema.and('string.uuid').or('null') }))
+      .merge(
+        type({
+          machineId: machineIdSchema
+            .and('string.uuid')
+            .or(type.unit(TAMERY_CLOUD)),
+        })
+      )
   )
   .errors({
     NOT_FOUND: { message: 'Connection or machine not found' },
