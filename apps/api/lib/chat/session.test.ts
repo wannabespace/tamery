@@ -28,7 +28,7 @@ mock.module('@tamery/db/schema', () => ({
 mock.module('~/lib/workspace', () => ({ inMemberWorkspace: () => null }))
 mock.module('~/orpc/routers/chats/events', () => ({ publisher: {} }))
 
-const { chatSession } = await import('./chat-session')
+const { chatSession } = await import('./session')
 
 const session = {
   chatId: 'chat',
