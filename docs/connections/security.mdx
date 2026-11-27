@@ -64,7 +64,7 @@ The chat acts as you: it can read every connection in your active workspace, and
 
 Schema notes are stored encrypted on our servers and sent with AI requests about their database.
 
-Files attached to a chat are stored in a private bucket. The model provider fetches them through a link only Tamery can sign, which has no expiry and stops working once the file or its chat is deleted. Only the files of your last three messages are sent; older ones are named, not sent again. A large image goes to the model scaled down, and a PDF with a text layer as its text, while you keep the file as you attached it.
+Files attached to a chat are stored in a private bucket. The model provider fetches them through a link only Tamery can sign. The link expires within three weeks, and it stops working sooner once you edit the message out of the chat or delete the chat. A copy the provider already fetched is subject to its own retention. Every file of your latest message is sent, and those of the two messages before it while they fit 10 MB. Older ones are named, not sent again. A large image goes to the model scaled down, and a PDF with a text layer goes as its text, marked as a file's content and never as your request, while you keep the file as you attached it.
 
 What the chat and MCP agents read from your databases (rows, names, comments) reaches the model marked as data, never as instructions, so a row that says "drop this table" is reported, not followed. A change still needs your **Run** in the chat, or the access you granted over MCP.
 

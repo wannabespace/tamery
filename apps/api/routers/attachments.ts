@@ -1,22 +1,29 @@
 import { db } from '@tamery/db'
+import { attachmentRef } from '@tamery/shared/attachments'
 import { Hono } from 'hono'
 
-import { attachments } from '~/lib/attachments'
+import { attachments } from '~/lib/chat/attachments'
 
-/** Public: the link a model provider fetches a chat file from (`attachmentLink`). The signature is the only check, so it never expires, and a deleted chat or file answers 404. */
+/** Public: the link a model provider fetches a chat file from (`attachmentLink`). The signature is the only credential, so the link expires, and it answers 404 once its file is no longer in a message of the chat. */
 export const attachmentsRouter = new Hono().get('/:chatId/:file', async (c) => {
   const ref = {
     chatId: c.req.param('chatId'),
     id: c.req.param('file').split('.')[0] ?? '',
   }
-  const file = await attachments.linked(ref, c.req.query('sig') ?? '')
-  const chat =
-    file &&
-    (await db.query.chats.findFirst({
-      columns: { id: true },
-      where: { id: { eq: ref.chatId } },
-    }))
-  if (!file || !chat) {
+  if (!attachments.isSigned(ref, c.req.query('expires'), c.req.query('sig'))) {
+    return c.notFound()
+  }
+  const asked = await db.query.chatsMessages.findMany({
+    columns: { id: true },
+    where: { chatId: { eq: ref.chatId }, role: { eq: 'user' } },
+    with: { parts: { columns: { part: true } } },
+  })
+  const url = attachmentRef(ref)
+  const isInChat = asked.some(({ parts }) =>
+    parts.some(({ part }) => part.type === 'file' && part.url === url)
+  )
+  const file = isInChat && (await attachments.linked(ref))
+  if (!file) {
     return c.notFound()
   }
   return c.body(file.bytes, 200, {

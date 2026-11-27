@@ -160,13 +160,14 @@ export const stream = orpc
     }
     const contextTokens = resolveChatContext(pick.model, input.context)
     const telemetry = payer.telemetry(scope)
+    const sent = await attachments.forModel(history)
     const stored = await chatCompaction.get(input.chatId)
     const compaction =
       turn.role === 'user' &&
-      needsCompaction(afterCompaction(history, stored), contextTokens)
+      needsCompaction(afterCompaction(sent, stored), contextTokens)
         ? await chatCompaction.compact({
             chatId: input.chatId,
-            history,
+            history: sent,
             key: payer.key,
             previous: stored,
             telemetry,
@@ -179,7 +180,7 @@ export const stream = orpc
       agent: input.agent ?? false,
       chatId: input.chatId,
       connection,
-      messages: afterCompaction(history, compaction),
+      messages: afterCompaction(sent, compaction),
       contextTokens,
       fast: input.fast,
       isSubagent,

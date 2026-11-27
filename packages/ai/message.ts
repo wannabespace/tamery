@@ -46,6 +46,10 @@ export const textFromMessage = (message: Pick<AppUIMessage, 'parts'>) =>
 export const isSqlRun = (message: Pick<AppUIMessage, 'parts'>) =>
   message.parts.some((part) => part.type === 'data-sql')
 
+/** What the chat's Continue sends after an answer stops at its step limit, which carries nothing the user wrote. Sync with that button's message. */
+export const isContinue = (message: Pick<AppUIMessage, 'parts'>) =>
+  message.parts.length === 1 && textFromMessage(message) === 'Continue'
+
 interface MessagePartRow {
   order: number
   part: AppMessagePart

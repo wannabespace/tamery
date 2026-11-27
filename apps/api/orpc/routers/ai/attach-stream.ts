@@ -10,6 +10,7 @@ import { db } from '@tamery/db'
 import { type } from 'arktype'
 
 import { payForAi } from '~/lib/ai-key'
+import { attachments } from '~/lib/chat/attachments'
 import { chatCompaction } from '~/lib/chat/compaction'
 import { chatPersist } from '~/lib/chat/persist'
 import { chatSession } from '~/lib/chat/session'
@@ -88,7 +89,10 @@ export const attachStream = orpc
         connectionResourceId: owned.connectionResourceId,
         userId: context.user.id,
       }),
-      messages: afterCompaction(messages, compaction),
+      messages: afterCompaction(
+        await attachments.forModel(messages),
+        compaction
+      ),
       contextTokens: resolveChatContext(pick.model, input.context),
       fast: input.fast,
       isSubagent: !!owned.parentChatId,
