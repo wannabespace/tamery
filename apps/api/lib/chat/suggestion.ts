@@ -1,9 +1,9 @@
 import { generateNextPrompt } from '@tamery/ai/features'
 import type { AppUIMessage } from '@tamery/ai/message'
+import { logProviderError } from '@tamery/ai/provider-error'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { chatsMessages } from '@tamery/db/schema'
-import { silently } from '@tamery/shared/utils'
 import { and, eq } from 'drizzle-orm'
 
 import type { AiPayer } from '~/lib/ai-key'
@@ -16,7 +16,7 @@ export const persistChatSuggestion = async (data: {
   payer: AiPayer
   userId: string
 }) => {
-  await silently(async () => {
+  try {
     const suggestion = await generateNextPrompt({
       key: data.payer.key,
       messages: [...data.history, data.message],
@@ -57,5 +57,7 @@ export const persistChatSuggestion = async (data: {
         value: updated,
       })
     }
-  })
+  } catch (error) {
+    logProviderError(`chat suggestion ${data.chatId}`, error)
+  }
 }
