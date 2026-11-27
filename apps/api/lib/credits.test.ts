@@ -170,6 +170,18 @@ test('a refund and a dispute take back each share once', async () => {
   expect(await balance()).toBeCloseTo(0, 8)
 })
 
+test('a reversal before its top-up waits for it, and a won dispute gives back the rest', async () => {
+  expect(await credits.reverse('pi_early', 1)).toBe(false)
+
+  await topUp('pi_disputed', 10)
+  await credits.reverse('pi_disputed', 0.25)
+  await credits.reverse('pi_disputed', 1)
+  expect(await balance()).toBeCloseTo(0, 8)
+
+  expect(await credits.reverse('pi_disputed', 0.25, true)).toBe(true)
+  expect(await balance()).toBeCloseTo(7.5, 8)
+})
+
 test('auto top-up charges one attempt at a time and only its own payment ends it', async () => {
   await topUp('pi_first', 6)
   await credits.setAutoTopUp(userId, {

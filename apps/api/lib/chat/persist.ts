@@ -99,11 +99,20 @@ export const chatPersist = {
     return attachments.inline(messagesFromPartRows(rows))
   },
   /** Flags the turn's question, never its answer: the answer's row is still being written and its next persist would replace the flag. */
-  markStopped: async (data: { chatId: string; userId: string }) => {
+  /** Flags `messageId`, else the chat's last user turn, as stopped. */
+  markStopped: async (data: {
+    chatId: string
+    messageId?: string
+    userId: string
+  }) => {
     const lastAsked = await db.query.chatsMessages.findFirst({
       columns: { id: true, metadata: true },
       orderBy: { createdAt: 'desc' },
-      where: { chatId: { eq: data.chatId }, role: { eq: 'user' } },
+      where: {
+        chatId: { eq: data.chatId },
+        id: data.messageId ? { eq: data.messageId } : undefined,
+        role: { eq: 'user' },
+      },
     })
 
     if (!lastAsked) {
