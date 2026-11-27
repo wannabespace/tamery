@@ -59,32 +59,26 @@ const SSH_CATEGORIES: [RegExp, string][] = [
   ],
 ]
 const SSH_FAILURE = tunnelFailure('SSH connection failed')
-// The redaction writes a placeholder over any word equal to a form value, `database` included.
-const NAMED = '(?:"[^"]*"|\'[^\']*\')'
-const WORD = '(?:database|<\\S*>)'
+// Drivers quote every name they echo; masking those keeps a name from reading as a form, and no name can rewrite one.
+const QUOTED_NAME = /"(?:[^"]|"")*"|(?<!\w)'(?:[^']|'')*'/gu
 // The forms `diagnose.ts` tells apart, most specific first: a TLS or permission failure also reads as an address or sign-in one.
 const DATABASE_CATEGORIES: [RegExp, string][] = [
   [
-    new RegExp(
-      `access denied for user .+ to ${WORD}|permission denied for ${WORD}|does not have connect privilege|ora-01045`,
-      'iu'
-    ),
+    /access denied for user .+ to database|permission denied for database|does not have connect privilege|ora-01045/iu,
     "Database user can't open that database",
   ],
+  [/role "" does not exist/iu, 'Database user does not exist'],
   [
-    new RegExp(`role ${NAMED} does not exist`, 'iu'),
-    'Database user does not exist',
-  ],
-  [
-    new RegExp(
-      `cannot open database|${WORD} ${NAMED} does not exist|unknown database|unknown_database`,
-      'iu'
-    ),
+    /cannot open database|database "" does not exist|unknown database|unknown_database/iu,
     'Database does not exist',
   ],
   [
-    /no pg_hba\.conf entry.*(?:no encryption|ssl off)|ssl connection is required|requires? (?:an )?ssl|insecure transport are prohibited|ssl required|authentication requires secure connection/iu,
+    /no pg_hba\.conf entry.*(?:no encryption|ssl off)|ssl connection is required|requires? (?:an )?ssl|insecure transport are prohibited|ssl required|authentication requires secure connection|sslmode value \S+ invalid/iu,
     'Database requires SSL',
+  ],
+  [
+    /does not support ssl|ssl is not enabled on the server|wrong[ _]version[ _]number|handshake_ssl_error|ssl3_get_record|before secure tls connection was established/iu,
+    "Database doesn't support SSL",
   ],
   [
     /self[- ]signed certificate|unable to verify the first certificate|unable to get (?:local )?issuer certificate|certificate has expired|hostname\/ip does not match|altnames|depth_zero_self_signed/iu,
@@ -108,7 +102,7 @@ const DATABASE_CATEGORIES: [RegExp, string][] = [
     'Database sign-in failed',
   ],
   [
-    /too many clients|too many connections|remaining connection slots|connection limit exceeded/iu,
+    /too many clients|too many connections|remaining connection slots|connection limit exceeded|too_many_connections|max_connections|max client connections reached/iu,
     'Database has too many connections',
   ],
   [/permission denied/iu, 'Database permission denied'],
@@ -141,20 +135,20 @@ export const SSH_ON_ERRORS = new Set([
 
 /**
  * With a tunnel on, an error can name the host `~/.ssh/config` resolved however it reads, so the AI gets only the
- * category its form points to: the SSH envelope in the driver's own text, or the database form in the redacted one,
- * where a name the form holds is a placeholder.
+ * category its form points to, read once the names in the text are masked: the SSH envelope, or the database form.
  */
-const toCategory = (message: string, redacted: string) => {
-  const envelope = message.search(SSH_ENVELOPE)
+const toCategory = (message: string) => {
+  const unquoted = message.replaceAll(QUOTED_NAME, '""')
+  const envelope = unquoted.search(SSH_ENVELOPE)
   if (envelope !== -1) {
-    const failure = message.slice(envelope)
+    const failure = unquoted.slice(envelope)
     return (
       SSH_CATEGORIES.find(([pattern]) => pattern.test(failure))?.[1] ??
       SSH_FAILURE
     )
   }
   return (
-    DATABASE_CATEGORIES.find(([pattern]) => pattern.test(redacted))?.[1] ??
+    DATABASE_CATEGORIES.find(([pattern]) => pattern.test(unquoted))?.[1] ??
     CONNECTION_FAILURE
   )
 }
@@ -222,7 +216,7 @@ export const getDiagnosisRequest = ({
     .replaceAll(ANY_IPV4, '<ip>')
     .replaceAll(ANY_IPV6, '<ip>')
   return {
-    error: parts.ssh ? toCategory(message, error) : error,
+    error: parts.ssh ? toCategory(message) : error,
     hostKind: [
       getHostHint(parts.host)?.label,
       HOST_KIND_LABELS[getHostKind(parts.host)],

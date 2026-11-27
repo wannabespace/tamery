@@ -164,6 +164,14 @@ describe('getDiagnosisRequest', () => {
       'permission denied for database "docker_tunnel"',
       "Database user can't open that database",
     ],
+    [
+      'The server does not support SSL connections',
+      "Database doesn't support SSL",
+    ],
+    [
+      'FATAL: Max client connections reached',
+      'Database has too many connections',
+    ],
   ])(
     'sends the driver error %s of a tunneled connection as %s',
     (message, error) => {
@@ -184,11 +192,32 @@ describe('getDiagnosisRequest', () => {
       { user: 'tunnel_reader' },
       'Database sign-in failed',
     ],
+    [
+      'database "docker_app" does not exist',
+      {
+        database: 'docker_app',
+        ssh: { ...EMPTY_SSH_TUNNEL, host: 'docker_app' },
+      },
+      'Database does not exist',
+    ],
+    [
+      'role "tunnel_reader" does not exist',
+      {
+        ssh: { ...EMPTY_SSH_TUNNEL, host: 'tunnel_reader' },
+        user: 'tunnel_reader',
+      },
+      'Database user does not exist',
+    ],
+    [
+      'no pg_hba.conf entry for host "203.0.113.7", user "encryption", database "app", no encryption',
+      { user: 'encryption' },
+      'Database requires SSL',
+    ],
   ])(
     'blames the database for %s, whatever its names say',
     (message, overrides, error) => {
       expect(
-        request(message, { ...overrides, ssh: EMPTY_SSH_TUNNEL }).error
+        request(message, { ssh: EMPTY_SSH_TUNNEL, ...overrides }).error
       ).toBe(error)
     }
   )
