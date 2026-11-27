@@ -34,6 +34,7 @@ const RULES: Omit<DiagnosisRule, 'engine'>[] = [
     // Also reads the socket code some builds put after it; `d1.ts` sends the bare form, because an older app blames the fixed host for that code.
     match: /^fetch failed(?:: [A-Z_]+)?$/iu,
     offline: 'host',
+    providers: [Provider.CloudflareD1, Provider.Turso],
   },
   {
     diagnose: () => ({

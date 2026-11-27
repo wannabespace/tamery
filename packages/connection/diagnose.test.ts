@@ -504,6 +504,16 @@ describe('diagnoseConnectionError', () => {
       )
     })
 
+    it("never reads a SQLite file's own error as a network failure", () => {
+      expect(
+        diagnose('Fetch failed', {
+          database: '/data/app.db',
+          provider: null,
+          type: ConnectionType.SQLite,
+        })
+      ).toBeNull()
+    })
+
     it('asks to start a local libSQL server instead of checking the internet', () => {
       expect(
         diagnose(

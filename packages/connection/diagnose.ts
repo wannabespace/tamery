@@ -368,8 +368,11 @@ export const diagnoseConnectionError = (
 ): Diagnosis | null => {
   const { message, online, parts } = context
   const rule = RULES.find(
-    ({ engine, match }) =>
-      (!engine || engine === parts.type) && match.test(message)
+    ({ engine, match, providers }) =>
+      (!engine || engine === parts.type) &&
+      (!providers ||
+        (!!parts.provider && providers.includes(parts.provider))) &&
+      match.test(message)
   )
   if (!rule) {
     return null
