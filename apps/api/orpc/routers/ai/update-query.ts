@@ -1,13 +1,10 @@
 import { updateQuery as runUpdateQuery } from '@tamery/ai/features'
 import { AI_QUERY_LIMITS } from '@tamery/ai/limits'
 import { AiFeature } from '@tamery/ai/usage'
-import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
-import { credits } from '~/lib/credits'
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { orpc, paidAiMiddleware, permissionsMiddleware, permix } from '~/orpc'
 
 export const updateQuery = orpc
   .use(permissionsMiddleware)
@@ -30,14 +27,9 @@ export const updateQuery = orpc
       type: type.valueOf(ConnectionType),
     })
   )
-  .errors({
-    TOO_MANY_REQUESTS: { message: AI_BUDGET_SPENT_MESSAGE },
-  })
-  .handler(async ({ context, errors, input, signal }) => {
-    if (!(await credits.canUseAi(context.user.id))) {
-      throw errors.TOO_MANY_REQUESTS()
-    }
-    return runUpdateQuery({
+  .use(paidAiMiddleware)
+  .handler(({ context, input, signal }) =>
+    runUpdateQuery({
       connectionType: input.type,
       context: input.context,
       editor: input.editor,
@@ -45,10 +37,9 @@ export const updateQuery = orpc
       prompt: input.prompt,
       signal,
       query: input.query,
-      telemetry: aiUsage.telemetry({
+      telemetry: context.payer.telemetry({
         feature: AiFeature.UpdateQuery,
-        ownKey: false,
         userId: context.user.id,
       }),
     })
-  })
+  )

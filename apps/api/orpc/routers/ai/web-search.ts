@@ -1,18 +1,17 @@
 import { searchWeb } from '@tamery/ai/features'
+import { logProviderError } from '@tamery/ai/provider-error'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { chats } from '@tamery/db/schema'
-import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { type } from 'arktype'
 import { and, eq } from 'drizzle-orm'
 
-import { payForAi } from '~/lib/ai-key'
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { aiPermissionsMiddleware, orpc, paidAiMiddleware, permix } from '~/orpc'
 
 const QUERY_LIMIT = 500
 
 export const webSearch = orpc
-  .use(permissionsMiddleware)
+  .use(aiPermissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
   .input(
     type({
@@ -21,9 +20,10 @@ export const webSearch = orpc
     })
   )
   .errors({
+    INTERNAL_SERVER_ERROR: { message: 'The web search failed. Try again.' },
     NOT_FOUND: { message: 'Chat not found.' },
-    TOO_MANY_REQUESTS: { message: AI_BUDGET_SPENT_MESSAGE },
   })
+  .use(paidAiMiddleware)
   .handler(async ({ context, errors, input, signal }) => {
     // The search is billed to this chat's cost and workspace, so it must be the user's own.
     const [chat] = await db
@@ -33,18 +33,19 @@ export const webSearch = orpc
     if (!chat) {
       throw errors.NOT_FOUND()
     }
-    const { key, telemetry } = await payForAi(
-      context.user.id,
-      errors.TOO_MANY_REQUESTS
-    )
-    return searchWeb({
-      key,
-      query: input.query,
-      signal,
-      telemetry: telemetry({
-        chatId: input.chatId,
-        feature: AiFeature.WebSearch,
-        userId: context.user.id,
-      }),
-    })
+    try {
+      return await searchWeb({
+        key: context.payer.key,
+        query: input.query,
+        signal,
+        telemetry: context.payer.telemetry({
+          chatId: input.chatId,
+          feature: AiFeature.WebSearch,
+          userId: context.user.id,
+        }),
+      })
+    } catch (error) {
+      logProviderError('web search', error)
+      throw errors.INTERNAL_SERVER_ERROR()
+    }
   })

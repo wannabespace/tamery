@@ -34,10 +34,9 @@ const HI: AppUIMessage = {
   role: 'user',
 }
 
-const send = async (agent: boolean, messages: AppUIMessage[] = [HI]) => {
+const send = async (messages: AppUIMessage[] = [HI]) => {
   calls.length = 0
   const stream = await streamChatStep({
-    agent,
     connection: {
       id: 'c',
       name: 'db',
@@ -85,28 +84,13 @@ const NEXT: AppUIMessage = {
 }
 
 describe('chat step', () => {
-  test('a client that answers tool calls gets the tools', async () => {
-    const { tools } = await send(true)
+  test('every step gets the tools the window answers', async () => {
+    const { tools } = await send()
     expect(tools).toContain('execute')
   })
 
-  test('an installed desktop app that cannot answer them gets none', async () => {
-    const { tools } = await send(false)
-    expect(tools).toEqual([])
-  })
-
-  test('an installed desktop app continuing a chat with finished tool calls sends none of them', async () => {
-    const { contentTypes, tools } = await send(false, [
-      HI,
-      answeredWithTools,
-      NEXT,
-    ])
-    expect(tools).toEqual([])
-    expect(contentTypes).toEqual(['system', 'user:text', 'user:text'])
-  })
-
-  test('a client that answers tool calls keeps them in the transcript', async () => {
-    const { contentTypes } = await send(true, [HI, answeredWithTools, NEXT])
+  test('finished tool calls stay in the transcript', async () => {
+    const { contentTypes } = await send([HI, answeredWithTools, NEXT])
     expect(contentTypes).toContain('assistant:tool-call')
   })
 })

@@ -3,7 +3,7 @@ import { chats, chatsMessages } from '@tamery/db/schema'
 import { type } from 'arktype'
 import { and, eq, inArray, or } from 'drizzle-orm'
 
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { orpc, aiPermissionsMiddleware, permix } from '~/orpc'
 
 import { publisher } from './events'
 
@@ -13,7 +13,7 @@ const removeInput = type({
 })
 
 export const remove = orpc
-  .use(permissionsMiddleware)
+  .use(aiPermissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
   .input(
     type

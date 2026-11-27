@@ -3,8 +3,8 @@
   "type": "module",
   "scripts": {
     "check-types": "bun check",
-    "economics": "bun run economics.ts",
-    "test": "bun test"
+    "economics": "bun run scripts/economics.ts",
+    "test": "bun test --isolate"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "catalog:",
@@ -17,7 +17,6 @@
     "ai-resumable-stream": "catalog:",
     "ai-retry": "catalog:",
     "arktype": "catalog:",
-    "entities": "catalog:",
     "memoza": "catalog:",
     "redis": "catalog:",
     "uuid": "catalog:"
