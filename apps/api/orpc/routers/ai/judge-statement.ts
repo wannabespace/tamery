@@ -4,7 +4,7 @@ import { AiFeature } from '@tamery/ai/usage'
 import { type } from 'arktype'
 
 import { aiKey, getAiPayer } from '~/lib/ai-key'
-import { chatPersist } from '~/lib/chat-persist'
+import { chatPersist } from '~/lib/chat/persist'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 const REQUEST_LIMIT = 4000
