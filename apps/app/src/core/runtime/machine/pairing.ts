@@ -40,26 +40,20 @@ export const machinePairings = createWebStorageValue({
   type: 'localStorage',
 })
 
-/** While starting, the status settles within a second or two. */
-const STARTING_POLL_MS = 1000
-/** Once on, the process can still die, and main has no way to tell an open window. */
-const ON_POLL_MS = 5000
-
 /**
- * Desktop only: main's state of this computer's own machine. Kept for the session, never collected: its id routes a
- * connection on it here, never over HTTP to itself. Never starts the machine: sign-out drops this query while the session
- * still lives, so a mounted observer's refetch would start it again for the account leaving.
+ * Desktop only: main's state of this computer's own machine, which main sends to every window on each change. Kept for the
+ * session, never collected: its id routes a connection on it here, never over HTTP to itself. Never starts the machine:
+ * sign-out drops this query while the session still lives, so a mounted observer's refetch would start it again for the
+ * account leaving.
  */
 export const thisMachineQuery = queryOptions({
   gcTime: Infinity,
   queryFn: async () => (await window.electron?.machine.status()) ?? null,
   queryKey: ['this-machine'],
-  refetchInterval: ({ state: { data } }) => {
-    if (data?.status === 'starting') {
-      return STARTING_POLL_MS
-    }
-    return data?.status === 'on' ? ON_POLL_MS : false
-  },
+})
+
+window.electron?.machine.onStatus((status) => {
+  queryClient.setQueryData(thisMachineQuery.queryKey, status)
 })
 
 export const getThisMachineId = () =>

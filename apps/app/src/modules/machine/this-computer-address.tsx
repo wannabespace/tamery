@@ -15,7 +15,7 @@ export const ThisComputerAddress = () => {
   const { error, mutate } = useMutation({
     meta: { event: 'machine_address_saved' },
     mutationFn: (address: string) =>
-      machine.startThisComputer(address.trim() || null),
+      machine.saveThisComputerAddress(address.trim() || null),
   })
 
   if (status?.status !== 'on' && !status?.publicUrl) {

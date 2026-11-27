@@ -170,6 +170,12 @@ const getThisComputerAccount = async () => {
     : null
 }
 
+/** Sign-out moves main to a new session, so a request this window sent for the account that left is refused. */
+const getThisComputerSession = async () => {
+  const status = await queryClient.ensureQueryData(thisMachineQuery)
+  return status?.session ?? 0
+}
+
 export const machine = {
   client: getPairedClient,
   /** Throws when the machine kept nothing: it restarted since finding the database, or `found` is not on its computer or not the saved string's server. */
@@ -263,35 +269,41 @@ export const machine = {
   unpair,
   unpairAll: () =>
     Promise.all(Object.values(machinePairings.get()).map(unpair)),
-  /** Restarts it when it already runs; one the user turned off only keeps the address. A guest has no other device to serve. */
-  startThisComputer: async (publicUrl: string | null) => {
+  /** On sign-in, unless the user turned it off. A guest has no other device to serve. */
+  startThisComputer: async () => {
     const account = await getThisComputerAccount()
-    if (!window.electron || !account) {
-      return
+    if (window.electron && account) {
+      await window.electron.machine.enable({
+        account,
+        session: await getThisComputerSession(),
+      })
     }
-    queryClient.setQueryData(
-      thisMachineQuery.queryKey,
-      await window.electron.machine.enable({ account, publicUrl })
-    )
+  },
+  /** Restarts it when it runs; one the user turned off only keeps the address. */
+  saveThisComputerAddress: async (publicUrl: string | null) => {
+    await window.electron?.machine.setPublicUrl({
+      publicUrl,
+      session: await getThisComputerSession(),
+    })
   },
   turnThisComputerOn: async () => {
     const account = await getThisComputerAccount()
     if (!window.electron || !account) {
       throw new Error('Sign in to use this computer from your other devices.')
     }
-    const status = await window.electron.machine.turnOn(account)
-    queryClient.setQueryData(thisMachineQuery.queryKey, status)
+    const status = await window.electron.machine.turnOn({
+      account,
+      session: await getThisComputerSession(),
+    })
     if (status.status === 'failed') {
       throw new Error(status.message)
     }
+    if (status.status !== 'on') {
+      throw new Error('This computer’s machine stopped before it started.')
+    }
   },
   turnThisComputerOff: async () => {
-    if (window.electron) {
-      queryClient.setQueryData(
-        thisMachineQuery.queryKey,
-        await window.electron.machine.turnOff()
-      )
-    }
+    await window.electron?.machine.turnOff()
   },
   /** On sign-out or a guest's upgrade: this desktop's machine leaves the account with it, and forgets the browsers it allowed. */
   forgetThisComputer: async () => {

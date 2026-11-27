@@ -14,6 +14,7 @@
     "build": "vite build && bun ./scripts/copy-renderer.ts",
     "build:todesktop": "todesktop build",
     "check-types": "bun check",
+    "test": "bun test",
     "todesktop:afterPack": "./scripts/todesktop-after-pack.cjs",
     "todesktop:beforeInstall": "./scripts/todesktop-before-install.cjs"
   },
