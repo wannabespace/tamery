@@ -20,18 +20,25 @@ import {
 import { skipToken, useQuery } from '@tanstack/react-query'
 import type { FileUIPart } from 'ai'
 import { useInView } from 'motion/react'
+import type { RefObject } from 'react'
 import { useRef, useState } from 'react'
 
 import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 
+const FETCH_STATE = {
+  error: 'error',
+  pending: 'processing',
+  success: 'done',
+} as const
+
 const base64Bytes = (url: string) =>
   Math.floor(((url.length - url.indexOf(',') - 1) * 3) / 4)
 
-/** A file stored in the attachments bucket is fetched once per session, once `isInView`; a data URL is the file itself. */
-const useFile = (url: string, isInView: boolean) => {
+const useFile = (url: string, chip: RefObject<HTMLDivElement | null>) => {
   const ref = parseAttachmentRef(url)
-  const { data } = useQuery({
+  const isInView = useInView(chip, { once: true })
+  const { data, status } = useQuery({
     // An object URL is never revoked, so the query must outlive every chip showing it.
     gcTime: Infinity,
     queryFn:
@@ -44,7 +51,7 @@ const useFile = (url: string, isInView: boolean) => {
     queryKey: ['chat-attachment', url],
     staleTime: Infinity,
   })
-  return ref ? data : { size: base64Bytes(url), url }
+  return { file: ref ? data : { size: base64Bytes(url), url }, status }
 }
 
 export const AttachmentChip = ({
@@ -58,7 +65,7 @@ export const AttachmentChip = ({
 }) => {
   const [isViewing, setIsViewing] = useState(false)
   const chip = useRef<HTMLDivElement>(null)
-  const file = useFile(part.url, useInView(chip, { once: true }))
+  const { file, status } = useFile(part.url, chip)
   const isImage = part.mediaType.startsWith('image/')
   const open = () => {
     posthog.capture('ai_chat_attachment_opened', {
@@ -81,6 +88,7 @@ export const AttachmentChip = ({
   return (
     <Attachment
       ref={chip}
+      state={file ? 'done' : FETCH_STATE[status]}
       orientation={orientation}
       size={orientation === 'vertical' ? 'default' : 'xs'}
       className="max-w-52"
