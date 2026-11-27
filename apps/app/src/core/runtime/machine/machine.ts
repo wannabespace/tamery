@@ -22,7 +22,6 @@ import {
   getThisMachineId,
   machineAsks,
   machinePairings,
-  thisMachineQuery,
 } from './pairing'
 import { ensureConnected, forget, statusQueryOptions, toStatus } from './status'
 
@@ -170,12 +169,6 @@ const getThisComputerAccount = async () => {
     : null
 }
 
-/** Sign-out moves main to a new session, so a request this window sent for the account that left is refused. */
-const getThisComputerSession = async () => {
-  const status = await queryClient.ensureQueryData(thisMachineQuery)
-  return status?.session ?? 0
-}
-
 export const machine = {
   client: getPairedClient,
   /** Throws when the machine kept nothing: it restarted since finding the database, or `found` is not on its computer or not the saved string's server. */
@@ -273,28 +266,26 @@ export const machine = {
   startThisComputer: async () => {
     const account = await getThisComputerAccount()
     if (window.electron && account) {
-      await window.electron.machine.enable({
-        account,
-        session: await getThisComputerSession(),
-      })
+      await window.electron.machine.enable(account)
     }
   },
   /** Restarts it when it runs; one the user turned off only keeps the address. */
   saveThisComputerAddress: async (publicUrl: string | null) => {
-    await window.electron?.machine.setPublicUrl({
-      publicUrl,
-      session: await getThisComputerSession(),
-    })
+    const account = await getThisComputerAccount()
+    if (!window.electron || !account) {
+      throw new Error('Sign in to use this computer from your other devices.')
+    }
+    await window.electron.machine.setPublicUrl({ account, publicUrl })
   },
   turnThisComputerOn: async () => {
     const account = await getThisComputerAccount()
     if (!window.electron || !account) {
       throw new Error('Sign in to use this computer from your other devices.')
     }
-    const status = await window.electron.machine.turnOn({
-      account,
-      session: await getThisComputerSession(),
-    })
+    const status = await window.electron.machine.turnOn(account)
+    if (status.turnedOff) {
+      return
+    }
     if (status.status === 'failed') {
       throw new Error(status.message)
     }
@@ -306,12 +297,11 @@ export const machine = {
     await window.electron?.machine.turnOff()
   },
   /** On sign-out or a guest's upgrade: this desktop's machine leaves the account with it, and forgets the browsers it allowed. */
-  forgetThisComputer: async () => {
+  forgetThisComputer: async (signedOutToken: string | null) => {
     const id = getThisMachineId()
+    await window.electron?.machine.forget(signedOutToken)
     if (id !== null) {
       await silently(() => orpc.machines.remove.call({ id }))
     }
-    await window.electron?.machine.forget()
-    queryClient.removeQueries({ queryKey: thisMachineQuery.queryKey })
   },
 }

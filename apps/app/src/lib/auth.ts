@@ -124,7 +124,10 @@ export const fullSignOut = async () => {
     import('~/core/runtime/machine/machine'),
   ])
 
-  await Promise.all([machine.unpairAll(), machine.forgetThisComputer()])
+  await Promise.all([
+    machine.unpairAll(),
+    machine.forgetThisComputer(bearerToken.get()),
+  ])
 
   // Before the session is revoked: a sync loop still running reconnects into a 401.
   await cleanCollections()

@@ -12,9 +12,7 @@ mock.module('~/lib/auth', () => ({
 }))
 mock.module('~/lib/orpc', () => ({ orpc: {} }))
 mock.module('~/lib/posthog', () => ({ posthog: { capture: () => null } }))
-mock.module('~/lib/query-client', () => ({
-  queryClient: { ensureQueryData: () => Promise.resolve({ session: 3 }) },
-}))
+mock.module('~/lib/query-client', () => ({ queryClient: {} }))
 mock.module('./pairing', () => ({
   clearMachinePairing: () => null,
   getMachineRoute: () => null,
@@ -38,13 +36,20 @@ beforeEach(() => {
   turnOn.mockClear()
 })
 
-test('turn on sends the session this window saw', async () => {
+test('turn on sends the signed-in account', async () => {
   await machine.turnThisComputerOn()
 
   expect(turnOn).toHaveBeenCalledWith({
-    account: { email: account.email, id: account.id, token: account.token },
-    session: 3,
+    email: account.email,
+    id: account.id,
+    token: account.token,
   })
+})
+
+test('turn on succeeds quietly when the user turned it off while it started', async () => {
+  turnOn.mockResolvedValueOnce({ status: 'off', turnedOff: true })
+
+  await expect(machine.turnThisComputerOn()).resolves.toBeUndefined()
 })
 
 test('turn on fails when the worker failed after it forked', async () => {

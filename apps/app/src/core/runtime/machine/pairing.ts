@@ -41,10 +41,9 @@ export const machinePairings = createWebStorageValue({
 })
 
 /**
- * Desktop only: main's state of this computer's own machine, which main sends to every window on each change. Kept for the
- * session, never collected: its id routes a connection on it here, never over HTTP to itself. Never starts the machine:
- * sign-out drops this query while the session still lives, so a mounted observer's refetch would start it again for the
- * account leaving.
+ * Desktop only: main's state of this computer's own machine, read from main and then replaced by each status main sends
+ * to every window. Main is its only writer, sign-out included. Kept for the session, never collected: its id routes a
+ * connection on it here, never over HTTP to itself.
  */
 export const thisMachineQuery = queryOptions({
   gcTime: Infinity,

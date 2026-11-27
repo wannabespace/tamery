@@ -1,9 +1,11 @@
 import { beforeEach, expect, mock, test } from 'bun:test'
 import { EventEmitter } from 'node:events'
-import { mkdtempSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { setTimeout as nextTick } from 'node:timers/promises'
+
+import { configFiles } from '@tamery/cli/src/config-files'
 
 import type { MachineProcessReply, MachineProcessRequest } from '../machine'
 
@@ -76,17 +78,14 @@ mock.module('electron', () => ({
 const { machineHost } = await import('./machine-host')
 
 const account = { email: 'a@example.com', id: 'user-a', token: 'token-a' }
-const started = {
-  registerError: null,
-  type: 'started',
-  url: 'http://127.0.0.1:26382',
-} as const
+const nextAccount = { email: 'b@example.com', id: 'user-b', token: 'token-b' }
+const url = 'http://127.0.0.1:26382'
 
 const lastSentTo = (window: number) =>
   sent.findLast((message) => message.window === window)
 
 const startWorker = async () => {
-  const turnedOn = machineHost.turnOn({ account, session: 0 })
+  const turnedOn = machineHost.turnOn(account)
   return { turnedOn, worker: await forked.promise }
 }
 
@@ -98,7 +97,7 @@ beforeEach(async () => {
   sent.length = 0
 })
 
-test('turn on waits for the worker and reports a failure after it forked', async () => {
+test('turn on reports a failure after the worker forked', async () => {
   const { turnedOn, worker } = await startWorker()
   worker.reply({ message: 'Port 26382 is busy.', type: 'failed' })
 
@@ -108,38 +107,81 @@ test('turn on waits for the worker and reports a failure after it forked', async
   })
 })
 
-test('every window hears the machine turn on and off', async () => {
+test('turn on settles once the worker listens, and turn off works while it registers', async () => {
   const { turnedOn, worker } = await startWorker()
-  worker.reply(started)
+  worker.reply({ type: 'listening', url })
 
   expect(await turnedOn).toMatchObject({ status: 'on', turnedOff: false })
-  await nextTick()
-  expect(lastSentTo(1)).toMatchObject({
+  expect(lastSentTo(2)).toMatchObject({
     channel: 'machine.status',
     status: { status: 'on' },
   })
-  expect(lastSentTo(2)).toMatchObject({ status: { status: 'on' } })
 
   await machineHost.turnOff()
+  worker.reply({ registerError: null, type: 'started', url })
   await nextTick()
-  expect(lastSentTo(2)).toMatchObject({
+
+  expect(machineHost.status()).toMatchObject({
+    status: 'off',
+    turnedOff: true,
+  })
+  expect(lastSentTo(1)).toMatchObject({
     status: { status: 'off', turnedOff: true },
   })
 })
 
-test('a request sent before sign-out is refused and keeps nothing', async () => {
-  const { session } = await machineHost.status()
-  await machineHost.forget()
+test('the account that signed out is refused as soon as sign-out begins', async () => {
+  const forgotten = machineHost.forget(account.token)
+  const late = Promise.allSettled([
+    machineHost.setPublicUrl({ account, publicUrl: 'https://old.example.com' }),
+    machineHost.enable(account),
+    machineHost.turnOn(account),
+  ])
+  await forgotten
+  const results = await late
 
-  await expect(
-    machineHost.setPublicUrl({ publicUrl: 'https://old.example.com', session })
-  ).rejects.toThrow('signed out')
-  await expect(machineHost.enable({ account, session })).rejects.toThrow(
-    'signed out'
+  expect(
+    results.map((result) =>
+      result.status === 'rejected' ? String(result.reason) : result.status
+    )
+  ).toEqual(
+    Array.from({ length: 3 }, () => expect.stringContaining('signed out'))
   )
-  expect(await machineHost.status()).toMatchObject({
-    publicUrl: null,
-    status: 'off',
-  })
+  await expect(
+    machineHost.setPublicUrl({ account, publicUrl: 'https://old.example.com' })
+  ).rejects.toThrow('signed out')
+  expect(machineHost.status()).toMatchObject({ publicUrl: null })
   expect(workers).toHaveLength(0)
+
+  await machineHost.setPublicUrl({
+    account: nextAccount,
+    publicUrl: 'https://new.example.com',
+  })
+  expect(machineHost.status()).toMatchObject({
+    publicUrl: 'https://new.example.com',
+  })
+})
+
+test('every window ends sign-out with no machine id, whatever the worker sends late', async () => {
+  const idFile = path.join(
+    userData,
+    'machine',
+    path.basename(configFiles.machineId)
+  )
+  const { turnedOn, worker } = await startWorker()
+  mkdirSync(path.dirname(idFile), { recursive: true })
+  writeFileSync(idFile, 'old-id')
+  worker.reply({ type: 'listening', url })
+  await turnedOn
+  expect(lastSentTo(1)).toMatchObject({ status: { id: 'old-id' } })
+
+  await machineHost.forget(account.token)
+  worker.reply({ registerError: null, type: 'started', url })
+  await nextTick()
+
+  for (const window of [1, 2]) {
+    expect(lastSentTo(window)).toMatchObject({
+      status: { id: null, status: 'off' },
+    })
+  }
 })

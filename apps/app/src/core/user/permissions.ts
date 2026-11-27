@@ -84,7 +84,7 @@ export const resetGuestState = async () => {
     import('~/core/runtime/machine/machine'),
   ])
   // The guest's account is gone, but this computer's machine process still signs in as it.
-  await machine.forgetThisComputer()
+  await machine.forgetThisComputer(null)
   await cleanCollections()
   queryClient.removeQueries({ queryKey: [API_QUERY_KEY] })
   await loadPermissions()

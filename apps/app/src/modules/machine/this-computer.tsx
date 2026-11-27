@@ -10,6 +10,31 @@ import { useHasAccount } from '~/lib/auth'
 
 import { OnlineStatus } from './online-status'
 
+const describeStatus = (
+  status:
+    | Awaited<ReturnType<NonNullable<Window['electron']>['machine']['status']>>
+    | null
+    | undefined
+): ReactNode => {
+  if (status?.turnedOff) {
+    return 'Off. Your other devices cannot use this computer.'
+  }
+  if (status?.status === 'starting') {
+    return 'Starting…'
+  }
+  if (status?.status === 'failed') {
+    return status.message
+  }
+  if (status?.status === 'on') {
+    return status.registerError ? (
+      `Running, but not listed in your account: ${status.registerError}`
+    ) : (
+      <OnlineStatus>Running while Tamery is open</OnlineStatus>
+    )
+  }
+  return 'Not running. Restart Tamery to try again.'
+}
+
 /** Desktop only: this computer's row among the account's machines. */
 export const ThisComputerRow = ({ name }: { name: string | null }) => {
   const { data: status } = useQuery(thisMachineQuery)
@@ -23,26 +48,14 @@ export const ThisComputerRow = ({ name }: { name: string | null }) => {
     mutationFn: machine.turnThisComputerOff,
   })
   const error = turnOn.error ?? turnOff.error
-  const isPending = turnOn.isPending || turnOff.isPending
+  const isTurningOn = turnOn.isPending && !!status?.turnedOff
 
-  let description: ReactNode = 'Not running. Restart Tamery to try again.'
+  let description = describeStatus(status)
   if (!hasAccount) {
     description = 'Sign in to use this computer from your other devices.'
   } else if (error) {
     description = (
       <span className="text-destructive wrap-break-word">{error.message}</span>
-    )
-  } else if (status?.turnedOff) {
-    description = 'Off. Your other devices cannot use this computer.'
-  } else if (status?.status === 'starting') {
-    description = 'Starting…'
-  } else if (status?.status === 'failed') {
-    description = status.message
-  } else if (status?.status === 'on') {
-    description = status.registerError ? (
-      `Running, but not listed in your account: ${status.registerError}`
-    ) : (
-      <OnlineStatus>Running while Tamery is open</OnlineStatus>
     )
   }
 
@@ -65,7 +78,7 @@ export const ThisComputerRow = ({ name }: { name: string | null }) => {
         <Button
           variant="outline"
           size="sm"
-          disabled={isPending}
+          disabled={isTurningOn || turnOff.isPending}
           onClick={() => {
             turnOn.reset()
             turnOff.reset()
@@ -76,7 +89,7 @@ export const ThisComputerRow = ({ name }: { name: string | null }) => {
             }
           }}
         >
-          <LoadingContent loading={isPending}>
+          <LoadingContent loading={isTurningOn || turnOff.isPending}>
             {status.turnedOff ? 'Turn on' : 'Turn off'}
           </LoadingContent>
         </Button>

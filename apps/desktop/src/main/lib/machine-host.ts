@@ -1,7 +1,6 @@
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { once } from 'node:events'
-import { rmSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { readFileSync, rmSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
@@ -33,13 +32,13 @@ const store = createPrivateStore<{
   enabled: boolean
   /** What a tunnel on this computer serves the machine at, as `tamery machine --public-url`. */
   publicUrl: string | null
-  /** Bumped by sign-out: a window's request naming an older one was sent for the account that left. */
-  session: number
+  /** The hash of the session token that signed out: a window still holding it must not start the machine or set its address. */
+  signedOutToken?: string
   /** The user's **Turn off**, kept across sign-out: sign-in starts the machine unless it is set. */
   turnedOff: boolean
   wrappedKey?: string
 }>({
-  defaults: { enabled: false, publicUrl: null, session: 0, turnedOff: false },
+  defaults: { enabled: false, publicUrl: null, turnedOff: false },
   name: 'machine',
 })
 
@@ -50,6 +49,8 @@ export type MachineState =
 
 let state: MachineState = { status: 'off' }
 let child: UtilityProcess | null = null
+/** Read from the machine's folder only when it can change: at launch and once the process listens. */
+let id: string | null = null
 
 /** Its own folder, never the CLI's: a `tamery logout` there must not sign this app's machine out. */
 const getConfigDir = () => path.join(app.getPath('userData'), 'machine')
@@ -89,27 +90,29 @@ const askApproval = async ({
 const send = (forked: UtilityProcess, request: MachineProcessRequest) =>
   forked.postMessage(request)
 
-const getStatus = async () => {
-  // Read, never minted here: `null` until the machine first starts.
-  const savedId = await Result.tryPromise(() =>
-    readFile(
+/** Read, never minted here: `null` until the machine first starts. */
+const readMachineId = () => {
+  const saved = Result.try(() =>
+    readFileSync(
       path.join(getConfigDir(), path.basename(configFiles.machineId)),
       'utf-8'
     )
   )
-  return {
-    enabled: store.get('enabled'),
-    id: (savedId.isOk() && savedId.value.trim()) || null,
-    publicUrl: store.get('publicUrl'),
-    session: store.get('session'),
-    turnedOff: store.get('turnedOff'),
-    ...state,
-  }
+  return (saved.isOk() && saved.value.trim()) || null
 }
 
+/** Synchronous, so the snapshots every window receives arrive in the order main changed them. */
+const getStatus = () => ({
+  enabled: store.get('enabled'),
+  id,
+  publicUrl: store.get('publicUrl'),
+  turnedOff: store.get('turnedOff'),
+  ...state,
+})
+
 /** Every window shows this computer's machine, so each hears every change, not only the one that asked. */
-const publish = async () => {
-  const status = await getStatus()
+const publish = () => {
+  const status = getStatus()
   for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.send('machine.status', status)
   }
@@ -118,18 +121,19 @@ const publish = async () => {
 
 const setState = (next: MachineState) => {
   state = next
-  void publish()
+  publish()
 }
 
-const assertSession = (session: number) => {
-  if (session !== store.get('session')) {
-    throw new Error(
-      'You signed out since this window opened. Reload it and try again.'
-    )
+const hashToken = (token: string) =>
+  createHash('sha256').update(token).digest('base64')
+
+const assertSignedIn = (account: VaultAccount) => {
+  if (hashToken(account.token) === store.get('signedOutToken')) {
+    throw new Error('You signed out. Sign in again to use this computer.')
   }
 }
 
-/** Settles once the latest started process listens, failed or exited. */
+/** Settles once the latest started process listens, failed or exited; registration with the account may still run. */
 let ready = Promise.resolve(null)
 
 const start = async (account: MachineAccount) => {
@@ -173,13 +177,16 @@ const start = async (account: MachineAccount) => {
         id: reply.id,
         type: 'answer',
       })
+    } else if (reply.type === 'listening') {
+      id = readMachineId()
+      setState({ registerError: null, status: 'on', url: reply.url })
+      settled.resolve(null)
     } else if (reply.type === 'started') {
       setState({
         registerError: reply.registerError,
         status: 'on',
         url: reply.url,
       })
-      settled.resolve(null)
     } else {
       setState({ message: reply.message, status: 'failed' })
       forked.kill()
@@ -243,20 +250,20 @@ const restart = async (account: MachineAccount) => {
 
 export const machineHost = {
   /** On sign-in: starts the machine unless the user turned it off. */
-  enable: ({ account, session }: { account: VaultAccount; session: number }) =>
+  enable: (account: VaultAccount) =>
     inTurn(async () => {
-      assertSession(session)
+      assertSignedIn(account)
       if (!store.get('turnedOff')) {
         await restart({ account, kind: 'switch' })
       }
-      return publish()
+      return getStatus()
     }),
   setPublicUrl: ({
+    account,
     publicUrl,
-    session,
   }: {
+    account: VaultAccount
     publicUrl: string | null
-    session: number
   }) => {
     const parsed = publicUrl === null ? null : URL.parse(publicUrl)
     if (
@@ -268,55 +275,51 @@ export const machineHost = {
       )
     }
     return inTurn(async () => {
-      assertSession(session)
+      assertSignedIn(account)
       store.set('publicUrl', parsed?.origin ?? null)
       if (child) {
         await restart({ kind: 'keep' })
       }
-      return publish()
+      return getStatus()
     })
   },
   turnOff: () =>
     inTurn(async () => {
       store.set({ enabled: false, turnedOff: true })
       await stop()
-      return publish()
+      return getStatus()
     }),
-  /** Resolves once the worker listens or failed: a turn waiting on startup would hold sign-out behind the network. */
-  turnOn: async ({
-    account,
-    session,
-  }: {
-    account: VaultAccount
-    session: number
-  }) => {
+  /** Resolves once the worker listens or failed: a turn waiting on startup would hold sign-out and Turn off behind it. */
+  turnOn: async (account: VaultAccount) => {
     await inTurn(async () => {
-      assertSession(session)
+      assertSignedIn(account)
       store.set('turnedOff', false)
       await restart({ account, kind: 'switch' })
     })
     await ready
     return getStatus()
   },
-  /** On sign-out: the pairings, secrets, account and address it kept belong to the account leaving. */
-  forget: () =>
-    inTurn(async () => {
+  /** On sign-out, before anything else: the pairings, secrets, account and address it kept belong to the account leaving. */
+  forget: (token: string | null) => {
+    if (token) {
+      store.set('signedOutToken', hashToken(token))
+    }
+    return inTurn(async () => {
       await stop()
-      store.set({
-        enabled: false,
-        publicUrl: null,
-        session: store.get('session') + 1,
-      })
+      store.set({ enabled: false, publicUrl: null })
       store.delete('wrappedKey')
       rmSync(getConfigDir(), { force: true, recursive: true })
-      await publish()
-    }),
+      id = null
+      publish()
+    })
+  },
   status: getStatus,
 }
 
 /** At launch, with the account the machine kept: it serves other devices with no window open. */
 export const restoreMachine = () =>
   inTurn(async () => {
+    id = readMachineId()
     if (store.get('enabled')) {
       await start({ kind: 'keep' })
     }
