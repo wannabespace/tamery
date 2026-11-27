@@ -11,9 +11,11 @@ import type { Permissions } from '@tamery/shared/permissions'
 import { getPermissions } from '@tamery/shared/permissions'
 import { isAPIError } from 'better-auth/api'
 import { createPermix } from 'permix/orpc'
+import { v7 } from 'uuid'
 
 import { aiKey, payForAi } from '~/lib/ai-key'
 import { auth } from '~/lib/auth'
+import { credits, PAID_CALLS_BUSY_MESSAGE } from '~/lib/credits'
 import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { redis } from '~/lib/redis'
 import { getSubscription } from '~/lib/subscription'
@@ -258,7 +260,7 @@ export const permissionsMiddleware = permissionsWith({ aiKeys: false })
 /** Also reads the user's enabled AI keys, which `ai.chat.use` and `paidAiMiddleware` both go by. */
 export const aiPermissionsMiddleware = permissionsWith({ aiKeys: true })
 
-/** The gate of every AI call Tamery may pay for, after a permissions middleware: `context.payer` is the user's keys, else Tamery while their plan's budget or credits last. Under `permissionsMiddleware` no key is read, so the call is always Tamery's. */
+/** The gate of every AI call Tamery may pay for, after a permissions middleware: `context.payer` is the user's keys, else Tamery while their plan's budget or credits last, holding one of the user's Tamery-paid slots until the handler returns (a chat turn holds its own while it streams). Under `permissionsMiddleware` no key is read, so the call is always Tamery's. */
 export const paidAiMiddleware = os
   .$context<Parameters<typeof payForAi>[0]>()
   .middleware(async ({ context, next }) => {
@@ -268,7 +270,20 @@ export const paidAiMiddleware = os
         message: AI_BUDGET_SPENT_MESSAGE,
       })
     }
-    return next({ context: { payer } })
+    if (payer.keys.length > 0) {
+      return next({ context: { payer } })
+    }
+    const callId = v7()
+    if (!(await credits.hold(context.user.id, callId))) {
+      throw new ORPCError('TOO_MANY_REQUESTS', {
+        message: PAID_CALLS_BUSY_MESSAGE,
+      })
+    }
+    try {
+      return await next({ context: { payer } })
+    } finally {
+      await credits.release(context.user.id, callId)
+    }
   })
 
 export const cacheMiddleware = (ttl: number = 60 * 60 * 24) =>

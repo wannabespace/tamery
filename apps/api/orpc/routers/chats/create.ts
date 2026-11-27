@@ -1,7 +1,6 @@
 import { db } from '@tamery/db'
 import { chats, chatsInsertSchema } from '@tamery/db/schema'
 
-import { chatSession } from '~/lib/chat/session'
 import { inMemberWorkspace } from '~/lib/workspace'
 import { orpc, aiPermissionsMiddleware, permix } from '~/orpc'
 
@@ -22,7 +21,7 @@ export const create = orpc
         id: { eq: input.connectionResourceId },
       },
     })
-    if (!resource || (input.id && (await chatSession.isDeletedId(input.id)))) {
+    if (!resource) {
       throw errors.NOT_FOUND()
     }
 
