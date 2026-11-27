@@ -98,8 +98,7 @@ export const chatPersist = {
 
     return attachments.inline(messagesFromPartRows(rows))
   },
-  /** Flags the turn's question, never its answer: the answer's row is still being written and its next persist would replace the flag. */
-  /** Flags `messageId`, else the chat's last user turn, as stopped. */
+  /** Flags the turn's question (`messageId`, else the chat's last user turn), never its answer: the answer's row is still being written and its next persist would replace the flag. */
   markStopped: async (data: {
     chatId: string
     messageId?: string
