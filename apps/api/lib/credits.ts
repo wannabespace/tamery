@@ -1,3 +1,4 @@
+import { ORPCError } from '@orpc/server'
 import { db } from '@tamery/db'
 import {
   aiUsage as aiUsageTable,
@@ -243,6 +244,20 @@ export const credits = {
   },
   release: (userId: string, callId: string) =>
     redis.zRem(paidCallsKey(userId), callId),
+  /** Runs a Tamery-paid call in one of the user's slots for as long as `run` takes; `TOO_MANY_REQUESTS` when none is free. */
+  inPaidSlot: async <T>(userId: string, run: () => Promise<T>) => {
+    const callId = v7()
+    if (!(await credits.hold(userId, callId))) {
+      throw new ORPCError('TOO_MANY_REQUESTS', {
+        message: PAID_CALLS_BUSY_MESSAGE,
+      })
+    }
+    try {
+      return await run()
+    } finally {
+      await credits.release(userId, callId)
+    }
+  },
   /** Sets the share of a top-up a refund or dispute took back, once however often Stripe repeats the event: a refund or an opened dispute only raises it, a won dispute lowers it back to what was refunded. The balance may go below zero. False when no top-up has that payment intent yet. */
   reverse: (paymentIntentId: string, share: number, won = false) =>
     db.transaction(async (tx) => {

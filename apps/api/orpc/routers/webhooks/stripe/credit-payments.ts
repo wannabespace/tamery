@@ -86,7 +86,12 @@ export const creditPayments = async (event: Stripe.Event) => {
       break
     }
     case 'charge.dispute.created': {
-      await reverse(idOf(event.data.object.payment_intent), 1)
+      const dispute = event.data.object
+      // Stripe may replay this after the dispute was won, or send it after its close: the live status decides.
+      const current = await stripe?.disputes.retrieve(dispute.id)
+      if (current?.status !== 'won') {
+        await reverse(idOf(dispute.payment_intent), 1)
+      }
       break
     }
     case 'charge.dispute.closed': {

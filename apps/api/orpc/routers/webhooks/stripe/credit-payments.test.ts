@@ -18,9 +18,13 @@ const retrieveIntent = mock(() =>
 const retrieveCharge = mock(() =>
   Promise.resolve({ amount: 1050, amount_refunded: 525 })
 )
+let disputeStatus = 'needs_response'
 mock.module('~/lib/stripe', () => ({
   stripe: {
     charges: { retrieve: retrieveCharge },
+    disputes: {
+      retrieve: () => Promise.resolve({ status: disputeStatus }),
+    },
     paymentIntents: { retrieve: retrieveIntent },
   },
 }))
@@ -107,7 +111,10 @@ test('a refund takes back its share and a dispute the whole top-up', async () =>
     })
   )
   await creditPayments(
-    event('charge.dispute.created', { payment_intent: { id: 'pi_2' } })
+    event('charge.dispute.created', {
+      id: 'dp_1',
+      payment_intent: { id: 'pi_2' },
+    })
   )
 
   expect(reverse.mock.calls).toEqual([
@@ -147,4 +154,17 @@ test('a won dispute gives back what was not refunded', async () => {
 
   expect(retrieveCharge).toHaveBeenCalledWith('ch_1')
   expect(reverse.mock.calls).toEqual([['pi_1', 0.5, true]] as never)
+})
+
+test('a dispute created again after it was won takes nothing back', async () => {
+  disputeStatus = 'won'
+  await creditPayments(
+    event('charge.dispute.created', {
+      id: 'dp_1',
+      payment_intent: { id: 'pi_1' },
+    })
+  )
+  disputeStatus = 'needs_response'
+
+  expect(reverse).not.toHaveBeenCalled()
 })
