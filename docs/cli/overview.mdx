@@ -39,7 +39,7 @@ The CLI runs on macOS (Apple silicon and Intel), Linux (x64 and arm64), and Wind
    tamery machine
    ```
 
-   The first time, it opens the browser so you can sign in with the account you use in the web app. It then lists itself under **Settings → Machines** in every app signed in to your account, and opens that page.
+   The first time, it opens the browser so you can sign in with the account you use in the web app. It then lists itself under **Settings → Machines** in the web app and in desktop apps after v0.99.6 signed in to your account, and opens that page.
 
 2. Choose the machine under a connection's **Runs on**, or click **Connect** next to it in **Settings → Machines**. Tamery tries each address the machine listens at and uses the first one this browser reaches.
 
@@ -109,7 +109,7 @@ The machine reaches databases and files with the rights of the system user that 
 
 A query that runs longer than about 4 minutes fails.
 
-In the web app, **New connection** lists the databases the machine finds on that computer, as the desktop app does for its own: running Docker containers, and connections saved in DBeaver, TablePlus, DataGrip, pgAdmin, `pg_service.conf`, `.pgpass` or `my.cnf`. Picking one fills the form. A password saved with it for a database on that computer, without an SSH tunnel, never reaches the browser: the machine keeps it for the connection you save and uses it for every app you allowed on that machine. Running the connection anywhere else, such as on Tamery Cloud or another computer, asks you to enter it. For a database elsewhere, such as a server behind a VPN, or a password kept in the macOS Keychain, type the password.
+In the web app, **New connection** lists the databases the machine finds on that computer, as the desktop app does for its own: running Docker containers, and connections saved in DBeaver, TablePlus, DataGrip, pgAdmin, `pg_service.conf`, `.pgpass` or `my.cnf`. Picking one fills the form. A password saved with it for a database on that computer, without an SSH tunnel, never reaches the browser: the machine keeps it for the connection you save and uses it for every app you allowed on that machine. The password never leaves that machine, so another place that can run the connection may ask you for it. For a database elsewhere, such as a server behind a VPN, or a password kept in the macOS Keychain, type the password.
 
 ## Manage connections
 
