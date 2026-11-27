@@ -44,8 +44,8 @@ const [
   queries,
   schemaNotes,
 ] = await Promise.all([
-  import('./chats/create'),
-  import('./chats-messages/create'),
+  import('~/modules/chat/routers/chats/create'),
+  import('~/modules/chat/routers/chats-messages/create'),
   import('./connection-machines/create'),
   import('./connections/create'),
   import('./connections/update'),

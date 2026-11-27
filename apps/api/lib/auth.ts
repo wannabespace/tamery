@@ -53,7 +53,7 @@ import { locateIp } from '~/lib/geo-ip'
 import { posthog } from '~/lib/posthog'
 import { resend, sendEmail } from '~/lib/resend'
 import { safeEqual } from '~/lib/safe-equal'
-import { getSubscription } from '~/lib/subscription'
+import { getSubscription } from '~/modules/billing/subscription'
 
 import { redis, redisMemoize } from './redis'
 import {
