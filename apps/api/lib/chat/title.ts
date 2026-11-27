@@ -1,10 +1,10 @@
 import { generateChatTitle } from '@tamery/ai/features'
 import type { AppUIMessage } from '@tamery/ai/message'
+import { logProviderError } from '@tamery/ai/provider-error'
 import { AiFeature } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
 import { chats } from '@tamery/db/schema'
 import { redactSecrets } from '@tamery/shared/sanitize-log'
-import { silently } from '@tamery/shared/utils'
 import { and, eq, isNull } from 'drizzle-orm'
 
 import type { AiPayer } from '~/lib/ai-key'
@@ -16,7 +16,7 @@ export const persistChatTitle = async (data: {
   payer: AiPayer
   userId: string
 }) => {
-  await silently(async () => {
+  try {
     const title = await generateChatTitle({
       key: data.payer.key,
       messages: data.messages,
@@ -46,5 +46,7 @@ export const persistChatTitle = async (data: {
     if (updated) {
       chatsPublisher.publish(data.userId, { type: 'update', value: updated })
     }
-  })
+  } catch (error) {
+    logProviderError(`chat title ${data.chatId}`, error)
+  }
 }
