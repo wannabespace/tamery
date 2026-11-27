@@ -22,7 +22,7 @@ interface HostHint {
 const SUPABASE_TRANSACTION_POOLER_PORT = '6543'
 const PGBOUNCER_PORT = '6432'
 
-export const HOST_HINTS: HostHint[] = [
+const HOST_HINTS: HostHint[] = [
   {
     ipv6Only: /^db\.[^.]+\.supabase\.co$/iu,
     label: 'Supabase',
@@ -226,6 +226,12 @@ export const getHostKind = (host: string): HostKind => {
     return 'private'
   }
   return getHostHint(name)?.ipv6Only?.test(name) ? 'ipv6-only' : 'public'
+}
+
+/** Reached over the internet, so a device with no network can't reach it. */
+export const isInternetHost = (host: string) => {
+  const kind = getHostKind(host)
+  return kind === 'public' || kind === 'ipv6-only'
 }
 
 /** A pasted scheme or port already says how to reach the host, so only a bare one takes its provider from the hint. */

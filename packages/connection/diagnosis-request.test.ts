@@ -9,11 +9,7 @@ import { Client } from 'ssh2'
 
 import type { ConnectionParts } from './connection-parts'
 import { connectionParts } from './connection-parts'
-import {
-  getDiagnosisRequest,
-  sanitizeDiagnosisRequest,
-  SSH_ON_ERRORS,
-} from './diagnosis-request'
+import { getDiagnosisRequest, SSH_ON_ERRORS } from './diagnosis-request'
 import { EMPTY_SSH_TUNNEL } from './ssh/params'
 import { connectSsh } from './ssh/session'
 
@@ -191,20 +187,35 @@ describe('getDiagnosisRequest', () => {
   ])(
     'blames the database for %s, whatever its names say',
     (message, overrides, error) => {
-      const sent = request(message, { ...overrides, ssh: EMPTY_SSH_TUNNEL })
-      expect([sent.error, sanitizeDiagnosisRequest(sent).error]).toEqual([
-        error,
-        error,
-      ])
+      expect(
+        request(message, { ...overrides, ssh: EMPTY_SSH_TUNNEL }).error
+      ).toBe(error)
     }
   )
 
-  it.each([...SSH_ON_ERRORS])('the API sends %s as the client did', (text) => {
-    const sent = {
-      ...request('timeout', { ssh: EMPTY_SSH_TUNNEL }),
-      error: text,
-    }
-    expect(sanitizeDiagnosisRequest(sent)).toStrictEqual(sent)
+  it('sends only a fixed error with SSH on, whatever the names are', () => {
+    const names = ['SSH', 'tunnel', 'Channel', 'host', 'database', 'failed']
+    const failures = [
+      'SSH tunnel: SSH connection failed: Disconnected by bastion.corp.io',
+      '(SSH) Channel open failure: Connection refused by bastion.corp.io',
+      "SSH tunnel: Can't reach the SSH host at bastion.corp.io: ECONNREFUSED",
+      'Unexpected line break at ssl-does-not-exist.corp.io',
+      'password authentication failed for user "SSH"',
+      'database "tunnel" does not exist',
+    ]
+    const errors = failures.flatMap((message) =>
+      names.flatMap((user) =>
+        names.map(
+          (database) =>
+            request(message, {
+              database,
+              ssh: { ...EMPTY_SSH_TUNNEL, host: user, user: database },
+              user,
+            }).error
+        )
+      )
+    )
+    expect(new Set(errors).isSubsetOf(SSH_ON_ERRORS)).toBe(true)
   })
 
   it('keeps only option values that name nothing', () => {

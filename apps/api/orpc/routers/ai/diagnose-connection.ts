@@ -2,7 +2,6 @@ import { ratelimit } from '@orpc/ratelimit'
 import { RedisRateLimiter } from '@orpc/ratelimit/redis'
 import { diagnoseConnection as diagnose } from '@tamery/ai/features'
 import { AiFeature } from '@tamery/ai/usage'
-import { sanitizeDiagnosisRequest } from '@tamery/connection/diagnosis-request'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { type } from 'arktype'
@@ -36,9 +35,8 @@ export const diagnoseConnection = orpc
       userSet: 'boolean',
     })
   )
-  .handler(({ context, input, signal }) => {
-    const { error, ...settings } = sanitizeDiagnosisRequest(input)
-    return diagnose({
+  .handler(({ context, input: { error, ...settings }, signal }) =>
+    diagnose({
       error,
       settings: { ...settings, runtime: context.isDesktop ? 'desktop' : 'web' },
       signal,
@@ -47,4 +45,4 @@ export const diagnoseConnection = orpc
         userId: context.user.id,
       }),
     })
-  })
+  )

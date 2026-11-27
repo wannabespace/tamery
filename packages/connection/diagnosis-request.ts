@@ -1,7 +1,7 @@
 import { connectionParts } from './connection-parts'
 import type { DiagnosisContext } from './diagnosis'
 import type { HostKind } from './hosts'
-import { getHostHint, getHostKind, HOST_HINTS } from './hosts'
+import { getHostHint, getHostKind } from './hosts'
 import { SSH_ELSEWHERE, SSH_HOST_TIMEOUT, tunnelError } from './ssh/params'
 
 const HOST_KIND_LABELS: Record<HostKind, string> = {
@@ -11,14 +11,6 @@ const HOST_KIND_LABELS: Record<HostKind, string> = {
   public: 'public host',
   service: 'single-label name (Docker service?)',
 }
-const HOST_KINDS = new Set(
-  ['', ...HOST_HINTS.map(({ label }) => label)].flatMap((hint) =>
-    Object.values(HOST_KIND_LABELS).map((kind) =>
-      [hint, kind].filter(Boolean).join(' ')
-    )
-  )
-)
-const PORT = /^\d{1,5}$/u
 
 const HEX_GROUP = '[\\da-f]{1,4}'
 const ANY_IPV4 = /\b\d{1,3}(?:\.\d{1,3}){3}\b/gu
@@ -34,7 +26,7 @@ const SSH_ENVELOPE =
 const SSH_CATEGORIES: [RegExp, string][] = [
   [/^SSH tunnels run in the Tamery desktop/u, SSH_ELSEWHERE],
   [
-    /^\(SSH\) Channel |^SSH tunnel: The SSH host didn't forward/u,
+    /^\(SSH\) Channel /u,
     tunnelFailure("The SSH host didn't forward the connection to the database"),
   ],
   [
@@ -42,7 +34,7 @@ const SSH_CATEGORIES: [RegExp, string][] = [
     tunnelFailure("~/.ssh/config couldn't be used"),
   ],
   [
-    /^SSH tunnel: (?:The SSH host can't resolve .+ run docker there|Several containers run the service|The SSH host couldn't find the database container)/su,
+    /^SSH tunnel: (?:The SSH host can't resolve .+ run docker there|Several containers run the service)/su,
     tunnelFailure("The SSH host couldn't find the database container"),
   ],
   [
@@ -50,7 +42,7 @@ const SSH_CATEGORIES: [RegExp, string][] = [
     tunnelFailure("The SSH host's key wasn't trusted"),
   ],
   [
-    /^SSH tunnel: (?:SSH authentication failed|SSH agent not available|SSH sign-in failed|The SSH key|That (?:file )?isn't an SSH private key|Choose the SSH key file|The SSH (?:password|private key) isn't stored)/u,
+    /^SSH tunnel: (?:SSH authentication failed|SSH agent not available|The SSH key|That (?:file )?isn't an SSH private key|Choose the SSH key file|The SSH (?:password|private key) isn't stored)/u,
     tunnelFailure('SSH sign-in failed'),
   ],
   [
@@ -58,7 +50,7 @@ const SSH_CATEGORIES: [RegExp, string][] = [
     tunnelFailure(SSH_HOST_TIMEOUT),
   ],
   [
-    /^SSH tunnel: (?:Can't reach the SSH host.*: ECONNREFUSED|The SSH host refused the connection)$/su,
+    /^SSH tunnel: Can't reach the SSH host.*: ECONNREFUSED$/su,
     tunnelFailure('The SSH host refused the connection'),
   ],
   [
@@ -67,9 +59,7 @@ const SSH_CATEGORIES: [RegExp, string][] = [
   ],
 ]
 const SSH_FAILURE = tunnelFailure('SSH connection failed')
-// What an SSH failure keeps once an older renderer wrote placeholders over its envelope, `<ssh-host>` included.
-const SSH_REMNANT = /\btunnel: |\) Channel |\bSSH\b|<ssh-/u
-// A placeholder stands where an older renderer replaced a word equal to a form value, `database` included.
+// The redaction writes a placeholder over any word equal to a form value, `database` included.
 const NAMED = '(?:"[^"]*"|\'[^\']*\')'
 const WORD = '(?:database|<\\S*>)'
 // The forms `diagnose.ts` tells apart, most specific first: a TLS or permission failure also reads as an address or sign-in one.
@@ -150,15 +140,11 @@ export const SSH_ON_ERRORS = new Set([
 ])
 
 /**
- * With a tunnel on, an error can name the host `~/.ssh/config` resolved however it reads, and an older renderer rewrote
- * the words that would say where it came from, so the AI gets only the category its form points to. The client reads the
- * SSH envelope in the driver's own text and the database form in the redacted one, where a name the form holds is a
- * placeholder.
+ * With a tunnel on, an error can name the host `~/.ssh/config` resolved however it reads, so the AI gets only the
+ * category its form points to: the SSH envelope in the driver's own text, or the database form in the redacted one,
+ * where a name the form holds is a placeholder.
  */
-const toCategory = (message: string, redacted = message) => {
-  if (SSH_ON_ERRORS.has(redacted)) {
-    return redacted
-  }
+const toCategory = (message: string, redacted: string) => {
   const envelope = message.search(SSH_ENVELOPE)
   if (envelope !== -1) {
     const failure = message.slice(envelope)
@@ -166,9 +152,6 @@ const toCategory = (message: string, redacted = message) => {
       SSH_CATEGORIES.find(([pattern]) => pattern.test(failure))?.[1] ??
       SSH_FAILURE
     )
-  }
-  if (SSH_REMNANT.test(redacted)) {
-    return SSH_FAILURE
   }
   return (
     DATABASE_CATEGORIES.find(([pattern]) => pattern.test(redacted))?.[1] ??
@@ -194,13 +177,6 @@ const NON_IDENTIFYING_VALUE =
 
 const isNonIdentifying = (key: string, value: string) =>
   SETTING_KEYS.has(key.toLowerCase()) && NON_IDENTIFYING_VALUE.test(value)
-
-const redactOptions = (options: string) =>
-  new URLSearchParams(
-    [...new URLSearchParams(options)].filter(([key, value]) =>
-      isNonIdentifying(key, value)
-    )
-  ).toString()
 
 export const getDiagnosisRequest = ({
   message,
@@ -253,24 +229,15 @@ export const getDiagnosisRequest = ({
     ]
       .filter(Boolean)
       .join(' '),
-    options: redactOptions(parts.options),
+    options: new URLSearchParams(
+      [...new URLSearchParams(parts.options)].filter(([key, value]) =>
+        isNonIdentifying(key, value)
+      )
+    ).toString(),
     passwordSet: !!parts.password,
-    port: PORT.test(port) ? port : '',
+    port: /^\d{1,5}$/u.test(port) ? port : '',
     sshEnabled: !!parts.ssh,
     type: parts.type,
     userSet: !!parts.user,
   }
 }
-
-export type DiagnosisRequest = ReturnType<typeof getDiagnosisRequest>
-
-/** The API runs this on every request: installed apps send what their own renderer wrote, option names, hosts and tunnel details included. */
-export const sanitizeDiagnosisRequest = <Request extends DiagnosisRequest>(
-  request: Request
-): Request => ({
-  ...request,
-  error: request.sshEnabled ? toCategory(request.error) : request.error,
-  hostKind: HOST_KINDS.has(request.hostKind) ? request.hostKind : '',
-  options: redactOptions(request.options),
-  port: PORT.test(request.port) ? request.port : '',
-})
