@@ -504,14 +504,16 @@ describe('diagnoseConnectionError', () => {
       )
     })
 
-    it("never reads a SQLite file's own error as a network failure", () => {
-      expect(
-        diagnose('Fetch failed', {
-          database: '/data/app.db',
-          provider: null,
-          type: ConnectionType.SQLite,
-        })
-      ).toBeNull()
+    it.each([
+      'Fetch failed',
+      'Fetch failed: ENOTFOUND',
+      'Fetch failed: ETIMEDOUT',
+      'Fetch failed: UND_ERR_CONNECT_TIMEOUT',
+      'connect ECONNREFUSED 127.0.0.1:5432',
+    ])('never reads a SQLite file error %p as a network failure', (message) => {
+      const file = connectionParts.parse('sqlite:///data/app.db')
+      expect(diagnose(message, file)).toBeNull()
+      expect(diagnoseOffline(message, file)).toBeUndefined()
     })
 
     it('asks to start a local libSQL server instead of checking the internet', () => {

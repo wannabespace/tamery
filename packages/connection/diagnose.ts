@@ -367,9 +367,11 @@ export const diagnoseConnectionError = (
   context: DiagnosisContext
 ): Diagnosis | null => {
   const { message, online, parts } = context
+  // A SQLite file reaches no server, so the host and network rules would give it server advice.
+  const isFile = parts.type === ConnectionType.SQLite && !parts.provider
   const rule = RULES.find(
     ({ engine, match, providers }) =>
-      (!engine || engine === parts.type) &&
+      (engine ? engine === parts.type : !isFile) &&
       (!providers ||
         (!!parts.provider && providers.includes(parts.provider))) &&
       match.test(message)
