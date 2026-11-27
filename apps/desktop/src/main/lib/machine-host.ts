@@ -138,10 +138,12 @@ const assertSignedIn = (account: VaultAccount) => {
 /** Another account, such as one desktop recovery signed in without a sign-out, must not inherit the previous one's address. */
 const signIn = (account: VaultAccount) => {
   assertSignedIn(account)
-  if (store.get('accountId') !== account.id) {
+  const isNewOwner = store.get('accountId') !== account.id
+  if (isNewOwner) {
     store.set({ accountId: account.id, publicUrl: null })
     publish()
   }
+  return isNewOwner
 }
 
 /** Settles once the latest started process listens, failed or exited; registration with the account may still run. */
@@ -260,11 +262,11 @@ const restart = async (account: MachineAccount) => {
 }
 
 export const machineHost = {
-  /** On sign-in: starts the machine unless the user turned it off. */
+  /** On every sign-in, a running machine included: it restarts for a new owner, unless the user turned it off. */
   enable: (account: VaultAccount) =>
     inTurn(async () => {
-      signIn(account)
-      if (!store.get('turnedOff')) {
+      const isNewOwner = signIn(account)
+      if (!store.get('turnedOff') && (isNewOwner || !child)) {
         await restart({ account, kind: 'switch' })
       }
       return getStatus()

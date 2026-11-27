@@ -63,6 +63,8 @@ mock.module('electron', () => ({
   },
   dialog: {},
   safeStorage: {
+    decryptStringAsync: (sealed: Buffer) =>
+      Promise.resolve({ result: sealed.toString() }),
     encryptStringAsync: (key: string) => Promise.resolve(Buffer.from(key)),
   },
   utilityProcess: {
@@ -216,4 +218,31 @@ test('another account signing in without a sign-out clears the address and tells
     machineHost.setPublicUrl({ account, publicUrl: 'https://mac.example.com' })
   ).rejects.toThrow('Sign in')
   expect(workers).toHaveLength(0)
+})
+
+test('a new owner signing in while the machine runs restarts it for that owner with no address', async () => {
+  const { turnedOn, worker } = await startWorker()
+  worker.reply({ type: 'listening', url })
+  await turnedOn
+  await machineHost.setPublicUrl({
+    account,
+    publicUrl: 'https://mac.example.com',
+  })
+  workers.at(-1)?.reply({ type: 'listening', url })
+
+  await machineHost.enable(account)
+  expect(workers).toHaveLength(2)
+
+  await machineHost.enable(nextAccount)
+
+  expect(workers).toHaveLength(3)
+  expect(workers.at(-1)?.requests[0]).toMatchObject({
+    account: { account: nextAccount, kind: 'switch' },
+    publicUrl: null,
+    type: 'start',
+  })
+  expect(machineHost.status()).toMatchObject({ publicUrl: null })
+  await expect(
+    machineHost.setPublicUrl({ account, publicUrl: 'https://mac.example.com' })
+  ).rejects.toThrow('Sign in')
 })
