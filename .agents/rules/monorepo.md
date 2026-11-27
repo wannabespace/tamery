@@ -46,7 +46,7 @@ Every Tamery service is a Cloud Run service named after its app and built from i
 Three Cloud Run Jobs reuse `apps/api/Dockerfile`, and the workflow moves every job in the region, one-offs included, to each new api image, so a job never runs another image:
 
 - `api-migrate`, `pnpm --filter @tamery/db run drizzle:migrate` with `DATABASE_URL` as its only variable. The workflow runs it before deploying api, and a failure stops the deploy.
-- `api-purge-deleted-records`, `pnpm --filter @tamery/db purge-deleted-records` with `DATABASE_URL` as its only variable, the `deleted_records` purge (`architecture.md` → Deleted records), run by Cloud Scheduler on `0 3 * * *`.
+- `api-purge-deleted-records`, `pnpm --filter @tamery/db purge-deleted-records` with `DATABASE_URL` and the bucket's `S3_*` but none of the app's secrets, so it imports only the `deleted_records` schema, the `deleted_records` purge (`architecture.md` → Deleted records), run by Cloud Scheduler on `0 3 * * *`.
 - `api-rotate`, command `bun`, on the API's service account and env, run by hand (`apps/api/SECRETS.md`).
 
 Constraints the service settings must keep:
