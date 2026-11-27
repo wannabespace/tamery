@@ -19,7 +19,8 @@ import {
 } from '@tamery/ui/components/dialog'
 import { skipToken, useQuery } from '@tanstack/react-query'
 import type { FileUIPart } from 'ai'
-import { useState } from 'react'
+import { useInView } from 'motion/react'
+import { useRef, useState } from 'react'
 
 import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
@@ -27,18 +28,19 @@ import { posthog } from '~/lib/posthog'
 const base64Bytes = (url: string) =>
   Math.floor(((url.length - url.indexOf(',') - 1) * 3) / 4)
 
-/** A file stored in the attachments bucket is fetched once per session; a data URL is the file itself. */
-const useFile = (url: string) => {
+/** A file stored in the attachments bucket is fetched once per session, once `isInView`; a data URL is the file itself. */
+const useFile = (url: string, isInView: boolean) => {
   const ref = parseAttachmentRef(url)
   const { data } = useQuery({
     // An object URL is never revoked, so the query must outlive every chip showing it.
     gcTime: Infinity,
-    queryFn: ref
-      ? async () => {
-          const blob = await orpc.ai.attachment.call(ref)
-          return { size: blob.size, url: URL.createObjectURL(blob) }
-        }
-      : skipToken,
+    queryFn:
+      ref && isInView
+        ? async () => {
+            const blob = await orpc.ai.attachment.call(ref)
+            return { size: blob.size, url: URL.createObjectURL(blob) }
+          }
+        : skipToken,
     queryKey: ['chat-attachment', url],
     staleTime: Infinity,
   })
@@ -55,7 +57,8 @@ export const AttachmentChip = ({
   part: FileUIPart
 }) => {
   const [isViewing, setIsViewing] = useState(false)
-  const file = useFile(part.url)
+  const chip = useRef<HTMLDivElement>(null)
+  const file = useFile(part.url, useInView(chip, { once: true }))
   const isImage = part.mediaType.startsWith('image/')
   const open = () => {
     posthog.capture('ai_chat_attachment_opened', {
@@ -77,6 +80,7 @@ export const AttachmentChip = ({
 
   return (
     <Attachment
+      ref={chip}
       orientation={orientation}
       size={orientation === 'vertical' ? 'default' : 'xs'}
       className="max-w-52"
