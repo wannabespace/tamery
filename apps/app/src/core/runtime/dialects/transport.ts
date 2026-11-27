@@ -10,7 +10,7 @@ import type { RunsOn } from '~/core/runtime/machine/pairing'
 import {
   defaultRunsOn,
   getConnectionRunsOn,
-  getMachineRoute,
+  getMachineRouteById,
   THIS_COMPUTER,
 } from '~/core/runtime/machine/pairing'
 import { orpcProxy } from '~/lib/orpc'
@@ -18,7 +18,7 @@ import { orpcProxy } from '~/lib/orpc'
 export interface DialectOptions {
   connectionString: string
   connectionId?: string
-  /** For a string under test only: a saved connection's own choice wins. */
+  /** Where it runs instead of the connection's own choice: a string under test, or a run pinned to where it started. */
   runsOn?: RunsOn
   resourceId?: string
   resultSets?: { maxRows: number }
@@ -39,9 +39,8 @@ const getCloudProxyInput = (options: DialectOptions) => {
 }
 
 const getRunsOn = (connectionId: string | undefined, options: DialectOptions) =>
-  connectionId
-    ? getConnectionRunsOn(connectionId)
-    : (options.runsOn ?? defaultRunsOn())
+  options.runsOn ??
+  (connectionId ? getConnectionRunsOn(connectionId) : defaultRunsOn())
 
 const getTransport = (dialect: Dialect, options: DialectOptions) => {
   const { connectionsCollection, connectionsResourcesCollection } =
@@ -53,8 +52,10 @@ const getTransport = (dialect: Dialect, options: DialectOptions) => {
   const connection = connectionId
     ? (connectionsCollection.get(connectionId) ?? null)
     : null
-  const machineRoute = getMachineRoute(connectionId ?? null)
   const runsOn = getRunsOn(connectionId, options)
+  const machineRoute = connectionId
+    ? getMachineRouteById(runsOn, connectionId)
+    : null
   const config = fetchingConfig(connection, {
     runsOn,
     machine: machineRoute,

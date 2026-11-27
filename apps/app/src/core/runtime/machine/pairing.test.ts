@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 
-import type { MachineId, TAMERY_CLOUD } from '@tamery/shared/machine'
-import { machineIdSchema } from '@tamery/shared/machine'
+import type { MachineId } from '@tamery/shared/machine'
+import { machineIdSchema, TAMERY_CLOUD } from '@tamery/shared/machine'
 
 import type { ConnectionMachine } from './sync'
 
@@ -87,10 +87,10 @@ afterEach(() => {
 
 test.each([
   ['web', NO_ROW, CLOUD],
-  ['web', null, CLOUD],
+  ['web', TAMERY_CLOUD, CLOUD],
   ['web', OTHER_ID, OTHER_ID],
   ['desktop', NO_ROW, THIS_COMPUTER],
-  ['desktop', null, CLOUD],
+  ['desktop', TAMERY_CLOUD, CLOUD],
   ['desktop', OWN_ID, THIS_COMPUTER],
   ['desktop', OTHER_ID, OTHER_ID],
 ] as const)('on %s a stored %p reads as %p', (platform, machineId, runsOn) => {
@@ -108,9 +108,9 @@ test.each([
   ['web', PREVIOUS_ID, OTHER_ID, OTHER_ID, ON_MACHINE],
   ['web', PREVIOUS_ID, CLOUD, NO_ROW, NO_ROW_LEFT],
   ['desktop', NO_ROW, OTHER_ID, OTHER_ID, ON_MACHINE],
-  ['desktop', NO_ROW, CLOUD, null, ON_CLOUD_ROW],
-  ['desktop', PREVIOUS_ID, CLOUD, null, ON_CLOUD_ROW],
-  ['desktop', null, THIS_COMPUTER, NO_ROW, NO_ROW_LEFT],
+  ['desktop', NO_ROW, CLOUD, TAMERY_CLOUD, ON_CLOUD_ROW],
+  ['desktop', PREVIOUS_ID, CLOUD, TAMERY_CLOUD, ON_CLOUD_ROW],
+  ['desktop', TAMERY_CLOUD, THIS_COMPUTER, NO_ROW, NO_ROW_LEFT],
 ] as const)(
   'on %s over a stored %p, picking %p stores %p and reads back',
   (platform, previous, runsOn, machineId, properties) => {
@@ -126,7 +126,7 @@ test.each([
 )
 
 test.each([
-  ['web', null, CLOUD],
+  ['web', TAMERY_CLOUD, CLOUD],
   ['desktop', OWN_ID, THIS_COMPUTER],
 ] as const)(
   'on %s saving the default keeps the other platform’s stored %p',

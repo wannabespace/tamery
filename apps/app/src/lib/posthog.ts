@@ -16,22 +16,11 @@ let instance: Promise<PostHog> | null = null
 let identity: Parameters<PostHog['identify']> | null = null
 
 const uuid = type('string.uuid')
-const EXPECTED_ERRORS = [
-  'resizeobserver loop',
-  'failed to fetch',
-  'network error',
-  'networkerror',
-]
 
 const normalizeSegment = (segment: string) => {
   // A tab id carries schema and table names after its kind (`table:public:users`).
   const [kind = segment] = segment.split(':')
   return uuid.allows(segment) ? ':id' : kind
-}
-
-const isExpectedError = (message: string) => {
-  const lower = message.toLowerCase()
-  return EXPECTED_ERRORS.some((error) => lower.includes(error))
 }
 
 export const getAppProperties = () => ({
@@ -51,12 +40,12 @@ const applyAnalyticsChoice = (client: PostHog) => {
 const init = async () => {
   const [
     { default: posthogJs },
-    { isConnectionFailure, isProxyFailure },
+    { isExpectedException },
     { sanitizeLogData },
     { history },
   ] = await Promise.all([
     import('posthog-js'),
-    import('@tamery/connection/diagnose'),
+    import('./expected-exception'),
     import('@tamery/shared/sanitize-log'),
     import('./last-location'),
   ])
@@ -71,14 +60,15 @@ const init = async () => {
   const client = posthogJs.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
     api_host: POSTHOG_API_HOST,
     before_send: (event) => {
-      const isExpectedException =
-        event?.event === '$exception' &&
-        event.properties.$exception_list.some(
-          ({ value }: { value: string }) =>
-            isExpectedError(value) ||
-            (isConnectionFailure(value) && !isProxyFailure(value))
+      const exceptions: { value: string }[] =
+        event?.event === '$exception' ? event.properties.$exception_list : []
+      if (
+        !event ||
+        isExpectedException(
+          exceptions.map(({ value }) => value),
+          navigator.onLine
         )
-      if (!event || isExpectedException) {
+      ) {
         return null
       }
       if (event.event === '$exception') {

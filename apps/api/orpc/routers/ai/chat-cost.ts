@@ -3,11 +3,11 @@ import { aiUsage, chats } from '@tamery/db/schema'
 import { type } from 'arktype'
 import { and, eq, or, sum } from 'drizzle-orm'
 
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { orpc, aiPermissionsMiddleware, permix } from '~/orpc'
 
 /** What the chat and its subagents have cost so far, in USD. */
 export const chatCost = orpc
-  .use(permissionsMiddleware)
+  .use(aiPermissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
   .input(type({ chatId: 'string.uuid.v7' }))
   .handler(async ({ context, input }) => {

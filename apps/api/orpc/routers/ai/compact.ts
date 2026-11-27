@@ -1,22 +1,17 @@
 import { AiFeature } from '@tamery/ai/usage'
-import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { type } from 'arktype'
 
-import { payForAi } from '~/lib/ai-key'
 import { chatCompaction } from '~/lib/chat/compaction'
 import { chatPersist } from '~/lib/chat/persist'
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { aiPermissionsMiddleware, orpc, paidAiMiddleware, permix } from '~/orpc'
 
 export const compact = orpc
-  .use(permissionsMiddleware)
+  .use(aiPermissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
+  .use(paidAiMiddleware)
   .input(type({ chatId: 'string.uuid.v7' }))
-  .errors({ TOO_MANY_REQUESTS: { message: AI_BUDGET_SPENT_MESSAGE } })
-  .handler(async ({ context, errors, input }) => {
-    const { key, telemetry } = await payForAi(
-      context.user.id,
-      errors.TOO_MANY_REQUESTS
-    )
+  .handler(async ({ context, input }) => {
+    const { key, telemetry } = context.payer
     const history = await chatPersist.loadMessages({
       chatId: input.chatId,
       userId: context.user.id,
@@ -28,7 +23,10 @@ export const compact = orpc
       chatId: input.chatId,
       history,
       key,
-      previous: await chatCompaction.get(input.chatId),
+      previous: await chatCompaction.get({
+        chatId: input.chatId,
+        userId: context.user.id,
+      }),
       telemetry: telemetry({
         chatId: input.chatId,
         feature: AiFeature.Chat,

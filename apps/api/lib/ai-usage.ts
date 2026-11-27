@@ -1,12 +1,7 @@
 import { createAiUsage } from '@tamery/ai/usage'
 import type { AiUsageRecord } from '@tamery/ai/usage'
 import { db } from '@tamery/db'
-import {
-  aiUsage as aiUsageTable,
-  chats,
-  connections,
-  connectionsResources,
-} from '@tamery/db/schema'
+import { chats, connections, connectionsResources } from '@tamery/db/schema'
 import { eq } from 'drizzle-orm'
 
 import { env } from '~/env'
@@ -50,13 +45,10 @@ export const aiUsage = createAiUsage(async (record) => {
   ) {
     await alertNoCost(record)
   }
-  await db.insert(aiUsageTable).values({
+  await credits.settle({
     ...record,
     workspaceId: record.chatId
       ? await getWorkspaceIdFromChat(record.chatId)
       : null,
   })
-  if (record.cost && !record.ownKey) {
-    await credits.spend({ cost: record.cost, userId: record.userId })
-  }
 })

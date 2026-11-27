@@ -91,12 +91,7 @@ export const autoApprove = async ({
   const { additive, connection, kind } = write.value
   const verdict = await orpc.ai.judgeStatement
     .call(
-      {
-        additive,
-        chatId: chat.id,
-        dialect: connection.type,
-        statement: input.statement,
-      },
+      { chatId: chat.id, toolCallId },
       { context: { silent: true }, signal }
     )
     .catch(() => null)

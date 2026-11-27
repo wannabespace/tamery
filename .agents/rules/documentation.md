@@ -6,6 +6,8 @@ Product docs = MDX under `docs/`, rendered by `apps/docs` (Fumadocs). `docs/docs
 
 **Skip** for internal refactors with no user-visible change, tests, tooling, CI, dev-only scripts, typos in comments/private types. Don't create or expand docs for code-only-scoped work unless asked.
 
+**Describe the product as it is now.** No version qualifiers ("after v0.99.6") and no notes on what changed or how older versions behave.
+
 ## Release notes
 
 The ToDesktop webhook prepares GitHub release drafts with AI-written user-facing highlights only. AI failure keeps the original notes so it cannot block a release. The website and Discord render the same body. Publication remains manual. A draft gets its git tag only when published, so its notes cover everything since the last published version: publish drafts in version order or they repeat each other's changes.

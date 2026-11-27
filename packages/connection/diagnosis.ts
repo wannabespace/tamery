@@ -1,4 +1,7 @@
-import type { ConnectionType } from '@tamery/shared/enums/connection-type'
+import type {
+  ConnectionType,
+  Provider,
+} from '@tamery/shared/enums/connection-type'
 
 import type { ConnectionParts } from './connection-parts'
 import type { SSH_FIELD_AT_FAULT } from './ssh/params'
@@ -35,6 +38,8 @@ export interface DiagnosisRule {
   diagnose: (context: DiagnosisContext) => Diagnosis
   /** Only this engine's errors carry the matched text. */
   engine?: ConnectionType
+  /** Only these providers' transports raise the matched text; a file's own error never means a network failure. */
+  providers?: Provider[]
   /** A device with no network fails this way too: reaching a public database host (`host`), or its own request to the cloud proxy (`device`). */
   offline?: 'device' | 'host'
   tunnel?: true
