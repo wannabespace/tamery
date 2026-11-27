@@ -20,7 +20,7 @@ Why this model (and not feature gating):
 | --- | --- | --- |
 | Connections | 3 | Unlimited |
 | Workspaces | 1 (personal, auto-created) | Unlimited |
-| AI requests | Limited per week; chat with BYOK | Unlimited filters; chat up to the subscription's price in model cost each month, then bought credits (1:1 with model cost, never expire, optional auto top-up) |
+| AI requests | Limited per week; chat with BYOK | Unlimited filters; every AI feature together up to $5 of model cost each month (`PRO_INCLUDED_AI_USD`), then bought credits (1:1 with model cost, never expire, optional auto top-up) |
 | Cloud sync | Included (within connection limit) | Included |
 | Chats & query history | Limited retention | Unlimited |
 

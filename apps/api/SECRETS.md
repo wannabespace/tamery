@@ -79,6 +79,15 @@ The api and the purge job reach the chat attachments bucket with an HMAC key of 
 
 **The KMS key `attachments`** encrypts the bucket and rotates itself every 90 days. Revoking Cloud Storage's binding on it stops every attachment from opening.
 
+## Stripe webhook
+
+The Stripe endpoint signs with `STRIPE_WEBHOOK_SECRET` and must send these events. Set them in the Stripe dashboard under Developers → Webhooks → the API's endpoint → Edit:
+
+- `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`: plans.
+- `payment_intent.succeeded`: adds the AI credits of a paid top-up. Without it a card is charged and no credits arrive.
+- `payment_intent.payment_failed`: turns off auto top-up after a declined charge.
+- `charge.refunded`, `charge.dispute.created`: take back the credits of a refunded or disputed top-up.
+
 ## Incidents
 
 - **Secret read by someone else** (the alert names who and from where):

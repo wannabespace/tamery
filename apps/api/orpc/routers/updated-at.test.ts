@@ -26,6 +26,7 @@ mock.module('~/lib/encryption-key', () => ({ workspaceEncryptionKey: {} }))
 mock.module('~/lib/connection-string', () => ({ encryptConnectionString: {} }))
 const passThrough = os.middleware(({ next }) => next())
 mock.module('~/orpc', () => ({
+  aiPermissionsMiddleware: passThrough,
   authMiddleware: passThrough,
   orpc: os,
   permissionsMiddleware: passThrough,

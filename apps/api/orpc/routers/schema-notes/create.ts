@@ -1,3 +1,4 @@
+import { SCHEMA_NOTE_LIMIT } from '@tamery/ai/schema-notes'
 import { db } from '@tamery/db'
 import { schemaNotesInsertSchema } from '@tamery/db/schema'
 import { schemaNotes } from '@tamery/db/schema/schema-notes'
@@ -9,7 +10,11 @@ import { publisher } from './events'
 
 export const create = orpc
   .use(authMiddleware)
-  .input(schemaNotesInsertSchema.omit('userId', 'updatedAt'))
+  .input(
+    schemaNotesInsertSchema
+      .omit('userId', 'updatedAt')
+      .merge({ note: `string <= ${SCHEMA_NOTE_LIMIT}` })
+  )
   .errors({
     NOT_FOUND: { message: 'Connection resource not found' },
   })

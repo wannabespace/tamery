@@ -31,8 +31,8 @@ mock.module('./redis', () => ({
 }))
 
 let aiBudgetLeft = true
-mock.module('./credits', () => ({
-  credits: { canUseAi: () => Promise.resolve(aiBudgetLeft) },
+mock.module('./ai-key', () => ({
+  payForAi: () => Promise.resolve(aiBudgetLeft ? {} : null),
 }))
 
 const { usage } = await import('./usage')
