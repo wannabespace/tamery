@@ -24,10 +24,10 @@ To run queries on a machine from another computer, give it an `https://` address
 
    | Machine | Port | Address |
    | --- | --- | --- |
-   | Desktop app after v0.99.6 | `26382` | **Settings → Machines → Address for your other computers** |
+   | Desktop app | `26382` | **Settings → Machines → Address for your other computers** |
    | CLI | `26380` | `tamery machine --public-url <address>` |
 
-3. On your other computer, in the web app or a desktop app after v0.99.6, choose the machine under a connection's **Runs on**, then allow it on the machine within 2 minutes. Over SSH, use [`tamery machine approve`](/cli/commands#tamery-machine-approve) (CLI only).
+3. On your other computer, choose the machine under a connection's **Runs on**, then allow it on the machine within 2 minutes. Over SSH, use [`tamery machine approve`](/cli/commands#tamery-machine-approve) (CLI only).
 
 The commands below use the desktop app's port. For the CLI, use `26380`, or the port you passed to `--port`.
 

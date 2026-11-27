@@ -21,8 +21,8 @@ Synced connection strings are encrypted with a workspace key. They are decrypted
 
 ## Where queries run
 
-- **Desktop:** your computer connects to the database directly. In desktop apps after v0.99.6, a connection whose **Runs on** is **Tamery Cloud** or one of your machines runs there instead.
-- **On a machine** ([`tamery machine`](/cli/overview), or a desktop app after v0.99.6), from the web app or a desktop app after v0.99.6: the computer running the machine connects to the database. Queries carry connection IDs, and the machine gets each connection string through your account. From either app, saving a connection that runs on a machine, clicking **Allow** on the **Allow this connection on the machine** screen, or entering details the machine asks for can send that app's complete connection string to the machine, password and other secrets included. That screen is not the prompt on the machine that allows your app. The machine keeps the string encrypted. Tamery's servers confirm that the machine and the browser are signed in to the same account, and the machine refuses requests that reach it through another address than its **Machine URL**.
+- **Desktop:** your computer connects to the database directly. A connection whose **Runs on** is **Tamery Cloud** or one of your machines runs there instead.
+- **On a machine** ([`tamery machine`](/cli/overview) or the desktop app), from the web app or the desktop app: the computer running the machine connects to the database. Queries carry connection IDs, and the machine gets each connection string through your account. From either app, saving a connection that runs on a machine, clicking **Allow** on the **Allow this connection on the machine** screen, or entering details the machine asks for can send that app's complete connection string to the machine, password and other secrets included. That screen is not the prompt on the machine that allows your app. The machine keeps the string encrypted. Tamery's servers confirm that the machine and the browser are signed in to the same account, and the machine refuses requests that reach it through another address than its **Machine URL**.
 - **Web without a machine:** Tamery's cloud proxy connects to public database servers and handles the query and its results.
 
 The cloud proxy cannot reach private addresses, open SQLite, DuckDB and certificate files on your computer, or sign in to MongoDB with AWS, OIDC or Kerberos credentials. Use desktop or the machine for those. The machine skips files in app data folders and uses those credentials only for MongoDB Atlas, so a few of these need desktop. Connections whose secrets stay on your device also need desktop or the machine.
@@ -36,7 +36,7 @@ If your database only accepts allowlisted IP addresses, add these so the cloud p
 34.40.119.38
 ```
 
-Add both. The proxy can connect from either one. A connection whose **Runs on** is **Tamery Cloud** connects from these addresses, in the web app and in desktop apps after v0.99.6. **This computer** and your machines connect from the network they run on, so allow that address instead.
+Add both. The proxy can connect from either one. A connection whose **Runs on** is **Tamery Cloud** connects from these addresses, in the web app and on desktop. **This computer** and your machines connect from the network they run on, so allow that address instead.
 
 Only Tamery's cloud proxy uses these addresses, but it connects for every Tamery user. An allowlist narrows who can reach your database, and the database password still protects it.
 

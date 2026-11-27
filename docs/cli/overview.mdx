@@ -39,7 +39,7 @@ The CLI runs on macOS (Apple silicon and Intel), Linux (x64 and arm64), and Wind
    tamery machine
    ```
 
-   The first time, it opens the browser so you can sign in with the account you use in the web app. It then lists itself under **Settings → Machines** in the web app and in desktop apps after v0.99.6 signed in to your account, and opens that page.
+   The first time, it opens the browser so you can sign in with the account you use in the web app. It then lists itself under **Settings → Machines** in every app signed in to your account, and opens that page.
 
 2. Choose the machine under a connection's **Runs on**, or click **Connect** next to it in **Settings → Machines**. Tamery tries each address the machine listens at and uses the first one this browser reaches.
 
@@ -49,7 +49,7 @@ Connections run only on machines your account lists, so the machine must be sign
 
 ## Choose where a connection runs
 
-While there is more than one place to run it, each connection has a **Runs on** choice, in its form, in its **⋯** menu on the connections page, and under the computer or cloud icon at the top of the window while it's open: **Tamery Cloud** in the web app, **This computer** in the desktop app, or one of your machines. The desktop app also offers **Tamery Cloud** for a connection the web app can reach: synced as **Full**, with a public host and no SSH tunnel. Use it when your database only lets in [the cloud proxy's addresses](/connections/security#cloud-proxy-ip-addresses), for example. Picking a database a machine found sets it to that machine. The choice is yours alone: in a shared workspace, every member picks where the connection runs for them, from the menu or the icon if they can't edit it, so nobody's queries go through your computer. The desktop app shows **Runs on** in versions after v0.99.6; v0.99.6 runs every connection on its own computer.
+While there is more than one place to run it, each connection has a **Runs on** choice, in its form, in its **⋯** menu on the connections page, and under the computer or cloud icon at the top of the window while it's open: **Tamery Cloud** in the web app, **This computer** in the desktop app, or one of your machines. The desktop app also offers **Tamery Cloud** for a connection the web app can reach: synced as **Full**, with a public host and no SSH tunnel. Use it when your database only lets in [the cloud proxy's addresses](/connections/security#cloud-proxy-ip-addresses), for example. Picking a database a machine found sets it to that machine. The choice is yours alone: in a shared workspace, every member picks where the connection runs for them, from the menu or the icon if they can't edit it, so nobody's queries go through your computer.
 
 While a connection that runs on a machine is open, the computer icon also shows the machine's state: a green dot while it answers, red within 10 seconds of it stopping. Hover it for the reason.
 
@@ -70,8 +70,6 @@ The machine accepts only browsers signed in to the same account as the machine.
 The desktop app is a machine too, with no CLI. Once you sign in, it lists the computer in your account as `<hostname> (desktop app)`, listening at `http://127.0.0.1:26382`, and keeps serving while Tamery runs, even with every window closed. **Settings → Machines** shows it as **This computer** under **Your machines**.
 
 When a browser connects to it, the desktop app asks in a dialog whether to allow it, with the same code the browser shows. **Don't Allow** is the default.
-
-Desktop apps after v0.99.6 are machines. On v0.99.6, run [`tamery machine`](#run-the-machine) on that computer instead.
 
 Browsers on the same computer connect directly. To reach it from another computer, [give it an address](/cli/remote).
 
