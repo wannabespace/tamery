@@ -496,12 +496,41 @@ describe('diagnoseConnectionError', () => {
 
     it.each([
       ['libsql://db-acme.aws-eu-west-1.turso.io', "Couldn't reach Turso"],
+      ['libsql://db-acme.aws-eu-west-1.turso.io.', "Couldn't reach Turso"],
       ['libsql://sqld.acme.io:8080', "Couldn't reach the libSQL server"],
     ])('names the libSQL server %s failed to reach', (url, title) => {
       expect(diagnose('fetch failed', connectionParts.parse(url))?.title).toBe(
         title
       )
     })
+
+    it('asks to start a local libSQL server instead of checking the internet', () => {
+      expect(
+        diagnose(
+          'fetch failed',
+          connectionParts.parse('libsql://localhost:8080')
+        )?.hint
+      ).toStartWith('Nothing answers at that address.')
+    })
+
+    it.each([
+      [
+        'SERVER_ERROR: Server returned HTTP status 401',
+        'The libSQL server refused the auth token',
+      ],
+      [
+        'SERVER_ERROR: Server returned HTTP status 404',
+        "The libSQL server can't find that database",
+      ],
+    ])(
+      'keeps Turso out of a self-hosted server answering %s',
+      (message, title) => {
+        expect(
+          diagnose(message, connectionParts.parse('libsql://sqld.acme.io:8080'))
+            ?.title
+        ).toBe(title)
+      }
+    )
 
     it.each([
       'postgres://me:pw@localhost.:5432/app',
