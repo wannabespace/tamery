@@ -228,6 +228,27 @@ describe('D1', () => {
       }),
       'fetch failed: ENETUNREACH',
     ],
+    [
+      new TypeError('fetch failed', {
+        cause: Object.assign(
+          new Error('getaddrinfo EAI_AGAIN api.cloudflare.com'),
+          { code: 'EAI_AGAIN' }
+        ),
+      }),
+      'fetch failed: EAI_AGAIN',
+    ],
+    [
+      Object.assign(new TypeError('getaddrinfo ENOTFOUND api.cloudflare.com'), {
+        code: 'ENOTFOUND',
+      }),
+      'fetch failed: ENOTFOUND',
+    ],
+    [
+      Object.assign(new TypeError('Unable to connect'), {
+        code: 'ConnectionRefused',
+      }),
+      'fetch failed',
+    ],
     [new TypeError('fetch failed'), 'fetch failed'],
   ])(
     'names the socket code a failed request lost',

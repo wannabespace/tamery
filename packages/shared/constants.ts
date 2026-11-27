@@ -84,6 +84,7 @@ export const RECONNECT_ERROR_PATTERNS = [
   'network',
   'application failed to respond',
   'failed to fetch',
+  'fetch failed',
   'connection terminated unexpectedly',
   'connection terminated due to connection timeout',
   'timeout expired',

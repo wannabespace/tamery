@@ -126,7 +126,7 @@ export const connections = {
   ) => {
     if (!('connectionId' in input)) {
       throw errors.BAD_REQUEST({
-        message: 'The machine runs saved connections only. Update Tamery.',
+        message: 'The machine runs saved connections only.',
       })
     }
     const { connectionId } = input
