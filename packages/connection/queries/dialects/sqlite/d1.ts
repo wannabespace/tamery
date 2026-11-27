@@ -40,8 +40,20 @@ const toStatements = (texts: string[], values: SqliteValue[]) => {
   return texts.map((sql): D1Statement => ({ params, sql }))
 }
 
-// `diagnose-sqlite.ts` matches this text. It stays bare: an older app reads a socket code in it (ENOTFOUND, a timeout) as the fixed Cloudflare host's fault.
+// `diagnose-sqlite.ts` matches this text, with or without the code.
 const D1_TRANSPORT_ERROR = 'fetch failed'
+
+const SOCKET_CODE = /^(?:E[A-Z]+|UND_ERR_[A-Z_]+)$/u
+
+// Fetch names the failed lookup or socket only in its cause, an `AggregateError` with an empty message for a dual-stack connect, and the desktop worker forwards nothing but the message.
+const socketCode = (error: unknown) => {
+  const cause = error instanceof Error ? error.cause : undefined
+  return (cause instanceof AggregateError ? cause.errors : [cause])
+    .map((reason: unknown) =>
+      reason instanceof Error && 'code' in reason ? reason.code : undefined
+    )
+    .find((code: unknown) => typeof code === 'string' && SOCKET_CODE.test(code))
+}
 
 /** One statement goes alone; several go as a batch, which D1 runs in one transaction. */
 const send = async (
@@ -64,7 +76,10 @@ const send = async (
       method: 'POST',
     }
   ).catch((error: unknown) => {
-    throw new Error(D1_TRANSPORT_ERROR, { cause: error })
+    throw new Error(
+      [D1_TRANSPORT_ERROR, socketCode(error)].filter(Boolean).join(': '),
+      { cause: error }
+    )
   })
   const answer = d1Answer(await response.json().catch(() => null))
   if (answer instanceof type.errors || !answer.success || !answer.result) {
