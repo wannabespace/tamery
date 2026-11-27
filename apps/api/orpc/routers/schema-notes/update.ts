@@ -14,7 +14,7 @@ export const update = orpc
     schemaNotesUpdateSchema
       .pick('id')
       .required()
-      .merge({ note: `string <= ${SCHEMA_NOTE_LIMIT}` })
+      .merge({ 'note?': `string <= ${SCHEMA_NOTE_LIMIT}` })
   )
   .errors({
     NOT_FOUND: { message: 'Note not found' },
