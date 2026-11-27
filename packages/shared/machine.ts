@@ -35,7 +35,7 @@ export type MachineId = string & { readonly __brand: 'MachineId' }
 export const machineIdSchema = type('string').as<MachineId>()
 
 /** `connection_machines.machine_id` for Tamery Cloud, open to everyone: stored rows hold it, so it never changes. */
-export const TAMERY_CLOUD = null
+export const TAMERY_CLOUD = '00000000-0000-0000-0000-000000000000'
 
 export const machineUnconfirmed = type({ connectionId: 'string' })
 
