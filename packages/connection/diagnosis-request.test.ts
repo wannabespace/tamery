@@ -127,7 +127,7 @@ describe('getDiagnosisRequest', () => {
   it('sends no SSH secret, alias or user', () => {
     expect(
       request(
-        'SSH authentication failed: p%40ss!, hunter2, s3cret, SSH and tunnel',
+        'SSH tunnel: SSH authentication failed: p%40ss!, hunter2, s3cret, SSH and tunnel',
         {
           password: 'p@ss!',
           ssh: {
@@ -147,12 +147,55 @@ describe('getDiagnosisRequest', () => {
     ['role "me" does not exist', 'Database user does not exist'],
     ['password authentication failed for user "me"', 'Database sign-in failed'],
     ['relation "orders" is locked', 'Connection failed'],
+    [
+      'no pg_hba.conf entry for host "203.0.113.7", user "me", database "app", no encryption',
+      'Database requires SSL',
+    ],
+    [
+      'no pg_hba.conf entry for host "203.0.113.7", user "me", database "app", SSL encryption',
+      "Database server doesn't allow connections from this address",
+    ],
+    [
+      "Access denied for user 'me'@'%' to database 'app'",
+      "Database user can't open that database",
+    ],
+    ['sorry, too many clients already', 'Database has too many connections'],
+    [
+      'self-signed certificate in certificate chain',
+      "Database certificate couldn't be verified",
+    ],
+    [
+      'permission denied for database "docker_tunnel"',
+      "Database user can't open that database",
+    ],
   ])(
     'sends the driver error %s of a tunneled connection as %s',
     (message, error) => {
       expect(
         request(message, { database: 'database', ssh: EMPTY_SSH_TUNNEL }).error
       ).toBe(error)
+    }
+  )
+
+  it.each([
+    [
+      'database "docker_app" does not exist',
+      { database: 'docker_app' },
+      'Database does not exist',
+    ],
+    [
+      'password authentication failed for user "tunnel_reader"',
+      { user: 'tunnel_reader' },
+      'Database sign-in failed',
+    ],
+  ])(
+    'blames the database for %s, whatever its names say',
+    (message, overrides, error) => {
+      const sent = request(message, { ...overrides, ssh: EMPTY_SSH_TUNNEL })
+      expect([sent.error, sanitizeDiagnosisRequest(sent).error]).toEqual([
+        error,
+        error,
+      ])
     }
   )
 

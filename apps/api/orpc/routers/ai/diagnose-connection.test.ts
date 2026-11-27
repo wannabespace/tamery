@@ -38,6 +38,8 @@ const diagnosed = async (request: DiagnosisRequest) => {
 }
 
 const OPTIONS_SENT: Record<string, string> = {
+  '': '',
+  'sslmode=require': 'sslmode=require',
   'encrypt=true&appname=%3Credacted%3E': 'encrypt=true',
   'sslmode=require&application_name=%3Credacted%3E': 'sslmode=require',
 }
@@ -54,6 +56,11 @@ const SSH_FAILURES = {
 }
 
 const FORWARDED: Record<keyof typeof released, string> = {
+  'a MySQL user denied that database': "Database user can't open that database",
+  'a PostgreSQL server out of connections': 'Database has too many connections',
+  'a failed sign-in for user tunnel_reader': 'Database sign-in failed',
+  'a missing database named docker_app': 'Database does not exist',
+  'a pg_hba.conf refusal without encryption': 'Database requires SSL',
   'a Match without its value': SSH_FAILURES.config,
   'a failed SSH sign-in': SSH_FAILURES.auth,
   'a malformed HostName, database user line': 'Connection failed',
@@ -62,12 +69,12 @@ const FORWARDED: Record<keyof typeof released, string> = {
   'a refused forward, database user open and database failure':
     SSH_FAILURES.forward,
   'an SSH host that timed out, alias at': SSH_FAILURES.failed,
-  'an SSH host this device never reached': SSH_FAILURES.unreachable,
+  'an SSH host this device never reached': SSH_FAILURES.failed,
   'an ssh2 disconnect the SSH host described': SSH_FAILURES.failed,
   'an ssh2 disconnect, alias SSH and database user tunnel': SSH_FAILURES.failed,
   'an unreachable SSH host with its port attached': SSH_FAILURES.refused,
-  'an unreachable SSH host, alias SSH and database ssh': SSH_FAILURES.refused,
-  'an unreachable SSH host, alias host': SSH_FAILURES.refused,
+  'an unreachable SSH host, alias SSH and database ssh': SSH_FAILURES.failed,
+  'an unreachable SSH host, alias host': SSH_FAILURES.failed,
   'several containers, wrapped by the SQL Server driver': SSH_FAILURES.docker,
 }
 

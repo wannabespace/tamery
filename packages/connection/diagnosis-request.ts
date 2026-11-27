@@ -28,62 +28,115 @@ const ANY_IPV6 = new RegExp(
 )
 
 const tunnelFailure = (text: string) => tunnelError(text).message
-const SSH_MARKER =
-  /ssh|tunnel|channel open|docker|known_hosts|line break|match criteria|proxy(?:jump|command)/iu
+/** Where an SSH session, the tunnel or ssh-config wrote the failure; a driver may wrap it in its own message. */
+const SSH_ENVELOPE =
+  /SSH tunnel: |\(SSH\) |Unexpected line break at |Missing value for match criteria |SSH tunnels run in the Tamery desktop/u
 const SSH_CATEGORIES: [RegExp, string][] = [
-  [/tunnels run in the Tamery desktop/iu, SSH_ELSEWHERE],
+  [/^SSH tunnels run in the Tamery desktop/u, SSH_ELSEWHERE],
   [
-    /docker|container/iu,
-    tunnelFailure("The SSH host couldn't find the database container"),
-  ],
-  [
-    /channel|forward/iu,
+    /^\(SSH\) Channel |^SSH tunnel: The SSH host didn't forward/u,
     tunnelFailure("The SSH host didn't forward the connection to the database"),
   ],
   [
-    /\.ssh\/config|line break|match criteria|proxy(?:jump|command)/iu,
+    /^(?:Unexpected line break at|Missing value for match criteria)|^SSH tunnel: (?:Proxy(?:Jump|Command) in )?~\/\.ssh\/config/u,
     tunnelFailure("~/.ssh/config couldn't be used"),
   ],
   [
-    /host.{0,3}key|known_hosts/iu,
+    /^SSH tunnel: (?:The SSH host can't resolve .+ run docker there|Several containers run the service|The SSH host couldn't find the database container)/su,
+    tunnelFailure("The SSH host couldn't find the database container"),
+  ],
+  [
+    /^SSH tunnel: (?:The SSH host(?:'s key| presented a key)|The machine's computer doesn't know this SSH host's key)/u,
     tunnelFailure("The SSH host's key wasn't trusted"),
   ],
   [
-    /authenticat|sign-in|passphrase|private key|key file|agent|password/iu,
+    /^SSH tunnel: (?:SSH authentication failed|SSH agent not available|SSH sign-in failed|The SSH key|That (?:file )?isn't an SSH private key|Choose the SSH key file|The SSH (?:password|private key) isn't stored)/u,
     tunnelFailure('SSH sign-in failed'),
   ],
-  [/timed out|timeout/iu, tunnelFailure(SSH_HOST_TIMEOUT)],
-  [/refused/iu, tunnelFailure('The SSH host refused the connection')],
   [
-    /reach|enotfound|eai_again|resolve|not known/iu,
+    /^SSH tunnel: Timed out (?:reaching|connecting to) the SSH host/u,
+    tunnelFailure(SSH_HOST_TIMEOUT),
+  ],
+  [
+    /^SSH tunnel: (?:Can't reach the SSH host.*: ECONNREFUSED|The SSH host refused the connection)$/su,
+    tunnelFailure('The SSH host refused the connection'),
+  ],
+  [
+    /^SSH tunnel: Can't reach the SSH host/u,
     tunnelFailure("Can't reach the SSH host"),
   ],
 ]
 const SSH_FAILURE = tunnelFailure('SSH connection failed')
+// What an SSH failure keeps once an older renderer wrote placeholders over its envelope, `<ssh-host>` included.
+const SSH_REMNANT = /\btunnel: |\) Channel |\bSSH\b|<ssh-/u
+// A placeholder stands where an older renderer replaced a word equal to a form value, `database` included.
+const NAMED = '(?:"[^"]*"|\'[^\']*\')'
+const WORD = '(?:database|<\\S*>)'
+// The forms `diagnose.ts` tells apart, most specific first: a TLS or permission failure also reads as an address or sign-in one.
 const DATABASE_CATEGORIES: [RegExp, string][] = [
-  [/(?:role|user) .*does not exist/iu, 'Database user does not exist'],
   [
-    /does not exist|unknown database|cannot open database/iu,
+    new RegExp(
+      `access denied for user .+ to ${WORD}|permission denied for ${WORD}|does not have connect privilege|ora-01045`,
+      'iu'
+    ),
+    "Database user can't open that database",
+  ],
+  [
+    new RegExp(`role ${NAMED} does not exist`, 'iu'),
+    'Database user does not exist',
+  ],
+  [
+    new RegExp(
+      `cannot open database|${WORD} ${NAMED} does not exist|unknown database|unknown_database`,
+      'iu'
+    ),
     'Database does not exist',
   ],
   [
-    /authentication failed|access denied|login failed|sign-in|password/iu,
+    /no pg_hba\.conf entry.*(?:no encryption|ssl off)|ssl connection is required|requires? (?:an )?ssl|insecure transport are prohibited|ssl required|authentication requires secure connection/iu,
+    'Database requires SSL',
+  ],
+  [
+    /self[- ]signed certificate|unable to verify the first certificate|unable to get (?:local )?issuer certificate|certificate has expired|hostname\/ip does not match|altnames|depth_zero_self_signed/iu,
+    "Database certificate couldn't be verified",
+  ],
+  [
+    /tlsv1_alert|sslv3_alert|ssl alert number|alert (?:internal error|handshake failure)|handshake failure/iu,
+    'Database TLS handshake failed',
+  ],
+  [
+    /no pg_hba\.conf entry|is not allowed to connect|is not allowed to access the server/iu,
+    "Database server doesn't allow connections from this address",
+  ],
+  [
+    /password has expired|password .+ must be changed|ora-28001/iu,
+    'Database password has expired',
+  ],
+  [/account is locked|ora-28000/iu, 'Database account is locked'],
+  [
+    /password authentication failed|access denied for user|login failed for user|authentication failed|wrong password|invalid password|password is incorrect|no password supplied|password required|client password must be a|ora-01017/iu,
     'Database sign-in failed',
   ],
   [
-    /pg_hba\.conf|not allowed to connect|doesn't allow connections/iu,
-    "Database server doesn't allow connections from this address",
-  ],
-  [/ssl|tls|certificate/iu, 'Database TLS/SSL error'],
-  [
-    /too many connections|connection slots/iu,
+    /too many clients|too many connections|remaining connection slots|connection limit exceeded/iu,
     'Database has too many connections',
   ],
   [/permission denied/iu, 'Database permission denied'],
-  [/timed out|timeout/iu, 'Connection to the database timed out'],
-  [/refused/iu, 'Database refused the connection'],
   [
-    /enotfound|eai_again|getaddrinfo|not known|resolved/iu,
+    /the database system is (?:starting up|shutting down|in recovery mode)/iu,
+    "Database isn't ready",
+  ],
+  [/connection terminated unexpectedly/iu, 'Database closed the connection'],
+  [
+    /\betimedout\b|timed out|timeout expired/iu,
+    'Connection to the database timed out',
+  ],
+  [
+    /\beconnrefused\b|connection refused|could not connect/iu,
+    'Database refused the connection',
+  ],
+  [
+    /\b(?:enotfound|eai_again)\b|getaddrinfo/iu,
     "Database host name couldn't be resolved",
   ],
 ]
@@ -98,14 +151,30 @@ export const SSH_ON_ERRORS = new Set([
 
 /**
  * With a tunnel on, an error can name the host `~/.ssh/config` resolved however it reads, and an older renderer rewrote
- * the words that would say where it came from, so the AI gets only the category its text points to.
+ * the words that would say where it came from, so the AI gets only the category its form points to. The client reads the
+ * SSH envelope in the driver's own text and the database form in the redacted one, where a name the form holds is a
+ * placeholder.
  */
-const toCategory = (error: string) =>
-  SSH_MARKER.test(error)
-    ? (SSH_CATEGORIES.find(([pattern]) => pattern.test(error))?.[1] ??
-      SSH_FAILURE)
-    : (DATABASE_CATEGORIES.find(([pattern]) => pattern.test(error))?.[1] ??
-      CONNECTION_FAILURE)
+const toCategory = (message: string, redacted = message) => {
+  if (SSH_ON_ERRORS.has(redacted)) {
+    return redacted
+  }
+  const envelope = message.search(SSH_ENVELOPE)
+  if (envelope !== -1) {
+    const failure = message.slice(envelope)
+    return (
+      SSH_CATEGORIES.find(([pattern]) => pattern.test(failure))?.[1] ??
+      SSH_FAILURE
+    )
+  }
+  if (SSH_REMNANT.test(redacted)) {
+    return SSH_FAILURE
+  }
+  return (
+    DATABASE_CATEGORIES.find(([pattern]) => pattern.test(redacted))?.[1] ??
+    CONNECTION_FAILURE
+  )
+}
 
 /** Any other key's value can be a secret or a name, however harmless it looks (`sslpassword=123456`). */
 const SETTING_KEYS = new Set([
@@ -177,7 +246,7 @@ export const getDiagnosisRequest = ({
     .replaceAll(ANY_IPV4, '<ip>')
     .replaceAll(ANY_IPV6, '<ip>')
   return {
-    error: parts.ssh ? toCategory(message) : error,
+    error: parts.ssh ? toCategory(message, error) : error,
     hostKind: [
       getHostHint(parts.host)?.label,
       HOST_KIND_LABELS[getHostKind(parts.host)],
