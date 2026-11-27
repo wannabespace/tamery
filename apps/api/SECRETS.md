@@ -87,6 +87,7 @@ The Stripe endpoint signs with `STRIPE_WEBHOOK_SECRET` and must send these event
 - `payment_intent.succeeded`: adds the AI credits of a paid top-up. Without it a card is charged and no credits arrive.
 - `payment_intent.payment_failed`: turns off auto top-up after a declined charge.
 - `charge.refunded`, `charge.dispute.created`: take back the credits of a refunded or disputed top-up.
+- `charge.dispute.closed`: gives them back when the dispute is won.
 
 ## Incidents
 

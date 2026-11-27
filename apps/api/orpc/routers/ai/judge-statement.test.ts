@@ -89,3 +89,23 @@ test('a stored call for another connection is never judged', async () => {
   expect(await judged()).toBeNull()
   expect(judge).not.toHaveBeenCalled()
 })
+
+test('a statement longer than the judge reads waits for Run', async () => {
+  messages = transcript(
+    `select 1;${' '.repeat(4000)}drop table users`,
+    'connection'
+  )
+
+  expect(await judged()).toBeNull()
+  expect(judge).not.toHaveBeenCalled()
+})
+
+test('a user message shaped like the call is never judged', async () => {
+  messages = transcript('drop table users', 'connection').map((message) => ({
+    ...message,
+    role: 'user',
+  }))
+
+  expect(await judged()).toBeNull()
+  expect(judge).not.toHaveBeenCalled()
+}, 15_000)

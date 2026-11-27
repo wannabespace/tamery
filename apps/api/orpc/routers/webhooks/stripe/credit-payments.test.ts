@@ -5,10 +5,24 @@ import type Stripe from 'stripe'
 
 const credit = mock(() => Promise.resolve())
 const failAutoTopUp = mock(() => Promise.resolve())
-const reverse = mock(() => Promise.resolve())
+let credited = true
+const reverse = mock(() => Promise.resolve(credited))
 mock.module('~/lib/credits', () => ({
   CREDITS_PAYMENT_KIND: 'ai_credits',
   credits: { credit, failAutoTopUp, reverse },
+}))
+
+const retrieveIntent = mock(() =>
+  Promise.resolve({ metadata: { kind: 'ai_credits' } })
+)
+const retrieveCharge = mock(() =>
+  Promise.resolve({ amount: 1050, amount_refunded: 525 })
+)
+mock.module('~/lib/stripe', () => ({
+  stripe: {
+    charges: { retrieve: retrieveCharge },
+    paymentIntents: { retrieve: retrieveIntent },
+  },
 }))
 
 const { creditPayments } = await import('./credit-payments')
@@ -29,6 +43,7 @@ beforeEach(() => {
   credit.mockClear()
   failAutoTopUp.mockClear()
   reverse.mockClear()
+  credited = true
 })
 
 test('a paid top-up credits what was bought, with its card', async () => {
@@ -96,7 +111,40 @@ test('a refund takes back its share and a dispute the whole top-up', async () =>
   )
 
   expect(reverse.mock.calls).toEqual([
-    ['pi_1', 0.5],
-    ['pi_2', 1],
+    ['pi_1', 0.5, false],
+    ['pi_2', 1, false],
   ] as never)
+})
+
+test('a refund before the payment is credited fails so Stripe sends it again', async () => {
+  credited = false
+  const refund = event('charge.refunded', {
+    amount: 1050,
+    amount_refunded: 1050,
+    payment_intent: 'pi_1',
+  })
+
+  await expect(creditPayments(refund)).rejects.toThrow('not credited yet')
+  retrieveIntent.mockResolvedValueOnce({ metadata: { kind: 'other' } })
+  await creditPayments(refund)
+})
+
+test('a won dispute gives back what was not refunded', async () => {
+  await creditPayments(
+    event('charge.dispute.closed', {
+      charge: 'ch_1',
+      payment_intent: 'pi_1',
+      status: 'lost',
+    })
+  )
+  await creditPayments(
+    event('charge.dispute.closed', {
+      charge: 'ch_1',
+      payment_intent: 'pi_1',
+      status: 'won',
+    })
+  )
+
+  expect(retrieveCharge).toHaveBeenCalledWith('ch_1')
+  expect(reverse.mock.calls).toEqual([['pi_1', 0.5, true]] as never)
 })
