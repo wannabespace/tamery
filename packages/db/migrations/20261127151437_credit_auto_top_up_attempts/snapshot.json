@@ -3,7 +3,7 @@
   "dialect": "postgres",
   "id": "bb4c7abe-dfcc-456a-9beb-e959fbe05953",
   "prevIds": [
-    "29c73ab6-3d64-418d-bd48-174b82620adf"
+    "9b7e3568-02c0-4096-b3f2-bb2151f9f597"
   ],
   "ddl": [
     {
@@ -1032,7 +1032,7 @@
     {
       "type": "uuid",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,

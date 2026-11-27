@@ -14,7 +14,9 @@ export const update = orpc
   .input(
     type({
       id: 'string.uuid.v7',
-      machineId: machineIdSchema.and('string.uuid.v7').or('null'),
+      machineId: machineIdSchema
+        .and('string.uuid.v7')
+        .or(type.unit(TAMERY_CLOUD)),
     })
   )
   .errors({

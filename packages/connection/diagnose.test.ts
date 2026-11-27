@@ -335,6 +335,41 @@ describe('diagnoseConnectionError', () => {
     })
   })
 
+  describe('redacts the saved secrets', () => {
+    it('in a title a driver echoes', () => {
+      expect(
+        diagnose('database "hunter2" does not exist', { password: 'hunter2' })
+          ?.title
+      ).toBe('Database "[REDACTED]" doesn\'t exist')
+    })
+
+    it('in a hint a rule builds from the connection', () => {
+      expect(
+        diagnose('unable to open database file', {
+          database: '/data/hunter2.db',
+          password: 'hunter2',
+          type: ConnectionType.SQLite,
+        })?.hint
+      ).not.toContain('hunter2')
+    })
+
+    it('after the SSH prefix comes off the hint', () => {
+      expect(
+        diagnose(`${SSH_TUNNEL_ERROR}SSH connection failed: bad key`, {
+          ssh: { ...EMPTY_SSH_TUNNEL, password: 'SSH' },
+        })?.hint
+      ).toBe('[REDACTED] connection failed: bad key')
+    })
+
+    it('without stopping a rule that matches the same word', () => {
+      expect(
+        diagnose('password authentication failed for user "me"', {
+          password: 'authentication',
+        })?.title
+      ).toBe('Wrong user or password')
+    })
+  })
+
   describe('while offline', () => {
     it.each([
       'getaddrinfo ENOTFOUND db.acme.io',
@@ -388,18 +423,28 @@ describe('diagnoseConnectionError', () => {
       ).toBe("You're offline")
     })
 
+    it.each(['bastion.acme.io', 'bastion', 'db.abc.supabase.co'])(
+      'takes the session at its word that SSH host %p was never reached',
+      (host) => {
+        expect(
+          diagnoseOffline(tunnelError(SSH_HOST_TIMEOUT).message, {
+            ssh: { ...EMPTY_SSH_TUNNEL, host },
+          })
+        ).toBe("You're offline")
+      }
+    )
+
     it.each([
-      ['a public SSH host that timed out', 'bastion.acme.io', true],
-      ['a private SSH host that timed out', '10.0.0.20', false],
-      ['an SSH config alias that timed out', 'bastion', false],
-      ['an expanded mapped loopback', '0:0:0:0:0:ffff:7f00:1', false],
-    ])('for %s says offline: %p', (_, host, offline) => {
-      expect(
-        diagnoseOffline(tunnelError(SSH_HOST_TIMEOUT).message, {
-          ssh: { ...EMPTY_SSH_TUNNEL, host },
-        }) === "You're offline"
-      ).toBe(offline)
-    })
+      'getaddrinfo ENOTFOUND db.abc.supabase.co',
+      'connect ENETUNREACH 2600:1f18::1:5432',
+    ])(
+      'blames the lost connection for an IPv6-only host with %s',
+      (message) => {
+        expect(diagnoseOffline(message, { host: 'db.abc.supabase.co' })).toBe(
+          "You're offline"
+        )
+      }
+    )
 
     it.each([
       "Can't reach the SSH host: ECONNREFUSED",
@@ -436,14 +481,68 @@ describe('diagnoseConnectionError', () => {
       }
     )
 
-    it('never sends an online D1 failure to the host rules', () => {
+    it.each([
+      'fetch failed',
+      'Fetch failed: ENOTFOUND',
+      'fetch failed: UND_ERR_CONNECT_TIMEOUT',
+    ])('never sends an online D1 failure %p to the host rules', (message) => {
       expect(
         diagnose(
-          'Fetch failed: ENOTFOUND',
+          message,
           connectionParts.parse('d1://acc:tok@api.cloudflare.com/db-id')
         )?.title
       ).toBe("Couldn't reach Cloudflare's API")
     })
+
+    it.each([
+      ['libsql://db-acme.aws-eu-west-1.turso.io', "Couldn't reach Turso"],
+      ['libsql://db-acme.aws-eu-west-1.turso.io.', "Couldn't reach Turso"],
+      ['libsql://sqld.acme.io:8080', "Couldn't reach the libSQL server"],
+    ])('names the libSQL server %s failed to reach', (url, title) => {
+      expect(diagnose('fetch failed', connectionParts.parse(url))?.title).toBe(
+        title
+      )
+    })
+
+    it.each([
+      'Fetch failed',
+      'Fetch failed: ENOTFOUND',
+      'Fetch failed: ETIMEDOUT',
+      'Fetch failed: UND_ERR_CONNECT_TIMEOUT',
+      'connect ECONNREFUSED 127.0.0.1:5432',
+    ])('never reads a SQLite file error %p as a network failure', (message) => {
+      const file = connectionParts.parse('sqlite:///data/app.db')
+      expect(diagnose(message, file)).toBeNull()
+      expect(diagnoseOffline(message, file)).toBeUndefined()
+    })
+
+    it('asks to start a local libSQL server instead of checking the internet', () => {
+      expect(
+        diagnose(
+          'fetch failed',
+          connectionParts.parse('libsql://localhost:8080')
+        )?.hint
+      ).toStartWith('Nothing answers at that address.')
+    })
+
+    it.each([
+      [
+        'SERVER_ERROR: Server returned HTTP status 401',
+        'The libSQL server refused the auth token',
+      ],
+      [
+        'SERVER_ERROR: Server returned HTTP status 404',
+        "The libSQL server can't find that database",
+      ],
+    ])(
+      'keeps Turso out of a self-hosted server answering %s',
+      (message, title) => {
+        expect(
+          diagnose(message, connectionParts.parse('libsql://sqld.acme.io:8080'))
+            ?.title
+        ).toBe(title)
+      }
+    )
 
     it.each([
       'postgres://me:pw@localhost.:5432/app',
