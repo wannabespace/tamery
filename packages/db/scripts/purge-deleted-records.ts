@@ -3,11 +3,11 @@ import process from 'node:process'
 import { chatAttachmentsPrefix } from '@tamery/shared/attachments'
 import { type } from 'arktype'
 import { S3Client } from 'bun'
-import { and, lt } from 'drizzle-orm'
+import { and, eq, lt, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/node-postgres'
 
-import { chats as chatsTable } from '../schema/chats'
-import { copies, deletedRecords } from '../schema/deleted-records'
+// Only this schema file: the chats schema reaches `../env`, which asserts secrets this job does not have.
+import { deletedRecords } from '../schema/deleted-records'
 
 const RETENTION_DAYS = 90
 
@@ -46,11 +46,11 @@ const deleteFiles = async (prefix: string): Promise<void> => {
 // Files go before the copies: a failed delete leaves the chat's copy for the next run to try again, never files no copy points to.
 const chats = await db
   .select({
-    createdAt: copies.column(chatsTable.createdAt),
+    createdAt: sql<string>`${deletedRecords.data} ->> 'created_at'`,
     id: deletedRecords.recordId,
   })
   .from(deletedRecords)
-  .where(and(copies.of(chatsTable), expired))
+  .where(and(eq(deletedRecords.tableName, 'chats'), expired))
 await Promise.all(
   chats.map(({ createdAt, id }) =>
     deleteFiles(chatAttachmentsPrefix({ createdAt: new Date(createdAt), id }))
