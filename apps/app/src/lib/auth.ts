@@ -103,6 +103,11 @@ export const useIsAnonymous = () =>
     selector: (session) => !!session?.user.isAnonymous,
   })
 
+export const useSessionUserId = () =>
+  useSubscription(sessionCache, {
+    selector: (session) => session?.user.id ?? null,
+  })
+
 // Not the better-auth session atom: it keeps the user until the post-sign-out refetch lands.
 export const useHasAccount = () =>
   useSubscription(sessionCache, {

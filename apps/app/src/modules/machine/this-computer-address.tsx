@@ -5,17 +5,26 @@ import { useState } from 'react'
 
 import { machine } from '~/core/runtime/machine/machine'
 import { thisMachineQuery } from '~/core/runtime/machine/pairing'
+import { useSessionUserId } from '~/lib/auth'
 
 import { MachineAddressDocs } from './machine-address-docs'
 
-/** Desktop only: where other computers reach this one; browsers here need none. */
+/** Desktop only: where other computers reach this one; browsers here need none. A new account starts with no draft. */
 export const ThisComputerAddress = () => {
+  const userId = useSessionUserId()
+  return <AddressField key={userId} userId={userId} />
+}
+
+const AddressField = ({ userId }: { userId: string | null }) => {
   const { data: status } = useQuery(thisMachineQuery)
   const [publicUrl, setPublicUrl] = useState<string | null>(null)
   const { error, mutate } = useMutation({
     meta: { event: 'machine_address_saved' },
     mutationFn: (address: string) =>
-      machine.saveThisComputerAddress(address.trim() || null),
+      machine.saveThisComputerAddress({
+        draftUserId: userId,
+        publicUrl: address.trim() || null,
+      }),
   })
 
   if (status?.status !== 'on' && !status?.publicUrl) {

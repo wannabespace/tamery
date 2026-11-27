@@ -185,3 +185,34 @@ test('every window ends sign-out with no machine id, whatever the worker sends l
     })
   }
 })
+
+test('an address saved or cleared while off reaches every window', async () => {
+  await machineHost.setPublicUrl({
+    account,
+    publicUrl: 'https://mac.example.com',
+  })
+  for (const window of [1, 2]) {
+    expect(lastSentTo(window)).toMatchObject({
+      status: { publicUrl: 'https://mac.example.com', status: 'off' },
+    })
+  }
+
+  await machineHost.setPublicUrl({ account, publicUrl: null })
+  for (const window of [1, 2]) {
+    expect(lastSentTo(window)).toMatchObject({ status: { publicUrl: null } })
+  }
+  expect(workers).toHaveLength(0)
+})
+
+test('an address save from another account than the one the machine runs for is refused', async () => {
+  await machineHost.turnOff()
+  await machineHost.enable(account)
+
+  await expect(
+    machineHost.setPublicUrl({
+      account: nextAccount,
+      publicUrl: 'https://other.example.com',
+    })
+  ).rejects.toThrow('another account')
+  expect(machineHost.status()).toMatchObject({ publicUrl: null })
+})

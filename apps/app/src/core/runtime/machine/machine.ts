@@ -269,11 +269,22 @@ export const machine = {
       await window.electron.machine.enable(account)
     }
   },
-  /** Restarts it when it runs; one the user turned off only keeps the address. */
-  saveThisComputerAddress: async (publicUrl: string | null) => {
+  /** Restarts it when it runs; one the user turned off only keeps the address. `draftUserId` is who typed it: a draft kept open through a sign-out belongs to the account that left. */
+  saveThisComputerAddress: async ({
+    draftUserId,
+    publicUrl,
+  }: {
+    draftUserId: string | null
+    publicUrl: string | null
+  }) => {
     const account = await getThisComputerAccount()
     if (!window.electron || !account) {
       throw new Error('Sign in to use this computer from your other devices.')
+    }
+    if (account.id !== draftUserId) {
+      throw new Error(
+        'You signed in as another account since you typed this address. Type it again.'
+      )
     }
     await window.electron.machine.setPublicUrl({ account, publicUrl })
   },

@@ -29,6 +29,8 @@ import { createPrivateStore } from './private-store'
 const KEY_BYTES = 32
 
 const store = createPrivateStore<{
+  /** The account the machine runs for: an address save from a window of another account is refused. */
+  accountId?: string
   enabled: boolean
   /** What a tunnel on this computer serves the machine at, as `tamery machine --public-url`. */
   publicUrl: string | null
@@ -131,6 +133,11 @@ const assertSignedIn = (account: VaultAccount) => {
   if (hashToken(account.token) === store.get('signedOutToken')) {
     throw new Error('You signed out. Sign in again to use this computer.')
   }
+}
+
+const signIn = (account: VaultAccount) => {
+  assertSignedIn(account)
+  store.set('accountId', account.id)
 }
 
 /** Settles once the latest started process listens, failed or exited; registration with the account may still run. */
@@ -252,7 +259,7 @@ export const machineHost = {
   /** On sign-in: starts the machine unless the user turned it off. */
   enable: (account: VaultAccount) =>
     inTurn(async () => {
-      assertSignedIn(account)
+      signIn(account)
       if (!store.get('turnedOff')) {
         await restart({ account, kind: 'switch' })
       }
@@ -276,7 +283,14 @@ export const machineHost = {
     }
     return inTurn(async () => {
       assertSignedIn(account)
+      const runsFor = store.get('accountId')
+      if (runsFor && runsFor !== account.id) {
+        throw new Error(
+          'This computer’s machine runs for another account. Sign in as it to change the address.'
+        )
+      }
       store.set('publicUrl', parsed?.origin ?? null)
+      publish()
       if (child) {
         await restart({ kind: 'keep' })
       }
@@ -292,7 +306,7 @@ export const machineHost = {
   /** Resolves once the worker listens or failed: a turn waiting on startup would hold sign-out and Turn off behind it. */
   turnOn: async (account: VaultAccount) => {
     await inTurn(async () => {
-      assertSignedIn(account)
+      signIn(account)
       store.set('turnedOff', false)
       await restart({ account, kind: 'switch' })
     })
@@ -307,6 +321,7 @@ export const machineHost = {
     return inTurn(async () => {
       await stop()
       store.set({ enabled: false, publicUrl: null })
+      store.delete('accountId')
       store.delete('wrappedKey')
       rmSync(getConfigDir(), { force: true, recursive: true })
       id = null
