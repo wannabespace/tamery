@@ -1,13 +1,12 @@
-import type { ConnectionParts } from '@tamery/connection/connection-parts'
 import { connectionParts } from '@tamery/connection/connection-parts'
 import {
   adviseRetry,
   diagnoseConnectionError,
   isConnectionFailure,
   isProxyFailure,
+  OFFLINE_DIAGNOSIS,
 } from '@tamery/connection/diagnose'
 import { isLocalHost } from '@tamery/connection/hosts'
-import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { queryOptions, useQuery } from '@tanstack/react-query'
 
 import { getCollections } from '~/core/collections'
@@ -52,25 +51,6 @@ export const reportConnectionFailure = (
   })
 }
 
-/** A driver or ssh2 may echo a credential on its own, which only a literal match catches; every title and hint drawn from the message inherits the redaction. */
-const redactConnectionSecrets = (
-  message: string,
-  { password, ssh }: ConnectionParts
-) => {
-  let text = redactSecrets(message)
-  for (const secret of [
-    password,
-    ssh?.password,
-    ssh?.passphrase,
-    ssh?.privateKey,
-  ]) {
-    if (secret) {
-      text = text.replaceAll(secret, '[REDACTED]')
-    }
-  }
-  return text
-}
-
 /** Caches only what the card and the screen show: a fix patch carries the decrypted driver options, and the key names the attempt, never its message. */
 export const diagnosisQueryOptions = (connectionId: string, error: Error) => {
   const attempt = failedAttempt(error)
@@ -84,7 +64,7 @@ export const diagnosisQueryOptions = (connectionId: string, error: Error) => {
       )
       const diagnosis = diagnoseConnectionError({
         desktop: !!window.electron,
-        message: redactConnectionSecrets(error.message, parts),
+        message: error.message,
         online: attempt.online,
         parts,
       })
@@ -109,3 +89,9 @@ export const useDiagnosis = (connectionId: string, error: Error) => {
   )
   return isPending ? undefined : adviseRetry(data ?? null, online)
 }
+
+/** For a screen that shows a cloud proxy failure in place, with no connection at hand to diagnose it against. */
+export const diagnoseProxyFailure = (error: Error, online: boolean) =>
+  isProxyFailure(error.message) && !failedAttempt(error).online
+    ? adviseRetry(OFFLINE_DIAGNOSIS, online)
+    : null

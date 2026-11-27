@@ -29,7 +29,7 @@ To run queries on a machine from another computer, give it an `https://` address
 
 3. On your other computer, choose the machine under a connection's **Runs on**, then allow it on the machine within 2 minutes. Over SSH, use [`tamery machine approve`](/cli/commands#tamery-machine-approve) (CLI only).
 
-The commands below use the desktop app's port.
+The commands below use the desktop app's port. For the CLI, use `26380`, or the port you passed to `--port`.
 
 ## Tailscale
 
@@ -65,7 +65,7 @@ On a server with its own domain, add this to the `Caddyfile`:
 
 ```text
 db-box.example.com {
-  reverse_proxy 127.0.0.1:26380
+  reverse_proxy 127.0.0.1:26382
 }
 ```
 

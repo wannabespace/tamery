@@ -1,11 +1,12 @@
 import { PROXY_ERROR_MESSAGE } from '@tamery/shared/constants'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
+import { redactSecrets } from '@tamery/shared/sanitize-log'
 
 import type { ConnectionParts } from './connection-parts'
 import { NETWORK_RULES } from './diagnose-network'
 import { SQLITE_RULES } from './diagnose-sqlite'
 import type { Diagnosis, DiagnosisContext, DiagnosisRule } from './diagnosis'
-import { getHostHint, getHostKind, isLocalHost } from './hosts'
+import { getHostHint, isInternetHost, isLocalHost } from './hosts'
 import { SSH_RULES } from './ssh/diagnose'
 import {
   SSH_HOST_TIMEOUT,
@@ -320,13 +321,10 @@ const isLostWithNetwork = (
   { message, parts }: DiagnosisContext
 ) => {
   if (parts.ssh) {
-    return (
-      getHostKind(parts.ssh.host) === 'public' && SSH_HOST_LOST.test(message)
-    )
+    return SSH_HOST_LOST.test(message)
   }
   return (
-    offline === 'device' ||
-    (offline === 'host' && getHostKind(parts.host) === 'public')
+    offline === 'device' || (offline === 'host' && isInternetHost(parts.host))
   )
 }
 
@@ -345,13 +343,38 @@ const RECONNECTED_DIAGNOSIS: Diagnosis = {
 export const adviseRetry = (diagnosis: Diagnosis | null, online: boolean) =>
   online && diagnosis?.offline ? RECONNECTED_DIAGNOSIS : diagnosis
 
+/** A driver or ssh2 may echo a credential, and a rule may quote a field that holds one; only a literal match catches either. */
+const redactConnectionSecrets = (
+  text: string,
+  { password, ssh }: ConnectionParts
+) => {
+  let redacted = redactSecrets(text)
+  for (const secret of [
+    password,
+    ssh?.password,
+    ssh?.passphrase,
+    ssh?.privateKey,
+  ]) {
+    if (secret) {
+      redacted = redacted.replaceAll(secret, '[REDACTED]')
+    }
+  }
+  return redacted
+}
+
+/** The rules read the message as the driver wrote it, so a secret that is also a word they match keeps its diagnosis; only the title and hint shown are redacted. */
 export const diagnoseConnectionError = (
   context: DiagnosisContext
 ): Diagnosis | null => {
   const { message, online, parts } = context
+  // A SQLite file reaches no server, so the host and network rules would give it server advice.
+  const isFile = parts.type === ConnectionType.SQLite && !parts.provider
   const rule = RULES.find(
-    ({ engine, match }) =>
-      (!engine || engine === parts.type) && match.test(message)
+    ({ engine, match, providers }) =>
+      (engine ? engine === parts.type : !isFile) &&
+      (!providers ||
+        (!!parts.provider && providers.includes(parts.provider))) &&
+      match.test(message)
   )
   if (!rule) {
     return null
@@ -361,12 +384,17 @@ export const diagnoseConnectionError = (
   }
   const diagnosis = rule.diagnose(context)
   const { host, password } = parts
-  if (rule.tunnel || diagnosis.focus || password || isLocalHost(host)) {
-    return diagnosis
-  }
+  const shown: Diagnosis =
+    rule.tunnel || diagnosis.focus || password || isLocalHost(host)
+      ? diagnosis
+      : {
+          ...diagnosis,
+          focus: 'password',
+          hint: `${diagnosis.hint} The password is empty too.`,
+        }
   return {
-    ...diagnosis,
-    focus: 'password',
-    hint: `${diagnosis.hint} The password is empty too.`,
+    ...shown,
+    hint: redactConnectionSecrets(shown.hint, parts),
+    title: redactConnectionSecrets(shown.title, parts),
   }
 }

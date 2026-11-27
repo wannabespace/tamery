@@ -49,11 +49,11 @@ Connections run only on machines your account lists, so the machine must be sign
 
 ## Choose where a connection runs
 
-While there is more than one place to run it, each connection has a **Runs on** choice, in its form, in its **⋯** menu on the connections page, and under the computer or cloud icon at the top of the window while it's open: **Tamery Cloud** in the web app, **This computer** in the desktop app, or one of your machines. The desktop app also offers **Tamery Cloud** for a connection the web app can reach: synced as **Full**, with a public host and no SSH tunnel. Use it when your database only lets in [the cloud proxy's addresses](/connections/security#cloud-proxy-ip-addresses), for example. Picking a database a machine found sets it to that machine. The choice is yours alone: in a shared workspace, every member picks where the connection runs for them, from the menu or the icon if they can't edit it, so nobody's queries go through your computer.
+While there is more than one place to run it, each connection has a **Runs on** choice, in its form, in its **⋯** menu on the connections page, and under the computer or cloud icon at the top of the window while it's open: **Tamery Cloud** in the web app, **This computer** in the desktop app, or one of your machines. The desktop app also offers **Tamery Cloud** for a connection the web app can reach: synced as **Full**, with a public host and no SSH tunnel. Use it when your database only lets in [the cloud proxy's addresses](/connections/security#cloud-proxy-ip-addresses), for example. Picking a database a machine found sets it to that machine. A change applies from the next run: every statement of a run that already started runs where it started. The choice is yours alone: in a shared workspace, every member picks where the connection runs for them, from the menu or the icon if they can't edit it, so nobody's queries go through your computer.
 
 While a connection that runs on a machine is open, the computer icon also shows the machine's state: a green dot while it answers, red within 10 seconds of it stopping. Hover it for the reason.
 
-If the machine stops, that connection's queries fail until you start it again. They never move to Tamery's cloud proxy on their own. To use the cloud proxy instead, for example while that computer is off, set **Runs on** back to **Tamery Cloud**.
+If the machine stops, that connection's queries fail until you start it again. They never move to Tamery's cloud proxy on their own. To use the cloud proxy instead, for example while that computer is off, set **Runs on** back to **Tamery Cloud**. That works only for a connection the cloud proxy can reach: a public host, no SSH tunnel, and no files or credentials from that computer. It then connects from [the cloud proxy's addresses](/connections/security#cloud-proxy-ip-addresses).
 
 Every machine in your account is listed there, connected or not. Picking one this browser isn't connected to yet connects it, with the same code check. Opening a connection whose machine you picked on another device asks you to connect it first.
 
@@ -107,10 +107,7 @@ The machine reaches databases and files with the rights of the system user that 
 
 A query that runs longer than about 4 minutes fails.
 
-The machine also tells the web app what that computer has, as the desktop app does for its own:
-
-- **New connection** lists the databases it finds there: running Docker containers, and connections saved in DBeaver, TablePlus, DataGrip, pgAdmin, `pg_service.conf`, `.pgpass` or `my.cnf`. Picking one fills the form. A password saved with it for a database on that computer never reaches the browser: the machine keeps it for the connection you save, and your other devices ask for it. For a database elsewhere, such as a server behind a VPN, or a password kept in the macOS Keychain, type the password.
-- The [AI chat](/features/ai-assistant#mentions-and-commands)'s **/** menu lists your agent skills and commands from that computer's home folder.
+In the web app, **New connection** lists the databases the machine finds on that computer, as the desktop app does for its own: running Docker containers, and connections saved in DBeaver, TablePlus, DataGrip, pgAdmin, `pg_service.conf`, `.pgpass` or `my.cnf`. Picking one fills the form. A password saved with it for a database on that computer, without an SSH tunnel, never reaches the browser: the machine keeps it for the connection you save and uses it for every app you allowed on that machine. The password never leaves that machine, so another place that can run the connection may ask you for it. For a database elsewhere, such as a server behind a VPN, or a password kept in the macOS Keychain, type the password.
 
 ## Manage connections
 

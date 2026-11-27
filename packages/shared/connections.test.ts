@@ -12,6 +12,10 @@ describe('isConnectionError', () => {
     expect(isConnectionError(error)).toBe(true)
   })
 
+  it('detects the bare fetch failure a D1 or libSQL request reports', () => {
+    expect(isConnectionError(new Error('fetch failed'))).toBe(true)
+  })
+
   it('ignores query errors', () => {
     expect(
       isConnectionError(new Error('syntax error', { cause: 'at line 1' }))
