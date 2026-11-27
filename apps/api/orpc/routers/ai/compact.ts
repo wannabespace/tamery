@@ -3,8 +3,8 @@ import { AI_BUDGET_SPENT_MESSAGE } from '@tamery/shared/credits'
 import { type } from 'arktype'
 
 import { payForAi } from '~/lib/ai-key'
-import { chatCompaction } from '~/lib/chat-compaction'
-import { chatPersist } from '~/lib/chat-persist'
+import { chatCompaction } from '~/lib/chat/compaction'
+import { chatPersist } from '~/lib/chat/persist'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 export const compact = orpc

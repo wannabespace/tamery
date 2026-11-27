@@ -10,9 +10,9 @@ import { db } from '@tamery/db'
 import { type } from 'arktype'
 
 import { payForAi } from '~/lib/ai-key'
-import { chatCompaction } from '~/lib/chat-compaction'
-import { chatPersist } from '~/lib/chat-persist'
-import { chatSession } from '~/lib/chat-session'
+import { chatCompaction } from '~/lib/chat/compaction'
+import { chatPersist } from '~/lib/chat/persist'
+import { chatSession } from '~/lib/chat/session'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 export const attachStream = orpc
