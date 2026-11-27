@@ -1,19 +1,40 @@
 import { ConnectionType, Provider } from '@tamery/shared/enums/connection-type'
 
+import type { ConnectionParts } from './connection-parts'
 import type { DiagnosisRule } from './diagnosis'
+import { isLocalHost } from './hosts'
+
+const TURSO_HOST = /\.turso\.io\.?$/iu
+
+/** Every `libsql://` URL parses as Turso, a self-hosted libSQL server's too. */
+const isTurso = ({ host }: ConnectionParts) => TURSO_HOST.test(host)
+
+const NO_ANSWER_HINT =
+  'The request never got an answer. Check your internet connection, VPN or proxy, then try again.'
+
+const getUnreachableDiagnosis = (parts: ConnectionParts) => {
+  if (parts.provider === Provider.CloudflareD1) {
+    return { hint: NO_ANSWER_HINT, title: "Couldn't reach Cloudflare's API" }
+  }
+  if (isTurso(parts)) {
+    return { hint: NO_ANSWER_HINT, title: "Couldn't reach Turso" }
+  }
+  return {
+    hint: isLocalHost(parts.host)
+      ? 'Nothing answers at that address. Start the libSQL server, or check the port in the database URL.'
+      : NO_ANSWER_HINT,
+    title: "Couldn't reach the libSQL server",
+  }
+}
 
 const RULES: Omit<DiagnosisRule, 'engine'>[] = [
   {
-    diagnose: ({ parts }) => ({
-      hint: 'The request never got an answer. Check your internet connection, VPN or proxy, then try again.',
-      title:
-        parts.provider === Provider.CloudflareD1
-          ? "Couldn't reach Cloudflare's API"
-          : "Couldn't reach Turso",
-    }),
-    // D1's own transport failure (`d1.ts`), before the network rules, which would blame the fixed Cloudflare host.
+    diagnose: ({ parts }) => getUnreachableDiagnosis(parts),
+    // D1's and libSQL's transport failure, before the network rules, which would blame D1's fixed Cloudflare host.
+    // Also reads the socket code some builds put after it; `d1.ts` sends the bare form, because an older app blames the fixed host for that code.
     match: /^fetch failed(?:: [A-Z_]+)?$/iu,
     offline: 'host',
+    providers: [Provider.CloudflareD1, Provider.Turso],
   },
   {
     diagnose: () => ({
@@ -32,25 +53,39 @@ const RULES: Omit<DiagnosisRule, 'engine'>[] = [
     match: /unable to open database file/iu,
   },
   {
-    diagnose: ({ parts }) =>
-      parts.provider === Provider.CloudflareD1
+    diagnose: ({ parts }) => {
+      if (parts.provider === Provider.CloudflareD1) {
+        return {
+          focus: 'password',
+          hint: 'Use an API token with the D1 Edit permission on this account, made under My Profile → API Tokens, and check the account ID.',
+          title: 'Cloudflare refused the API token',
+        }
+      }
+      return isTurso(parts)
         ? {
-            focus: 'password',
-            hint: 'Use an API token with the D1 Edit permission on this account, made under My Profile → API Tokens, and check the account ID.',
-            title: 'Cloudflare refused the API token',
-          }
-        : {
             focus: 'password',
             hint: 'Create a token for this database on its page in the Turso dashboard, or with `turso db tokens create`.',
             title: 'Turso refused the auth token',
-          },
+          }
+        : {
+            focus: 'password',
+            hint: 'Use a token signed with the key the server was started with, or leave the token empty if the server needs none.',
+            title: 'The libSQL server refused the auth token',
+          }
+    },
     match: /^authentication error$|server returned http status 40[013]\b/iu,
   },
   {
-    diagnose: () => ({
-      hint: 'Copy the database URL from its page in the Turso dashboard: the host carries the database, organization and region.',
-      title: "Turso can't find that database",
-    }),
+    diagnose: ({ parts }) =>
+      isTurso(parts)
+        ? {
+            hint: 'Copy the database URL from its page in the Turso dashboard: the host carries the database, organization and region.',
+            title: "Turso can't find that database",
+          }
+        : {
+            hint: 'Something answers at that address, but serves no libSQL database there. Check the database URL.',
+            title: "The libSQL server can't find that database",
+          },
     match: /server returned http status (?:404|502)\b/iu,
   },
   {

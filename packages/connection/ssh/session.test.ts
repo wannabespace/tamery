@@ -69,6 +69,22 @@ test('a ProxyJump from an included ~/.ssh/config file fails instead of dialing t
   )
 })
 
+test('an alias that resolves to an IPv6-only host fails as unreachable from this device', async () => {
+  await mkdir(path.join(home, '.ssh'), { recursive: true })
+  await writeFile(
+    path.join(home, '.ssh', 'config'),
+    'Host prod\n  HostName db.tamery-test-missing.supabase.co\n'
+  )
+  await expect(
+    connectSsh(
+      { ...EMPTY_SSH_TUNNEL, auth: 'password', host: 'prod', password: 'pw' },
+      () => Promise.resolve(false)
+    )
+  ).rejects.toThrow(
+    /^SSH tunnel: Can't reach the SSH host: (?:ENOTFOUND|EAI_AGAIN)$/u
+  )
+})
+
 test('an alias that resolves to a private host never fails as unreachable from this device', async () => {
   await mkdir(path.join(home, '.ssh'), { recursive: true })
   await writeFile(
