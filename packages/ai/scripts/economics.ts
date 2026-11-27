@@ -18,13 +18,13 @@ import {
 import { FREE_WEEKLY_LIMITS } from '@tamery/shared/usage'
 import type { LanguageModelUsage } from 'ai'
 
-import { DIAGNOSE_INSTRUCTIONS } from './features/diagnose-connection'
-import { filtersInstructions } from './features/filters'
-import { fixQueryInstructions } from './features/fix-query'
-import { updateQueryInstructions } from './features/update-query'
-import { AI_QUERY_LIMITS, DICTATION } from './limits'
-import { FIM_PRICED_ID, MODEL_IDS } from './models/list'
-import { getModelCost } from './models/price'
+import { DIAGNOSE_INSTRUCTIONS } from '../features/diagnose-connection'
+import { filtersInstructions } from '../features/filters'
+import { fixQueryInstructions } from '../features/fix-query'
+import { updateQueryInstructions } from '../features/update-query'
+import { AI_QUERY_LIMITS, DICTATION } from '../limits'
+import { FIM_PRICED_ID, MODEL_IDS } from '../models/list'
+import { getModelCost } from '../models/price'
 
 const CHARS_PER_TOKEN = 3.5
 const IMAGE_TOKENS = 1600

@@ -2,10 +2,10 @@ import { chatStream } from '@tamery/ai/features'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { orpc, aiPermissionsMiddleware, permix } from '~/orpc'
 
 export const claimToolCall = orpc
-  .use(permissionsMiddleware)
+  .use(aiPermissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
   .input(
     type({

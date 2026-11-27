@@ -1,3 +1,4 @@
+import { SCHEMA_NOTE_LIMIT } from '@tamery/ai/schema-notes'
 import { db } from '@tamery/db'
 import { schemaNotesUpdateSchema } from '@tamery/db/schema'
 import { schemaNotes } from '@tamery/db/schema/schema-notes'
@@ -11,8 +12,9 @@ export const update = orpc
   .use(authMiddleware)
   .input(
     schemaNotesUpdateSchema
-      .pick('note')
-      .merge(schemaNotesUpdateSchema.pick('id').required())
+      .pick('id')
+      .required()
+      .merge({ note: `string <= ${SCHEMA_NOTE_LIMIT}` })
   )
   .errors({
     NOT_FOUND: { message: 'Note not found' },
