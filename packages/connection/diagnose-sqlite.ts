@@ -31,7 +31,7 @@ const RULES: Omit<DiagnosisRule, 'engine'>[] = [
   {
     diagnose: ({ parts }) => getUnreachableDiagnosis(parts),
     // D1's and libSQL's transport failure, before the network rules, which would blame D1's fixed Cloudflare host.
-    // Also reads the socket code some builds put after it; `d1.ts` sends the bare form, because an older app blames the fixed host for that code.
+    // Also reads the socket code `d1.ts` puts after it.
     match: /^fetch failed(?:: [A-Z_]+)?$/iu,
     offline: 'host',
     providers: [Provider.CloudflareD1, Provider.Turso],
