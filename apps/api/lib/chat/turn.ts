@@ -21,10 +21,20 @@ import { chatPersist } from '~/lib/chat/persist'
 import type { chatSession } from '~/lib/chat/session'
 import { persistChatSuggestion } from '~/lib/chat/suggestion'
 import { persistChatTitle } from '~/lib/chat/title'
-import { credits } from '~/lib/credits'
+import { credits, PAID_CALLS_BUSY_MESSAGE } from '~/lib/credits'
 
-const PAID_STREAMS_BUSY_MESSAGE =
-  'Tamery AI is already answering in several of your chats. Try again once one of them finishes.'
+const compactFor = async ({
+  contextTokens,
+  ...data
+}: Omit<Parameters<typeof chatCompaction.compact>[0], 'previous'> & {
+  contextTokens: number
+}) => {
+  const stored = await chatCompaction.get(data)
+  return data.history.at(-1)?.role === 'user' &&
+    needsCompaction(afterCompaction(data.history, stored), contextTokens)
+    ? chatCompaction.compact({ ...data, previous: stored })
+    : stored
+}
 
 /** One turn of a chat, for a new message and a restart alike. It claims the chat first, so a request that loses the race writes and pays for nothing, then stores the turn, picks the model, compacts and streams. Null when another turn holds the chat, a stop came during setup, or a restart finds nothing left to answer. */
 export const startChatTurn = async (data: {
@@ -45,20 +55,26 @@ export const startChatTurn = async (data: {
   if (!turn) {
     return null
   }
+  const owner = { chatId: data.chatId, userId: data.userId }
   const paidByTamery = data.payer.keys.length === 0
   const end = async () => {
     if (paidByTamery) {
-      await credits.releaseStream(data.userId, data.chatId)
+      await credits.release(data.userId, turn.id)
     }
   }
-  if (paidByTamery && !(await credits.holdStream(data.userId, data.chatId))) {
+  let asked: string | undefined
+  const endStopped = async () => {
     await turn.release()
-    throw new ORPCError('TOO_MANY_REQUESTS', {
-      message: PAID_STREAMS_BUSY_MESSAGE,
-    })
+    await end()
+    await chatPersist.markStopped({ ...owner, messageId: asked })
+    return null
   }
   try {
-    const owner = { chatId: data.chatId, userId: data.userId }
+    if (paidByTamery && !(await credits.hold(data.userId, turn.id))) {
+      throw new ORPCError('TOO_MANY_REQUESTS', {
+        message: PAID_CALLS_BUSY_MESSAGE,
+      })
+    }
     await data.persistTurn?.()
     const history = await chatPersist.loadMessages(owner)
     const last = history.at(-1)
@@ -69,6 +85,10 @@ export const startChatTurn = async (data: {
       await turn.release()
       await end()
       return null
+    }
+    asked = history.findLast((message) => message.role === 'user')?.id
+    if (await turn.stopped()) {
+      return await endStopped()
     }
 
     if (!data.chat.title) {
@@ -90,20 +110,18 @@ export const startChatTurn = async (data: {
         message: MODEL_UNAVAILABLE_MESSAGE,
       })
     }
+    if (await turn.stopped()) {
+      return await endStopped()
+    }
     const contextTokens = resolveChatContext(pick.model, data.settings.context)
     const telemetry = data.payer.telemetry(scope)
-    const stored = await chatCompaction.get(owner)
-    const compaction =
-      last?.role === 'user' &&
-      needsCompaction(afterCompaction(history, stored), contextTokens)
-        ? await chatCompaction.compact({
-            ...owner,
-            history,
-            key: data.payer.key,
-            previous: stored,
-            telemetry,
-          })
-        : stored
+    const compaction = await compactFor({
+      ...owner,
+      contextTokens,
+      history,
+      key: data.payer.key,
+      telemetry,
+    })
 
     const stream = await turn.start({
       ...pick,
@@ -111,8 +129,11 @@ export const startChatTurn = async (data: {
       fast: data.settings.fast,
       messages: afterCompaction(history, compaction),
       onFinish: async (message) => {
-        await chatPersist.persistMessage({ ...owner, message })
-        await end()
+        try {
+          await chatPersist.persistMessage({ ...owner, message })
+        } finally {
+          await end()
+        }
         const lastPart = message.parts.at(-1)
         // A step ending on a tool call is not the answer's end: the window answers it, or the change waits for Run.
         const isAnswered = !(lastPart && isToolUIPart(lastPart))
@@ -130,11 +151,7 @@ export const startChatTurn = async (data: {
       summary: compaction?.summary,
       telemetry,
     })
-    if (!stream) {
-      await chatPersist.markStopped(owner)
-      await end()
-    }
-    return stream
+    return stream ?? (await endStopped())
   } catch (error) {
     await turn.release()
     await end()
