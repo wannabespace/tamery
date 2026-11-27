@@ -11,11 +11,10 @@ import type { Permissions } from '@tamery/shared/permissions'
 import { getPermissions } from '@tamery/shared/permissions'
 import { isAPIError } from 'better-auth/api'
 import { createPermix } from 'permix/orpc'
-import { v7 } from 'uuid'
 
 import { aiKey, payForAi } from '~/lib/ai-key'
 import { auth } from '~/lib/auth'
-import { credits, PAID_CALLS_BUSY_MESSAGE } from '~/lib/credits'
+import { credits } from '~/lib/credits'
 import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { redis } from '~/lib/redis'
 import { sessionActivity } from '~/lib/session-activity'
@@ -274,20 +273,9 @@ export const paidAiMiddleware = os
         message: AI_BUDGET_SPENT_MESSAGE,
       })
     }
-    if (payer.keys.length > 0) {
-      return next({ context: { payer } })
-    }
-    const callId = v7()
-    if (!(await credits.hold(context.user.id, callId))) {
-      throw new ORPCError('TOO_MANY_REQUESTS', {
-        message: PAID_CALLS_BUSY_MESSAGE,
-      })
-    }
-    try {
-      return await next({ context: { payer } })
-    } finally {
-      await credits.release(context.user.id, callId)
-    }
+    return payer.keys.length > 0
+      ? next({ context: { payer } })
+      : credits.inPaidSlot(context.user.id, () => next({ context: { payer } }))
   })
 
 export const cacheMiddleware = (ttl: number = 60 * 60 * 24) =>
