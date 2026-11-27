@@ -203,7 +203,7 @@ const isServiceName = (name: string) =>
 
 export const isLocalHost = (host: string) => isLocalName(normalizeHost(host))
 
-/** Gates what a request may reach, so it reads the host as written: rows stored before a spelling was normalized, and installed CLIs, classify it this way too. */
+/** Gates what a request may reach, so it reads the host as written: rows stored before a spelling was normalized classify it this way too. */
 export const isLiteralLocalHost = (host: string) => isLocalName(unbracket(host))
 
 /** Literal like `isLiteralLocalHost`: the transport and the stored `isInternal` must agree. */

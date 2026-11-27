@@ -106,7 +106,6 @@ How to wire a gate once the framework has decided where a feature lands:
 4. **Limits live in `FREE_WEEKLY_LIMITS` (`packages/shared/usage.ts`)**, one weekly max per metered feature, all resetting Monday 00:00 UTC. Shared package so clients render the same numbers the server enforces — no hardcoded copies in UI code.
 5. **Boolean gates use `permix.checkMiddleware('<entity>.<action>')` after `permissionsMiddleware`; metered ones go through `usage` (rule 2).** Reserve the hard check for things that are structurally Pro/Team (extra workspaces, future member management), not for capping usage.
 6. **Quantity limits (connections, workspaces) are enforced on create**, counting server-side rows — never trust a client-reported count. Existing over-limit data stays readable when a subscription lapses; the limit blocks _new_ creates only. Downgrade must never lock users out of their data.
-7. **Grandfathering by app version already has a pattern**: permix's `onForbidden` (`apps/api/orpc/index.ts`) branches its message on `LATEST_VERSION_BEFORE_SUBSCRIPTION`. When a previously free surface gains a gate, keep the version-aware messaging so old clients get an actionable error.
 
 ## Surface-specific rules
 
