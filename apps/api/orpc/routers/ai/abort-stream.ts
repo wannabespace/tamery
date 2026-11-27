@@ -2,7 +2,7 @@ import { chatStream } from '@tamery/ai/features'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
-import { chatPersist } from '~/lib/chat-persist'
+import { chatPersist } from '~/lib/chat/persist'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 export const abortStream = orpc
