@@ -5,8 +5,8 @@ import { chats, chatsMessages, chatsMessagesParts } from '@tamery/db/schema'
 import { isDeepEqualData, isToolUIPart } from 'ai'
 import { and, asc, desc, eq, gte, inArray } from 'drizzle-orm'
 
-import { attachments } from '~/lib/attachments'
-import { chatCompaction } from '~/lib/chat-compaction'
+import { attachments } from '~/lib/chat/attachments'
+import { chatCompaction } from '~/lib/chat/compaction'
 import { publisher as chatsMessagesPartsPublisher } from '~/orpc/routers/chats-messages-parts/events'
 import { publisher as chatsMessagesPublisher } from '~/orpc/routers/chats-messages/events'
 

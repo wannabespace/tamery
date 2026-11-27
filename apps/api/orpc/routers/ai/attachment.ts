@@ -1,7 +1,7 @@
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
-import { attachments } from '~/lib/attachments'
+import { attachments } from '~/lib/chat/attachments'
 import { authMiddleware, orpc } from '~/orpc'
 
 // Not behind `ai.chat.use`: a user who lost the chat still sees the files in their chats.

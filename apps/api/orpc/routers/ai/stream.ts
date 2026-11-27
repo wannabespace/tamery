@@ -20,12 +20,12 @@ import { isToolUIPart, validateUIMessages } from 'ai'
 import { type } from 'arktype'
 
 import { payForAi } from '~/lib/ai-key'
-import { attachments } from '~/lib/attachments'
-import { chatCompaction } from '~/lib/chat-compaction'
-import { chatPersist } from '~/lib/chat-persist'
-import { chatSession } from '~/lib/chat-session'
-import { persistChatSuggestion } from '~/lib/chat-suggestion'
-import { persistChatTitle } from '~/lib/chat-title'
+import { attachments } from '~/lib/chat/attachments'
+import { chatCompaction } from '~/lib/chat/compaction'
+import { chatPersist } from '~/lib/chat/persist'
+import { chatSession } from '~/lib/chat/session'
+import { persistChatSuggestion } from '~/lib/chat/suggestion'
+import { persistChatTitle } from '~/lib/chat/title'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
 const isAttachmentId = type('string.uuid.v7')
