@@ -48,6 +48,7 @@
     "resend": "catalog:",
     "stripe": "catalog:",
     "ua-parser-js": "catalog:",
+    "unpdf": "catalog:",
     "uuid": "catalog:",
     "validator": "catalog:",
     "zod": "catalog:"

@@ -89,7 +89,7 @@ export const chatPersist = {
       )
       .orderBy(asc(chatsMessages.createdAt), asc(chatsMessagesParts.order))
 
-    return attachments.inline(messagesFromPartRows(rows))
+    return attachments.forModel(messagesFromPartRows(rows))
   },
   /** Flags the turn's question, never its answer: the answer's row is still being written and its next persist would replace the flag. */
   markStopped: async (data: { chatId: string; userId: string }) => {

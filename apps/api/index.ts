@@ -18,6 +18,7 @@ import { sendEmail } from './lib/resend'
 import { shutdown } from './lib/shutdown'
 import { createContext } from './orpc/context'
 import { router } from './orpc/routers'
+import { attachmentsRouter } from './routers/attachments'
 import { healthRouter } from './routers/health'
 import type { AppVariables } from './variables'
 
@@ -223,6 +224,7 @@ const app = new Hono<{
 
     return next()
   })
+  .route('/attachments', attachmentsRouter)
   .route('/health', healthRouter)
 
 process.once('SIGTERM', shutdown)

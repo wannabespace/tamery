@@ -79,6 +79,8 @@ The api and the purge job reach the chat attachments bucket with an HMAC key of 
 
 **The KMS key `attachments`** encrypts the bucket and rotates itself every 90 days. Revoking Cloud Storage's binding on it stops every attachment from opening.
 
+**Attachment links** (`/attachments/…?sig=`, what a model provider fetches a chat file from) never expire. Their signing key is derived from `ENCRYPTION_SECRET`'s current value, so step 2 of **New key value** for it revokes every link at once. To revoke the links alone, change the label `tamery/attachment-link/v1` in `apps/api/lib/attachments.ts` and deploy.
+
 ## Incidents
 
 - **Secret read by someone else** (the alert names who and from where):

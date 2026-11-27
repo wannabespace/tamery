@@ -10,7 +10,6 @@ packages:
   - packages/*
   - apps/*
 catalog:
-  '@journeyapps/wa-sqlite': ^1.7.2
   '@paper-design/shaders-react': ^0.0.82
   # Pinned to the providers built on the same @ai-sdk/provider-utils as `ai`: a second copy splits the tool types.
   '@ai-sdk/anthropic': 4.0.107
@@ -192,6 +191,7 @@ catalog:
   mermaid: ^12.3.0
   yaml: ^2.9.1
   entities: ^6.0.1
+  unpdf: ^2.2.2
 allowBuilds:
   '@firebase/util': false
   '@google/genai': false
