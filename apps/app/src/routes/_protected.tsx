@@ -106,13 +106,7 @@ export const Route = createFileRoute('/_protected')({
     ])
 
     const thisMachine = queryClient.getQueryData(thisMachineQuery.queryKey)
-    // A saved id with `enabled: false` is a machine its user turned off in an older version: never restart it unasked.
-    if (
-      cause === 'enter' &&
-      thisMachine &&
-      !thisMachine.enabled &&
-      thisMachine.id === null
-    ) {
+    if (cause === 'enter' && thisMachine && !thisMachine.enabled) {
       void silently(() => machine.startThisComputer(thisMachine.publicUrl))
     }
 

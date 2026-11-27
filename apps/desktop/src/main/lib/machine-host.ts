@@ -27,9 +27,11 @@ const store = createPrivateStore<{
   enabled: boolean
   /** What a tunnel on this computer serves the machine at, as `tamery machine --public-url`. */
   publicUrl: string | null
+  /** The user's **Turn off**, kept across sign-out: sign-in starts the machine unless it is set. */
+  turnedOff: boolean
   wrappedKey?: string
 }>({
-  defaults: { enabled: false, publicUrl: null },
+  defaults: { enabled: false, publicUrl: null, turnedOff: false },
   name: 'machine',
 })
 
@@ -178,8 +180,9 @@ const getStatus = async () => {
   )
   return {
     enabled: store.get('enabled'),
-    id: savedId.isOk() ? savedId.value.trim() : null,
+    id: (savedId.isOk() && savedId.value.trim()) || null,
     publicUrl: store.get('publicUrl'),
+    turnedOff: store.get('turnedOff'),
     ...state,
   }
 }
@@ -191,6 +194,12 @@ const inTurn = <T>(change: () => Promise<T>) => {
   const turn = lifecycle.then(change)
   lifecycle = silently(() => turn)
   return turn
+}
+
+const restart = async (account: VaultAccount) => {
+  await stop()
+  store.set('enabled', true)
+  await start({ account, kind: 'switch' })
 }
 
 export const machineHost = {
@@ -211,17 +220,30 @@ export const machineHost = {
       )
     }
     return inTurn(async () => {
-      await stop()
-      store.set({ enabled: true, publicUrl: parsed?.origin ?? null })
-      await start({ account, kind: 'switch' })
+      store.set('publicUrl', parsed?.origin ?? null)
+      if (!store.get('turnedOff')) {
+        await restart(account)
+      }
       return getStatus()
     })
   },
+  turnOff: () =>
+    inTurn(async () => {
+      store.set({ enabled: false, turnedOff: true })
+      await stop()
+      return getStatus()
+    }),
+  turnOn: (account: VaultAccount) =>
+    inTurn(async () => {
+      store.set('turnedOff', false)
+      await restart(account)
+      return getStatus()
+    }),
   /** On sign-out: the pairings, secrets and account it kept belong to the account leaving. */
   forget: () =>
     inTurn(async () => {
       await stop()
-      store.set('enabled', false)
+      store.set({ enabled: false, publicUrl: null })
       store.delete('wrappedKey')
       rmSync(getConfigDir(), { force: true, recursive: true })
     }),

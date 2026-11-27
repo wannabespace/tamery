@@ -16,16 +16,24 @@ export const ThisComputerRow = ({ name }: { name: string | null }) => {
   const hasAccount = useHasAccount()
   const turnOn = useMutation({
     meta: { event: 'machine_shared' },
-    mutationFn: () => machine.startThisComputer(status?.publicUrl ?? null),
+    mutationFn: machine.turnThisComputerOn,
   })
-  const isTurnedOff = hasAccount && status?.enabled === false && !!status.id
+  const turnOff = useMutation({
+    meta: { event: 'machine_unshared' },
+    mutationFn: machine.turnThisComputerOff,
+  })
+  const error = turnOn.error ?? turnOff.error
+  const isPending = turnOn.isPending || turnOff.isPending
 
   let description: ReactNode = 'Not running. Restart Tamery to try again.'
   if (!hasAccount) {
     description = 'Sign in to use this computer from your other devices.'
-  } else if (isTurnedOff) {
-    description =
-      'Turned off. Turn it on to use this computer from your other devices.'
+  } else if (error) {
+    description = (
+      <span className="text-destructive wrap-break-word">{error.message}</span>
+    )
+  } else if (status?.turnedOff) {
+    description = 'Off. Your other devices cannot use this computer.'
   } else if (status?.status === 'starting') {
     description = 'Starting…'
   } else if (status?.status === 'failed') {
@@ -53,14 +61,24 @@ export const ThisComputerRow = ({ name }: { name: string | null }) => {
       }
       description={description}
     >
-      {isTurnedOff && (
+      {hasAccount && status && (
         <Button
           variant="outline"
           size="sm"
-          disabled={turnOn.isPending}
-          onClick={() => turnOn.mutate()}
+          disabled={isPending}
+          onClick={() => {
+            turnOn.reset()
+            turnOff.reset()
+            if (status.turnedOff) {
+              turnOn.mutate()
+            } else {
+              turnOff.mutate()
+            }
+          }}
         >
-          <LoadingContent loading={turnOn.isPending}>Turn on</LoadingContent>
+          <LoadingContent loading={isPending}>
+            {status.turnedOff ? 'Turn on' : 'Turn off'}
+          </LoadingContent>
         </Button>
       )}
     </SettingsRow>

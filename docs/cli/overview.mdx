@@ -67,7 +67,7 @@ The machine accepts only browsers signed in to the same account as the machine.
 
 ## The desktop app as a machine
 
-The desktop app is a machine too, with no CLI. Once you sign in, it lists the computer in your account as `<hostname> (desktop app)`, listening at `http://127.0.0.1:26382`, and keeps serving while Tamery runs, even with every window closed. **Settings → Machines** shows it as **This computer** under **Your machines**. If you turned it off in an earlier version, it stays off until you click **Turn on** there.
+The desktop app is a machine too, with no CLI. Once you sign in, it lists the computer in your account as `<hostname> (desktop app)`, listening at `http://127.0.0.1:26382`, and keeps serving while Tamery runs, even with every window closed. **Settings → Machines** shows it as **This computer** under **Your machines**. To stop it, click **Turn off** there. It stays off, also after you sign out and in again, until you click **Turn on**.
 
 When a browser connects to it, the desktop app asks in a dialog whether to allow it, with the same code the browser shows. **Don't Allow** is the default.
 
@@ -75,7 +75,7 @@ Browsers on the same computer connect directly. To reach it from another compute
 
 On this computer, **Runs on** shows a connection that another device runs on this machine as **This computer**. To run a connection here from your other devices, pick this machine under **Runs on** there, then leave it as **This computer** here.
 
-The machine signs in with the desktop app's account and keeps its own copy of the secrets browsers send it, encrypted with a key in the system keychain. Signing out turns it off, removes it from your account and forgets the browsers it allowed.
+The machine signs in with the desktop app's account and keeps its own copy of the secrets browsers send it, encrypted with a key in the system keychain. Signing out stops it, removes it from your account, and forgets the browsers it allowed and its address for your other computers.
 
 ## Without a browser or terminal
 
