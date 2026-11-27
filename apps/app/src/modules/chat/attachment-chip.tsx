@@ -50,6 +50,7 @@ const useFile = (url: string, chip: RefObject<HTMLDivElement | null>) => {
         : skipToken,
     queryKey: ['chat-attachment', url],
     staleTime: Infinity,
+    throwOnError: false,
   })
   return { file: ref ? data : { size: base64Bytes(url), url }, status }
 }
@@ -103,7 +104,7 @@ export const AttachmentChip = ({
       <AttachmentContent>
         <AttachmentTitle data-mask>{part.filename}</AttachmentTitle>
         <AttachmentDescription>
-          {file && fileSize(file.size)}
+          {file ? fileSize(file.size) : status === 'error' && "Couldn't load"}
         </AttachmentDescription>
       </AttachmentContent>
       {onRemove ? (
