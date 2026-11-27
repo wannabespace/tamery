@@ -43,12 +43,12 @@ const toStatements = (texts: string[], values: SqliteValue[]) => {
 // `diagnose-sqlite.ts` matches this text, with or without the code.
 const D1_TRANSPORT_ERROR = 'fetch failed'
 
-const SOCKET_CODE = /^(?:E[A-Z]+|UND_ERR_[A-Z_]+)$/u
+const SOCKET_CODE = /^(?:E[A-Z]+|EAI_[A-Z]+|UND_ERR_[A-Z_]+)$/u
 
-// Fetch names the failed lookup or socket only in its cause, an `AggregateError` with an empty message for a dual-stack connect, and the desktop worker forwards nothing but the message.
+// Node's fetch names the failed lookup or socket in its cause, an `AggregateError` with an empty message for a dual-stack connect, Bun's (the CLI) on the error itself, and the desktop worker forwards nothing but the message.
 const socketCode = (error: unknown) => {
   const cause = error instanceof Error ? error.cause : undefined
-  return (cause instanceof AggregateError ? cause.errors : [cause])
+  return [error, ...(cause instanceof AggregateError ? cause.errors : [cause])]
     .map((reason: unknown) =>
       reason instanceof Error && 'code' in reason ? reason.code : undefined
     )
