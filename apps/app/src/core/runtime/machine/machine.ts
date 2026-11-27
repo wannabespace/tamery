@@ -269,11 +269,22 @@ export const machine = {
       await window.electron.machine.enable(account)
     }
   },
-  /** Restarts it when it runs; one the user turned off only keeps the address. */
-  saveThisComputerAddress: async (publicUrl: string | null) => {
+  /** Restarts it when it runs; one the user turned off only keeps the address. `draftToken` is the session that typed it. */
+  saveThisComputerAddress: async ({
+    draftToken,
+    publicUrl,
+  }: {
+    draftToken: string | null
+    publicUrl: string | null
+  }) => {
     const account = await getThisComputerAccount()
     if (!window.electron || !account) {
       throw new Error('Sign in to use this computer from your other devices.')
+    }
+    if (account.token !== draftToken) {
+      throw new Error(
+        'You signed in again since you typed this address. Type it again.'
+      )
     }
     await window.electron.machine.setPublicUrl({ account, publicUrl })
   },

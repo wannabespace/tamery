@@ -7,21 +7,29 @@ import { useState } from 'react'
 
 import { machine } from '~/core/runtime/machine/machine'
 import { thisMachineQuery } from '~/core/runtime/machine/pairing'
+import { bearerToken } from '~/lib/auth'
 
 import { MachineAddressDocs } from './machine-address-docs'
 
 /**
  * Desktop only: where other computers reach this one; browsers here need none. Each status main sends, sign-out
- * included, and each save drop the draft, so the field shows main's address whenever it is not being edited.
+ * included, and each save drop the draft, so the field shows main's address whenever it is not being edited. A draft
+ * keeps the session that started it, and saves only while that session is the signed-in one.
  */
 export const ThisComputerAddress = () => {
   const { data: status } = useQuery(thisMachineQuery)
-  const [draft, setDraft] = useState<string | null>(null)
+  const [draft, setDraft] = useState<{
+    text: string
+    token: string | null
+  } | null>(null)
   const [shown, setShown] = useState(status)
   const { error, isPending, mutate } = useMutation({
     meta: { event: 'machine_address_saved' },
-    mutationFn: (address: string) =>
-      machine.saveThisComputerAddress(address.trim() || null),
+    mutationFn: ({ text, token }: { text: string; token: string | null }) =>
+      machine.saveThisComputerAddress({
+        draftToken: token,
+        publicUrl: text.trim() || null,
+      }),
   })
 
   if (status !== shown) {
@@ -71,14 +79,19 @@ export const ThisComputerAddress = () => {
           aria-label="Address for your other computers"
           className="w-56"
           placeholder="https://mac.example.com"
-          value={draft ?? saved}
-          onChange={(event) => setDraft(event.target.value)}
+          value={draft?.text ?? saved}
+          onChange={(event) =>
+            setDraft({
+              text: event.target.value,
+              token: draft ? draft.token : bearerToken.get(),
+            })
+          }
         />
         <Button
           type="submit"
           variant="outline"
           size="sm"
-          disabled={isPending || draft === null || draft.trim() === saved}
+          disabled={isPending || draft === null || draft.text.trim() === saved}
         >
           <LoadingContent loading={isPending}>Save</LoadingContent>
         </Button>

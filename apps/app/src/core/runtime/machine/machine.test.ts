@@ -28,12 +28,17 @@ mock.module('./status', () => ({
   toStatus: () => null,
 }))
 
-Object.assign(globalThis, { window: { electron: { machine: { turnOn } } } })
+const setPublicUrl = mock((_input: object) => Promise.resolve<object>({}))
+
+Object.assign(globalThis, {
+  window: { electron: { machine: { setPublicUrl, turnOn } } },
+})
 
 const { machine } = await import('./machine')
 
 beforeEach(() => {
   turnOn.mockClear()
+  setPublicUrl.mockClear()
 })
 
 test('turn on sends the signed-in account', async () => {
@@ -62,4 +67,23 @@ test('turn on fails when the worker stopped before it listened', async () => {
   turnOn.mockResolvedValueOnce({ status: 'off' })
 
   await expect(machine.turnThisComputerOn()).rejects.toThrow('stopped')
+})
+
+test('an address saves only from the session that typed it', async () => {
+  await expect(
+    machine.saveThisComputerAddress({
+      draftToken: 'token-before',
+      publicUrl: 'https://old.example.com',
+    })
+  ).rejects.toThrow('signed in again')
+  expect(setPublicUrl).not.toHaveBeenCalled()
+
+  await machine.saveThisComputerAddress({
+    draftToken: account.token,
+    publicUrl: 'https://mac.example.com',
+  })
+  expect(setPublicUrl).toHaveBeenCalledWith({
+    account,
+    publicUrl: 'https://mac.example.com',
+  })
 })

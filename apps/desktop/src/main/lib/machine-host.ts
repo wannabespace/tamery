@@ -135,9 +135,13 @@ const assertSignedIn = (account: VaultAccount) => {
   }
 }
 
+/** Another account, such as one desktop recovery signed in without a sign-out, must not inherit the previous one's address. */
 const signIn = (account: VaultAccount) => {
   assertSignedIn(account)
-  store.set('accountId', account.id)
+  if (store.get('accountId') !== account.id) {
+    store.set({ accountId: account.id, publicUrl: null })
+    publish()
+  }
 }
 
 /** Settles once the latest started process listens, failed or exited; registration with the account may still run. */
@@ -282,6 +286,7 @@ export const machineHost = {
       )
     }
     return inTurn(async () => {
+      assertSignedIn(account)
       if (account.id !== store.get('accountId')) {
         throw new Error(
           'Sign in as the account this computer’s machine runs for to change its address.'

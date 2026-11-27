@@ -197,3 +197,23 @@ test('only the account the machine runs for changes the address, and every windo
   }
   expect(workers).toHaveLength(0)
 })
+
+test('another account signing in without a sign-out clears the address and tells every window, even while off', async () => {
+  await machineHost.turnOff()
+  await machineHost.enable(account)
+  await machineHost.setPublicUrl({
+    account,
+    publicUrl: 'https://mac.example.com',
+  })
+
+  await machineHost.enable(nextAccount)
+
+  expect(machineHost.status()).toMatchObject({ publicUrl: null })
+  for (const window of [1, 2]) {
+    expect(lastSentTo(window)).toMatchObject({ status: { publicUrl: null } })
+  }
+  await expect(
+    machineHost.setPublicUrl({ account, publicUrl: 'https://mac.example.com' })
+  ).rejects.toThrow('Sign in')
+  expect(workers).toHaveLength(0)
+})
