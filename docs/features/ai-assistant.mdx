@@ -18,7 +18,7 @@ Each database keeps its own chats. **New chat** starts fresh, and the chat histo
 
 The chat knows only what you send it. It does not read your schema, query your data, or change anything on its own. Include the table and column names that matter, then read the SQL it suggests and run it yourself.
 
-The agent reads the files of your last three messages; for an older one, attach it again.
+The agent reads every file of your latest message, and those of the two messages before it while they fit 10 MB. For an older file, attach it again.
 
 Chats are stored on our servers and processed by external AI providers. See [Security and privacy](/connections/security#ai-and-your-data).
 

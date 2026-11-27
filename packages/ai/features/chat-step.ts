@@ -140,7 +140,7 @@ export const toModelMessages = (messages: AppUIMessage[]) =>
     tools: chatTools,
   })
 
-/** Needed in both places: on the system message it caches the tools and instructions, on the request it adds the automatic breakpoint at the last message (OpenRouter's, and Anthropic's own for a user's key), which caches the transcript, its files and mention definitions for the next step and turn. OpenAI and Google cache on their own. */
+/** Needed in both places: on the system message it caches the tools and instructions, on the request it adds the automatic breakpoint at the last message (OpenRouter's, and Anthropic's own for a user's key), which caches the transcript, its files and mention definitions for the next step. Whether a later turn reuses it is not measured. OpenAI and Google cache on their own. */
 const PROMPT_CACHE = {
   anthropic: { cacheControl: { type: 'ephemeral' } },
   openrouter: { cacheControl: { type: 'ephemeral' } },

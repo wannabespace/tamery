@@ -115,10 +115,12 @@ export const stream = orpc
       })
     }
 
-    await (turn.role === 'user'
+    const stored =
+      turn.role === 'user' ? await attachments.store(input.chatId, turn) : null
+    await (stored
       ? chatPersist.persistMessage({
           chatId: input.chatId,
-          message: await attachments.store(input.chatId, turn),
+          message: stored.message,
           userId: context.user.id,
         })
       : chatPersist.persistToolOutputs({
@@ -131,6 +133,10 @@ export const stream = orpc
       chatId: input.chatId,
       userId: context.user.id,
     })
+    const sent = await attachments.forModel(history)
+    if (stored) {
+      runInBackground(stored.copy())
+    }
 
     if (!title) {
       runInBackground(
@@ -160,20 +166,19 @@ export const stream = orpc
     }
     const contextTokens = resolveChatContext(pick.model, input.context)
     const telemetry = payer.telemetry(scope)
-    const sent = await attachments.forModel(history)
-    const stored = await chatCompaction.get(input.chatId)
+    const summarized = await chatCompaction.get(input.chatId)
     const compaction =
       turn.role === 'user' &&
-      needsCompaction(afterCompaction(sent, stored), contextTokens)
+      needsCompaction(afterCompaction(sent, summarized), contextTokens)
         ? await chatCompaction.compact({
             chatId: input.chatId,
             history: sent,
             key: payer.key,
-            previous: stored,
+            previous: summarized,
             telemetry,
             userId: context.user.id,
           })
-        : stored
+        : summarized
 
     const str = await chatStream.claim({
       ...pick,

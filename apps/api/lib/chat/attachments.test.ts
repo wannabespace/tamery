@@ -144,11 +144,12 @@ const putFile = (id: string, size: number, type = 'image/png') => {
 }
 
 const storeOne = async (mediaType: string, bytes: Uint8Array) => {
-  const stored = await attachments.store(
+  const { copy, message } = await attachments.store(
     CHAT_ID,
     userTurn([{ filename: 'file', mediaType, url: dataUrl(mediaType, bytes) }])
   )
-  const [, part] = stored.parts
+  await copy()
+  const [, part] = message.parts
   const ref = part?.type === 'file' ? parseAttachmentRef(part.url) : null
   if (!ref || part?.type !== 'file') {
     throw new Error('no stored file')
@@ -158,6 +159,7 @@ const storeOne = async (mediaType: string, bytes: Uint8Array) => {
 }
 
 const filePart = (message: AppUIMessage | undefined) => message?.parts[1]
+const isCopied = () => [...objects.keys()].some((key) => key.endsWith('.model'))
 const notSent = (filename: string, mediaType = 'image/png') => ({
   text: `[File "${filename}", ${mediaType}, not sent with this request: ask the user to attach it again if you need it]`,
   type: 'text' as const,
@@ -183,6 +185,23 @@ test('a large image is stored as sent beside a copy scaled to a 1568px long edge
   expect(
     await new Bun.Image(copy?.body ?? new Uint8Array()).metadata()
   ).toEqual({ format: 'png', height: 1045, width: 1568 })
+})
+
+test('the copy is made only once copy runs, so the turn attaching a file sends it as stored', async () => {
+  const { copy, message } = await attachments.store(
+    CHAT_ID,
+    userTurn([
+      {
+        filename: 'big.png',
+        mediaType: 'image/png',
+        url: dataUrl('image/png', await png(3000, 2000)),
+      },
+    ])
+  )
+  expect(isCopied()).toBe(false)
+  await copy()
+  expect(isCopied()).toBe(true)
+  expect(message.parts[1]).toMatchObject({ type: 'file' })
 })
 
 test('a small image, or bytes that are no image, get no copy and still store', async () => {

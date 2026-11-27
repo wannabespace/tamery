@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer'
 import { createHmac, hkdfSync } from 'node:crypto'
+import { once } from 'node:events'
 
 import { section } from '@tamery/ai/features/prompt'
 import type { AppMessagePart, AppUIMessage } from '@tamery/ai/message'
@@ -14,11 +15,12 @@ import { UNTRUSTED_FILE_NOTE } from '@tamery/shared/mcp'
 import { silently } from '@tamery/shared/utils'
 import { isFileUIPart } from 'ai'
 import { S3Client } from 'bun'
-import { extractText, getDocumentProxy } from 'unpdf'
 import { v7 } from 'uuid'
 
 import { env, nodeEnv } from '~/env'
 import { safeEqual } from '~/lib/safe-equal'
+
+import type { PdfText } from './pdf-text'
 
 /** The files of the last `turns` messages the user wrote reach the model as files: all of the latest one's, and an older one's, newest first, while it still fits `bytes` with the files before it. Every other one is a line of text naming it. */
 export const FRESH_ATTACHMENTS = { bytes: 10 * 1024 * 1024, turns: 3 } as const
@@ -29,7 +31,10 @@ const MODEL_IMAGE = { edge: 1568, maxPixels: 25_000_000 } as const
 /** A PDF goes to the model as its text when it has at most `pages` pages (more costs too much to parse), at least `perPage` characters a page (less is a scan or mostly pictures) and at most `max` in all (more would not fit a context window as text either). */
 const PDF_TEXT = { max: 400_000, pages: 300, perPage: 100 } as const
 
-/** A link stays the same through a week, so the cached transcript prefix holds, and stops working two to three weeks after it is made. */
+/** A copy taking longer is dropped, and its file reaches the model as sent. */
+const MODEL_COPY_TIMEOUT_MS = 20_000
+
+/** A link stays the same through a week, so the transcript prefix does not change with it, and stops working two to three weeks after it is made. */
 const LINK_WEEK_SECONDS = 7 * 24 * 60 * 60
 
 const bucket = new S3Client({
@@ -92,18 +97,30 @@ const modelFile = async (ref: Ref, mediaType: string) => {
   return file && { ...file, isText: false }
 }
 
-const storeModelCopy = async (ref: Ref, bytes: Buffer, mediaType: string) => {
+const storeModelCopy = async (
+  ref: Ref,
+  bytes: Buffer,
+  mediaType: string,
+  signal: AbortSignal
+) => {
   if (mediaType === 'application/pdf') {
-    const document = await getDocumentProxy(new Uint8Array(bytes))
-    if (document.numPages > PDF_TEXT.pages) {
-      return
-    }
-    const { text, totalPages } = await extractText(document, {
-      mergePages: true,
-    })
-    const { length } = text.trim()
-    if (length >= totalPages * PDF_TEXT.perPage && length <= PDF_TEXT.max) {
-      await bucket.write(textKey(ref), text, { type: 'text/plain' })
+    // pdf.js parses without yielding to the event loop, so only a worker can be stopped at the time limit.
+    const worker = new Worker(new URL('pdf-text.ts', import.meta.url))
+    signal.addEventListener('abort', () => worker.terminate(), { once: true })
+    const job = { bytes: new Uint8Array(bytes), maxPages: PDF_TEXT.pages }
+    // oxlint-disable-next-line unicorn/require-post-message-target-origin -- a Worker, which takes no origin
+    worker.postMessage(job)
+    const [{ data }] = (await once(worker, 'message', { signal })) as [
+      MessageEvent<PdfText>,
+    ]
+    worker.terminate()
+    const length = data?.text.trim().length ?? 0
+    if (
+      data &&
+      length >= data.totalPages * PDF_TEXT.perPage &&
+      length <= PDF_TEXT.max
+    ) {
+      await bucket.write(textKey(ref), data.text, { type: 'text/plain' })
     }
     return
   }
@@ -116,14 +133,21 @@ const storeModelCopy = async (ref: Ref, bytes: Buffer, mediaType: string) => {
   if (Math.max(height, width) <= MODEL_IMAGE.edge) {
     return
   }
-  await bucket.write(
-    modelCopyKey(ref),
-    await image
-      .resize(MODEL_IMAGE.edge, MODEL_IMAGE.edge, { fit: 'inside' })
-      .bytes(),
-    { type: mediaType }
-  )
+  const copy = await image
+    .resize(MODEL_IMAGE.edge, MODEL_IMAGE.edge, { fit: 'inside' })
+    .bytes()
+  if (!signal.aborted) {
+    await bucket.write(modelCopyKey(ref), copy, { type: mediaType })
+  }
 }
+
+const withinTime = async (work: (signal: AbortSignal) => Promise<void>) => {
+  const signal = AbortSignal.timeout(MODEL_COPY_TIMEOUT_MS)
+  await Promise.race([work(signal), once(signal, 'abort')])
+}
+
+// One copy at a time on an instance, across all its requests, so concurrent turns never decode several large files at once.
+let copying = Promise.resolve()
 
 const isOwnTurn = (message: AppUIMessage) =>
   message.role === 'user' && !isSqlRun(message) && !isContinue(message)
@@ -218,9 +242,9 @@ export const attachments = {
     )
   },
   read: (ref: Ref) => bucket.file(attachmentKey(ref)).bytes(),
-  /** Moves the turn's data URLs into the bucket and leaves references in their place, so the transcript every device syncs stays small. The file stays as sent, for the user; a smaller copy for the model goes beside it when one helps. */
+  /** Moves the turn's data URLs into the bucket and leaves references in their place, so the transcript every device syncs stays small. The file stays as sent, for the user; `copy` puts a smaller copy for the model beside it when one helps, so call it once the turn no longer waits on it: until then the file reaches the model as sent. */
   store: async (chatId: string, message: AppUIMessage) => {
-    const copies: { bytes: Buffer; mediaType: string; ref: Ref }[] = []
+    const files: { bytes: Buffer; mediaType: string; ref: Ref }[] = []
     const stored = await mapParts(message, async (part) => {
       if (part.type !== 'file' || !part.url.startsWith('data:')) {
         return part
@@ -231,14 +255,21 @@ export const attachments = {
         'base64'
       )
       await bucket.write(attachmentKey(ref), bytes, { type: part.mediaType })
-      copies.push({ bytes, mediaType: part.mediaType, ref })
+      files.push({ bytes, mediaType: part.mediaType, ref })
       return { ...part, url: attachmentRef(ref) }
     })
-    for (const { bytes, mediaType, ref } of copies) {
-      // A file the copy cannot be made from still reaches the model as sent.
-      // oxlint-disable-next-line no-await-in-loop -- one copy at a time, so four large files never decode at once
-      await silently(() => storeModelCopy(ref, bytes, mediaType))
+    const copy = () => {
+      for (const { bytes, mediaType, ref } of files) {
+        copying = copying.then(() =>
+          silently(() =>
+            withinTime((signal) =>
+              storeModelCopy(ref, bytes, mediaType, signal)
+            )
+          )
+        )
+      }
+      return copying
     }
-    return stored
+    return { copy, message: stored }
   },
 }
