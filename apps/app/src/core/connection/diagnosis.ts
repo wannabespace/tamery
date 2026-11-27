@@ -4,6 +4,7 @@ import {
   diagnoseConnectionError,
   isConnectionFailure,
   isProxyFailure,
+  OFFLINE_DIAGNOSIS,
 } from '@tamery/connection/diagnose'
 import { isLocalHost } from '@tamery/connection/hosts'
 import { queryOptions, useQuery } from '@tanstack/react-query'
@@ -88,3 +89,9 @@ export const useDiagnosis = (connectionId: string, error: Error) => {
   )
   return isPending ? undefined : adviseRetry(data ?? null, online)
 }
+
+/** For a screen that shows a cloud proxy failure in place, with no connection at hand to diagnose it against. */
+export const diagnoseProxyFailure = (error: Error, online: boolean) =>
+  isProxyFailure(error.message) && !failedAttempt(error).online
+    ? adviseRetry(OFFLINE_DIAGNOSIS, online)
+    : null
