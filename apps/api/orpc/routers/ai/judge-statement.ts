@@ -30,6 +30,7 @@ const limiter = new RedisRateLimiter(redis, {
 
 const pendingExecute = (messages: AppUIMessage[], toolCallId: string) =>
   messages
+    .filter(({ role }) => role === 'assistant')
     .flatMap(({ parts }) => parts)
     .flatMap((part) =>
       part.type === 'tool-execute' &&
@@ -86,7 +87,11 @@ export const judgeStatement = orpc
       userId: context.user.id,
     })
     const { statement } = stored.call.input
-    if (stored.call.input.connectionId !== connection.id) {
+    // Auto runs the whole statement, so one longer than the judge reads waits for Run.
+    if (
+      stored.call.input.connectionId !== connection.id ||
+      statement.length > REQUEST_LIMIT
+    ) {
       return null
     }
     const { messages } = stored
@@ -129,7 +134,7 @@ export const judgeStatement = orpc
       proposal,
       request,
       signal,
-      statement: statement.slice(0, REQUEST_LIMIT),
+      statement,
       telemetry: context.payer.telemetry(scope),
     })
   })

@@ -18,11 +18,14 @@ import { getSubscription } from '~/lib/subscription'
 
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000
 
-/** Each Tamery-paid chat stream can spend a full context window before its usage settles, so a user runs only this many at once. */
-const PAID_STREAMS_AT_ONCE = 4
-const PAID_STREAM_MS = 15 * 60 * 1000
+/** A Tamery-paid call can spend up to a full context window before its usage settles, so a user runs only this many at once, chat turns and every other AI call together. */
+const PAID_CALLS_AT_ONCE = 4
+const PAID_CALL_MS = 15 * 60 * 1000
 
-const paidStreamsKey = (userId: string) => `credits:paid-streams:${userId}`
+export const PAID_CALLS_BUSY_MESSAGE =
+  'Tamery AI is already answering several of your requests. Try again once one of them finishes.'
+
+const paidCallsKey = (userId: string) => `credits:paid-calls:${userId}`
 
 /** Marks a payment intent as AI credits, so the webhook credits it and ignores every other payment. */
 export const CREDITS_PAYMENT_KIND = 'ai_credits'
@@ -78,7 +81,8 @@ const failAttempt = (userId: string, attemptId: string) =>
 
 /** Charges the card of the user's last top-up, off session, once the balance is under the threshold; the webhook adds the credits once the payment succeeds. One charge at a time per account, and one that fails turns auto top-up off, so it never retries a declined card. */
 const topUpAutomatically = async (userId: string) => {
-  if (!stripe) {
+  const client = stripe
+  if (!client) {
     return
   }
   const attemptId = v7()
@@ -95,16 +99,17 @@ const topUpAutomatically = async (userId: string) => {
       )
     )
     .returning()
-  if (!account?.autoTopUpPaymentMethodId) {
+  const paymentMethod = account?.autoTopUpPaymentMethodId
+  if (!(account && paymentMethod)) {
     return
   }
-  const intent = await stripe.paymentIntents
-    .create(
+  const charge = async () =>
+    client.paymentIntents.create(
       {
         amount: topUpChargeCents(account.autoTopUpAmount),
         confirm: true,
         currency: 'usd',
-        customer: await getStripeCustomerId(stripe, userId),
+        customer: await getStripeCustomerId(client, userId),
         description: `Tamery AI credits (auto top-up), including a ${CREDIT_TOP_UP.fee * 100}% fee`,
         metadata: {
           amount: String(account.autoTopUpAmount),
@@ -113,16 +118,16 @@ const topUpAutomatically = async (userId: string) => {
           userId,
         },
         off_session: true,
-        payment_method: account.autoTopUpPaymentMethodId,
+        payment_method: paymentMethod,
       },
       { idempotencyKey: attemptId }
     )
-    .catch((error: unknown) => {
-      console.error(`auto top-up for ${userId} failed`, {
-        type: error instanceof Error ? error.name : typeof error,
-      })
-      return null
+  const intent = await charge().catch((error: unknown) => {
+    console.error(`auto top-up for ${userId} failed`, {
+      type: error instanceof Error ? error.name : typeof error,
     })
+    return null
+  })
   if (!(intent && ['processing', 'succeeded'].includes(intent.status))) {
     await failAttempt(userId, attemptId)
   }
@@ -219,27 +224,27 @@ export const credits = {
       topUps,
     }
   },
-  /** Takes one of the Tamery-paid chat streams a user may run at once; false when none is free. A slot never released expires after PAID_STREAM_MS. */
-  holdStream: async (userId: string, streamId: string) => {
-    const key = paidStreamsKey(userId)
+  /** Takes one of the Tamery-paid calls a user may run at once, under the call's own id; false when none is free. A slot never released expires after PAID_CALL_MS. */
+  hold: async (userId: string, callId: string) => {
+    const key = paidCallsKey(userId)
     const now = Date.now()
     const replies = await redis
       .multi()
       .zRemRangeByScore(key, '-inf', now)
-      .zAdd(key, { score: now + PAID_STREAM_MS, value: streamId })
+      .zAdd(key, { score: now + PAID_CALL_MS, value: callId })
       .zCard(key)
-      .pExpire(key, PAID_STREAM_MS)
+      .pExpire(key, PAID_CALL_MS)
       .exec()
-    if (Number(replies[2]) <= PAID_STREAMS_AT_ONCE) {
+    if (Number(replies[2]) <= PAID_CALLS_AT_ONCE) {
       return true
     }
-    await redis.zRem(key, streamId)
+    await redis.zRem(key, callId)
     return false
   },
-  releaseStream: (userId: string, streamId: string) =>
-    redis.zRem(paidStreamsKey(userId), streamId),
-  /** Takes back the part of a top-up a refund or dispute returned, `share` of it in all, once however often Stripe repeats the event; the balance may go below zero. */
-  reverse: (paymentIntentId: string, share: number) =>
+  release: (userId: string, callId: string) =>
+    redis.zRem(paidCallsKey(userId), callId),
+  /** Sets the share of a top-up a refund or dispute took back, once however often Stripe repeats the event: a refund or an opened dispute only raises it, a won dispute lowers it back to what was refunded. The balance may go below zero. False when no top-up has that payment intent yet. */
+  reverse: (paymentIntentId: string, share: number, won = false) =>
     db.transaction(async (tx) => {
       const [topUp] = await tx
         .select()
@@ -247,12 +252,13 @@ export const credits = {
         .where(eq(creditTopUps.stripePaymentIntentId, paymentIntentId))
         .for('update')
       if (!topUp) {
-        return
+        return false
       }
-      const reversed = topUp.amount * Math.min(share, 1)
+      const target = topUp.amount * Math.min(share, 1)
+      const reversed = won ? target : Math.max(target, topUp.reversed)
       const taken = reversed - topUp.reversed
-      if (taken <= 0) {
-        return
+      if (taken === 0) {
+        return true
       }
       await tx
         .update(creditTopUps)
@@ -262,6 +268,7 @@ export const credits = {
         .update(creditAccounts)
         .set({ balance: sql`${creditAccounts.balance} - ${taken}` })
         .where(eq(creditAccounts.userId, topUp.userId))
+      return true
     }),
   /** Auto top-up charges the card of a top-up, so turning it on before any top-up saves nothing and answers false. */
   setAutoTopUp: async (

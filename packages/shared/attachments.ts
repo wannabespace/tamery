@@ -12,8 +12,6 @@ export const parseAttachmentRef = (url: string) => {
   return chatId && id ? { chatId, id } : null
 }
 
-// The purge job deletes a chat's files by this prefix once its deleted copy expires.
-export const chatAttachmentsPrefix = (chatId: string) => `chats/${chatId}/`
-
-export const attachmentKey = (ref: { chatId: string; id: string }) =>
-  `${chatAttachmentsPrefix(ref.chatId)}${ref.id}`
+/** A chat's files in the bucket, which the purge job deletes once its deleted copy expires. A chat's id is client-minted and may be taken again after a delete, so the prefix also holds the row's server-set creation time: a new chat under the same id never reaches the old files, nor the purge the new ones. */
+export const chatAttachmentsPrefix = (chat: { createdAt: Date; id: string }) =>
+  `chats/${chat.id}/${chat.createdAt.getTime()}/`
