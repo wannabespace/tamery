@@ -23,8 +23,6 @@ export const aiKey = {
       .from(aiKeys)
       .where(enabledFor(userId))
       .orderBy(asc(aiKeys.createdAt)),
-  has: async (userId: string) =>
-    (await db.$count(aiKeys, enabledFor(userId))) > 0,
   list: (userId: string) =>
     db
       .select({
@@ -49,12 +47,12 @@ export const aiKey = {
     db.update(aiKeys).set({ enabled }).where(ofProvider(userId, provider)),
 }
 
-/** Who pays for a call: the user's own keys, else Tamery. `key` is the first of them, which the chat's helper calls run on. A call on a key is recorded as `ownKey`, so AI usage shows it while it never counts toward the budget or spends credits. */
-export const getAiPayer = (keys: AiKey[]) => {
+/** Who pays for a call: the user's own keys, else Tamery. `key` is the first of them, which the chat's helper calls run on. A user with a key runs every call on one of their keys, so each is recorded as `ownKey`: AI usage shows it while it never counts toward the budget or spends credits. */
+const getAiPayer = (keys: AiKey[]) => {
   const [key = TAMERY_ACCOUNT] = keys
   const scoped = (scope: Omit<AiUsageScope, 'ownKey'>) => ({
     ...scope,
-    ownKey: key !== TAMERY_ACCOUNT,
+    ownKey: keys.length > 0,
   })
   return {
     key,
@@ -70,11 +68,16 @@ export const getAiPayer = (keys: AiKey[]) => {
 
 export type AiPayer = ReturnType<typeof getAiPayer>
 
-/** The payer of a chat call, refused when the user has no key and Tamery's budget for them is spent. */
-export const payForAi = async (userId: string, refused: () => Error) => {
-  const keys = await aiKey.enabled(userId)
-  if (!(keys.length > 0 || (await credits.canUseAi(userId)))) {
-    throw refused()
+/** The payer of an AI call: the keys permissions were checked against, so a key turned off since never moves the call to Tamery, else Tamery while the plan's budget or credits last; null when neither pays. */
+export const payForAi = async (context: {
+  aiKeys: AiKey[]
+  subscription: Parameters<typeof credits.canUseAi>[1]
+  user: { id: string }
+}) => {
+  if (context.aiKeys.length > 0) {
+    return getAiPayer(context.aiKeys)
   }
-  return getAiPayer(keys)
+  return (await credits.canUseAi(context.user.id, context.subscription))
+    ? getAiPayer([])
+    : null
 }

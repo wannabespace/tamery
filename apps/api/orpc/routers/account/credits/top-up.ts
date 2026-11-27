@@ -5,6 +5,8 @@ import { CREDITS_PAYMENT_KIND } from '~/lib/credits'
 import { getStripeCustomerId, stripe } from '~/lib/stripe'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
+import { billingDestination } from '../subscription/billing-destination'
+
 export const topUp = orpc
   .use(permissionsMiddleware)
   .use(permix.checkMiddleware('ai.credits.buy'))
@@ -14,8 +16,8 @@ export const topUp = orpc
         .divisibleBy(1)
         .atLeast(CREDIT_TOP_UP.min)
         .atMost(CREDIT_TOP_UP.max),
-      cancelUrl: 'string',
-      successUrl: 'string',
+      cancelUrl: billingDestination,
+      successUrl: billingDestination,
     })
   )
   .errors({

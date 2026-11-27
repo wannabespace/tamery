@@ -81,6 +81,16 @@ The api and the purge job reach the chat attachments bucket with an HMAC key of 
 
 **Attachment links** (`/attachments/…?expires=…&sig=…`, what a model provider fetches a chat file from) expire two to three weeks after they are made. Their signing key is derived from `ENCRYPTION_SECRET`: the current key signs and every key in it opens, so links keep working through step 2 of **New key value** and stop once step 4 drops the old key. To revoke every link at once, change the label `tamery/attachment-link/v1` in `apps/api/lib/chat/attachments.ts` and deploy. Cloud Run's request log keeps each URL with its query, so whoever reads that log can open a link until it expires.
 
+## Stripe webhook
+
+The Stripe endpoint signs with `STRIPE_WEBHOOK_SECRET` and must send these events. Set them in the Stripe dashboard under Developers → Webhooks → the API's endpoint → Edit:
+
+- `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`: plans.
+- `payment_intent.succeeded`: adds the AI credits of a paid top-up. Without it a card is charged and no credits arrive.
+- `payment_intent.payment_failed`: turns off auto top-up after a declined charge.
+- `charge.refunded`, `charge.dispute.created`: take back the credits of a refunded or disputed top-up.
+- `charge.dispute.closed`: gives them back when the dispute is won.
+
 ## Incidents
 
 - **Secret read by someone else** (the alert names who and from where):

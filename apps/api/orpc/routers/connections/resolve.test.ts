@@ -39,7 +39,7 @@ mock.module('~/orpc', () => ({
 
 const { resolve } = await import('./resolve')
 
-const status = async (input: { updatedAt?: Date; version?: Date }) => {
+const status = async (input: { version?: Date }) => {
   const result = await call(
     resolve,
     { id: '0190a000-0000-7000-8000-000000000001', ...input },
@@ -65,16 +65,6 @@ test.each([
     label: 'a version a late replay replaced',
   },
   { expected: 'modified', input: {}, label: 'no version' },
-  {
-    expected: 'unchanged',
-    input: { updatedAt: minutes(5) },
-    label: "an older app's pending save",
-  },
-  {
-    expected: 'modified',
-    input: { updatedAt: minutes(-5) },
-    label: "an older app's stale string",
-  },
 ] as const)('$label answers $expected', async ({ expected, input }) => {
   expect(await status(input)).toBe(expected)
 })

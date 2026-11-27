@@ -14,6 +14,7 @@ import { cors } from 'hono/cors'
 
 import { env, nodeEnv } from './env'
 import { handleAuth } from './lib/auth'
+import { encryptChatTitles } from './lib/chat/encrypt-titles'
 import { sendEmail } from './lib/resend'
 import { shutdown } from './lib/shutdown'
 import { createContext } from './orpc/context'
@@ -227,6 +228,8 @@ const app = new Hono<{
   })
   .route('/attachments', attachmentsRouter)
   .route('/health', healthRouter)
+
+await encryptChatTitles()
 
 process.once('SIGTERM', shutdown)
 

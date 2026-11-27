@@ -2,12 +2,19 @@ import type { AppUIMessage } from '@tamery/ai/message'
 import { messagesFromPartRows } from '@tamery/ai/message'
 import { db } from '@tamery/db'
 import { chats, chatsMessages, chatsMessagesParts } from '@tamery/db/schema'
+import { omit } from '@tamery/shared/utils'
 import { isDeepEqualData, isToolUIPart } from 'ai'
 import { and, asc, desc, eq, gte, inArray } from 'drizzle-orm'
 
 import { chatCompaction } from '~/lib/chat/compaction'
 import { publisher as chatsMessagesPartsPublisher } from '~/orpc/routers/chats-messages-parts/events'
 import { publisher as chatsMessagesPublisher } from '~/orpc/routers/chats-messages/events'
+
+const TOOL_OUTPUT_KEYS: ('errorText' | 'output' | 'state')[] = [
+  'errorText',
+  'output',
+  'state',
+]
 
 export const chatPersist = {
   /** Drops `messageId` and every message after it, so an edited or re-asked turn replaces what followed; a compaction that covered a dropped message goes too. */
@@ -56,7 +63,7 @@ export const chatPersist = {
       }
       chatsMessagesPublisher.publish(data.userId, { key: id, type: 'delete' })
     }
-    const compaction = await chatCompaction.get(data.chatId)
+    const compaction = await chatCompaction.get(data)
     if (deleted.some((id) => id === compaction?.throughMessageId)) {
       await chatCompaction.save({
         chatId: data.chatId,
@@ -90,12 +97,20 @@ export const chatPersist = {
 
     return messagesFromPartRows(rows)
   },
-  /** Flags the turn's question, never its answer: the answer's row is still being written and its next persist would replace the flag. */
-  markStopped: async (data: { chatId: string; userId: string }) => {
+  /** Flags the turn's question (`messageId`, else the chat's last user turn), never its answer: the answer's row is still being written and its next persist would replace the flag. */
+  markStopped: async (data: {
+    chatId: string
+    messageId?: string
+    userId: string
+  }) => {
     const lastAsked = await db.query.chatsMessages.findFirst({
       columns: { id: true, metadata: true },
       orderBy: { createdAt: 'desc' },
-      where: { chatId: { eq: data.chatId }, role: { eq: 'user' } },
+      where: {
+        chatId: { eq: data.chatId },
+        id: data.messageId ? { eq: data.messageId } : undefined,
+        role: { eq: 'user' },
+      },
     })
 
     if (!lastAsked) {
@@ -215,7 +230,7 @@ export const chatPersist = {
       chatsMessagesPartsPublisher.publish(data.userId, part)
     }
   },
-  /** A window's answer turn may only fill in the outputs of tool calls the model made: its text, steps and usage stay the server's, which the turn limits count. */
+  /** A window's answer turn may only fill in the outputs of tool calls the model made: its text, steps, usage and each call's input stay the server's, which the turn limits and the approval judge read. */
   persistToolOutputs: async (data: {
     chatId: string
     message: AppUIMessage
@@ -245,8 +260,11 @@ export const chatPersist = {
       return isToolUIPart(existing.part) &&
         part &&
         isToolUIPart(part) &&
-        part.type === existing.part.type &&
-        part.toolCallId === existing.part.toolCallId &&
+        (part.state === 'output-available' || part.state === 'output-error') &&
+        isDeepEqualData(
+          omit(existing.part, TOOL_OUTPUT_KEYS),
+          omit(part, TOOL_OUTPUT_KEYS)
+        ) &&
         !isDeepEqualData(existing.part, part)
         ? [{ id: existing.id, part }]
         : []

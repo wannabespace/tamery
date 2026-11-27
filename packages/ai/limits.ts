@@ -24,6 +24,7 @@ export const CHAT_LIMITS = {
   ]),
   attachments: 4,
   message: { steps: 25, tokens: 500_000 },
+  subagentTitle: 200,
 } as const
 
 /** A dictated message: the window records 16-bit mono WAV at this rate for at most this long, and the API rejects anything larger. */

@@ -10,13 +10,17 @@ import {
 
 import type { AppUIMessage } from '@tamery/ai/message'
 import {
-  attachmentKey,
   attachmentRef,
+  chatAttachmentsPrefix,
   parseAttachmentRef,
 } from '@tamery/shared/attachments'
 import { UNTRUSTED_FILE_NOTE } from '@tamery/shared/mcp'
 
 const BROKEN_ID = '019a0000-0000-7000-8000-0000000000bb'
+const CHAT_ID = '019a0000-0000-7000-8000-000000000000'
+const CHAT = { createdAt: new Date(1_700_000_000_000), id: CHAT_ID }
+const keyOf = (ref: { chatId: string; id: string }) =>
+  `${chatAttachmentsPrefix(CHAT)}${ref.id}`
 
 const objects = new Map<
   string,
@@ -58,6 +62,7 @@ const inChat = new Set<string>()
 mock.module('@tamery/db', () => ({
   db: {
     query: {
+      chats: { findFirst: () => Promise.resolve(CHAT) },
       chatsMessages: {
         findMany: () =>
           Promise.resolve([
@@ -89,7 +94,6 @@ const { FRESH_ATTACHMENTS, attachmentLink, attachments } =
   await import('./attachments')
 const { attachmentsRouter } = await import('../../routers/attachments')
 
-const CHAT_ID = '019a0000-0000-7000-8000-000000000000'
 const ONE_PIXEL_PNG =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg=='
 const MB = 1024 * 1024
@@ -139,7 +143,7 @@ const userTurn = (
 
 const putFile = (id: string, size: number, type = 'image/png') => {
   const ref = { chatId: CHAT_ID, id }
-  objects.set(attachmentKey(ref), { body: new Uint8Array(size), type })
+  objects.set(keyOf(ref), { body: new Uint8Array(size), type })
   return { filename: `${id}.png`, mediaType: type, url: attachmentRef(ref) }
 }
 
@@ -177,7 +181,7 @@ afterEach(() => {
 test('a large image is stored as sent beside a copy scaled to a 1568px long edge', async () => {
   const original = await png(3000, 2000)
   const { id } = await storeOne('image/png', original)
-  const key = attachmentKey({ chatId: CHAT_ID, id })
+  const key = keyOf({ chatId: CHAT_ID, id })
 
   expect(objects.get(key)?.body).toEqual(new Uint8Array(original))
   const copy = objects.get(`${key}.model`)
@@ -373,7 +377,7 @@ const statusOf = async (link: string) => {
 test('in production a fresh file goes as a link that serves the model copy without letting anything cache it', async () => {
   mockEnv('production')
   const { id, url } = await storeOne('image/png', await png(3000, 2000))
-  const key = attachmentKey({ chatId: CHAT_ID, id })
+  const key = keyOf({ chatId: CHAT_ID, id })
 
   const [message] = await attachments.forModel([
     userTurn([{ filename: 'big.png', mediaType: 'image/png', url }]),
@@ -437,6 +441,6 @@ test('a link answers 404 once its file leaves the chat or the bucket', async () 
   expect(await statusOf(link)).toBe(404)
 
   inChat.add(url)
-  objects.delete(attachmentKey({ chatId: CHAT_ID, id }))
+  objects.delete(keyOf({ chatId: CHAT_ID, id }))
   expect(await statusOf(link)).toBe(404)
 })

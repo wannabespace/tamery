@@ -2,14 +2,14 @@ import { db } from '@tamery/db'
 import { chats, chatsInsertSchema } from '@tamery/db/schema'
 
 import { inMemberWorkspace } from '~/lib/workspace'
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { orpc, aiPermissionsMiddleware, permix } from '~/orpc'
 
 import { publisher } from './events'
 
 export const create = orpc
-  .use(permissionsMiddleware)
+  .use(aiPermissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
-  .input(chatsInsertSchema.omit('userId', 'title', 'updatedAt'))
+  .input(chatsInsertSchema.pick('connectionResourceId', 'id', 'pinnedAt'))
   .errors({
     NOT_FOUND: { message: 'Chat not found' },
   })

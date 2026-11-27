@@ -31,8 +31,16 @@ mock.module('./redis', () => ({
 }))
 
 let aiBudgetLeft = true
+mock.module('./ai-key', () => ({
+  payForAi: () => Promise.resolve(aiBudgetLeft ? {} : null),
+}))
+
+let slotFree = true
 mock.module('./credits', () => ({
-  credits: { canUseAi: () => Promise.resolve(aiBudgetLeft) },
+  credits: {
+    inPaidSlot: (_userId: string, run: () => Promise<unknown>) =>
+      slotFree ? run() : Promise.reject(new Error('busy')),
+  },
 }))
 
 const { usage } = await import('./usage')
@@ -110,5 +118,10 @@ test('an unlimited call is held to the AI budget, never the weekly count', async
     code: 'TOO_MANY_REQUESTS',
   })
   expect(run).toHaveBeenCalledTimes(1)
+  aiBudgetLeft = true
+  slotFree = false
+  await expect(usage.metered(unlimited, feature, run)).rejects.toThrow('busy')
+  expect(run).toHaveBeenCalledTimes(1)
+  slotFree = true
   expect(counters.size).toBe(0)
 })

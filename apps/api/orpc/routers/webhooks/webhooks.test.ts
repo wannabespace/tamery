@@ -53,6 +53,9 @@ const redisClient = {
 mock.module('redis', () => ({ createClient: () => redisClient }))
 const sendEmail = mock()
 mock.module('~/lib/resend', () => ({ resend: null, sendEmail }))
+mock.module('~/lib/chat/encrypt-titles', () => ({
+  encryptChatTitles: () => Promise.resolve(),
+}))
 
 const createRelease = mock(() =>
   Promise.resolve({

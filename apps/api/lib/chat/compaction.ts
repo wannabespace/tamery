@@ -49,10 +49,10 @@ export const chatCompaction = {
     })
     return next
   },
-  get: async (chatId: string) => {
+  get: async (data: { chatId: string; userId: string }) => {
     const chat = await db.query.chats.findFirst({
       columns: { compaction: true },
-      where: { id: { eq: chatId } },
+      where: { id: { eq: data.chatId }, userId: { eq: data.userId } },
     })
     return chat?.compaction ?? null
   },

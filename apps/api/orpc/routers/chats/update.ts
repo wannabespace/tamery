@@ -2,23 +2,16 @@ import { db } from '@tamery/db'
 import { chats, chatsUpdateSchema } from '@tamery/db/schema'
 import { and, eq } from 'drizzle-orm/sql'
 
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { orpc, aiPermissionsMiddleware, permix } from '~/orpc'
 
 import { publisher } from './events'
 
 export const update = orpc
-  .use(permissionsMiddleware)
+  .use(aiPermissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
   .input(
     chatsUpdateSchema
-      .omit(
-        'compaction',
-        'connectionResourceId',
-        'createdAt',
-        'id',
-        'updatedAt',
-        'userId'
-      )
+      .pick('pinnedAt', 'title')
       .merge(chatsUpdateSchema.pick('id').required())
   )
   .handler(async ({ context, input }) => {

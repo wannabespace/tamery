@@ -21,8 +21,8 @@ Synced connection strings are encrypted with a workspace key. They are decrypted
 
 ## Where queries run
 
-- **Desktop:** your computer connects to the database directly.
-- **Web with [`tamery machine`](/cli/overview):** the computer running the machine connects to the database. Queries carry connection IDs, and the machine gets each connection string through your account. Only the details your sync type keeps off Tamery's servers go from the browser to the machine, once. Tamery's servers confirm that the machine and the browser are signed in to the same account, and the machine refuses requests that reach it through another address than its **Machine URL**.
+- **Desktop:** your computer connects to the database directly. A connection whose **Runs on** is **Tamery Cloud** or one of your machines runs there instead.
+- **On a machine** ([`tamery machine`](/cli/overview) or the desktop app), from the web app or the desktop app: the computer running the machine connects to the database. Queries carry connection IDs, and the machine gets each connection string through your account. From either app, saving a connection that runs on a machine, clicking **Allow** on the **Allow this connection on the machine** screen, or entering details the machine asks for can send that app's complete connection string to the machine, password and other secrets included. That screen is not the prompt on the machine that allows your app. The machine keeps the string encrypted. Tamery's servers confirm that the machine and the browser are signed in to the same account, and the machine refuses requests that reach it through another address than its **Machine URL**.
 - **Web without a machine:** Tamery's cloud proxy connects to public database servers and handles the query and its results.
 
 The cloud proxy cannot reach private addresses, open SQLite, DuckDB and certificate files on your computer, or sign in to MongoDB with AWS, OIDC or Kerberos credentials. Use desktop or the machine for those. The machine skips files in app data folders and uses those credentials only for MongoDB Atlas, so a few of these need desktop. Connections whose secrets stay on your device also need desktop or the machine.
@@ -36,7 +36,7 @@ If your database only accepts allowlisted IP addresses, add these so the cloud p
 34.40.119.38
 ```
 
-Add both. The proxy can connect from either one. Desktop and `tamery machine` connect from your own network, so allow that address instead.
+Add both. The proxy can connect from either one. A connection whose **Runs on** is **Tamery Cloud** connects from these addresses, in the web app and on desktop. **This computer** and your machines connect from the network they run on, so allow that address instead.
 
 Only Tamery's cloud proxy uses these addresses, but it connects for every Tamery user. An allowlist narrows who can reach your database, and the database password still protects it.
 
@@ -52,26 +52,20 @@ You can use your SSH agent, a key file, a pasted private key, or a password. `~/
 
 Saved queries and AI chats are stored on our servers, so they follow you to every device. They are kept per database and go away when you delete them or remove the connection. We keep a copy of deleted data for 90 days, then erase it for good.
 
-A chat stores everything it shows: your messages, the agent's answers, and the SQL and rows of every query it ran. This holds for every sync type, since the sync type decides only what happens to the connection string. Chats, their titles included, and saved SQL are encrypted on our servers with a key Tamery holds, so this is not end-to-end encryption.
+A chat stores your messages and the answers, for every sync type, since the sync type decides only what happens to the connection string. Chat messages and saved SQL are encrypted on our servers with a key Tamery holds, so this is not end-to-end encryption. Chat titles are stored unencrypted.
 
-Query history and the query logger stay on the device that ran the queries. So do your Navigator, tab, and table layout.
+Query history and the query logger stay in the app that sent the queries, also when Tamery Cloud or a machine runs them, and don't sync. So do your Navigator, tab, and table layout.
 
 ## AI and your data
 
-AI requests go through our servers to external model providers. The chat sends your messages, the schema it reads, and the rows its queries return. Editor and filter features also send the schema context they need.
-
-The chat acts as you: it can read every connection in your active workspace, and the [MCP connection access](/mcp/overview#connection-access) settings do not apply to it. It runs read-only queries itself, and every statement that changes data or schema waits for you to click **Run**, with no exceptions. Its queries take the same path as your own.
-
-Schema notes are stored encrypted on our servers and sent with AI requests about their database.
+AI requests go through our servers to external model providers. The chat sends your messages. Editor and filter features also send the schema context they need.
 
 Files attached to a chat are stored in a private bucket. The model provider fetches them through a link only Tamery can sign. The link expires within three weeks, and it stops working sooner once you edit the message out of the chat or delete the chat. A copy the provider already fetched is subject to its own retention. Every file of your latest message is sent, and those of the two messages before it while they fit 10 MB. Older ones are named, not sent again. A large image goes to the model scaled down, and a PDF with a text layer goes as its text, marked as a file's content and never as your request, while you keep the file as you attached it.
 
-What the chat and MCP agents read from your databases (rows, names, comments) reaches the model marked as data, never as instructions, so a row that says "drop this table" is reported, not followed. A change still needs your **Run** in the chat, or the access you granted over MCP.
-
-Coding agents connected through [MCP](/mcp/overview#connection-access) can read data and make changes according to the access you grant; their results become part of the agent's context.
+The built-in chat does not execute SQL. Coding agents connected through [MCP](/mcp/overview#connection-access) can read data and make changes according to the access you grant; their results become part of the agent's context.
 
 ### AI help with a failed test
 
-**Explain with AI** sends connection diagnostics when you click it. Tamery removes connection identifiers and secrets from the error, and sends details such as the engine, port, SSL options, and whether the host is local or public.
+**Explain with AI** sends connection diagnostics when you click it. Tamery removes connection identifiers and secrets from the error. For a connection with an SSH tunnel, Tamery sends no error text at all, only the kind of failure, such as a timeout, a failed sign-in or a missing database. It also sends the engine, the port number, the SSL and timeout options, and the kind of host, such as local, private network or public, with its provider when Tamery recognizes one. Other driver options are not sent.
 
 Tamery is [open source](https://github.com/wannabespace/tamery) under AGPL-3.0.

@@ -1,28 +1,19 @@
-import { afterCompaction, chatStream, pickChatModel } from '@tamery/ai/features'
-import {
-  AUTO_MODEL,
-  chatModelPick,
-  MODEL_UNAVAILABLE_MESSAGE,
-  resolveChatContext,
-} from '@tamery/ai/models'
-import { AiFeature } from '@tamery/ai/usage'
+import { chatStream } from '@tamery/ai/features'
+import { chatModelPick, MODEL_UNAVAILABLE_MESSAGE } from '@tamery/ai/models'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
 import { payForAi } from '~/lib/ai-key'
-import { attachments } from '~/lib/chat/attachments'
-import { chatCompaction } from '~/lib/chat/compaction'
-import { chatPersist } from '~/lib/chat/persist'
 import { chatSession } from '~/lib/chat/session'
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { startChatTurn } from '~/lib/chat/turn'
+import { aiPermissionsMiddleware, orpc, permix } from '~/orpc'
 
 export const attachStream = orpc
-  .use(permissionsMiddleware)
+  .use(aiPermissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
   .input(
     type({
       chatId: 'string.uuid.v7',
-      'agent?': 'true',
       'context?': 'number.integer > 0',
       'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
       'fast?': 'boolean',
@@ -30,9 +21,13 @@ export const attachStream = orpc
     })
   )
   .errors({ MODEL_UNAVAILABLE: { message: MODEL_UNAVAILABLE_MESSAGE } })
-  .handler(async function* attachStream({ context, errors, input }) {
+  .handler(async function* attachStream({ context, input }) {
     const owned = await db.query.chats.findFirst({
-      columns: { connectionResourceId: true, parentChatId: true },
+      columns: {
+        connectionResourceId: true,
+        parentChatId: true,
+        title: true,
+      },
       where: { id: { eq: input.chatId }, userId: { eq: context.user.id } },
     })
 
@@ -46,71 +41,27 @@ export const attachStream = orpc
       return
     }
 
-    const messages = await chatPersist.loadMessages({
-      chatId: input.chatId,
-      userId: context.user.id,
-    })
-    const lastMessage = messages.at(-1)
-    if (lastMessage?.role !== 'user' || lastMessage.metadata?.stopped) {
-      return
-    }
-
-    const payer = await payForAi(
-      context.user.id,
-      () => new Error('No key or AI budget')
-    ).catch(() => null)
+    // Reattaching to a chat streams nothing rather than failing once the budget is spent; only a restart pays.
+    const payer = await payForAi(context)
     if (!payer) {
       return
     }
 
-    const scope = {
-      chatId: input.chatId,
-      feature: AiFeature.Chat,
-      userId: context.user.id,
-    }
-    const pick = await pickChatModel({
-      effort: input.effort,
-      keys: payer.keys,
-      messages,
-      model: input.model ?? AUTO_MODEL,
-      onJevUsage: payer.recordJev(scope),
-    })
-    if (!pick) {
-      throw errors.MODEL_UNAVAILABLE()
-    }
-
-    const compaction = await chatCompaction.get(input.chatId)
-
-    const restarted = await chatStream.claim({
-      ...pick,
-      agent: input.agent ?? false,
-      chatId: input.chatId,
-      connection: await chatSession.connection({
-        connectionResourceId: owned.connectionResourceId,
-        userId: context.user.id,
-      }),
-      messages: afterCompaction(
-        await attachments.forModel(messages),
-        compaction
-      ),
-      contextTokens: resolveChatContext(pick.model, input.context),
-      fast: input.fast,
-      isSubagent: !!owned.parentChatId,
-      onFinish: (message) =>
-        chatPersist.persistMessage({
-          chatId: input.chatId,
-          message,
+    const restarted = await startChatTurn({
+      chat: {
+        connection: await chatSession.connection({
+          connectionResourceId: owned.connectionResourceId,
           userId: context.user.id,
         }),
-      summary: compaction?.summary,
-      telemetry: payer.telemetry(scope),
+        isSubagent: !!owned.parentChatId,
+        title: owned.title,
+      },
+      chatId: input.chatId,
+      payer,
+      settings: input,
+      userId: context.user.id,
     })
-    if (restarted) {
-      yield* restarted
-      return
-    }
-
-    const racing = await chatStream.resume(input.chatId)
+    const racing = restarted ?? (await chatStream.resume(input.chatId))
     if (racing) {
       yield* racing
     }

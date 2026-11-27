@@ -5,10 +5,11 @@ import { once } from 'node:events'
 import { section } from '@tamery/ai/features/prompt'
 import type { AppMessagePart, AppUIMessage } from '@tamery/ai/message'
 import { isContinue, isSqlRun } from '@tamery/ai/message'
+import { db } from '@tamery/db'
 import { parseKeyring } from '@tamery/db/utils'
 import {
-  attachmentKey,
   attachmentRef,
+  chatAttachmentsPrefix,
   parseAttachmentRef,
 } from '@tamery/shared/attachments'
 import { UNTRUSTED_FILE_NOTE } from '@tamery/shared/mcp'
@@ -50,9 +51,19 @@ interface Ref {
   id: string
 }
 
-// Under the chat's prefix beside the file, so the purge job deletes them with it.
-const modelCopyKey = (ref: Ref) => `${attachmentKey(ref)}.model`
-const textKey = (ref: Ref) => `${attachmentKey(ref)}.txt`
+/** A stored file's key and its model copies' beside it under the chat's prefix, so the purge job deletes them together; null when the chat is gone. */
+const keysOf = async (ref: Ref) => {
+  const chat = await db.query.chats.findFirst({
+    columns: { createdAt: true, id: true },
+    where: { id: { eq: ref.chatId } },
+  })
+  if (!chat) {
+    return null
+  }
+  const file = `${chatAttachmentsPrefix(chat)}${ref.id}`
+  return { copy: `${file}.model`, file, text: `${file}.txt` }
+}
+type Keys = NonNullable<Awaited<ReturnType<typeof keysOf>>>
 
 const linkKey = (secret: string) =>
   Buffer.from(hkdfSync('sha256', secret, '', 'tamery/attachment-link/v1', 32))
@@ -87,18 +98,22 @@ const statOrNull = async (key: string) => {
 
 /** What the model reads for a stored file: a PDF's text when it has enough, else the downscaled copy when one was made, else the file. */
 const modelFile = async (ref: Ref, mediaType: string) => {
+  const keys = await keysOf(ref)
+  if (!keys) {
+    return null
+  }
   const variant = await statOrNull(
-    mediaType === 'application/pdf' ? textKey(ref) : modelCopyKey(ref)
+    mediaType === 'application/pdf' ? keys.text : keys.copy
   )
   if (variant) {
     return { ...variant, isText: mediaType === 'application/pdf' }
   }
-  const file = await statOrNull(attachmentKey(ref))
+  const file = await statOrNull(keys.file)
   return file && { ...file, isText: false }
 }
 
 const storeModelCopy = async (
-  ref: Ref,
+  keys: Keys,
   bytes: Buffer,
   mediaType: string,
   signal: AbortSignal
@@ -120,7 +135,7 @@ const storeModelCopy = async (
       length >= data.totalPages * PDF_TEXT.perPage &&
       length <= PDF_TEXT.max
     ) {
-      await bucket.write(textKey(ref), data.text, { type: 'text/plain' })
+      await bucket.write(keys.text, data.text, { type: 'text/plain' })
     }
     return
   }
@@ -137,7 +152,7 @@ const storeModelCopy = async (
     .resize(MODEL_IMAGE.edge, MODEL_IMAGE.edge, { fit: 'inside' })
     .bytes()
   if (!signal.aborted) {
-    await bucket.write(modelCopyKey(ref), copy, { type: mediaType })
+    await bucket.write(keys.copy, copy, { type: mediaType })
   }
 }
 
@@ -188,7 +203,10 @@ const mapParts = async (
 ) => ({ ...message, parts: await Promise.all(message.parts.map(map)) })
 
 export const attachments = {
-  exists: (ref: Ref) => bucket.file(attachmentKey(ref)).exists(),
+  exists: async (ref: Ref) => {
+    const keys = await keysOf(ref)
+    return !!keys && bucket.file(keys.file).exists()
+  },
   /** Stored files as the chat model is sent them, so only the chat stream and compaction call it: everything else reads the stored transcript, where a file is never the user's words. Fresh files go as a link in production, where a provider can fetch it, and inline elsewhere; a PDF with enough text as that text, framed as data; every other one as a line naming it. */
   forModel: async (messages: AppUIMessage[]) => {
     const fresh = await freshFiles(messages)
@@ -232,38 +250,52 @@ export const attachments = {
     ),
   /** What a signed link serves: the copy the model reads in place of the file (never a PDF's text), or null once the file is gone. */
   linked: async (ref: Ref) => {
+    const keys = await keysOf(ref)
+    if (!keys) {
+      return null
+    }
     const [copy, original] = await Promise.all([
-      statOrNull(modelCopyKey(ref)),
-      statOrNull(attachmentKey(ref)),
+      statOrNull(keys.copy),
+      statOrNull(keys.file),
     ])
     const file = original && (copy ?? original)
     return (
       file && { bytes: await bucket.file(file.key).bytes(), type: file.type }
     )
   },
-  read: (ref: Ref) => bucket.file(attachmentKey(ref)).bytes(),
+  read: async (ref: Ref) => {
+    const keys = await keysOf(ref)
+    if (!keys) {
+      throw new Error(`Chat ${ref.chatId} not found`)
+    }
+    return bucket.file(keys.file).bytes()
+  },
   /** Moves the turn's data URLs into the bucket and leaves references in their place, so the transcript every device syncs stays small. The file stays as sent, for the user; `copy` puts a smaller copy for the model beside it when one helps, so call it once the turn no longer waits on it: until then the file reaches the model as sent. */
   store: async (chatId: string, message: AppUIMessage) => {
-    const files: { bytes: Buffer; mediaType: string; ref: Ref }[] = []
+    const files: { bytes: Buffer; keys: Keys; mediaType: string }[] = []
     const stored = await mapParts(message, async (part) => {
       if (part.type !== 'file' || !part.url.startsWith('data:')) {
         return part
       }
       const ref = { chatId, id: v7() }
+      const keys = await keysOf(ref)
+      if (!keys) {
+        throw new Error(`Chat ${chatId} not found`)
+      }
       const bytes = Buffer.from(
         part.url.slice(part.url.indexOf(',') + 1),
         'base64'
       )
-      await bucket.write(attachmentKey(ref), bytes, { type: part.mediaType })
-      files.push({ bytes, mediaType: part.mediaType, ref })
+      await bucket.write(keys.file, bytes, { type: part.mediaType })
+      files.push({ bytes, keys, mediaType: part.mediaType })
       return { ...part, url: attachmentRef(ref) }
     })
     const copy = () => {
-      for (const { bytes, mediaType, ref } of files) {
+      for (const { bytes, keys, mediaType } of files) {
         copying = copying.then(() =>
           silently(() =>
             withinTime((signal) =>
-              storeModelCopy(ref, bytes, mediaType, signal)
+              storeModelCopy(keys, bytes, mediaType, signal)
             )
           )
         )

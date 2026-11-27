@@ -203,7 +203,7 @@ const isServiceName = (name: string) =>
 
 export const isLocalHost = (host: string) => isLocalName(normalizeHost(host))
 
-/** Gates what a request may reach, so it reads the host as written: rows stored before a spelling was normalized, and installed CLIs, classify it this way too. */
+/** Gates which host may receive a found password, so it reads the host as written: a spelling a resolver may send elsewhere (`localhost.`, a mapped IPv6 address) never counts as this computer. */
 export const isLiteralLocalHost = (host: string) => isLocalName(unbracket(host))
 
 /** Literal like `isLiteralLocalHost`: the transport and the stored `isInternal` must agree. */
@@ -226,6 +226,12 @@ export const getHostKind = (host: string): HostKind => {
     return 'private'
   }
   return getHostHint(name)?.ipv6Only?.test(name) ? 'ipv6-only' : 'public'
+}
+
+/** Reached over the internet, so a device with no network can't reach it. */
+export const isInternetHost = (host: string) => {
+  const kind = getHostKind(host)
+  return kind === 'public' || kind === 'ipv6-only'
 }
 
 /** A pasted scheme or port already says how to reach the host, so only a bare one takes its provider from the hint. */

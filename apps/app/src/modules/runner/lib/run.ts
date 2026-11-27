@@ -9,6 +9,7 @@ import { getConnectionResourceStore } from '~/core/connection/stores'
 import type { ConnectionResource } from '~/core/connection/sync'
 import type { ResultSet } from '~/core/queries/connection/custom'
 import { getQueryLanguage } from '~/core/runtime/language'
+import { getConnectionRunsOn } from '~/core/runtime/machine/pairing'
 import type { QueryParams } from '~/core/runtime/query'
 import { connectionResourceToQueryParams } from '~/core/runtime/query'
 import { posthog } from '~/lib/posthog'
@@ -215,9 +216,12 @@ export const runStatements = async ({
   publish()
 
   const [first] = statements
+  // Read before any await: every statement runs where the run started, even when Runs on changes meanwhile.
+  const runsOn = getConnectionRunsOn(connectionResource.connectionId)
   const paramsResult = await Result.tryPromise(async () => ({
     ...(await connectionResourceToQueryParams(connectionResource)),
     resultSets: { maxRows: MAX_RESULT_ROWS },
+    runsOn,
   }))
   if (paramsResult.isErr() && first) {
     slots.splice(0, slots.length, [

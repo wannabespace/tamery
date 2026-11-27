@@ -16,6 +16,9 @@ import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 
+import { diagnoseProxyFailure } from '~/core/connection/diagnosis'
+import { useIsOnline } from '~/store'
+
 const errorCauseText = (cause: unknown) => {
   if (cause === null || cause === undefined) {
     return null
@@ -47,6 +50,7 @@ export const TableError = ({
   title: ReactNode
 }) => {
   const [showDetails, setShowDetails] = useState(false)
+  const proxyDiagnosis = diagnoseProxyFailure(error, useIsOnline())
 
   const [summary = ''] = error.message.split('\n')
   const rawCause = errorCauseText(error.cause)
@@ -70,7 +74,9 @@ export const TableError = ({
             <EmptyMedia variant="destructive">
               <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
             </EmptyMedia>
-            <EmptyTitle className="wrap-anywhere">{title}</EmptyTitle>
+            <EmptyTitle className="wrap-anywhere">
+              {proxyDiagnosis?.title ?? title}
+            </EmptyTitle>
           </EmptyHeader>
 
           <EmptyContent className="max-w-md">

@@ -9,7 +9,7 @@ Index only — rules live in `.agents/rules/`, one file per topic (small diffs, 
 | [`domain.md`](.agents/rules/domain.md) | Naming anything user-facing; core concepts — Connections, Workspaces, Tabs, Navigator, SyncType, collections, sync/GC lifecycle |
 | [`monorepo.md`](.agents/rules/monorepo.md) | Adding/moving/renaming an app or package; dev/build/test/lint commands, local URLs, backing services, browser workflow |
 | [`architecture.md`](.agents/rules/architecture.md) | Adding, moving or wiring a feature module; picking a library, adding state, writing a query, building machinery a dependency owns; architecture constraints (modules, API layer, state, ORM, auth, secrets, runtime, styles) |
-| [`api.md`](.agents/rules/api.md) | API procedures, oRPC middleware, router patterns, chat versions, env vars, encryption-secret paths |
+| [`api.md`](.agents/rules/api.md) | API procedures, oRPC middleware, router patterns, env vars, encryption-secret paths |
 | [`dialects.md`](.agents/rules/dialects.md) | Anything that differs per database engine — a new `createQuery`, a capability gate, a per-dialect form option, a catalog column one engine lacks |
 | [`ui.md`](.agents/rules/ui.md) | Any UI — components, styles, popovers, menus, animations — before the first className |
 | [`code-style.md`](.agents/rules/code-style.md) | Non-trivial code; interpreting lint/format failures; lint/format/code-standard expectations |
