@@ -1,11 +1,8 @@
 import { ACTIVE_SUBSCRIPTION_STATUSES } from '@tamery/shared/constants'
-import type { SubscriptionPlan } from '@tamery/shared/permissions'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { useRouter } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
 
 import { authClient } from '~/lib/auth'
 import { orpc } from '~/lib/orpc'
-import { posthog } from '~/lib/posthog'
 
 export const useSubscription = () => {
   const { data } = authClient.useSession()
@@ -27,86 +24,4 @@ export const useSubscription = () => {
       )
     ) ?? null
   )
-}
-
-export const useUpgradeSubscription = (
-  clientType: 'web' | 'desktop' | 'cli' | undefined
-) => {
-  const router = useRouter()
-  const returnHref = router.buildLocation({
-    search: { type: clientType },
-    to: '/account',
-  }).href
-  const cancelHref = router.buildLocation({
-    search: { subscription: 'cancel', type: clientType },
-    to: '/account',
-  }).href
-
-  const {
-    mutate: upgrade,
-    isPending,
-    variables,
-  } = useMutation({
-    mutationFn: async ({
-      isYearly,
-      plan,
-    }: {
-      isYearly: boolean
-      plan: SubscriptionPlan
-    }) => {
-      const successHref = router.buildLocation({
-        search: { plan, subscription: 'success', type: clientType },
-        to: '/account',
-      }).href
-      const result = await orpc.account.subscription.upgrade.call({
-        cancelUrl: location.origin + cancelHref,
-        isYearly,
-        plan,
-        returnUrl: location.origin + returnHref,
-        successUrl: location.origin + successHref,
-      })
-
-      location.assign(result.url)
-    },
-    mutationKey: ['subscription', 'upgrade'],
-    onSettled: (_data, error, { plan }) => {
-      void posthog.capture('subscription_checkout_started', {
-        plan,
-        success: !error,
-      })
-    },
-  })
-
-  return {
-    upgrade,
-    upgradingPlan: (isPending && variables?.plan) || null,
-  }
-}
-
-export const useBillingPortal = ({ returnHref }: { returnHref: string }) => {
-  const { mutate, isPending, variables } = useMutation({
-    mutationFn: (
-      intent: 'manage' | 'invoices' | 'switch_to_team' | 'change_seats'
-    ) =>
-      orpc.account.subscription.billingPortal.call({
-        changePlan: intent === 'switch_to_team' || intent === 'change_seats',
-        returnUrl: location.origin + returnHref,
-      }),
-    mutationKey: ['subscription', 'billingPortal'],
-    onSettled: (_data, error, intent) => {
-      void posthog.capture('billing_portal_opened', {
-        intent,
-        success: !error,
-      })
-    },
-    onSuccess: (result) => {
-      location.assign(result.url)
-    },
-  })
-
-  return {
-    isOpening: isPending,
-    openBillingPortal: mutate,
-    openingIntent: (isPending && variables) || null,
-  }
 }

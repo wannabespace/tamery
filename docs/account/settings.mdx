@@ -17,34 +17,40 @@ keywords:
 
 ## App preferences
 
-Click the gear in the title bar, or press **Cmd+,** (**Ctrl+,**).
+Pick **Settings** in the avatar menu, or press **Cmd+,** (**Ctrl+,**). The sidebar groups the sections under **Account**, **App** and **Workspace**, and Settings opens on **Account** once you are signed in. **Search** above them finds a section by its name or by a setting on it: type `google` and **Security** and **AI** show up, each with the match beside it. Search has focus when Settings opens: **↑** and **↓** move through the results, and **Enter** opens the highlighted one. **Esc** clears the search, and **Esc** in an empty search returns to the app.
 
 | Section | What you can change |
 | --- | --- |
-| **General** | Desktop only. Start Tamery at login (macOS and Windows), and open database links in Tamery. |
+| **General** | [Usage analytics](#usage-analytics). On desktop, also start Tamery at login (macOS and Windows), and open database links in Tamery. |
 | **Appearance** | Light, dark, or system theme. Transparent windows on macOS. On desktop, a light, blue, or dark app icon for the Dock (taskbar). |
 | **Keyboard** | Shortcut hints while holding **Cmd** (**Ctrl**), and a searchable list of every shortcut. |
+| **AI** | Your own Anthropic, OpenAI, Google and OpenRouter keys, which run the AI chat on your accounts with them. Saved to your account, not just this device; the **Dictation model** you pick applies to this device. **Compact at** sets when a [long chat](/features/ai-assistant#long-chats) is summarized, for every chat that doesn't set its own. See [Your own AI key](/account/ai-key). Below it, your [AI credits](/account/ai-credits) and AI usage. |
+| **Schema notes** | Edit or delete the notes the AI reads about each database. They sync to your account, not just this device. See [Schema notes](/features/ai-assistant#schema-notes). |
 | **MCP** | Desktop only. Agent access, client setup, and activity. See [MCP](/mcp/overview). |
-| **Machines** | The machines signed in to your account. Connect this app to one, disconnect it, or remove it. On desktop, also let your other devices use this computer. See [Tamery CLI](/cli/overview). |
+| **Machines** | The machines signed in to your account. Connect this app to one, disconnect it, or remove it. On desktop, also this computer's own machine and the address other computers reach it at. See [Tamery CLI](/cli/overview). |
+| **Account** | Your signed-in sessions, and deleting your account. |
+| **Plan** | Upgrade to or manage [Pro or Team](/account/plans), assign [Team seats](/account/plans#team), and your invoices. |
+| **Security** | How you sign in: email, [passkeys](#passkeys), [Google and GitHub](#google-and-github), and [two-factor authentication](#two-factor-authentication). |
 
-Preferences apply to this device.
+Preferences apply to this device. **Account**, **Plan** and **Security** show only once you are signed in.
 
 The avatar menu opens the [release notes](https://tamery.app/releases), and has **Support** for writing to us.
 
-**Clear cache** in the avatar menu wipes what Tamery keeps on this device and reloads. Synced connections and saved queries come back. Query history, layouts, preferences, passwords of **No password** connections, and changes made offline that haven't synced yet do not.
+**Clear cache** in the avatar menu wipes what Tamery keeps on this device and reloads. Synced connections and saved queries come back. Query history, layouts, preferences, passwords of **No password** connections, and changes made offline that haven't synced yet do not. Your **Share usage analytics** choice is kept.
+
+## Usage analytics
+
+Tamery sends usage events, error reports, and session recordings with your data masked. To stop all three on this device, open **Settings → General** and turn off **Share usage analytics**. It also stays off after you sign out.
+
+The switch covers the app. For the CLI, set [`DO_NOT_TRACK=1`](/cli/overview#usage-data).
 
 ## Your account
 
-The avatar menu's **Account** opens [tamery.app/account](https://tamery.app/account) in your browser. There you find:
+Everything about your account is in Settings, in the desktop app and the web app alike.
 
-- **Subscription**, to upgrade, manage your plan, or assign [Team seats](/account/plans#team)
-- **Billing**, with your invoices
-- **[AI usage](/account/ai-usage)**
-- **Authentication**, for how you sign in: email, passkeys, Google, GitHub, and two-factor authentication
-- **Settings**, for your signed-in sessions and deleting your account
-- **Support**
+On desktop, two steps continue in your browser, in the web app's **Settings → Security**: adding a passkey, and connecting Google or GitHub, which goes straight on to Google's or GitHub's sign-in. Their buttons show an arrow. Payments and the billing portal open in your browser too.
 
-Under **Settings → Sessions** you can sign out a single device, or all of them except this one with **Sign out other devices**.
+**Account → Sessions** lists every signed-in device, most recently active first, with when it last reached Tamery and the IP address it came from. You can sign out a single device, or all of them except this one with **Sign out other devices**.
 
 To sign out of the app, use the avatar menu. In the CLI, run `tamery logout`.
 
@@ -52,7 +58,7 @@ To sign out of the app, use the avatar menu. In the CLI, run `tamery logout`.
 
 A passkey lets you sign in with your fingerprint, face, or device PIN instead of an email code.
 
-1. On the account page, open **Authentication**.
+1. In Settings, open **Security**.
 2. Next to **Passkeys**, click **Add** and confirm with your fingerprint, face, or PIN.
 3. Next time, enter your email on the sign-in page and click **Continue with passkey**. To get a code instead, click **Email me a code instead**.
 
@@ -64,13 +70,13 @@ To stop using a passkey, click **Delete** next to it, then remove it from your p
 
 ## Google and GitHub
 
-Under **Authentication**, click **Connect** next to Google or GitHub to sign in with it too. The account must use the same email as your Tamery account. **Disconnect** removes it, and signing in with an email code keeps working.
+Under **Security**, click **Connect** next to Google or GitHub to sign in with it too. The account must use the same email as your Tamery account. **Disconnect** removes it, and signing in with an email code keeps working.
 
 ## Two-factor authentication
 
 Two-factor authentication asks for a second step after an email code, Google, or GitHub.
 
-You can use an authenticator app, a passkey, or both. On the account page, open **Authentication**, then under **Two-factor authentication**:
+You can use an authenticator app, a passkey, or both. In Settings, open **Security**, then under **Two-factor authentication**:
 
 - **Authenticator app:** click **Set up**, scan the QR code with your app, and enter the code it shows.
 - **Passkey:** [add a passkey](#passkeys), then click **Turn on**.
@@ -88,17 +94,17 @@ Under **More options** you can **Regenerate** your backup codes, which stops the
 Tamery emails you when:
 
 - someone signs in to your account (after any two-factor check passes), with the device, IP address, and approximate location, including through the desktop app or the CLI, unless the account was created minutes earlier
-- Google or GitHub is connected to an existing account, either from **Authentication** or the first time you sign in with it
+- Google or GitHub is connected to an existing account, either from **Security** or the first time you sign in with it
 - a passkey is added
 - an authenticator app is added while two-factor authentication is already on
 - two-factor authentication is turned on or off
 - your backup codes are regenerated
 - your account is deleted
 
-If you don't recognize a sign-in, open **Settings → Sessions**, sign that device out, and turn on two-factor authentication. If it came through a passkey, also delete any passkey you don't recognize under **Authentication**: signing out leaves the passkey working.
+If you don't recognize a sign-in, open **Settings → Account → Sessions**, sign that device out, and turn on two-factor authentication. If it came through a passkey, also delete any passkey you don't recognize under **Security**: signing out leaves the passkey working.
 
 ## Delete your account
 
 Cancel any active subscription first: the account can't be deleted while it renews, and a Team plan's seats go with it. If you are the only owner of a [workspace](/features/workspaces#leave-or-remove-someone) that has other members, make one of them an owner first.
 
-Then, on the account page, open **Settings**, click **Delete** under **Account**, type `delete`, and confirm. This removes your Tamery account and its data. We keep a copy of deleted data for 90 days, then erase it for good. The databases you connected to are not touched.
+Then, in Settings, open **Account**, click **Delete** under **Account**, type `delete`, and confirm. This removes your Tamery account and its data. We keep a copy of deleted data for 90 days, then erase it for good. The databases you connected to are not touched.

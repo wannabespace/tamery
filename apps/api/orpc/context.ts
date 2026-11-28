@@ -1,7 +1,7 @@
 import type { Context as HonoContext } from 'hono'
 import { UAParser } from 'ua-parser-js'
 
-import type { AppVariables } from '../variables'
+import type { AppVariables } from '~/variables'
 
 export const createContext = (c: HonoContext<{ Variables: AppVariables }>) => {
   const ua = c.req.raw.headers.get('User-Agent')

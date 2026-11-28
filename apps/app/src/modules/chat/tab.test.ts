@@ -4,7 +4,7 @@ let newChatIds: Record<string, string> = {}
 mock.module('~/core/collections', () => ({
   getCollections: () => ({ chatsCollection: new Map() }),
 }))
-mock.module('./rename-chat', () => ({ renameChat: () => {} }))
+mock.module('./list/rename-chat', () => ({ renameChat: () => {} }))
 mock.module('./stores', () => ({
   newChatIdsValue: { get: () => newChatIds },
   setNewChatId: (resourceId: string, chatId: string) => {

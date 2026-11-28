@@ -38,9 +38,18 @@ const OpenPage = () => {
     <OpenStatus title="Opening Tamery" description={getOpenMessage(clientType)}>
       <Button
         variant="outline"
-        render={signedIn ? <Link to="/account" /> : <Link to="/sign-in" />}
+        render={
+          signedIn ? (
+            <a
+              href={import.meta.env.VITE_PUBLIC_WEB_URL}
+              aria-label="Open web app"
+            />
+          ) : (
+            <Link to="/sign-in" />
+          )
+        }
       >
-        {signedIn ? 'Go to account' : 'Sign in'}
+        {signedIn ? 'Open web app' : 'Sign in'}
       </Button>
     </OpenStatus>
   )

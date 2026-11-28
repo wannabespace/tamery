@@ -10,7 +10,7 @@ import { checkOrUpgrade } from '~/core/user/permissions'
 import { history } from '~/lib/last-location'
 import { posthog } from '~/lib/posthog'
 
-import { getChatInstance } from './chat-instance'
+import { getChatInstance } from './session/chat-instance'
 import {
   chatDraftsValue,
   composerFocusRequestStore,
@@ -18,7 +18,7 @@ import {
   setChatDraft,
   setNewChatId,
 } from './stores'
-import { openSubagentStore, PARENT_CHAT } from './subagents-store'
+import { openSubagentStore, PARENT_CHAT } from './subagents/subagents-store'
 import { chatTabId, newChatTabId } from './tab'
 
 export const openChat = (resourceId: string, chatId: string) => {

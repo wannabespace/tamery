@@ -5,7 +5,7 @@ import { v7 } from 'uuid'
 import { getCollections } from '~/core/collections'
 import type { TabKind } from '~/core/tabs/types'
 
-import { renameChat } from './rename-chat'
+import { renameChat } from './list/rename-chat'
 import { newChatIdsValue, setNewChatId } from './stores'
 
 export interface ChatParams {
