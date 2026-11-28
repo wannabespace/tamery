@@ -1,5 +1,9 @@
 import { chatStream } from '@tamery/ai/features'
-import { chatModelPick, MODEL_UNAVAILABLE_MESSAGE } from '@tamery/ai/models'
+import {
+  chatEffort,
+  chatModelPick,
+  MODEL_UNAVAILABLE_MESSAGE,
+} from '@tamery/ai/models'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
@@ -16,7 +20,7 @@ export const attachStream = orpc
     type({
       chatId: 'string.uuid.v7',
       'context?': 'number.integer > 0',
-      'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
+      'effort?': chatEffort,
       'fast?': 'boolean',
       'model?': chatModelPick,
     })

@@ -60,9 +60,10 @@ export const ContextMeter = ({
     (message) => message.role === 'assistant' && message.metadata?.context
   )
   const { context = 0, model } = answer?.metadata ?? {}
-  const full = catalog?.models.find(({ id }) => id === model)?.contexts.at(-1)
+  const contexts = catalog?.models.find(({ id }) => id === model)?.contexts
+  const stored = model && picked === model ? options[model]?.context : undefined
   const window =
-    (model && picked === model ? options[model]?.context : undefined) ?? full
+    contexts?.find((tokens) => tokens === stored) ?? contexts?.at(-1)
   if (!(context && window)) {
     return null
   }

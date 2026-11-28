@@ -1,7 +1,11 @@
 import { chatStream } from '@tamery/ai/features'
 import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
-import { chatModelPick, MODEL_UNAVAILABLE_MESSAGE } from '@tamery/ai/models'
+import {
+  chatEffort,
+  chatModelPick,
+  MODEL_UNAVAILABLE_MESSAGE,
+} from '@tamery/ai/models'
 import { parseAttachmentRef } from '@tamery/shared/attachments'
 import { validateUIMessages } from 'ai'
 import { type } from 'arktype'
@@ -54,7 +58,7 @@ export const stream = orpc
       connectionResourceId: 'string.uuid.v7',
       messages: 'object[]',
       'context?': 'number.integer > 0',
-      'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
+      'effort?': chatEffort,
       'fast?': 'boolean',
       'model?': chatModelPick,
       'subagent?': {

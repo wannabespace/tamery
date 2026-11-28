@@ -1,16 +1,16 @@
 export {
   AUTO_CHAT_MODELS,
   AUTO_MODEL,
-  CHAT_EFFORTS,
-  chatContexts,
+  chatEffort,
   chatModel,
   chatModelPick,
   chatModels,
-  DEFAULT_CHAT_EFFORT,
+  chatModelVariations,
   DEFAULT_CHAT_MODEL,
   MODEL_UNAVAILABLE_MESSAGE,
   models,
   resolveChatContext,
+  resolveChatEffort,
   STANDARD_CHAT_CONTEXT,
 } from './list'
 export type { ChatEffort, ChatModelId, ChatModelPick } from './list'

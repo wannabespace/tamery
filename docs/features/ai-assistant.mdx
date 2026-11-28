@@ -52,11 +52,11 @@ The menu under the message box picks the model that answers. It starts on **Auto
 
 Below **Auto**, every model is listed, grouped by company: Anthropic, OpenAI, Google, xAI, DeepSeek, Moonshot, Qwen, Z.ai and Mistral; type to search them. The models you picked lately sit under **Recent**; the cross next to one, or **Backspace** on it while the search is empty, removes it from there. Pointing at a model, or highlighting it with the arrow keys, opens its options next to it. **Right arrow** moves into them, **Up** and **Down arrow** move between them, **Left** and **Right arrow** change the effort, **Enter** picks a context or turns Fast mode on and off, and **Esc** goes back to the list:
 
-- **Effort**, from **Low** to **Max**: how hard the model thinks before answering. More effort is slower and spends more of your budget.
+- **Effort**, from **Low** up to **Max**: how hard the model thinks before answering. More effort is slower and spends more of your budget. Each model offers only the levels it supports, so some stop at **High**, and a model with a single level shows no Effort.
 - **Context**: how much of the chat the model reads. **200K** keeps each answer cheaper and faster; the full window lets a chat run longer before it is summarized.
 - **Fast mode**: sends the model to its fastest providers, which can cost more.
 
-Each model keeps its own options, and both the pick and the options apply to every chat on this device. On **Auto**, when a model's provider fails, the agent answers with another company's model instead. A model you picked yourself always answers itself: if its provider fails, the chat shows the error and you can retry or pick another model. If none of your AI keys runs the model you picked, for example after you remove that provider's key, the menu reads **Model unavailable** and the chat says so instead of answering with Auto.
+Each model keeps its own options, an option a model does not offer falls back to its default, and both the pick and the options apply to every chat on this device. On **Auto**, when a model's provider fails, the agent answers with another company's model instead. A model you picked yourself always answers itself: if its provider fails, the chat shows the error and you can retry or pick another model. If none of your AI keys runs the model you picked, for example after you remove that provider's key, the menu reads **Model unavailable** and the chat says so instead of answering with Auto.
 
 ### Long chats
 

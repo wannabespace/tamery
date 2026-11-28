@@ -9,6 +9,7 @@ import {
   AUTO_MODEL,
   DEFAULT_CHAT_EFFORT,
   DEFAULT_CHAT_MODEL,
+  resolveChatEffort,
 } from '../models/list'
 import type { AiKey, PayingKey } from '../models/own-key'
 import {
@@ -85,7 +86,7 @@ export const pickChatModel = async (data: {
     return picked
       ? {
           auto: false,
-          effort: data.effort ?? DEFAULT_CHAT_EFFORT,
+          effort: resolveChatEffort(picked.id, data.effort),
           key: chatKeyFor(data.keys, picked) ?? TAMERY_ACCOUNT,
           model: picked.id,
         }
@@ -93,12 +94,8 @@ export const pickChatModel = async (data: {
   }
   const [key = TAMERY_ACCOUNT] = data.keys
   if (key !== TAMERY_ACCOUNT && key.provider !== 'openrouter') {
-    return {
-      auto: true,
-      effort: DEFAULT_CHAT_EFFORT,
-      key,
-      model: OWN_KEY_AUTO_MODELS[key.provider],
-    }
+    const model = OWN_KEY_AUTO_MODELS[key.provider]
+    return { auto: true, effort: resolveChatEffort(model), key, model }
   }
   const previous = data.messages.findLast(
     (message) => message.role === 'assistant'
