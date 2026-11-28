@@ -64,7 +64,7 @@ mock.module('./chat-step', () => ({
 
 const { chatStream } = await import('./chat-stream')
 
-const input = { key: null, messages: [], onFinish: () => {} } as never
+const input = { key: 'tamery', messages: [], onFinish: () => {} } as never
 
 beforeEach(() => {
   store.clear()
