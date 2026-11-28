@@ -7,18 +7,22 @@ import { replaceTabId } from '~/core/tabs/actions'
 import { tabPath } from '~/core/tabs/ids'
 import { history } from '~/lib/last-location'
 
-import { ChatConversation } from './chat-conversation'
 import { ChatSkeleton } from './chat-skeleton'
 import { adoptStandIn, ComposerStandIn } from './composer-stand-in'
+import { ChatConversation } from './conversation/chat-conversation'
 import { startNewChat } from './open-chat'
+import { useChatSession } from './session/use-chat-session'
 import { chatDraftsValue, newChatIdsValue, unreadChatsValue } from './stores'
-import { SubagentStrip } from './subagent-strip'
-import { SubagentDrawer } from './subagent-view'
-import { openSubagent, openSubagentStore, PARENT_CHAT } from './subagents-store'
+import { SubagentStrip } from './subagents/subagent-strip'
+import { SubagentDrawer } from './subagents/subagent-view'
+import {
+  openSubagent,
+  openSubagentStore,
+  PARENT_CHAT,
+} from './subagents/subagents-store'
+import { useSubagents } from './subagents/use-subagents'
 import type { ChatParams } from './tab'
 import { chatTab, chatTabId, newChatTabId } from './tab'
-import { useChatSession } from './use-chat-session'
-import { useSubagents } from './use-subagents'
 
 const TabChat = ({
   chatId,
