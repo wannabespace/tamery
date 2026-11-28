@@ -30,6 +30,9 @@ mock.module('~/modules/billing/credits', () => ({
   PAID_CALLS_BUSY_MESSAGE: 'busy',
 }))
 const markStopped = mock(() => Promise.resolve())
+mock.module('./attachments', () => ({
+  attachments: { forModel: (messages: unknown) => Promise.resolve(messages) },
+}))
 mock.module('./compaction', () => ({ chatCompaction: {} }))
 mock.module('./persist', () => ({
   chatPersist: {

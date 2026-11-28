@@ -18,6 +18,7 @@ import { isToolUIPart } from 'ai'
 import type { AiPayer } from '~/modules/billing/ai-key'
 import { credits, PAID_CALLS_BUSY_MESSAGE } from '~/modules/billing/credits'
 
+import { attachments } from './attachments'
 import { chatCompaction } from './compaction'
 import { chatPersist } from './persist'
 import type { chatSession } from './session'
@@ -114,10 +115,11 @@ export const startChatTurn = async (data: {
       return await endStopped()
     }
     const telemetry = data.payer.telemetry(scope)
+    const sent = await attachments.forModel(history)
     const compaction = await compactFor({
       ...owner,
       compactAt: resolveCompactAt(pick.model, data.chat.compactAt),
-      history,
+      history: sent,
       key: data.payer.key,
       telemetry,
     })
@@ -127,7 +129,7 @@ export const startChatTurn = async (data: {
       connection: data.chat.connection,
       fast: data.settings.fast,
       isSubagent: data.chat.isSubagent,
-      messages: afterCompaction(history, compaction),
+      messages: afterCompaction(sent, compaction),
       onFinish: async (message) => {
         try {
           await chatPersist.persistMessage({ ...owner, message })

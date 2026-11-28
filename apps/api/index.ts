@@ -19,6 +19,7 @@ import { shutdown } from '~/lib/shutdown'
 import { encryptChatTitles } from '~/modules/chat/encrypt-titles'
 import { createContext } from '~/orpc/context'
 import { router } from '~/orpc/routers'
+import { attachmentsRouter } from '~/routers/attachments'
 import { healthRouter } from '~/routers/health'
 import type { AppVariables } from '~/variables'
 
@@ -166,7 +167,8 @@ const app = new Hono<{
           service: 'API',
           text: JSON.stringify(logInfo, null, 2),
         },
-        subject: `Alert from API: ${status} ${method} ${c.req.url}`,
+        // The path alone: a query can carry a credential, such as an attachment link's signature.
+        subject: `Alert from API: ${status} ${method} ${path}`,
         template: 'Alert',
         to: env.ALERTS_EMAIL,
       })
@@ -224,6 +226,7 @@ const app = new Hono<{
 
     return next()
   })
+  .route('/attachments', attachmentsRouter)
   .route('/health', healthRouter)
 
 await encryptChatTitles()

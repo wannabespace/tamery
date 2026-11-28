@@ -60,6 +60,8 @@ Query history and the query logger stay in the app that sent the queries, also w
 
 AI requests go through our servers to external model providers. The chat sends your messages. Editor and filter features also send the schema context they need.
 
+Files attached to a chat are stored in a private bucket. The model provider fetches them through a link only Tamery can sign. The link expires within three weeks, and it stops working sooner once you edit the message out of the chat or delete the chat. A copy the provider already fetched is subject to its own retention. Every file of your latest message is sent, and those of the two messages before it while they fit 10 MB. Older ones are named, not sent again. A large image goes to the model scaled down, and a PDF with a text layer goes as its text, marked as a file's content and never as your request, while you keep the file as you attached it.
+
 The built-in chat does not execute SQL. Coding agents connected through [MCP](/mcp/overview#connection-access) can read data and make changes according to the access you grant; their results become part of the agent's context.
 
 ### AI help with a failed test

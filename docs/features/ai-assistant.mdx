@@ -127,6 +127,8 @@ Type **/** at the start of a message for commands. Picking one writes it in the 
 
 On desktop, and in the web app on a connection that runs on a [machine](/cli/overview), the same menu lists your own agent skills and commands from that computer, read from `~/.claude/skills`, `~/.claude/commands`, `~/.agents/skills` and `~/.codex/skills`, each as **/skill:** and its name, so a skill never looks like one of the commands above. Picking one sends its instructions with your message; they never let a change skip **Run**. A file over 32 KB is left out.
 
+The agent reads every file of your latest message, and those of the two messages before it while they fit 10 MB. For an older file, attach it again.
+
 Chats are stored on our servers and processed by external AI providers. See [Security and privacy](/connections/security#ai-and-your-data).
 
 ## AI elsewhere in Tamery

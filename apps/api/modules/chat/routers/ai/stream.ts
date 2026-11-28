@@ -7,6 +7,7 @@ import {
   MODEL_UNAVAILABLE_MESSAGE,
 } from '@tamery/ai/models'
 import { parseAttachmentRef } from '@tamery/shared/attachments'
+import { runInBackground } from '@tamery/shared/background'
 import { validateUIMessages } from 'ai'
 import { type } from 'arktype'
 
@@ -108,10 +109,9 @@ export const stream = orpc
           return
         }
         await chatPersist.truncateFrom({ ...owner, messageId: turn.id })
-        await chatPersist.persistMessage({
-          ...owner,
-          message: await attachments.store(input.chatId, turn),
-        })
+        const stored = await attachments.store(input.chatId, turn)
+        await chatPersist.persistMessage({ ...owner, message: stored.message })
+        runInBackground(stored.copy())
       },
       settings: input,
     })

@@ -1,4 +1,4 @@
-import { decrypt, encrypt } from '@tamery/shared/crypto-node'
+import { decrypt, encrypt, parseKeyring } from '@tamery/shared/crypto-node'
 import { Result } from 'better-result'
 import { customType } from 'drizzle-orm/pg-core'
 
@@ -8,21 +8,12 @@ import { env } from './env'
 // key is tried on decrypt (AES-GCM's tag rejects the wrong ones), so a new key is rotated in
 // while old rows still open under a retiring key, then dropped once the rows are re-encrypted.
 // Never collapse the decrypt loop to the current key — rows written before a rotation stop opening.
-// A key itself must never contain a comma, or it splits into fragments that open nothing.
 export const resolveKeyring = (secrets: string) => {
-  const keyring = secrets
-    .split(',')
-    .map((secret) => secret.trim())
-    .filter(Boolean)
-  const [current] = keyring
-
-  if (!current) {
-    throw new Error('Encryption key is empty')
-  }
+  const { all, current } = parseKeyring(secrets)
 
   return {
     decrypt(encryptedText: string) {
-      for (const secret of keyring) {
+      for (const secret of all) {
         const decrypted = Result.try(() => decrypt({ encryptedText, secret }))
         if (!decrypted.isErr()) {
           return decrypted.value

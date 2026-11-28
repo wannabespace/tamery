@@ -3,6 +3,7 @@ import { type } from 'arktype'
 
 import { aiPermissionsMiddleware, orpc, paidAiMiddleware, permix } from '~/orpc'
 
+import { attachments } from '../../attachments'
 import { chatCompaction } from '../../compaction'
 import { chatPersist } from '../../persist'
 
@@ -22,7 +23,7 @@ export const compact = orpc
     }
     await chatCompaction.compact({
       chatId: input.chatId,
-      history,
+      history: await attachments.forModel(history),
       key,
       previous: await chatCompaction.get({
         chatId: input.chatId,

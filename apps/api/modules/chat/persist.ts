@@ -6,7 +6,6 @@ import { omit } from '@tamery/shared/utils'
 import { isDeepEqualData, isToolUIPart } from 'ai'
 import { and, asc, desc, eq, gte, inArray } from 'drizzle-orm'
 
-import { attachments } from './attachments'
 import { chatCompaction } from './compaction'
 import { publisher as chatsMessagesPartsPublisher } from './routers/chats-messages-parts/events'
 import { publisher as chatsMessagesPublisher } from './routers/chats-messages/events'
@@ -96,7 +95,7 @@ export const chatPersist = {
       )
       .orderBy(asc(chatsMessages.createdAt), asc(chatsMessagesParts.order))
 
-    return attachments.inline(messagesFromPartRows(rows))
+    return messagesFromPartRows(rows)
   },
   /** Flags the turn's question (`messageId`, else the chat's last user turn), never its answer: the answer's row is still being written and its next persist would replace the flag. */
   markStopped: async (data: {
