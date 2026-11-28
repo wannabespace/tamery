@@ -102,13 +102,13 @@ authClient.$store.atoms.session?.listen(({ data }) =>
 
 // The desktop's machine process signed in with the replaced token, and a session Tamery ended stops it.
 const restartDesktopMachine = async (token: string) => {
-  const status = await window.electron?.machine.status()
   const user = sessionCache.get()?.user
 
-  if (status?.enabled && user) {
-    await window.electron?.machine.enable({
-      account: { email: user.email, id: user.id, token },
-      publicUrl: status.publicUrl,
+  if (user && !user.isAnonymous) {
+    await window.electron?.machine.renew({
+      email: user.email,
+      id: user.id,
+      token,
     })
   }
 }
@@ -153,7 +153,10 @@ export const fullSignOut = async () => {
     import('~/core/runtime/machine/machine'),
   ])
 
-  await Promise.all([machine.unpairAll(), machine.forgetThisComputer()])
+  await Promise.all([
+    machine.unpairAll(),
+    machine.forgetThisComputer(bearerToken.get()),
+  ])
 
   // Before the session is revoked: a sync loop still running reconnects into a 401.
   await cleanCollections()

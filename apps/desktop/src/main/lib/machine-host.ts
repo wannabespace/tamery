@@ -1,7 +1,6 @@
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { once } from 'node:events'
-import { rmSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { readFileSync, rmSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
@@ -12,7 +11,13 @@ import { PORTS } from '@tamery/shared/ports'
 import { silently } from '@tamery/shared/utils'
 import { Result } from 'better-result'
 import type { UtilityProcess } from 'electron'
-import { app, dialog, safeStorage, utilityProcess } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  safeStorage,
+  utilityProcess,
+} from 'electron'
 
 import type {
   MachineAccount,
@@ -24,12 +29,18 @@ import { createPrivateStore } from './private-store'
 const KEY_BYTES = 32
 
 const store = createPrivateStore<{
+  /** The account the machine runs for, recorded by sign-in or Turn on: only it can change the address. */
+  accountId?: string
   enabled: boolean
   /** What a tunnel on this computer serves the machine at, as `tamery machine --public-url`. */
   publicUrl: string | null
+  /** The hash of the session token that signed out: a window still holding it must not start the machine or set its address. */
+  signedOutToken?: string
+  /** The user's **Turn off**, kept across sign-out: sign-in starts the machine unless it is set. */
+  turnedOff: boolean
   wrappedKey?: string
 }>({
-  defaults: { enabled: false, publicUrl: null },
+  defaults: { enabled: false, publicUrl: null, turnedOff: false },
   name: 'machine',
 })
 
@@ -40,6 +51,8 @@ export type MachineState =
 
 let state: MachineState = { status: 'off' }
 let child: UtilityProcess | null = null
+/** Read from the machine's folder only when it can change: at launch and once the process listens. */
+let id: string | null = null
 
 /** Its own folder, never the CLI's: a `tamery logout` there must not sign this app's machine out. */
 const getConfigDir = () => path.join(app.getPath('userData'), 'machine')
@@ -79,20 +92,79 @@ const askApproval = async ({
 const send = (forked: UtilityProcess, request: MachineProcessRequest) =>
   forked.postMessage(request)
 
+/** Read, never minted here: `null` until the machine first starts. */
+const readMachineId = () => {
+  const saved = Result.try(() =>
+    readFileSync(
+      path.join(getConfigDir(), path.basename(configFiles.machineId)),
+      'utf-8'
+    )
+  )
+  return (saved.isOk() && saved.value.trim()) || null
+}
+
+/** Synchronous, so the snapshots every window receives arrive in the order main changed them. */
+const getStatus = () => ({
+  enabled: store.get('enabled'),
+  id,
+  publicUrl: store.get('publicUrl'),
+  turnedOff: store.get('turnedOff'),
+  ...state,
+})
+
+/** Every window shows this computer's machine, so each hears every change, not only the one that asked. */
+const publish = () => {
+  const status = getStatus()
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send('machine.status', status)
+  }
+  return status
+}
+
+const setState = (next: MachineState) => {
+  state = next
+  publish()
+}
+
+const hashToken = (token: string) =>
+  createHash('sha256').update(token).digest('base64')
+
+const assertSignedIn = (account: VaultAccount) => {
+  if (hashToken(account.token) === store.get('signedOutToken')) {
+    throw new Error('You signed out. Sign in again to use this computer.')
+  }
+}
+
+/** Another account, such as one desktop recovery signed in without a sign-out, must not inherit the previous one's address. */
+const signIn = (account: VaultAccount) => {
+  assertSignedIn(account)
+  const isNewOwner = store.get('accountId') !== account.id
+  if (isNewOwner) {
+    store.set({ accountId: account.id, publicUrl: null })
+    publish()
+  }
+  return isNewOwner
+}
+
+/** Settles once the latest started process listens, failed or exited; registration with the account may still run. */
+let ready = Promise.resolve(null)
+
 const start = async (account: MachineAccount) => {
   if (child) {
     return
   }
-  state = { status: 'starting' }
+  setState({ status: 'starting' })
   const key = await Result.tryPromise(getVaultKey)
   if (key.isErr() || !key.value) {
-    state = {
+    setState({
       message:
         'The keychain refused this computer’s machine key. Unlock it, then restart Tamery.',
       status: 'failed',
-    }
+    })
     return
   }
+  const settled = Promise.withResolvers<null>()
+  ready = settled.promise
   const forked = utilityProcess.fork(
     path.join(import.meta.dirname, './machine.js'),
     [],
@@ -118,15 +190,20 @@ const start = async (account: MachineAccount) => {
         id: reply.id,
         type: 'answer',
       })
+    } else if (reply.type === 'listening') {
+      id = readMachineId()
+      setState({ registerError: null, status: 'on', url: reply.url })
+      settled.resolve(null)
     } else if (reply.type === 'started') {
-      state = {
+      setState({
         registerError: reply.registerError,
         status: 'on',
         url: reply.url,
-      }
+      })
     } else {
-      state = { message: reply.message, status: 'failed' }
+      setState({ message: reply.message, status: 'failed' })
       forked.kill()
+      settled.resolve(null)
     }
   })
   forked.on('error', (type, location) => {
@@ -134,16 +211,17 @@ const start = async (account: MachineAccount) => {
   })
   // A restart forks the next process before this one exits, which must not reset the next one's state.
   forked.once('exit', () => {
+    settled.resolve(null)
     if (child !== forked) {
       return
     }
     child = null
     if (state.status !== 'failed') {
-      state = {
+      setState({
         message:
           'This computer’s machine stopped unexpectedly. Turn it off and on again.',
         status: 'failed',
-      }
+      })
     }
   })
   send(forked, {
@@ -160,27 +238,11 @@ const start = async (account: MachineAccount) => {
 const stop = async () => {
   const running = child
   child = null
-  state = { status: 'off' }
+  setState({ status: 'off' })
   if (running) {
     const exited = once(running, 'exit')
     running.kill()
     await exited
-  }
-}
-
-const getStatus = async () => {
-  // Read, never minted here: `null` until the machine first starts.
-  const savedId = await Result.tryPromise(() =>
-    readFile(
-      path.join(getConfigDir(), path.basename(configFiles.machineId)),
-      'utf-8'
-    )
-  )
-  return {
-    enabled: store.get('enabled'),
-    id: savedId.isOk() ? savedId.value.trim() : null,
-    publicUrl: store.get('publicUrl'),
-    ...state,
   }
 }
 
@@ -193,8 +255,23 @@ const inTurn = <T>(change: () => Promise<T>) => {
   return turn
 }
 
+const restart = async (account: MachineAccount) => {
+  await stop()
+  store.set('enabled', true)
+  await start(account)
+}
+
 export const machineHost = {
-  enable: ({
+  /** On every sign-in, a running machine included: it restarts for a new owner, unless the user turned it off. */
+  enable: (account: VaultAccount) =>
+    inTurn(async () => {
+      const isNewOwner = signIn(account)
+      if (!store.get('turnedOff') && (isNewOwner || !child)) {
+        await restart({ account, kind: 'switch' })
+      }
+      return getStatus()
+    }),
+  setPublicUrl: ({
     account,
     publicUrl,
   }: {
@@ -211,26 +288,67 @@ export const machineHost = {
       )
     }
     return inTurn(async () => {
-      await stop()
-      store.set({ enabled: true, publicUrl: parsed?.origin ?? null })
-      await start({ account, kind: 'switch' })
+      assertSignedIn(account)
+      if (account.id !== store.get('accountId')) {
+        throw new Error(
+          'Sign in as the account this computer’s machine runs for to change its address.'
+        )
+      }
+      store.set('publicUrl', parsed?.origin ?? null)
+      publish()
+      if (child) {
+        await restart({ kind: 'keep' })
+      }
       return getStatus()
     })
   },
-  /** On sign-out: the pairings, secrets and account it kept belong to the account leaving. */
-  forget: () =>
+  /** A replaced session (turning two-factor on or off) ends the one the worker signed in with; one turned off stays off. */
+  renew: (account: VaultAccount) =>
     inTurn(async () => {
+      assertSignedIn(account)
+      if (store.get('enabled') && account.id === store.get('accountId')) {
+        await restart({ account, kind: 'switch' })
+      }
+      return getStatus()
+    }),
+  turnOff: () =>
+    inTurn(async () => {
+      store.set({ enabled: false, turnedOff: true })
       await stop()
-      store.set('enabled', false)
+      return getStatus()
+    }),
+  /** Resolves once the worker listens or failed: a turn waiting on startup would hold sign-out and Turn off behind it. */
+  turnOn: async (account: VaultAccount) => {
+    await inTurn(async () => {
+      signIn(account)
+      store.set('turnedOff', false)
+      await restart({ account, kind: 'switch' })
+    })
+    await ready
+    return getStatus()
+  },
+  /** On sign-out, before anything else: the pairings, secrets, account and address it kept belong to the account leaving. */
+  forget: (token: string | null) => {
+    if (token) {
+      store.set('signedOutToken', hashToken(token))
+    }
+    return inTurn(async () => {
+      await stop()
+      store.set({ enabled: false, publicUrl: null })
+      store.delete('accountId')
       store.delete('wrappedKey')
       rmSync(getConfigDir(), { force: true, recursive: true })
-    }),
+      id = null
+      publish()
+    })
+  },
   status: getStatus,
 }
 
 /** At launch, with the account the machine kept: it serves other devices with no window open. */
 export const restoreMachine = () =>
   inTurn(async () => {
+    id = readMachineId()
     if (store.get('enabled')) {
       await start({ kind: 'keep' })
     }

@@ -106,8 +106,8 @@ export const Route = createFileRoute('/_protected')({
     ])
 
     const thisMachine = queryClient.getQueryData(thisMachineQuery.queryKey)
-    if (cause === 'enter' && thisMachine && !thisMachine.enabled) {
-      void silently(() => machine.startThisComputer(thisMachine.publicUrl))
+    if (cause === 'enter' && thisMachine) {
+      void silently(() => machine.startThisComputer())
     }
 
     return { collections: c }

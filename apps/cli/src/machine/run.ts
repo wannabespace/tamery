@@ -21,12 +21,15 @@ const MAX_NAME_LENGTH = 100
 export const runMachine = async ({
   approver,
   name,
+  onListening,
   port,
   publicUrl,
   userId,
 }: {
   approver: Approver
   name: string
+  /** Before the account lists it, which waits on the network. */
+  onListening?: (url: string) => void
   port: number
   publicUrl: URL | null
   userId: string
@@ -43,6 +46,7 @@ export const runMachine = async ({
     router: createRouter({ approver, id, name, userId }),
   })
   const url = `http://127.0.0.1:${server.port}`
+  onListening?.(url)
   const register = () =>
     api.machines.register({
       id,

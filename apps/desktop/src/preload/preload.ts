@@ -7,6 +7,7 @@ import { Result } from 'better-result'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 import type { electron } from '../main/lib/events'
+import type { machineHost } from '../main/lib/machine-host'
 import type { sendToast } from '../main/main'
 
 type Promisified<T> = {
@@ -33,6 +34,11 @@ export type ElectronPreload = Promisified<typeof electron> & {
   copyDatabase: {
     onLog: (
       callback: (params: { copyId: string; line: string }) => void
+    ) => () => void
+  }
+  machine: {
+    onStatus: (
+      callback: (status: Awaited<ReturnType<typeof machineHost.status>>) => void
     ) => () => void
   }
   mcp: {
@@ -173,7 +179,19 @@ contextBridge.exposeInMainWorld('electron', {
   ]),
   localDatabases: namespaceBridge('localDatabases', ['find', 'unlock']),
   localSkills: namespaceBridge('localSkills', ['list']),
-  machine: namespaceBridge('machine', ['enable', 'fetch', 'forget', 'status']),
+  machine: {
+    ...namespaceBridge('machine', [
+      'enable',
+      'fetch',
+      'forget',
+      'renew',
+      'setPublicUrl',
+      'status',
+      'turnOff',
+      'turnOn',
+    ]),
+    onStatus: (onMessage) => onEvent('machine.status', onMessage),
+  },
   mcp: {
     ...namespaceBridge('mcp', [
       'calls',

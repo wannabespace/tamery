@@ -29,6 +29,7 @@ export type MachineProcessRequest =
   | { type: 'answer'; id: string; allowed: boolean }
 
 export type MachineProcessReply =
+  | { type: 'listening'; url: string }
   | { type: 'started'; registerError: string | null; url: string }
   | { type: 'failed'; message: string }
   | { type: 'approval'; id: string; label: string; code: string }
@@ -88,6 +89,7 @@ const start = async ({
     runMachine({
       approver,
       name,
+      onListening: (url) => reply({ type: 'listening', url }),
       port,
       publicUrl: publicUrl === null ? null : new URL(publicUrl),
       userId: signedIn.id,

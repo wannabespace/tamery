@@ -22,7 +22,6 @@ import {
   getThisMachineId,
   machineAsks,
   machinePairings,
-  thisMachineQuery,
 } from './pairing'
 import { ensureConnected, forget, statusQueryOptions, toStatus } from './status'
 
@@ -163,6 +162,13 @@ const unpair = async (pairing: MachinePairing) => {
   posthog.capture('machine_unpaired')
 }
 
+const getThisComputerAccount = async () => {
+  const [user, token] = [await getSessionUser(), bearerToken.get()]
+  return user && !user.isAnonymous && token
+    ? { email: user.email, id: user.id, token }
+    : null
+}
+
 export const machine = {
   client: getPairedClient,
   /** Throws when the machine kept nothing: it restarted since finding the database, or `found` is not on its computer or not the saved string's server. */
@@ -256,27 +262,57 @@ export const machine = {
   unpair,
   unpairAll: () =>
     Promise.all(Object.values(machinePairings.get()).map(unpair)),
-  /** Restarts it when it already runs. A guest has no other device to serve. */
-  startThisComputer: async (publicUrl: string | null) => {
-    const [user, token] = [await getSessionUser(), bearerToken.get()]
-    if (!window.electron || !user || user.isAnonymous || !token) {
+  /** On sign-in, unless the user turned it off. A guest has no other device to serve. */
+  startThisComputer: async () => {
+    const account = await getThisComputerAccount()
+    if (window.electron && account) {
+      await window.electron.machine.enable(account)
+    }
+  },
+  /** Restarts it when it runs; one the user turned off only keeps the address. `draftToken` is the session that typed it. */
+  saveThisComputerAddress: async ({
+    draftToken,
+    publicUrl,
+  }: {
+    draftToken: string | null
+    publicUrl: string | null
+  }) => {
+    const account = await getThisComputerAccount()
+    if (!window.electron || !account) {
+      throw new Error('Sign in to use this computer from your other devices.')
+    }
+    if (account.token !== draftToken) {
+      throw new Error(
+        'You signed in again since you typed this address. Type it again.'
+      )
+    }
+    await window.electron.machine.setPublicUrl({ account, publicUrl })
+  },
+  turnThisComputerOn: async () => {
+    const account = await getThisComputerAccount()
+    if (!window.electron || !account) {
+      throw new Error('Sign in to use this computer from your other devices.')
+    }
+    const status = await window.electron.machine.turnOn(account)
+    if (status.turnedOff) {
       return
     }
-    queryClient.setQueryData(
-      thisMachineQuery.queryKey,
-      await window.electron.machine.enable({
-        account: { email: user.email, id: user.id, token },
-        publicUrl,
-      })
-    )
+    if (status.status === 'failed') {
+      throw new Error(status.message)
+    }
+    if (status.status !== 'on') {
+      throw new Error('This computer’s machine stopped before it started.')
+    }
+  },
+  turnThisComputerOff: async () => {
+    await window.electron?.machine.turnOff()
   },
   /** On sign-out or a guest's upgrade: this desktop's machine leaves the account with it, and forgets the browsers it allowed. */
-  forgetThisComputer: async () => {
+  forgetThisComputer: async (signedOutToken: string | null) => {
     const id = getThisMachineId()
+    await window.electron?.machine.forget(signedOutToken)
     if (id !== null) {
       await silently(() => orpc.machines.remove.call({ id }))
     }
-    await window.electron?.machine.forget()
-    queryClient.removeQueries({ queryKey: thisMachineQuery.queryKey })
   },
 }
