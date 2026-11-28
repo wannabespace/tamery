@@ -30,16 +30,17 @@ import {
   lastOpenedResourcesStorageValue,
   MAX_REMEMBERED_RESOURCES,
 } from '~/core/connection/last-opened-resources'
-import { useShortcut } from '~/core/keyboard/use-shortcuts'
+import { useShortcut, useShortcuts } from '~/core/keyboard/use-shortcuts'
 import { useMachineRoute } from '~/core/runtime/machine/pairing'
 import { workspaceSelection } from '~/core/workspace/utils'
 import { useGoBack } from '~/hooks/use-go-back'
 import type { Panel } from '~/lib/panels'
 import { panelSize, useShellLayout } from '~/lib/panels'
-import { chatPanel } from '~/modules/chat/panel'
 import { MachineNotPaired } from '~/modules/machine/machine-not-paired'
 import { useEscapeToNavigator } from '~/modules/navigator/keyboard'
+import { showNavigatorSection } from '~/modules/navigator/navigator-header'
 import { navigatorPanel } from '~/modules/navigator/panel'
+import type { NavigatorMode } from '~/modules/navigator/stores'
 import { toggleNavigator } from '~/modules/navigator/stores'
 import { toggleLogger } from '~/modules/query-logger/logger-open'
 import { queryLoggerPanel } from '~/modules/query-logger/panel'
@@ -61,10 +62,6 @@ const REGION_MOTION = {
     animate: { scale: 1 },
     className: 'origin-left',
     initial: { scale: 0.85 },
-  },
-  right: {
-    animate: { translateX: '0' },
-    initial: { translateX: '100%' },
   },
 }
 
@@ -146,6 +143,16 @@ const ResourcePage = () => {
   useShortcut('queryLogger', () => toggleLogger(connectionResource.id), {
     enabled: !locked,
   })
+  const showSection = (section: NavigatorMode) => () =>
+    showNavigatorSection(connectionResource.id, section)
+  useShortcuts(
+    [
+      { callback: showSection('tables'), shortcut: 'navigatorTables' },
+      { callback: showSection('definitions'), shortcut: 'navigatorSchema' },
+      { callback: showSection('chats'), shortcut: 'navigatorChats' },
+    ],
+    { enabled: !locked }
+  )
   useEscapeToNavigator(!locked)
 
   // Route context keeps the row from entry, so without this a refetch under a removed connection throws its way to the error page.
@@ -195,7 +202,6 @@ const ResourcePage = () => {
           />
         </ResizableGroup>
       </ResizablePanel>
-      <RegionPanel panel={chatPanel} resourceId={connectionResource.id} />
     </ResizableGroup>
   )
 }

@@ -248,19 +248,18 @@
 }
 
 [data-shell-left],
-[data-shell-right],
-[data-shell-bottom] {
+[data-shell-bottom],
+[data-shell-chat] {
   display: none;
+}
+
+.shell-chat [data-shell-chat] {
+  display: revert-layer;
 }
 
 .shell-left [data-shell-left] {
   display: revert-layer;
   width: var(--shell-left-size);
-}
-
-.shell-right [data-shell-right] {
-  display: revert-layer;
-  width: var(--shell-right-size);
 }
 
 .shell-bottom [data-shell-bottom] {
@@ -433,6 +432,14 @@
 
 @utility end-fade {
   mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+}
+
+@utility row-action-fade {
+  mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - 1.75rem),
+    transparent calc(100% - 0.75rem)
+  );
 }
 
 @utility row-actions-fade {

@@ -8,6 +8,7 @@ import {
 } from '@tamery/shared/enums/connection-type'
 import type { DialectSpec, Statement } from '@tamery/sql'
 import {
+  additiveOnly,
   destructiveKeywords,
   dialects,
   endsTransaction,
@@ -20,6 +21,7 @@ import {
 } from '@tamery/sql'
 
 export interface QueryLanguage {
+  additiveOnly: (text: string) => boolean
   destructive: (text: string) => string[]
   endsTransaction: (text: string) => boolean
   highlight: 'javascript' | 'sql'
@@ -37,6 +39,7 @@ export interface QueryLanguage {
 }
 
 const sql = (spec: DialectSpec): QueryLanguage => ({
+  additiveOnly: (text) => additiveOnly(text, spec),
   destructive: (text) => destructiveKeywords(text, spec),
   endsTransaction: (text) => endsTransaction(text, spec),
   highlight: 'sql',
@@ -51,6 +54,7 @@ const sql = (spec: DialectSpec): QueryLanguage => ({
 })
 
 const mongosh: QueryLanguage = {
+  additiveOnly: mongo.additiveOnly,
   destructive: mongo.destructiveMethods,
   endsTransaction: () => false,
   highlight: 'javascript',

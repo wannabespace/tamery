@@ -1,5 +1,3 @@
-import { LinkSquare02Icon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
 import { FREE_WEEKLY_LIMITS, usageResetsAt } from '@tamery/shared/usage'
 import { Button } from '@tamery/ui/components/button'
 import {
@@ -10,10 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@tamery/ui/components/dialog'
+import { Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { useSubscription } from 'seitu/react'
-
-import { accountUrl } from '~/lib/urls'
 
 import { limitDialog } from './usage'
 
@@ -43,21 +40,11 @@ export const LimitDialog = () => {
           </Button>
           <Button
             render={
-              <a
-                href={accountUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Upgrade to Pro"
-              />
+              <Link to="/settings/$section" params={{ section: 'plan' }} />
             }
             onClick={close}
           >
             Upgrade to Pro
-            <HugeiconsIcon
-              icon={LinkSquare02Icon}
-              strokeWidth={2}
-              data-icon="inline-end"
-            />
           </Button>
         </DialogFooter>
       </DialogContent>

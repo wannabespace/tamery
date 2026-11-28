@@ -4,8 +4,7 @@ import { AiFeature } from '@tamery/ai/usage'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { orpc, paidAiMiddleware, permissionsMiddleware, permix } from '~/orpc'
 
 export const updateQuery = orpc
   .use(permissionsMiddleware)
@@ -28,6 +27,7 @@ export const updateQuery = orpc
       type: type.valueOf(ConnectionType),
     })
   )
+  .use(paidAiMiddleware)
   .handler(({ context, input, signal }) =>
     runUpdateQuery({
       connectionType: input.type,
@@ -37,7 +37,7 @@ export const updateQuery = orpc
       prompt: input.prompt,
       signal,
       query: input.query,
-      telemetry: aiUsage.telemetry({
+      telemetry: context.payer.telemetry({
         feature: AiFeature.UpdateQuery,
         userId: context.user.id,
       }),

@@ -1,5 +1,11 @@
+import { passkeyClient } from '@better-auth/passkey/client'
 import { type } from 'arktype'
-import { anonymousClient, organizationClient } from 'better-auth/client/plugins'
+import {
+  anonymousClient,
+  inferAdditionalFields,
+  organizationClient,
+  twoFactorClient,
+} from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
 import { Result } from 'better-result'
 import { useSubscription } from 'seitu/react'
@@ -54,15 +60,25 @@ export const authClient = createAuthClient({
         fullSignOut()
       }
     },
-    // The signed token rides only in this header: a sign-in's body carries the raw one.
+    // The signed token rides only in this header: a sign-in's body carries the raw one, and turning two-factor on or off replaces the session.
     onSuccess({ response }) {
       const token = response.headers.get('set-auth-token')
-      if (token) {
+
+      if (token && token !== bearerToken.get()) {
         bearerToken.set(token)
+        void restartDesktopMachine(token)
       }
     },
   },
-  plugins: [anonymousClient(), organizationClient()],
+  plugins: [
+    anonymousClient(),
+    organizationClient(),
+    twoFactorClient(),
+    passkeyClient(),
+    inferAdditionalFields({
+      user: { chatCompactAt: { required: false, type: 'number' } },
+    }),
+  ],
 })
 
 const sessionCache = createWebStorageValue({
@@ -83,6 +99,19 @@ authClient.hydrateSession(sessionCache.get())
 authClient.$store.atoms.session?.listen(({ data }) =>
   sessionCache.set(withoutToken(data))
 )
+
+// The desktop's machine process signed in with the replaced token, and a session Tamery ended stops it.
+const restartDesktopMachine = async (token: string) => {
+  const user = sessionCache.get()?.user
+
+  if (user && !user.isAnonymous) {
+    await window.electron?.machine.renew({
+      email: user.email,
+      id: user.id,
+      token,
+    })
+  }
+}
 
 export const getSessionUser = async () => {
   const user = sessionCache.get()?.user

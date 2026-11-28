@@ -2,7 +2,7 @@ import {
   ArrowDown02Icon,
   Cancel01Icon,
   Delete02Icon,
-  File01Icon,
+  HistoryIcon,
   Tick02Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -328,7 +328,7 @@ export const QueryLogger = ({
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
-              <HugeiconsIcon icon={File01Icon} strokeWidth={2} />
+              <HugeiconsIcon icon={HistoryIcon} strokeWidth={2} />
             </EmptyMedia>
             <EmptyTitle>No queries yet</EmptyTitle>
             <EmptyDescription>

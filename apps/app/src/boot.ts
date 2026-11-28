@@ -2,6 +2,8 @@ import { isMac } from '@tamery/ui/lib/os'
 import { THEME_STORAGE_KEY } from '@tamery/ui/theme-constants'
 
 import {
+  CHAT_DRAFTS_KEY,
+  CHAT_NEW_IDS_KEY,
   LAST_LOCATION_KEY,
   SHELL_LAYOUT_KEY,
   TRANSPARENT_BACKGROUND_KEY,
@@ -23,6 +25,13 @@ const layout = isConnection
   ? (read<Record<string, number>>(SHELL_LAYOUT_KEY) ?? {})
   : {}
 const theme = read<string>(THEME_STORAGE_KEY) ?? 'system'
+const unsentChatResourceId =
+  /\/connection\/(?<resourceId>[^/?#]+)\/chat(?:[?#]|$)/u.exec(
+    lastLocation ?? ''
+  )?.groups?.resourceId
+const unsentChatId =
+  unsentChatResourceId &&
+  read<Record<string, string>>(CHAT_NEW_IDS_KEY)?.[unsentChatResourceId]
 
 const classes = {
   dark:
@@ -32,6 +41,13 @@ const classes = {
   mac: isElectron && isMac,
   opaque: read<boolean>(TRANSPARENT_BACKGROUND_KEY) === false,
   'shell-auth': lastLocation === undefined,
+  // A draft would show only once the chat loads, and what was typed into the shell would replace it.
+  'shell-chat':
+    !!unsentChatResourceId &&
+    !(
+      unsentChatId &&
+      read<Record<string, unknown>>(CHAT_DRAFTS_KEY)?.[unsentChatId]
+    ),
   'shell-connection': isConnection,
   'shell-dashboard': lastLocation !== undefined && !isConnection && !isSettings,
   'shell-settings': isSettings,

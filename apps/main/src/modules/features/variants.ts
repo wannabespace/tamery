@@ -51,14 +51,6 @@ export const expand = (delay: number): Variants => ({
   },
 })
 
-export const revealDown = (delay: number, duration: number): Variants => ({
-  hidden: { clipPath: 'inset(0 0 100% 0)', transition: REWIND },
-  shown: {
-    clipPath: 'inset(0 0 0% 0)',
-    transition: { delay, duration, ease: 'linear' },
-  },
-})
-
 export const revealRight = (delay: number, duration: number): Variants => ({
   hidden: { clipPath: 'inset(0 100% 0 0)', transition: REWIND },
   shown: {

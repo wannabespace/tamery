@@ -302,6 +302,15 @@ export const machineHost = {
       return getStatus()
     })
   },
+  /** A replaced session (turning two-factor on or off) ends the one the worker signed in with; one turned off stays off. */
+  renew: (account: VaultAccount) =>
+    inTurn(async () => {
+      assertSignedIn(account)
+      if (store.get('enabled') && account.id === store.get('accountId')) {
+        await restart({ account, kind: 'switch' })
+      }
+      return getStatus()
+    }),
   turnOff: () =>
     inTurn(async () => {
       store.set({ enabled: false, turnedOff: true })

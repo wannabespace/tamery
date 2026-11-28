@@ -1,5 +1,7 @@
+import { db } from '@tamery/db'
+import { users } from '@tamery/db/schema'
 import type { SubscriptionPlan } from '@tamery/shared/permissions'
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { DrizzleQueryError } from 'drizzle-orm/errors'
 import { Stripe } from 'stripe'
 
@@ -28,6 +30,35 @@ export const timedOutUnderLock = (error: unknown) =>
     error.cause !== undefined &&
     'code' in error.cause &&
     error.cause.code === LOCK_NOT_AVAILABLE)
+
+/** The user's Stripe customer, created on their first checkout and kept on the user row. A caller holding the row's lock passes its transaction and `STRIPE_UNDER_LOCK`. */
+export const getStripeCustomerId = async (
+  client: Stripe,
+  userId: string,
+  tx: Pick<typeof db, 'select' | 'update'> = db,
+  options?: Stripe.RequestOptions
+) => {
+  const [user] = await tx.select().from(users).where(eq(users.id, userId))
+  if (!user) {
+    throw new Error(`User ${userId} not found`)
+  }
+  if (user.stripeCustomerId) {
+    return user.stripeCustomerId
+  }
+  const customer = await client.customers.create(
+    {
+      email: user.email,
+      metadata: { userId: user.id },
+      name: user.name,
+    },
+    options
+  )
+  await tx
+    .update(users)
+    .set({ stripeCustomerId: customer.id })
+    .where(eq(users.id, user.id))
+  return customer.id
+}
 
 const PRICE_IDS = {
   pro: {

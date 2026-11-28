@@ -1,14 +1,15 @@
 locals {
   service_accounts = {
-    tamery-api       = "API runtime"
-    tamery-proxy     = "Proxy runtime"
-    tamery-web       = "App, main, docs, share runtime"
-    tamery-jobs      = "Migrate and purge jobs"
-    tamery-scheduler = "Invokes the purge job"
-    tamery-deploy    = "GitHub Actions deploys"
-    tamery-tofu      = "Applies Cloud Run changes in infra/ from GitHub Actions after approval"
-    tamery-tofu-plan = "Plans infra/ from GitHub Actions"
-    viewer           = "Read-only for agents"
+    tamery-api         = "API runtime"
+    tamery-attachments = "Chat attachments, through its HMAC key"
+    tamery-proxy       = "Proxy runtime"
+    tamery-web         = "App, main, docs, share runtime"
+    tamery-jobs        = "Migrate and purge jobs"
+    tamery-scheduler   = "Invokes the purge job"
+    tamery-deploy      = "GitHub Actions deploys"
+    tamery-tofu        = "Applies Cloud Run changes in infra/ from GitHub Actions after approval"
+    tamery-tofu-plan   = "Plans infra/ from GitHub Actions"
+    viewer             = "Read-only for agents"
   }
 
   # Never a basic role: roles/viewer carries cloudsql.backupRuns.export and the project's spending, roles/reader reads bucket objects.

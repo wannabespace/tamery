@@ -9,25 +9,28 @@ import {
   ItemTitle,
 } from '@tamery/ui/components/item'
 import { cn } from '@tamery/ui/lib/utils'
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 
 export const SettingsGroup = ({
+  action,
   children,
   title,
 }: {
+  action?: ReactNode
   children: ReactNode
   title?: ReactNode
 }) => (
   <section className="flex flex-col gap-2">
     {title && (
-      <h2
+      <div
         className={cn(
           smallItemInsetClassName,
-          'text-muted-foreground text-xs font-medium'
+          'flex items-center justify-between gap-3'
         )}
       >
-        {title}
-      </h2>
+        <h2 className="text-muted-foreground text-xs font-medium">{title}</h2>
+        {action}
+      </div>
     )}
     <div className={cn(cardClass, 'flex flex-col overflow-hidden')}>
       {children}
@@ -44,7 +47,8 @@ export const SettingsRow = ({
   icon,
   iconVariant,
   title,
-}: {
+  ...props
+}: Omit<ComponentProps<'div'>, 'title'> & {
   children?: ReactNode
   dense?: boolean
   description?: ReactNode
@@ -56,6 +60,7 @@ export const SettingsRow = ({
   <Item
     size="sm"
     variant="grouped"
+    {...props}
     className={cn(dense && 'py-2')}
     // oxlint-disable-next-line jsx-a11y/label-has-associated-control -- Item renders the title and description into this label
     render={htmlFor ? <label htmlFor={htmlFor} /> : undefined}

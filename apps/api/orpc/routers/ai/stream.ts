@@ -1,28 +1,76 @@
 import { chatStream } from '@tamery/ai/features'
+import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
-import { AiFeature } from '@tamery/ai/usage'
-import { runInBackground } from '@tamery/shared/background'
+import {
+  chatEffort,
+  chatModelPick,
+  MODEL_UNAVAILABLE_MESSAGE,
+} from '@tamery/ai/models'
+import { parseAttachmentRef } from '@tamery/shared/attachments'
 import { validateUIMessages } from 'ai'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
-import { chatPersist } from '~/lib/chat-persist'
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { attachments } from '~/lib/chat/attachments'
+import { chatPersist } from '~/lib/chat/persist'
+import { chatSession } from '~/lib/chat/session'
+import { startChatTurn } from '~/lib/chat/turn'
+import { aiPermissionsMiddleware, orpc, paidAiMiddleware, permix } from '~/orpc'
+
+const isAttachmentId = type('string.uuid.v7')
+
+// A file arrives as a data URL, or as a reference to one already stored in this chat when a turn is edited or asked again; a remote URL would have the model provider fetch it on the user's behalf.
+const attachmentsFit = async (chatId: string, message: AppUIMessage) => {
+  const files = message.parts.filter((part) => part.type === 'file')
+  if (files.length > CHAT_LIMITS.attachments) {
+    return false
+  }
+  const fits = await Promise.all(
+    files.map((file) => {
+      if (!CHAT_LIMITS.attachmentTypes.has(file.mediaType)) {
+        return false
+      }
+      const ref = parseAttachmentRef(file.url)
+      if (ref) {
+        return (
+          ref.chatId === chatId &&
+          isAttachmentId.allows(ref.id) &&
+          attachments.exists(ref)
+        )
+      }
+      const prefix = `data:${file.mediaType};base64,`
+      return (
+        file.url.startsWith(prefix) &&
+        ((file.url.length - prefix.length) * 3) / 4 <=
+          CHAT_LIMITS.attachmentBytes
+      )
+    })
+  )
+  return fits.every(Boolean)
+}
 
 export const stream = orpc
-  .use(permissionsMiddleware)
+  .use(aiPermissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
   .input(
     type({
       chatId: 'string.uuid.v7',
       connectionResourceId: 'string.uuid.v7',
       messages: 'object[]',
+      'effort?': chatEffort,
+      'fast?': 'boolean',
+      'model?': chatModelPick,
+      'subagent?': {
+        parentChatId: 'string.uuid.v7',
+        title: `string <= ${CHAT_LIMITS.subagentTitle}`,
+      },
     })
   )
   .errors({
     BAD_REQUEST: { message: 'Invalid messages' },
     CONFLICT: { message: 'This chat is already generating an answer.' },
+    MODEL_UNAVAILABLE: { message: MODEL_UNAVAILABLE_MESSAGE },
   })
+  .use(paidAiMiddleware)
   .handler(async function* streamHandler({ context, errors, input }) {
     const messages = await validateUIMessages<AppUIMessage>({
       messages: input.messages,
@@ -30,66 +78,45 @@ export const stream = orpc
       throw errors.BAD_REQUEST()
     })
 
-    const { title } = await chatPersist.ensureChat({
+    const turn = messages.at(-1)
+    if (!turn || turn.role === 'system') {
+      throw errors.BAD_REQUEST()
+    }
+
+    const chat = await chatSession.ensureChat({
       chatId: input.chatId,
       connectionResourceId: input.connectionResourceId,
+      subagent: input.subagent,
       userId: context.user.id,
     })
-
-    const lastUserMessage = messages.findLast(
-      (message) => message.role === 'user'
-    )
-    if (lastUserMessage) {
-      await chatPersist.persistMessage({
-        chatId: input.chatId,
-        message: lastUserMessage,
-        userId: context.user.id,
-      })
+    if (!(await attachmentsFit(input.chatId, turn))) {
+      throw errors.BAD_REQUEST()
     }
 
-    const history = await chatPersist.loadMessages({
-      chatId: input.chatId,
-      userId: context.user.id,
-    })
-
-    const previousAnswer = history.at(-1)
-    if (previousAnswer?.role === 'assistant') {
-      await chatPersist.deleteMessage({
-        chatId: input.chatId,
-        messageId: previousAnswer.id,
-        userId: context.user.id,
-      })
-      history.pop()
-    }
-
-    if (!title) {
-      runInBackground(
-        chatPersist.persistTitle({
-          chatId: input.chatId,
-          messages: history,
-          userId: context.user.id,
+    const owner = { chatId: input.chatId, userId: context.user.id }
+    const started = await startChatTurn({
+      ...owner,
+      chat: {
+        ...chat,
+        compactAt: chat.compactAt ?? context.user.chatCompactAt ?? null,
+      },
+      payer: context.payer,
+      persistTurn: async () => {
+        if (turn.role !== 'user') {
+          await chatPersist.persistToolOutputs({ ...owner, message: turn })
+          return
+        }
+        await chatPersist.truncateFrom({ ...owner, messageId: turn.id })
+        await chatPersist.persistMessage({
+          ...owner,
+          message: await attachments.store(input.chatId, turn),
         })
-      )
-    }
-
-    const str = await chatStream.claim({
-      chatId: input.chatId,
-      messages: history,
-      onFinish: (message) =>
-        chatPersist.persistMessage({
-          chatId: input.chatId,
-          message,
-          userId: context.user.id,
-        }),
-      telemetry: aiUsage.telemetry({
-        chatId: input.chatId,
-        feature: AiFeature.Chat,
-        userId: context.user.id,
-      }),
+      },
+      settings: input,
     })
 
-    if (str) {
-      yield* str
+    if (started) {
+      yield* started
       return
     }
 

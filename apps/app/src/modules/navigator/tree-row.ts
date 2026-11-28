@@ -23,7 +23,6 @@ export type TreeRow =
       pinned: boolean
     }
   | { kind: 'empty'; id: string }
-  | { kind: 'new-schema'; id: string }
   | { kind: 'separator'; id: string }
 
 export const buildTreeRows = ({
@@ -105,10 +104,6 @@ export const buildTreeRows = ({
         table,
       })
     }
-  }
-
-  if (showSchemaRows && !search && rows.length > 0) {
-    rows.push({ id: 'new-schema', kind: 'new-schema' })
   }
 
   return rows

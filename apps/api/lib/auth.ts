@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 
 import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2'
 import { getAuthenticatorName, passkey } from '@better-auth/passkey'
+import { compactAt } from '@tamery/ai/models'
 import { db } from '@tamery/db'
 import { users } from '@tamery/db/schema'
 import * as schema from '@tamery/db/schema'
@@ -84,8 +85,8 @@ const passkeyPlugin = passkey({
     residentKey: 'required',
     userVerification: 'required',
   },
-  // Every sign-in runs on the site, not on the API's own host the plugin would default to.
-  origin: mainUrl.origin,
+  // Sign-in runs on the site and Settings → Security registers passkeys in the web app, neither on the API's own host the plugin would default to.
+  origin: [mainUrl.origin, ORIGINS.web],
   registration: {
     afterVerification: async ({ ctx, user, verification }) => {
       const { aaguid, credentialDeviceType } =
@@ -705,6 +706,11 @@ export const auth = betterAuth({
   ],
   user: {
     additionalFields: {
+      chatCompactAt: {
+        required: false,
+        type: 'number',
+        validator: { input: compactAt.or('null') },
+      },
       desktopVersion: {
         input: false,
         required: false,

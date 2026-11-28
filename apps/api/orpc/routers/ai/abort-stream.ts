@@ -2,11 +2,11 @@ import { chatStream } from '@tamery/ai/features'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
-import { chatPersist } from '~/lib/chat-persist'
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { chatPersist } from '~/lib/chat/persist'
+import { orpc, aiPermissionsMiddleware, permix } from '~/orpc'
 
 export const abortStream = orpc
-  .use(permissionsMiddleware)
+  .use(aiPermissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
   .input(type({ chatId: 'string.uuid.v7' }))
   .handler(async ({ context, input }) => {

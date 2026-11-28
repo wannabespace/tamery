@@ -4,8 +4,7 @@ import { AiFeature } from '@tamery/ai/usage'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { orpc, paidAiMiddleware, permissionsMiddleware, permix } from '~/orpc'
 
 export const fixQuery = orpc
   .use(permissionsMiddleware)
@@ -19,6 +18,7 @@ export const fixQuery = orpc
       type: type.valueOf(ConnectionType),
     })
   )
+  .use(paidAiMiddleware)
   .handler(({ context, input, signal }) =>
     runFixQuery({
       connectionType: input.type,
@@ -27,7 +27,7 @@ export const fixQuery = orpc
       error: input.error,
       signal,
       query: input.query,
-      telemetry: aiUsage.telemetry({
+      telemetry: context.payer.telemetry({
         feature: AiFeature.FixQuery,
         userId: context.user.id,
       }),

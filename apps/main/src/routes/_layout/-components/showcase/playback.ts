@@ -55,20 +55,21 @@ LIMIT 3`,
 
 type Conversation = (typeof CONVERSATIONS)[number]
 
-const TYPE_MS = 40
-const SEND_PAUSE_MS = 400
+const SEND_PAUSE_MS = 600
 const WORD_MS = 80
 const SQL_DELAY_MS = 160
 const RESULT_DELAY_MS = 400
 const HOLD_MS = 5000
+const TAB_HOLD_MS = 3500
 
-const held = (conversation: Conversation) => ({
+export type ShowcaseTab = 'chat' | 'schema' | 'table'
+
+const held = (conversation: Conversation, tab: ShowcaseTab = 'chat') => ({
   conversation,
-  ms: HOLD_MS,
+  ms: tab === 'chat' ? HOLD_MS : TAB_HOLD_MS,
   result: true,
-  sent: true,
   sql: true,
-  typed: conversation.question.length,
+  tab,
   words: conversation.answer.split(' ').length,
 })
 
@@ -76,22 +77,13 @@ export type Frame = ReturnType<typeof held>
 
 const lead = (conversation: Conversation): Frame[] => {
   const done = held(conversation)
+  const streaming = { ...done, result: false, sql: false }
   return [
-    ...Array.from({ length: done.typed + 1 }, (_, typed) => ({
-      ...done,
-      ms: typed < done.typed ? TYPE_MS : SEND_PAUSE_MS,
-      result: false,
-      sent: false,
-      sql: false,
-      typed,
-      words: 0,
-    })),
-    ...Array.from({ length: done.words + 1 }, (_, words) => ({
-      ...done,
-      ms: words < done.words ? WORD_MS : SQL_DELAY_MS,
-      result: false,
-      sql: false,
-      words,
+    { ...streaming, ms: SEND_PAUSE_MS, words: 0 },
+    ...Array.from({ length: done.words }, (_, index) => ({
+      ...streaming,
+      ms: index + 1 < done.words ? WORD_MS : SQL_DELAY_MS,
+      words: index + 1,
     })),
     { ...done, ms: RESULT_DELAY_MS, result: false },
   ]
@@ -101,11 +93,17 @@ const [first, ...later] = CONVERSATIONS
 
 export const REST_FRAME = held(first)
 
+export const CHAT_TITLES = CONVERSATIONS.map(({ title }) => title)
+
 export const FRAMES = [
   REST_FRAME,
+  held(first, 'table'),
+  held(first, 'schema'),
   ...later.flatMap((conversation) => [
     ...lead(conversation),
     held(conversation),
+    held(conversation, 'table'),
+    held(conversation, 'schema'),
   ]),
   ...lead(first),
 ]

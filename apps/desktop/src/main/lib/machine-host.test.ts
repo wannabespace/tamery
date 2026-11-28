@@ -246,3 +246,25 @@ test('a new owner signing in while the machine runs restarts it for that owner w
     machineHost.setPublicUrl({ account, publicUrl: 'https://mac.example.com' })
   ).rejects.toThrow('Sign in')
 })
+
+test('a replaced session restarts the running machine with the new token, and never one turned off or another account', async () => {
+  const { turnedOn, worker } = await startWorker()
+  worker.reply({ type: 'listening', url })
+  await turnedOn
+  const renewed = { ...account, token: 'token-a2' }
+
+  await machineHost.renew(renewed)
+  expect(workers).toHaveLength(2)
+  expect(workers.at(-1)?.requests[0]).toMatchObject({
+    account: { account: renewed, kind: 'switch' },
+    type: 'start',
+  })
+
+  await machineHost.renew(nextAccount)
+  expect(workers).toHaveLength(2)
+
+  await machineHost.turnOff()
+  await machineHost.renew(renewed)
+  expect(workers).toHaveLength(2)
+  expect(machineHost.status()).toMatchObject({ status: 'off', turnedOff: true })
+})

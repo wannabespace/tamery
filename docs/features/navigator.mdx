@@ -7,9 +7,11 @@ keywords: ['tree', 'explorer', 'favorites', 'object browser']
 
 ## Navigator
 
-The Navigator is the sidebar of an open connection. It lists your schemas and tables, with **Schema** at the top for [indexes, constraints, and the rest](/features/definitions). **Cmd+B** (**Ctrl+B**) hides it.
+The Navigator is the sidebar of an open connection. It lists your schemas and tables. Click its title to switch between **Tables**, **Schema**, for [indexes, constraints, and the rest](/features/definitions), and **Chats**, your [AI chats](/features/ai-assistant); **Cmd+1**, **Cmd+2** and **Cmd+3** (**Ctrl+1**…**Ctrl+3**) jump straight to each. **Cmd+B** (**Ctrl+B**) hides the Navigator.
 
-Start typing in its search field to find a table. Arrow keys walk the list, and **Enter** opens the highlighted table with the grid ready for the keyboard.
+Under the title sit the section's actions: **New table**, **New view** and **New schema** in **Tables** (view and schema only where the engine has them), and **New chat** in **Chats**. In **Tables**, the button next to the search icon reloads the list.
+
+To search the section, just start typing, or click the search icon: the field takes the title's place, and **Esc** clears it and puts the title back. Arrow keys walk the list, and **Enter** opens the highlighted table with the grid ready for the keyboard. Press **Esc** anywhere in the app to come back to the Navigator.
 
 Right-click a table to:
 
@@ -18,7 +20,7 @@ Right-click a table to:
 - **Copy Name**
 - **Open in New Window**, on desktop
 
-Each schema has a **+** for a new table. Right-click a schema for **New View**, **Rename**, **Copy Name**, or **Drop**. **New schema** sits below the last schema.
+Each schema has a **+** for a new table. Right-click a schema for **New View**, **Rename**, **Copy Name**, or **Drop**.
 
 What you can rename or create depends on the engine. SQLite and ClickHouse have no schemas to manage, for example.
 
@@ -34,7 +36,7 @@ You can open as many query tabs as you like. Each table, schema page, or the vis
 
 Double-click a tab to rename it. Right-click it to close it, the others, everything to its left or right, or all of them. **Reset Name** in the same menu brings back the original title.
 
-The arrows at the start of the tab bar go back and forward through the tabs you visited. On desktop, **Cmd+T** (**Ctrl+T**) opens a new tab and **Cmd+W** (**Ctrl+W**) closes the current one.
+The arrows at the start of the tab bar go back and forward through the tabs you visited. The **+** at its end opens a new query, a chat, a schema page, or a table: type to search the tables by name. On desktop, **Cmd+T** (**Ctrl+T**) opens it and **Cmd+W** (**Ctrl+W**) closes the current tab.
 
 Tabs are remembered per database on this device. When you start Tamery again, it opens where you left off.
 

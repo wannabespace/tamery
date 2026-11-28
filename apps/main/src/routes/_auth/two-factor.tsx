@@ -1,12 +1,12 @@
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
+import { TotpCodeInput } from '@tamery/ui/components/custom/totp-code-input'
 import { Field, FieldLabel, FieldSeparator } from '@tamery/ui/components/field'
 import { Input } from '@tamery/ui/components/input'
 import { useMutation } from '@tanstack/react-query'
 import { createFileRoute, getRouteApi, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 
-import { TotpCodeInput } from '~/components/totp-code-input'
 import { authClient } from '~/lib/auth'
 import { handleError } from '~/utils/error'
 
@@ -139,7 +139,7 @@ export const Route = createFileRoute('/_auth/two-factor')({
     const { data: session } = await authClient.getSession()
 
     if (session?.user) {
-      throw redirect({ to: '/account' })
+      throw redirect({ href: import.meta.env.VITE_PUBLIC_WEB_URL })
     }
 
     const { data } = await authClient.$fetch<{

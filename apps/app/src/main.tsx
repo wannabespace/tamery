@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { history, lastLocationStorageValue } from './lib/last-location'
 import { posthog } from './lib/posthog'
 import { transparentBackgroundValue } from './lib/transparent-background'
+import { holdShellComposer } from './modules/chat/composer-stand-in'
 import { routeTree } from './routeTree.gen'
 
 if (window.electron) {
@@ -104,6 +105,7 @@ router.subscribe('onResolved', ({ fromLocation, toLocation }) => {
     posthog.capture('$pageview')
   }
 
+  holdShellComposer()
   for (const shell of document.querySelectorAll('[data-shell]')) {
     requestAnimationFrame(() => shell.remove())
   }

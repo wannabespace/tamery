@@ -23,6 +23,7 @@ export const aiUsage = orpc
         inputTokens: sum(aiUsageTable.inputTokens).mapWith(Number),
         month,
         outputTokens: sum(aiUsageTable.outputTokens).mapWith(Number),
+        ownKey: aiUsageTable.ownKey,
       })
       .from(aiUsageTable)
       .where(
@@ -32,6 +33,6 @@ export const aiUsage = orpc
           input.to && lte(aiUsageTable.createdAt, input.to)
         )
       )
-      .groupBy(month)
-      .orderBy(desc(month))
+      .groupBy(month, aiUsageTable.ownKey)
+      .orderBy(desc(month), aiUsageTable.ownKey)
   )

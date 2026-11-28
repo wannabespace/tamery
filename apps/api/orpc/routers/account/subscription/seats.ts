@@ -143,7 +143,7 @@ const add = orpc
     }
 
     const emailed = await sendEmail({
-      props: { ownerEmail: user.email, url: `${env.MAIN_URL}/account` },
+      props: { ownerEmail: user.email, url: `${env.MAIN_URL}/account/plan` },
       subject: 'You have a seat on a Tamery Team plan',
       template: 'TeamSeat',
       to: email,

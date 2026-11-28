@@ -7,9 +7,11 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@better-auth/passkey": "catalog:",
     "@hackylabs/deep-redact": "catalog:",
     "@noble/hashes": "catalog:",
     "@orpc/client": "catalog:",
+    "@simplewebauthn/browser": "catalog:",
     "@tamery/configs": "workspace:*",
     "arktype": "catalog:",
     "better-result": "catalog:",
@@ -19,7 +21,8 @@
     "nanoid": "catalog:",
     "permix": "catalog:",
     "sf-symbols-typescript": "catalog:",
-    "ua-parser-js": "catalog:"
+    "ua-parser-js": "catalog:",
+    "yaml": "catalog:"
   },
   "devDependencies": {
     "@types/d3-dsv": "catalog:"

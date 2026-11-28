@@ -1,11 +1,11 @@
-import { LayoutTable02Icon, PlusSignIcon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
-import { Button } from '@tamery/ui/components/button'
+import { LayoutTable02Icon, Search01Icon } from '@hugeicons/core-free-icons'
+import { IconEmpty } from '@tamery/ui/components/custom/icon-empty'
 import {
   SidebarContent,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuSkeleton,
+  sidebarMenuItemClassName,
 } from '@tamery/ui/components/sidebar'
 import { useVirtualizer } from '@tamery/ui/hooks/use-virtualizer'
 import { cn } from '@tamery/ui/lib/utils'
@@ -24,7 +24,6 @@ import { TreeRowContent } from './tree-row-content'
 
 const ROW_HEIGHTS = {
   empty: 30,
-  'new-schema': 44,
   schema: 32,
   separator: 13,
   table: 30,
@@ -120,31 +119,21 @@ export const TablesList = ({
 
   if (rows.length === 0) {
     return (
-      <SidebarContent
-        id={listId}
-        className={cn(
-          'items-center justify-center py-8 text-center',
-          className
-        )}
-      >
-        <HugeiconsIcon
-          icon={LayoutTable02Icon}
-          strokeWidth={2}
-          className="text-muted-foreground/50 mb-2 size-8"
-        />
-        <p className="text-muted-foreground text-sm">
-          {search ? `No ${names.table}s found` : `No ${names.table}s yet`}
-        </p>
-        {!search && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={() => onCreateTable()}
-          >
-            <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
-            New {names.table}
-          </Button>
+      <SidebarContent id={listId} className={className}>
+        {search ? (
+          <IconEmpty
+            variant="elevated"
+            icon={Search01Icon}
+            title={`No ${names.table}s found`}
+            description="Try another name, or clear the search."
+          />
+        ) : (
+          <IconEmpty
+            variant="elevated"
+            icon={LayoutTable02Icon}
+            title={`No ${names.table}s yet`}
+            description="Create the first one, or ask the AI to design it."
+          />
         )}
       </SidebarContent>
     )
@@ -202,7 +191,10 @@ export const TablesList = ({
                     ? { duration: 0 }
                     : { duration: 0.25, ease: [0.32, 0.72, 0, 1] }
                 }
-                className="group/menu-item absolute inset-x-0 top-0 h-(--row-height)"
+                className={cn(
+                  sidebarMenuItemClassName,
+                  'absolute inset-x-0 top-0 h-(--row-height)'
+                )}
                 inert={row === stickyRow}
                 data-highlighted={highlighted || undefined}
                 style={

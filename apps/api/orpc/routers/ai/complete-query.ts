@@ -20,7 +20,11 @@ export const completeQuery = orpc
     })
   )
   .handler(({ context, input, signal }) => {
-    const scope = { feature: AiFeature.CompleteQuery, userId: context.user.id }
+    const scope = {
+      feature: AiFeature.CompleteQuery,
+      ownKey: false,
+      userId: context.user.id,
+    }
     return usage.metered(context, 'complete', () =>
       runCompleteQuery({
         connectionType: input.type,

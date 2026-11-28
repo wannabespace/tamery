@@ -1,18 +1,21 @@
+import { compactAt } from '@tamery/ai/models'
 import { db } from '@tamery/db'
 import { chats, chatsUpdateSchema } from '@tamery/db/schema'
+import { type } from 'arktype'
 import { and, eq } from 'drizzle-orm/sql'
 
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { orpc, aiPermissionsMiddleware, permix } from '~/orpc'
 
 import { publisher } from './events'
 
 export const update = orpc
-  .use(permissionsMiddleware)
+  .use(aiPermissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
   .input(
     chatsUpdateSchema
-      .omit('createdAt', 'updatedAt', 'id', 'userId', 'connectionResourceId')
+      .pick('pinnedAt', 'title')
       .merge(chatsUpdateSchema.pick('id').required())
+      .merge(type({ 'compactAt?': compactAt.or('null') }))
   )
   .handler(async ({ context, input }) => {
     const { id, ...changes } = input

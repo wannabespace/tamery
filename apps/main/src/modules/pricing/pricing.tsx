@@ -1,3 +1,4 @@
+import { HOBBY_PLAN, PAID_PLANS, TEAM_PLAN } from '@tamery/shared/plans'
 import { Button } from '@tamery/ui/components/button'
 import { Tabs, TabsList, TabsTrigger } from '@tamery/ui/components/tabs'
 import { cn } from '@tamery/ui/lib/utils'
@@ -9,12 +10,13 @@ import { Reveal } from '~/components/reveal'
 import { useSubscription } from '~/hooks/use-subscription'
 import { authClient } from '~/lib/auth'
 import { pageCardClass } from '~/utils/card'
-import { HOBBY_PLAN, PAID_PLANS, TEAM_PLAN } from '~/utils/pricing'
 
 import { ContactSalesDialog } from './contact-sales-dialog'
 import { PlanCard, PlanFeatures } from './plan-card'
 import type { Period } from './price'
 import { Price } from './price'
+
+const PLAN_SETTINGS_URL = `${import.meta.env.VITE_PUBLIC_WEB_URL}/settings/plan`
 
 const ENTERPRISE_FEATURES = [
   'Volume pricing and custom terms',
@@ -74,14 +76,14 @@ export const Pricing = () => {
                 variant={plan.highlighted ? 'default' : 'outline'}
                 render={
                   session ? (
-                    <Link to="/account" search={{ period, plan: plan.id }} />
-                  ) : (
-                    <Link
-                      to="/sign-in"
-                      search={{
-                        redirectPath: `/account?${new URLSearchParams({ period, plan: plan.id })}`,
-                      }}
+                    <a
+                      href={PLAN_SETTINGS_URL}
+                      aria-label={
+                        subscription ? 'Manage plan' : 'Try free for 7 days'
+                      }
                     />
+                  ) : (
+                    <Link to="/sign-in" />
                   )
                 }
               >

@@ -1,6 +1,5 @@
 import { Section, Text } from '@react-email/components'
-
-import { env } from '~/env'
+import { ORIGINS } from '@tamery/shared/origins'
 
 import { Base } from '../components/base'
 import { Button } from '../components/button'
@@ -20,6 +19,6 @@ export const SignInMethodLinked = ({ provider }: { provider: string }) => (
         don&apos;t recognize, and secure your {provider} account.
       </Text>
     </Section>
-    <Button href={`${env.MAIN_URL}/account/settings`}>Review sessions</Button>
+    <Button href={`${ORIGINS.web}/settings/account`}>Review sessions</Button>
   </Base>
 )

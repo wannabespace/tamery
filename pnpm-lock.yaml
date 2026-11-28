@@ -164,6 +164,15 @@ settings:
 
 catalogs:
   default:
+    '@ai-sdk/anthropic':
+      specifier: 4.0.107
+      version: 4.0.107
+    '@ai-sdk/google':
+      specifier: 4.0.123
+      version: 4.0.123
+    '@ai-sdk/openai':
+      specifier: 4.0.122
+      version: 4.0.122
     '@ai-sdk/react':
       specifier: ^4.0.183
       version: 4.0.183
@@ -218,6 +227,9 @@ catalogs:
     '@ip-location-db/dbip-city-mmdb':
       specifier: ^2.3.2026060513
       version: 2.3.2026060513
+    '@journeyapps/wa-sqlite':
+      specifier: ^1.7.2
+      version: 1.7.2
     '@libsql/client':
       specifier: ^0.18.0
       version: 0.18.0
@@ -683,6 +695,9 @@ catalogs:
     vite-plugin-electron:
       specifier: ^1.2.0
       version: 1.2.0
+    yaml:
+      specifier: ^2.9.1
+      version: 2.9.1
     zod:
       specifier: ^4.6.7
       version: 4.6.7
@@ -796,9 +811,15 @@ importers:
       '@tamery/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@tamery/mongo':
+        specifier: workspace:*
+        version: link:../../packages/mongo
       '@tamery/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@tamery/sql':
+        specifier: workspace:*
+        version: link:../../packages/sql
       '@upstash/context7-tools-ai-sdk':
         specifier: 'catalog:'
         version: 1.0.4(@upstash/context7-sdk@0.5.1)(ai@7.0.179(zod@4.6.7))(zod@4.6.7)
@@ -899,6 +920,9 @@ importers:
       '@base-ui/react':
         specifier: 'catalog:'
         version: 1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@better-auth/passkey':
+        specifier: 'catalog:'
+        version: 1.7.27(@better-auth/core@1.7.27(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.6(zod@4.6.7))(jose@6.2.3)(kysely@0.29.9)(nanostores@1.4.0))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.27(@opentelemetry/api@1.9.1)(@tanstack/react-start@1.169.7(esbuild@0.28.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.19)(rollup@4.65.0)(supports-color@7.2.0)(vite@8.3.8(@types/node@26.1.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)))(drizzle-kit@1.0.0-rc.5-ab785fc)(drizzle-orm@1.0.0-rc.5-ab785fc(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(arktype@2.2.10)(bun-types@1.4.5)(mysql2@3.24.6(@types/node@26.1.1))(pg@8.23.1)(valibot@1.5.0(typescript@7.0.2))(zod@4.6.7))(mongodb@7.9.1(@aws-sdk/credential-providers@3.993.0)(socks@2.8.11))(mysql2@3.24.6(@types/node@26.1.1))(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(solid-js@1.9.20))(better-call@1.4.6(zod@4.6.7))(nanostores@1.4.0)
       '@dagrejs/dagre':
         specifier: 'catalog:'
         version: 3.1.3
@@ -914,6 +938,9 @@ importers:
       '@hugeicons/react':
         specifier: 'catalog:'
         version: 1.1.10(react@19.3.1)
+      '@journeyapps/wa-sqlite':
+        specifier: 'catalog:'
+        version: 1.7.2
       '@orpc/client':
         specifier: 'catalog:'
         version: 2.0.0-beta.52
@@ -1040,6 +1067,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
+      react-qr-code:
+        specifier: 'catalog:'
+        version: 2.2.0(react@19.3.1)
       recharts:
         specifier: 'catalog:'
         version: 3.11.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@16.13.1)(react@19.3.1)(redux@5.0.1)
@@ -1068,6 +1098,9 @@ importers:
       '@rolldown/plugin-babel':
         specifier: 'catalog:'
         version: 0.2.4(@babel/core@7.29.7(supports-color@7.2.0))(@babel/runtime@7.29.7)(rolldown@1.2.19)(vite@8.3.8(@types/node@26.1.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+      '@simplewebauthn/browser':
+        specifier: 'catalog:'
+        version: 13.3.0
       '@standard-schema/spec':
         specifier: 'catalog:'
         version: 1.1.0
@@ -1287,6 +1320,9 @@ importers:
       ssh2:
         specifier: 'catalog:'
         version: 1.17.0
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -1466,9 +1502,6 @@ importers:
       memoza:
         specifier: 'catalog:'
         version: 1.4.0
-      mermaid:
-        specifier: 'catalog:'
-        version: 12.3.0
       motion:
         specifier: 'catalog:'
         version: 14.14.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -1484,9 +1517,6 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
-      react-qr-code:
-        specifier: 'catalog:'
-        version: 2.2.0(react@19.3.1)
       remark-gfm:
         specifier: ^4.0.0
         version: 4.0.1(supports-color@7.2.0)
@@ -1757,6 +1787,15 @@ importers:
 
   packages/ai:
     dependencies:
+      '@ai-sdk/anthropic':
+        specifier: 'catalog:'
+        version: 4.0.107(zod@4.6.7)
+      '@ai-sdk/google':
+        specifier: 'catalog:'
+        version: 4.0.123(zod@4.6.7)
+      '@ai-sdk/openai':
+        specifier: 'catalog:'
+        version: 4.0.122(zod@4.6.7)
       '@mistralai/mistralai':
         specifier: 'catalog:'
         version: 3.5.0(@azure/identity@4.14.1(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.9.0(@opentelemetry/api@1.9.1))(supports-color@7.2.0)
@@ -2028,6 +2067,9 @@ importers:
 
   packages/shared:
     dependencies:
+      '@better-auth/passkey':
+        specifier: 'catalog:'
+        version: 1.7.27(@better-auth/core@1.7.27(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.6(zod@4.6.7))(jose@6.2.3)(kysely@0.29.9)(nanostores@1.4.0))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.27(@opentelemetry/api@1.9.1)(@tanstack/react-start@1.169.7(esbuild@0.28.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.14)(rollup@4.65.0)(supports-color@7.2.0)(vite@8.3.8(@types/node@26.1.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)))(drizzle-kit@1.0.0-rc.5-ab785fc)(drizzle-orm@1.0.0-rc.5-ab785fc(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(arktype@2.2.10)(bun-types@1.4.5)(mysql2@3.24.6(@types/node@26.1.1))(pg@8.23.1)(valibot@1.5.0(typescript@7.0.2))(zod@4.6.7))(mongodb@7.9.1(@aws-sdk/credential-providers@3.993.0)(socks@2.8.11))(mysql2@3.24.6(@types/node@26.1.1))(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(solid-js@1.9.20))(better-call@1.4.6(zod@4.6.7))(nanostores@1.4.0)
       '@hackylabs/deep-redact':
         specifier: 'catalog:'
         version: 4.1.0
@@ -2037,6 +2079,9 @@ importers:
       '@orpc/client':
         specifier: 'catalog:'
         version: 2.0.0-beta.52
+      '@simplewebauthn/browser':
+        specifier: 'catalog:'
+        version: 13.3.0
       '@tamery/configs':
         specifier: workspace:*
         version: link:../configs
@@ -2067,6 +2112,9 @@ importers:
       ua-parser-js:
         specifier: 'catalog:'
         version: 2.0.10
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
     devDependencies:
       '@types/d3-dsv':
         specifier: 'catalog:'
@@ -2198,6 +2246,9 @@ importers:
       input-otp:
         specifier: 'catalog:'
         version: 1.5.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      mermaid:
+        specifier: 'catalog:'
+        version: 12.3.0
       motion:
         specifier: 'catalog:'
         version: 14.14.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -2269,14 +2320,32 @@ importers:
 
 packages:
 
+  '@ai-sdk/anthropic@4.0.107':
+    resolution: {integrity: sha512-7morlNCmT6Qt3Af/QgxAGaeAUXu+W3LvGIvtxL+P8jRs+5Sq7kfH9A8M8FCB9wibzuhDqtLdy6I8tb9qJqGOug==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
   '@ai-sdk/gateway@4.0.152':
     resolution: {integrity: sha512-8LYMe0uMPbT3XW/Urhca52TSgHXAlQok74EUkWL3qXWJI7naTxJGSF6B7hvIHur+V6ttSyLLZN0rJk+Qu9psqA==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
+  '@ai-sdk/google@4.0.123':
+    resolution: {integrity: sha512-PFYiJx7SPYwWCx9jPfat6WJEex2q+KhZDRi72oDFIH6yb+yRHDYQfPyClpXLZ34n9nsHBPSkEPLmu4jRf3tPLA==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
   '@ai-sdk/mcp@2.0.102':
     resolution: {integrity: sha512-H26SyvXhU/E/F/zmq5DK9OKhe4KxN1ZVpr2QFb5ULCzFJ1KXkXaNJJ7rj5vDW5u7T/W5qeJx680qpqmbzP2Z/A==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/openai@4.0.122':
+    resolution: {integrity: sha512-8Q2DX7Fte5Sgt5jl/3B9vJFWO3LQQjgr/ErfDpdNdR5e20UC6RCHLXJ/MRhjLV2mMZkKBahV8DoYxBXgMCKGPA==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -11593,11 +11662,23 @@ packages:
 
 snapshots:
 
+  '@ai-sdk/anthropic@4.0.107(zod@4.6.7)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.39
+      '@ai-sdk/provider-utils': 5.0.83(zod@4.6.7)
+      zod: 4.6.7
+
   '@ai-sdk/gateway@4.0.152(zod@4.6.7)':
     dependencies:
       '@ai-sdk/provider': 4.0.39
       '@ai-sdk/provider-utils': 5.0.83(zod@4.6.7)
       '@vercel/oidc': 3.2.0
+      zod: 4.6.7
+
+  '@ai-sdk/google@4.0.123(zod@4.6.7)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.39
+      '@ai-sdk/provider-utils': 5.0.83(zod@4.6.7)
       zod: 4.6.7
 
   '@ai-sdk/mcp@2.0.102(zod@4.6.7)':
@@ -11606,6 +11687,12 @@ snapshots:
       '@ai-sdk/provider-utils': 5.0.83(zod@4.6.7)
       cross-spawn: 7.0.6
       pkce-challenge: 5.0.1
+      zod: 4.6.7
+
+  '@ai-sdk/openai@4.0.122(zod@4.6.7)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.39
+      '@ai-sdk/provider-utils': 5.0.83(zod@4.6.7)
       zod: 4.6.7
 
   '@ai-sdk/provider-utils@5.0.83(zod@4.6.7)':

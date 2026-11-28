@@ -30,6 +30,19 @@ mock.module('./redis', () => ({
   },
 }))
 
+let aiBudgetLeft = true
+mock.module('./ai-key', () => ({
+  payForAi: () => Promise.resolve(aiBudgetLeft ? {} : null),
+}))
+
+let slotFree = true
+mock.module('./credits', () => ({
+  credits: {
+    inPaidSlot: (_userId: string, run: () => Promise<unknown>) =>
+      slotFree ? run() : Promise.reject(new Error('busy')),
+  },
+}))
+
 const { usage } = await import('./usage')
 
 const context = {
@@ -48,7 +61,10 @@ const fillTo = (count: number) =>
     Array.from({ length: count }, () => usage.record(context, feature))
   )
 
-beforeEach(() => counters.clear())
+beforeEach(() => {
+  counters.clear()
+  aiBudgetLeft = true
+})
 
 test('parallel calls at the limit run only the one unit left', async () => {
   await fillTo(max - 1)
@@ -87,4 +103,25 @@ test('a call that fails or skips its count gives its unit back', async () => {
 
   await usage.metered(context, feature, () => Promise.resolve('done'))
   expect(await used()).toBe(max)
+})
+
+test('an unlimited call is held to the AI budget, never the weekly count', async () => {
+  const unlimited = {
+    ...context,
+    permissions: { check: () => true },
+  } as unknown as typeof context
+  const run = mock(() => Promise.resolve('done'))
+
+  expect(await usage.metered(unlimited, feature, run)).toBe('done')
+  aiBudgetLeft = false
+  await expect(usage.metered(unlimited, feature, run)).rejects.toMatchObject({
+    code: 'TOO_MANY_REQUESTS',
+  })
+  expect(run).toHaveBeenCalledTimes(1)
+  aiBudgetLeft = true
+  slotFree = false
+  await expect(usage.metered(unlimited, feature, run)).rejects.toThrow('busy')
+  expect(run).toHaveBeenCalledTimes(1)
+  slotFree = true
+  expect(counters.size).toBe(0)
 })

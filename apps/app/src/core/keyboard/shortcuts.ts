@@ -22,9 +22,27 @@ export const SHORTCUTS = {
     title: 'Add',
   },
   aiChat: {
-    description: 'Open or close the AI assistant.',
+    description: 'Open a new chat with the AI agent in a tab.',
     hotkeys: ['Mod+L'],
-    title: 'AI chat',
+    title: 'New chat',
+  },
+  chatNextTurn: {
+    description:
+      'In a chat with the messages focused, scroll to the next question and its answer.',
+    hotkeys: ['Alt+ArrowDown'],
+    title: 'Next message',
+  },
+  chatPreviousTurn: {
+    description:
+      'In a chat with the messages focused, scroll to the previous question and its answer.',
+    hotkeys: ['Alt+ArrowUp'],
+    title: 'Previous message',
+  },
+  chatSendNow: {
+    description:
+      'While the agent works, stop it and send the message at once instead of queuing it.',
+    hotkeys: ['Mod+Enter'],
+    title: 'Send now',
   },
   applyEdit: {
     description: 'Save the cell you are editing into every selected cell.',
@@ -101,7 +119,7 @@ export const SHORTCUTS = {
   },
   navigatorCollapse: {
     description:
-      'Collapse a schema, jump from a table up to its schema, or go back from Definitions to Tables.',
+      'Collapse a schema, jump from a table up to its schema, or go back to Tables from Schema or Chats.',
     hotkeys: ['ArrowLeft'],
     title: 'Collapse',
   },
@@ -117,11 +135,32 @@ export const SHORTCUTS = {
     hotkeys: ['Enter', 'ArrowRight'],
     title: 'Open',
   },
+  navigatorTables: {
+    description: 'Show the tables in the Navigator.',
+    hotkeys: ['Mod+1'],
+    title: 'Tables',
+  },
+  navigatorSchema: {
+    description:
+      'Show the schema in the Navigator: indexes, constraints and the rest.',
+    hotkeys: ['Mod+2'],
+    title: 'Schema',
+  },
+  navigatorChats: {
+    description: "Show the connection's AI chats in the Navigator.",
+    hotkeys: ['Mod+3'],
+    title: 'Chats',
+  },
   newConnection: {
     description: 'Open the new connection page from the connections list.',
     desktopOnly: true,
     hotkeys: ['Mod+N'],
     title: 'New connection',
+  },
+  newQuery: {
+    description: 'Open a new query tab.',
+    hotkeys: ['Mod+E'],
+    title: 'New query',
   },
   newTab: {
     description: 'Open a new query, a schema page or any table.',

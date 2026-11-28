@@ -107,7 +107,10 @@ The machine reaches databases and files with the rights of the system user that 
 
 A query that runs longer than about 4 minutes fails.
 
-In the web app, **New connection** lists the databases the machine finds on that computer, as the desktop app does for its own: running Docker containers, and connections saved in DBeaver, TablePlus, DataGrip, pgAdmin, `pg_service.conf`, `.pgpass` or `my.cnf`. Picking one fills the form. A password saved with it for a database on that computer, without an SSH tunnel, never reaches the browser: the machine keeps it for the connection you save and uses it for every app you allowed on that machine. The password never leaves that machine, so another place that can run the connection may ask you for it. For a database elsewhere, such as a server behind a VPN, or a password kept in the macOS Keychain, type the password.
+The machine also tells the web app what that computer has, as the desktop app does for its own:
+
+- **New connection** lists the databases it finds there: running Docker containers, and connections saved in DBeaver, TablePlus, DataGrip, pgAdmin, `pg_service.conf`, `.pgpass` or `my.cnf`. Picking one fills the form. A password saved with it for a database on that computer, without an SSH tunnel, never reaches the browser: the machine keeps it for the connection you save and uses it for every app you allowed on that machine. The password never leaves that machine, so another place that can run the connection may ask you for it. For a database elsewhere, such as a server behind a VPN, or a password kept in the macOS Keychain, type the password.
+- The [AI chat](/features/ai-assistant#mentions-and-commands)'s **/** menu lists your agent skills and commands from that computer's home folder. A machine on an older CLI shows **Update the Tamery CLI** there instead: [update it](/cli/commands#tamery-update) to list them.
 
 ## Manage connections
 

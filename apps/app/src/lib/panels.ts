@@ -6,7 +6,6 @@ import type { WebStorageValue } from 'seitu/web'
 import { createWebStorageValue } from 'seitu/web'
 
 import { SHELL_LAYOUT_KEY } from '~/lib/constants'
-import { chatPanel } from '~/modules/chat/panel'
 import { navigatorPanel } from '~/modules/navigator/panel'
 import { queryLoggerPanel } from '~/modules/query-logger/panel'
 
@@ -18,10 +17,10 @@ export interface Panel {
   maxSize: number | `${number}%`
   minSize: number
   open: (resourceId: string) => WebStorageValue<boolean>
-  region: 'left' | 'right' | 'bottom'
+  region: 'left' | 'bottom'
 }
 
-const PANELS = [navigatorPanel, queryLoggerPanel, chatPanel]
+const PANELS = [navigatorPanel, queryLoggerPanel]
 
 export const panelSize = memoize(
   (panel: Panel) =>

@@ -1,3 +1,4 @@
+export { aiKeys } from './ai-keys'
 export { aiFeature, aiUsage } from './ai-usage'
 export {
   accounts,
@@ -41,6 +42,7 @@ export {
   provider,
   syncType,
 } from './connections'
+export { creditAccounts, creditTopUps } from './credits'
 export { copies, deletedRecords } from './deleted-records'
 export { earlyAccess } from './early-access'
 export { workspaceEncryptionKeys } from './encryption'
@@ -58,6 +60,12 @@ export {
   queriesRelations,
   queriesSelectSchema,
 } from './queries'
+export {
+  schemaNotes,
+  schemaNotesInsertSchema,
+  schemaNotesSelectSchema,
+  schemaNotesUpdateSchema,
+} from './schema-notes'
 export { shareRefresh, shares, sharesRelations } from './shares'
 export {
   subscriptionPeriod,

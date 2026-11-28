@@ -2,17 +2,16 @@ import {
   Fence,
   markdownComponents,
 } from '@tamery/ui/components/custom/markdown'
+import { Mermaid } from '@tamery/ui/components/custom/mermaid'
 import { isValidElement } from 'react'
 import type { ComponentProps } from 'react'
-
-import { Mermaid } from './mermaid'
 
 export const mdxComponents = {
   ...markdownComponents,
   pre: ({ children }: ComponentProps<'pre'>) =>
     isValidElement<{ children: string; className?: string }>(children) &&
     children.props.className === 'language-mermaid' ? (
-      <Mermaid chart={children.props.children} />
+      <Mermaid className="my-8" chart={children.props.children} />
     ) : (
       <Fence>{children}</Fence>
     ),

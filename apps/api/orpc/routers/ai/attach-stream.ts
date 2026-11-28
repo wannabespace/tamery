@@ -1,19 +1,37 @@
 import { chatStream } from '@tamery/ai/features'
-import { AiFeature } from '@tamery/ai/usage'
+import {
+  chatEffort,
+  chatModelPick,
+  MODEL_UNAVAILABLE_MESSAGE,
+} from '@tamery/ai/models'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/lib/ai-usage'
-import { chatPersist } from '~/lib/chat-persist'
-import { orpc, permissionsMiddleware, permix } from '~/orpc'
+import { payForAi } from '~/lib/ai-key'
+import { chatSession } from '~/lib/chat/session'
+import { startChatTurn } from '~/lib/chat/turn'
+import { aiPermissionsMiddleware, orpc, permix } from '~/orpc'
 
 export const attachStream = orpc
-  .use(permissionsMiddleware)
+  .use(aiPermissionsMiddleware)
   .use(permix.checkMiddleware('ai.chat.use'))
-  .input(type({ chatId: 'string.uuid.v7' }))
+  .input(
+    type({
+      chatId: 'string.uuid.v7',
+      'effort?': chatEffort,
+      'fast?': 'boolean',
+      'model?': chatModelPick,
+    })
+  )
+  .errors({ MODEL_UNAVAILABLE: { message: MODEL_UNAVAILABLE_MESSAGE } })
   .handler(async function* attachStream({ context, input }) {
     const owned = await db.query.chats.findFirst({
-      columns: { id: true },
+      columns: {
+        compactAt: true,
+        connectionResourceId: true,
+        parentChatId: true,
+        title: true,
+      },
       where: { id: { eq: input.chatId }, userId: { eq: context.user.id } },
     })
 
@@ -27,36 +45,28 @@ export const attachStream = orpc
       return
     }
 
-    const messages = await chatPersist.loadMessages({
-      chatId: input.chatId,
-      userId: context.user.id,
-    })
-    const lastMessage = messages.at(-1)
-    if (lastMessage?.role !== 'user' || lastMessage.metadata?.stopped) {
+    // Reattaching to a chat streams nothing rather than failing once the budget is spent; only a restart pays.
+    const payer = await payForAi(context)
+    if (!payer) {
       return
     }
 
-    const restarted = await chatStream.claim({
-      chatId: input.chatId,
-      messages,
-      onFinish: (message) =>
-        chatPersist.persistMessage({
-          chatId: input.chatId,
-          message,
+    const restarted = await startChatTurn({
+      chat: {
+        compactAt: owned.compactAt ?? context.user.chatCompactAt ?? null,
+        connection: await chatSession.connection({
+          connectionResourceId: owned.connectionResourceId,
           userId: context.user.id,
         }),
-      telemetry: aiUsage.telemetry({
-        chatId: input.chatId,
-        feature: AiFeature.Chat,
-        userId: context.user.id,
-      }),
+        isSubagent: !!owned.parentChatId,
+        title: owned.title,
+      },
+      chatId: input.chatId,
+      payer,
+      settings: input,
+      userId: context.user.id,
     })
-    if (restarted) {
-      yield* restarted
-      return
-    }
-
-    const racing = await chatStream.resume(input.chatId)
+    const racing = restarted ?? (await chatStream.resume(input.chatId))
     if (racing) {
       yield* racing
     }

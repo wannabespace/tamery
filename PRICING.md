@@ -20,13 +20,13 @@ Why this model (and not feature gating):
 | --- | --- | --- |
 | Connections | 3 | Unlimited |
 | Workspaces | 1 (personal, auto-created) | Unlimited |
-| AI requests | Limited per week, or unlimited with BYOK | Unlimited filters; included credits, then bought credits, for the rest |
+| AI requests | Limited per week; chat with BYOK | Unlimited filters; every AI feature together up to $5 of model cost each month (`PRO_INCLUDED_AI_USD`), then bought credits (1:1 with model cost, never expire, optional auto top-up) |
 | Cloud sync | Included (within connection limit) | Included |
 | Chats & query history | Limited retention | Unlimited |
 
 Exact numbers are product decisions and may change; the structure should not.
 
-BYOK (bring your own API key) keeps AI usable on Free at zero token cost to us. It also serves privacy-sensitive users who don't want their queries going through our provider account.
+BYOK (bring your own API key) keeps the chat usable on Free at zero token cost to us. It also serves privacy-sensitive users who don't want their queries going through our provider account.
 
 ## Decision framework for new features
 
@@ -79,7 +79,7 @@ Where today's wiring contradicts the framework. Read the routers for the current
 1. **One pooled AI quota instead of a hard paywall.** Every AI endpoint shares one weekly counter (a `FREE_WEEKLY_LIMITS` entry, counted through `apps/api/lib/usage.ts`) behind `optionalSubscriptionMiddleware`; a subscription skips it. A hard gate hides the product's best conversion surface from free users, and per-feature counters produce a plan nobody can describe. The story has to fit one sentence: "N AI filters a week free, unlimited on Pro; other AI spends Pro credits, buy more when they run out."
 2. **Gate generation, never chat persistence.** Storing chat rows costs nothing, and a lapsed subscriber must not lose the ability to edit or delete their own history. Chats and messages mutations belong on `authMiddleware`; the model call is the enforcement point. Retention, if ever needed, is a quantity limit.
 3. **Implement the connection limit before tiers launch** — it is the model's primary quantity lever. Count server-side in `connections/create`, block only new creates, and ship the UI mirror in the same release: a silent server rejection reads as a bug, not a plan.
-4. **BYOK is the free tier's AI escape hatch.** A user-stored provider key (per-user secret, same path as encryption secrets) routes AI calls to it and skips the quota entirely — which makes the free story honest, serves privacy-sensitive users, and removes token cost as an argument for hard gates.
+4. **BYOK is the free tier's AI escape hatch.** User-stored Anthropic, OpenAI, Google and OpenRouter keys (per-user secrets, encrypted like other columns, one per provider) run the chat on them, open the chat on Free and skip Pro's budget and credits for it; every other AI feature stays on Tamery with its plan limits, so the keys stay one clear thing — which makes the free story honest, serves privacy-sensitive users, and removes token cost as an argument for hard gates.
 5. **One limit contract.** Every limit, metered or quantity, reports through `usage.get` as a `{ max, used, resetAt }` quota, so clients share one upgrade-prompt component instead of per-feature paywall screens.
 6. **Workspace gating stays as it is** — one free personal workspace is a quantity limit. When members and invitations ship, resist moving _collaboration_ under Pro: multi-player belongs to a per-seat Team tier and Pro stays a single-player scale upgrade. Deciding this now avoids re-gating workspaces twice.
 
