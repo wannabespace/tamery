@@ -8,8 +8,8 @@ import {
   Logout03Icon,
   Message01Icon,
   NewTwitterIcon,
+  Settings02Icon,
   Share08Icon,
-  UserIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { RELEASES_URL, SOCIAL_LINKS } from '@tamery/shared/constants'
@@ -20,6 +20,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@tamery/ui/components/dropdown-menu'
 import {
@@ -32,9 +33,11 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { Link } from '~/components/link'
+import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
 import { authClient } from '~/lib/auth'
+import { ANALYTICS_STORAGE_KEY } from '~/lib/posthog'
 import { clearDb } from '~/lib/sync'
-import { accountUrl, sharesUrl } from '~/lib/urls'
+import { sharesUrl } from '~/lib/urls'
 
 import { SupportDialog } from './support-dialog'
 import { useSignOut } from './use-sign-out'
@@ -49,7 +52,7 @@ const clearLocalAppCache = async () => {
 
   await clearDb()
   for (const key of Object.keys(localStorage)) {
-    if (!key.includes('bearer_token')) {
+    if (!key.includes('bearer_token') && key !== ANALYTICS_STORAGE_KEY) {
       localStorage.removeItem(key)
     }
   }
@@ -104,17 +107,19 @@ export const UserButton = ({
           )}
         </div>
         <DropdownMenuSeparator />
-        {data?.user.isAnonymous ? (
+        {data?.user.isAnonymous && (
           <DropdownMenuItem render={<Link to="/auth" activateOn="click" />}>
             <HugeiconsIcon icon={Login03Icon} strokeWidth={2} />
             Sign in
           </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem onClick={() => window.open(accountUrl, '_blank')}>
-            <HugeiconsIcon icon={UserIcon} strokeWidth={2} />
-            Account
-          </DropdownMenuItem>
         )}
+        <DropdownMenuItem render={<Link to="/settings" activateOn="click" />}>
+          <HugeiconsIcon icon={Settings02Icon} strokeWidth={2} />
+          Settings
+          <DropdownMenuShortcut>
+            <ShortcutKbd shortcut="settings" />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
         {!data?.user.isAnonymous && (
           <DropdownMenuItem onClick={() => window.open(sharesUrl, '_blank')}>
             <HugeiconsIcon icon={Share08Icon} strokeWidth={2} />

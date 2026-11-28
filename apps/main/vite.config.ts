@@ -27,13 +27,10 @@ export default defineConfig(({ command }) => ({
       router: {
         virtualRouteConfig: rootRoute('__root.tsx', [
           physical('', '.'),
-          physical('', '../modules/ai-usage/routes'),
-          physical('', '../modules/billing/routes'),
           physical('', '../modules/blog/routes'),
           physical('', '../modules/deep-link/routes'),
           physical('', '../modules/legal/routes'),
           physical('', '../modules/releases/routes'),
-          physical('', '../modules/settings/routes'),
         ]),
       },
     }),

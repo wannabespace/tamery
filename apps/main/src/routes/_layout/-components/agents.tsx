@@ -35,7 +35,7 @@ const POINTS = [
 export const Agents = () => (
   <Chapter
     id="agents"
-    number="03"
+    number="04"
     label="Agents"
     title="Your agents query."
     subtitle="You approve the writes."

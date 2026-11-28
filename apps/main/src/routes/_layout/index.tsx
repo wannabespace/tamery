@@ -11,7 +11,7 @@ export const Route = createFileRoute('/_layout/')({
   head: homeHead,
   loader: async ({ context }) => {
     if (context.session) {
-      throw redirect({ to: '/account' })
+      throw redirect({ href: import.meta.env.VITE_PUBLIC_WEB_URL })
     }
 
     await silently(() =>

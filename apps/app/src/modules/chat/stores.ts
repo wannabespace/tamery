@@ -9,7 +9,7 @@ import { createWebStorageValue } from 'seitu/web'
 
 import { CHAT_DRAFTS_KEY, CHAT_NEW_IDS_KEY } from '~/lib/constants'
 
-import type { PromptMention } from './prompt-mentions'
+import type { PromptMention } from './mentions/prompt-mentions'
 
 /** The model the chat answers with, or Auto, which the API picks per message; a model no longer offered reads as Auto. */
 export const chatModelValue = createWebStorageValue({

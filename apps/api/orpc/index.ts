@@ -12,17 +12,18 @@ import { getPermissions } from '@tamery/shared/permissions'
 import { isAPIError } from 'better-auth/api'
 import { createPermix } from 'permix/orpc'
 
-import { aiKey, payForAi } from '~/lib/ai-key'
 import { auth } from '~/lib/auth'
-import { credits } from '~/lib/credits'
 import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { redis } from '~/lib/redis'
-import { getSubscription } from '~/lib/subscription'
+import { sessionActivity } from '~/lib/session-activity'
+import { aiKey, payForAi } from '~/modules/billing/ai-key'
+import { credits } from '~/modules/billing/credits'
+import { getSubscription } from '~/modules/billing/subscription'
 
 import type { Context } from './context'
 import type { router } from './routers'
 
-export { getSubscription } from '~/lib/subscription'
+export { getSubscription } from '~/modules/billing/subscription'
 
 export const orpc = os.$context<Context>()
 
@@ -90,7 +91,6 @@ const LOGGED_PAYLOADS: ReadonlySet<string> = new Set([
   'banner',
   'connectionsResources',
   'releases',
-  'repo',
   'usage',
   'userCount',
   'workspaces',
@@ -131,6 +131,10 @@ export const authMiddleware = logMiddleware.use(
     }
 
     context.addLogData({ userId: session.user.id })
+    void sessionActivity.touch(
+      session.session.id,
+      context.headers.get(CLIENT_IP_HEADER)
+    )
 
     try {
       return await next({

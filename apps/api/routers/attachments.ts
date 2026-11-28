@@ -2,7 +2,7 @@ import { db } from '@tamery/db'
 import { attachmentRef } from '@tamery/shared/attachments'
 import { Hono } from 'hono'
 
-import { attachments } from '~/lib/chat/attachments'
+import { attachments } from '~/modules/chat/attachments'
 
 /** Public: the link a model provider fetches a chat file from (`attachmentLink`). The signature is the only credential, so the link expires, and it answers 404 once its file is no longer in a message of the chat. */
 export const attachmentsRouter = new Hono().get('/:chatId/:file', async (c) => {

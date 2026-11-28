@@ -1,3 +1,4 @@
+import { Ask } from '~/modules/features/ask'
 import { Explore } from '~/modules/features/explore'
 import { Query } from '~/modules/features/query'
 import { Share } from '~/modules/features/share'
@@ -16,6 +17,7 @@ export const HomePage = () => (
     <Hero />
     <Engines />
     <Explore />
+    <Ask />
     <Query />
     <Agents />
     <Share />
