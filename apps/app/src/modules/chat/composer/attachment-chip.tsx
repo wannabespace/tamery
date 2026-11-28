@@ -19,30 +19,40 @@ import {
 } from '@tamery/ui/components/dialog'
 import { skipToken, useQuery } from '@tanstack/react-query'
 import type { FileUIPart } from 'ai'
-import { useState } from 'react'
+import { useInView } from 'motion/react'
+import type { RefObject } from 'react'
+import { useRef, useState } from 'react'
 
 import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 
+const FETCH_STATE = {
+  error: 'error',
+  pending: 'processing',
+  success: 'done',
+} as const
+
 const base64Bytes = (url: string) =>
   Math.floor(((url.length - url.indexOf(',') - 1) * 3) / 4)
 
-/** A file stored in the attachments bucket is fetched once per session; a data URL is the file itself. */
-const useFile = (url: string) => {
+const useFile = (url: string, chip: RefObject<HTMLDivElement | null>) => {
   const ref = parseAttachmentRef(url)
-  const { data } = useQuery({
+  const isInView = useInView(chip, { once: true })
+  const { data, status } = useQuery({
     // An object URL is never revoked, so the query must outlive every chip showing it.
     gcTime: Infinity,
-    queryFn: ref
-      ? async () => {
-          const blob = await orpc.ai.attachment.call(ref)
-          return { size: blob.size, url: URL.createObjectURL(blob) }
-        }
-      : skipToken,
+    queryFn:
+      ref && isInView
+        ? async () => {
+            const blob = await orpc.ai.attachment.call(ref)
+            return { size: blob.size, url: URL.createObjectURL(blob) }
+          }
+        : skipToken,
     queryKey: ['chat-attachment', url],
     staleTime: Infinity,
+    throwOnError: false,
   })
-  return ref ? data : { size: base64Bytes(url), url }
+  return { file: ref ? data : { size: base64Bytes(url), url }, status }
 }
 
 export const AttachmentChip = ({
@@ -55,7 +65,8 @@ export const AttachmentChip = ({
   part: FileUIPart
 }) => {
   const [isViewing, setIsViewing] = useState(false)
-  const file = useFile(part.url)
+  const chip = useRef<HTMLDivElement>(null)
+  const { file, status } = useFile(part.url, chip)
   const isImage = part.mediaType.startsWith('image/')
   const open = () => {
     posthog.capture('ai_chat_attachment_opened', {
@@ -77,6 +88,8 @@ export const AttachmentChip = ({
 
   return (
     <Attachment
+      ref={chip}
+      state={file ? 'done' : FETCH_STATE[status]}
       orientation={orientation}
       size={orientation === 'vertical' ? 'default' : 'xs'}
       className="max-w-52"
@@ -91,7 +104,7 @@ export const AttachmentChip = ({
       <AttachmentContent>
         <AttachmentTitle data-mask>{part.filename}</AttachmentTitle>
         <AttachmentDescription>
-          {file && fileSize(file.size)}
+          {file ? fileSize(file.size) : status === 'error' && "Couldn't load"}
         </AttachmentDescription>
       </AttachmentContent>
       {onRemove ? (
