@@ -44,7 +44,7 @@ const send = async (messages: AppUIMessage[] = [HI]) => {
       resource: null,
       type: ConnectionType.Postgres,
     },
-    key: null,
+    key: 'tamery',
     limits: { steps: 10, tokens: 100_000 },
     messages,
     onEnd: () => {},
