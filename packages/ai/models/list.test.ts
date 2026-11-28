@@ -23,7 +23,7 @@ describe('chatModelVariations', () => {
     expect(chatModelVariations('anthropic/claude-opus-5.5')).toEqual({
       contexts: [STANDARD_CHAT_CONTEXT, 1_000_000],
       defaultEffort: 'medium',
-      efforts: ['low', 'medium', 'high', 'xhigh'],
+      efforts: ['low', 'medium', 'high', 'xhigh', 'max'],
     })
   })
 
@@ -46,10 +46,12 @@ it("runs each of Auto's levels at an effort its model supports", () => {
 describe('resolveChatEffort', () => {
   it('keeps an effort the model supports', () => {
     expect(resolveChatEffort('google/gemini-4-argon', 'high')).toBe('high')
+    expect(resolveChatEffort('z-ai/glm-5.3', 'max')).toBe('max')
   })
 
   it("falls back to the model's default for one it does not", () => {
     expect(resolveChatEffort('google/gemini-4-argon', 'xhigh')).toBe('medium')
+    expect(resolveChatEffort('x-ai/grok-4.7', 'max')).toBe('medium')
     expect(resolveChatEffort('z-ai/glm-5.3', 'medium')).toBe('high')
     expect(resolveChatEffort('z-ai/glm-5.3')).toBe('high')
   })
