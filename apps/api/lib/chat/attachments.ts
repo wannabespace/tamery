@@ -6,12 +6,12 @@ import { section } from '@tamery/ai/features/prompt'
 import type { AppMessagePart, AppUIMessage } from '@tamery/ai/message'
 import { isContinue, isSqlRun } from '@tamery/ai/message'
 import { db } from '@tamery/db'
-import { parseKeyring } from '@tamery/db/utils'
 import {
   attachmentRef,
   chatAttachmentsPrefix,
   parseAttachmentRef,
 } from '@tamery/shared/attachments'
+import { parseKeyring } from '@tamery/shared/crypto-node'
 import { UNTRUSTED_FILE_NOTE } from '@tamery/shared/mcp'
 import { silently } from '@tamery/shared/utils'
 import { isFileUIPart } from 'ai'

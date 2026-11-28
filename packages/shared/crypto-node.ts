@@ -59,3 +59,18 @@ export const decrypt = ({
     throw new Error('Failed to decrypt text')
   }
 }
+
+// A key itself must never contain a comma, or it splits into fragments that open nothing.
+export const parseKeyring = (secrets: string) => {
+  const all = secrets
+    .split(',')
+    .map((secret) => secret.trim())
+    .filter(Boolean)
+  const [current] = all
+
+  if (!current) {
+    throw new Error('Encryption key is empty')
+  }
+
+  return { all, current }
+}
