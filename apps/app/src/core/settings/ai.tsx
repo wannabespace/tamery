@@ -3,6 +3,7 @@ import { useHasAccount } from '~/lib/auth'
 import { AiCredits } from '~/modules/account/ai-credits'
 
 import { AiProviders } from './ai-providers'
+import { ChatCompaction } from './chat-compaction'
 import { DictationModel } from './dictation-model'
 
 export const AiSettings = () => {
@@ -16,6 +17,7 @@ export const AiSettings = () => {
   return (
     <>
       <AiProviders aiKeys={aiKeys} />
+      <ChatCompaction />
       <DictationModel
         providers={aiKeys
           .filter(({ enabled }) => enabled)

@@ -6,9 +6,8 @@ import {
   chatModels,
   chatModelVariations,
   DEFAULT_CHAT_MODEL,
-  resolveChatContext,
   resolveChatEffort,
-  STANDARD_CHAT_CONTEXT,
+  resolveCompactAt,
 } from './list'
 
 describe('chatModelVariations', () => {
@@ -21,7 +20,7 @@ describe('chatModelVariations', () => {
 
   it('gives a model without its own list the shared efforts and default', () => {
     expect(chatModelVariations('anthropic/claude-opus-5.5')).toEqual({
-      contexts: [STANDARD_CHAT_CONTEXT, 1_000_000],
+      context: 1_000_000,
       defaultEffort: 'medium',
       efforts: ['low', 'medium', 'high', 'xhigh', 'max'],
     })
@@ -57,15 +56,16 @@ describe('resolveChatEffort', () => {
   })
 })
 
-describe('resolveChatContext', () => {
-  it('keeps a window the model offers', () => {
-    expect(resolveChatContext('x-ai/grok-4.7', STANDARD_CHAT_CONTEXT)).toBe(
-      STANDARD_CHAT_CONTEXT
-    )
+describe('resolveCompactAt', () => {
+  it("compacts at 80% of the model's window when nothing is picked", () => {
+    expect(resolveCompactAt('x-ai/grok-4.7', null)).toBe(400_000)
   })
 
-  it('falls back to the full window for one it does not', () => {
-    expect(resolveChatContext('x-ai/grok-4.7', 1_000_000)).toBe(500_000)
-    expect(resolveChatContext('x-ai/grok-4.7')).toBe(500_000)
+  it('keeps a picked threshold below that', () => {
+    expect(resolveCompactAt('x-ai/grok-4.7', 200_000)).toBe(200_000)
+  })
+
+  it("caps a picked threshold at 80% of the model's window", () => {
+    expect(resolveCompactAt('x-ai/grok-4.7', 1_000_000)).toBe(400_000)
   })
 })

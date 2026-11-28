@@ -46,14 +46,13 @@ export const recentChatModelsValue = createWebStorageValue({
 })
 
 const chatModelOptions = type({
-  'context?': 'number',
   'effort?': chatEffort,
   'fast?': 'boolean',
 })
 
 export type ChatModelOptions = typeof chatModelOptions.infer
 
-/** Effort, context window and fast routing per model id; a missing option follows the model's default. */
+/** Effort and fast routing per model id; a missing option follows the model's default. */
 export const chatModelOptionsValue = createWebStorageValue({
   defaultValue: {},
   key: 'chat-model-options',

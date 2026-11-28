@@ -7,8 +7,6 @@ import { modelsFor } from '../models/own-key'
 import { estimateTokens, toModelMessages } from './chat-step'
 import { section } from './prompt'
 
-/** Share of the context window past which a new message compacts the chat first. */
-const COMPACT_AT = 0.8
 const SUMMARY_TOKENS = 4000
 
 const SUMMARY_REQUEST = [
@@ -31,9 +29,9 @@ export const afterCompaction = (
   return index === -1 ? messages : messages.slice(index + 1)
 }
 
-export const needsCompaction = (messages: AppUIMessage[], window: number) =>
+export const needsCompaction = (messages: AppUIMessage[], compactAt: number) =>
   messages.reduce((sum, message) => sum + estimateTokens(message), 0) >
-  window * COMPACT_AT
+  compactAt
 
 /** Folds `messages` and any earlier summary into one summary that stands in for everything through the last of them. */
 export const compactMessages = async (data: {

@@ -29,12 +29,7 @@ import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { ActionItem, ListEmpty } from '~/modules/runner/components/popover-list'
 
-import {
-  CONTROLS,
-  EFFORT_LABELS,
-  ModelOptions,
-  formatContext,
-} from './model-options'
+import { CONTROLS, EFFORT_LABELS, ModelOptions } from './model-options'
 import type { ChatModelOptions } from './stores'
 import {
   chatModelOptionsValue,
@@ -109,10 +104,6 @@ export const ModelPicker = () => {
   const optionsOf = (model: (typeof models)[number]) => {
     const stored = allOptions[model.id]
     return {
-      context:
-        model.contexts.find((tokens) => tokens === stored?.context) ??
-        model.contexts.at(-1) ??
-        0,
       effort:
         model.efforts.find((effort) => effort === stored?.effort) ??
         model.defaultEffort,
@@ -122,11 +113,7 @@ export const ModelPicker = () => {
 
   const summary = (model: (typeof models)[number]) => {
     const options = optionsOf(model)
-    return [
-      EFFORT_LABELS[options.effort],
-      formatContext(options.context),
-      options.fast && 'Fast',
-    ]
+    return [EFFORT_LABELS[options.effort], options.fast && 'Fast']
       .filter(Boolean)
       .join(' · ')
   }
@@ -338,7 +325,6 @@ export const ModelPicker = () => {
             {activeModel && (
               <ModelOptions
                 ref={optionsRef}
-                contexts={activeModel.contexts}
                 efforts={activeModel.efforts}
                 options={optionsOf(activeModel)}
                 onChange={(option) => setOption(activeModel.id, option)}

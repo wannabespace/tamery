@@ -2,6 +2,7 @@ import { passkeyClient } from '@better-auth/passkey/client'
 import { type } from 'arktype'
 import {
   anonymousClient,
+  inferAdditionalFields,
   organizationClient,
   twoFactorClient,
 } from 'better-auth/client/plugins'
@@ -74,6 +75,9 @@ export const authClient = createAuthClient({
     organizationClient(),
     twoFactorClient(),
     passkeyClient(),
+    inferAdditionalFields({
+      user: { chatCompactAt: { required: false, type: 'number' } },
+    }),
   ],
 })
 
