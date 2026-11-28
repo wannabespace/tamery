@@ -73,12 +73,14 @@ export const chatModels = [
   {
     id: 'google/gemini-4-neon',
     context: 1_048_576,
+    efforts: ['low', 'medium', 'high', 'xhigh'],
     name: 'Gemini 4 Neon',
     provider: 'Google',
   },
   {
     id: 'google/gemini-4-hydrogen',
     context: 1_048_576,
+    efforts: ['low', 'medium', 'high', 'xhigh'],
     name: 'Gemini 4 Hydrogen',
     provider: 'Google',
   },
@@ -92,6 +94,7 @@ export const chatModels = [
   {
     id: 'x-ai/grok-4.7',
     context: 500_000,
+    efforts: ['low', 'medium', 'high', 'xhigh'],
     name: 'Grok 4.7',
     provider: 'xAI',
   },
@@ -99,7 +102,7 @@ export const chatModels = [
     id: '~deepseek/deepseek-pro-latest',
     context: 1_048_576,
     defaultEffort: 'high',
-    efforts: ['low', 'high'],
+    efforts: ['low', 'high', 'max'],
     name: 'DeepSeek Pro',
     provider: 'DeepSeek',
   },
@@ -107,13 +110,14 @@ export const chatModels = [
     id: 'moonshotai/kimi-k3.1-pro',
     context: 1_048_576,
     defaultEffort: 'high',
-    efforts: ['low', 'high'],
+    efforts: ['low', 'high', 'max'],
     name: 'Kimi K3.1 Pro',
     provider: 'Moonshot',
   },
   {
     id: 'qwen/qwen3.8-max-0902',
     context: 1_000_000,
+    efforts: ['low', 'medium', 'high', 'xhigh'],
     name: 'Qwen3.8 Max',
     provider: 'Qwen',
   },
@@ -121,7 +125,7 @@ export const chatModels = [
     id: 'z-ai/glm-5.3',
     context: 1_048_576,
     defaultEffort: 'high',
-    efforts: ['low', 'high'],
+    efforts: ['low', 'high', 'max'],
     name: 'GLM 5.3',
     provider: 'Z.ai',
   },
@@ -136,7 +140,7 @@ export const chatModels = [
 ] as const satisfies readonly ChatModel[]
 
 /** OpenRouter's `reasoning.effort` levels the picker offers, lowest first. */
-export const CHAT_EFFORTS = ['low', 'medium', 'high', 'xhigh'] as const
+export const CHAT_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
 
 export type ChatEffort = (typeof CHAT_EFFORTS)[number]
 
