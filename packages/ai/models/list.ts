@@ -226,9 +226,9 @@ export const FIM_PRICED_ID = `mistral/${FIM_MODEL}`
 
 /** Each fixed model and the one it retries on. */
 export const MODEL_IDS = {
-  fast: ['anthropic/claude-haiku-4.5', 'google/gemini-3.8-flash'],
+  fast: ['anthropic/claude-haiku-5.5', 'google/gemini-3.8-flash'],
   query: ['anthropic/claude-opus-5.5', 'x-ai/grok-4.7'],
-  search: ['google/gemini-3.8-flash', 'anthropic/claude-haiku-4.5'],
+  search: ['google/gemini-3.8-flash', 'anthropic/claude-haiku-5.5'],
   structured: ['anthropic/claude-sonnet-5.5', 'x-ai/grok-4.7'],
   summary: ['google/gemini-3.8-flash', 'anthropic/claude-sonnet-5.5'],
   transcribe: ['google/gemini-3.8-flash', 'google/gemini-4-argon'],
