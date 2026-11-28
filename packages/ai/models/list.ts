@@ -148,31 +148,28 @@ export const chatEffort = type.enumerated(...CHAT_EFFORTS)
 
 export const DEFAULT_CHAT_EFFORT: ChatEffort = 'medium'
 
-/** The smaller window the picker offers next to a model's full one: older turns are dropped to fit it, which keeps long chats cheaper and faster. */
-export const STANDARD_CHAT_CONTEXT = 200_000
-
-/** The windows a model offers, smallest first, and the efforts it supports, lowest first. */
+/** The window a model reads, in tokens, and the efforts it supports, lowest first. */
 export const chatModelVariations = (id: ChatModelId) => {
-  const model: ChatModel | undefined = chatModels.find(
-    (option) => option.id === id
-  )
-  const full = model?.context ?? STANDARD_CHAT_CONTEXT
+  const model: ChatModel =
+    chatModels.find((option) => option.id === id) ?? chatModels[0]
   return {
-    contexts:
-      full > STANDARD_CHAT_CONTEXT ? [STANDARD_CHAT_CONTEXT, full] : [full],
-    defaultEffort: model?.defaultEffort ?? DEFAULT_CHAT_EFFORT,
-    efforts: model?.efforts ?? CHAT_EFFORTS,
+    context: model.context,
+    defaultEffort: model.defaultEffort ?? DEFAULT_CHAT_EFFORT,
+    efforts: model.efforts ?? CHAT_EFFORTS,
   }
 }
 
-/** A pick outside the model's windows falls back to its full one. */
-export const resolveChatContext = (id: ChatModelId, context?: number) => {
-  const { contexts } = chatModelVariations(id)
-  return (
-    contexts.find((option) => option === context) ??
-    contexts.at(-1) ??
-    STANDARD_CHAT_CONTEXT
-  )
+/** Raised toward 1, a turn compacting at the cap has no room left for its answer and tool steps before the window overflows. */
+const COMPACT_SHARE = 0.8
+
+export const MIN_COMPACT_AT = 50_000
+
+export const compactAt = type(`number.integer >= ${MIN_COMPACT_AT}`)
+
+/** No pick, or one above the model's cap, compacts at the cap. */
+export const resolveCompactAt = (id: ChatModelId, picked: number | null) => {
+  const limit = Math.floor(chatModelVariations(id).context * COMPACT_SHARE)
+  return Math.min(picked ?? limit, limit)
 }
 
 /** A pick outside the model's efforts falls back to its default one. */
