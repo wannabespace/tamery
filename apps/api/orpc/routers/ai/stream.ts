@@ -1,7 +1,11 @@
 import { chatStream } from '@tamery/ai/features'
 import { CHAT_LIMITS } from '@tamery/ai/limits'
 import type { AppUIMessage } from '@tamery/ai/message'
-import { chatModelPick, MODEL_UNAVAILABLE_MESSAGE } from '@tamery/ai/models'
+import {
+  chatEffort,
+  chatModelPick,
+  MODEL_UNAVAILABLE_MESSAGE,
+} from '@tamery/ai/models'
 import { parseAttachmentRef } from '@tamery/shared/attachments'
 import { runInBackground } from '@tamery/shared/background'
 import { validateUIMessages } from 'ai'
@@ -53,8 +57,7 @@ export const stream = orpc
       chatId: 'string.uuid.v7',
       connectionResourceId: 'string.uuid.v7',
       messages: 'object[]',
-      'context?': 'number.integer > 0',
-      'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
+      'effort?': chatEffort,
       'fast?': 'boolean',
       'model?': chatModelPick,
       'subagent?': {
@@ -94,7 +97,10 @@ export const stream = orpc
     const owner = { chatId: input.chatId, userId: context.user.id }
     const started = await startChatTurn({
       ...owner,
-      chat,
+      chat: {
+        ...chat,
+        compactAt: chat.compactAt ?? context.user.chatCompactAt ?? null,
+      },
       payer: context.payer,
       persistTurn: async () => {
         if (turn.role !== 'user') {

@@ -6,6 +6,7 @@ import {
   ArrowUpBigIcon,
   CommandIcon,
   CornerDownLeftIcon,
+  OptionIcon,
 } from '@hugeicons/core-free-icons'
 import type { IconSvgElement } from '@hugeicons/react'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -99,7 +100,7 @@ export const KbdHotkey = ({
   return (
     <Kbd {...props}>
       {[...modifiers, key ?? code].map((part, index) => {
-        const glyph = GLYPHS[part]
+        const glyph = isMac && part === 'Alt' ? OptionIcon : GLYPHS[part]
         return (
           <Fragment key={part}>
             {!isMac && index > 0 && '+'}

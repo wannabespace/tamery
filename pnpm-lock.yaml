@@ -227,6 +227,9 @@ catalogs:
     '@ip-location-db/dbip-city-mmdb':
       specifier: ^2.3.2026060513
       version: 2.3.2026060513
+    '@journeyapps/wa-sqlite':
+      specifier: ^1.7.2
+      version: 1.7.2
     '@libsql/client':
       specifier: ^0.18.0
       version: 0.18.0
@@ -938,6 +941,9 @@ importers:
       '@hugeicons/react':
         specifier: 'catalog:'
         version: 1.1.10(react@19.3.1)
+      '@journeyapps/wa-sqlite':
+        specifier: 'catalog:'
+        version: 1.7.2
       '@orpc/client':
         specifier: 'catalog:'
         version: 2.0.0-beta.52
@@ -1311,6 +1317,9 @@ importers:
       ssh2:
         specifier: 'catalog:'
         version: 1.17.0
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -2234,6 +2243,9 @@ importers:
       input-otp:
         specifier: 'catalog:'
         version: 1.5.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      mermaid:
+        specifier: 'catalog:'
+        version: 12.3.0
       motion:
         specifier: 'catalog:'
         version: 14.14.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)

@@ -9,7 +9,7 @@ import type { ChatEffort, ChatModelPick } from '@tamery/ai/models'
 import {
   AUTO_MODEL,
   MODEL_UNAVAILABLE_MESSAGE,
-  resolveChatContext,
+  resolveCompactAt,
 } from '@tamery/ai/models'
 import { AiFeature } from '@tamery/ai/usage'
 import { runInBackground } from '@tamery/shared/background'
@@ -25,14 +25,14 @@ import { persistChatTitle } from '~/lib/chat/title'
 import { credits, PAID_CALLS_BUSY_MESSAGE } from '~/lib/credits'
 
 const compactFor = async ({
-  contextTokens,
+  compactAt,
   ...data
 }: Omit<Parameters<typeof chatCompaction.compact>[0], 'previous'> & {
-  contextTokens: number
+  compactAt: number
 }) => {
   const stored = await chatCompaction.get(data)
   return data.history.at(-1)?.role === 'user' &&
-    needsCompaction(afterCompaction(data.history, stored), contextTokens)
+    needsCompaction(afterCompaction(data.history, stored), compactAt)
     ? chatCompaction.compact({ ...data, previous: stored })
     : stored
 }
@@ -45,7 +45,6 @@ export const startChatTurn = async (data: {
   /** Stores the new turn. A restart has none and goes on only while the transcript ends on a user turn nobody answered or stopped. */
   persistTurn?: () => Promise<unknown>
   settings: {
-    context?: number
     effort?: ChatEffort
     fast?: boolean
     model?: ChatModelPick
@@ -114,12 +113,11 @@ export const startChatTurn = async (data: {
     if (await turn.stopped()) {
       return await endStopped()
     }
-    const contextTokens = resolveChatContext(pick.model, data.settings.context)
     const telemetry = data.payer.telemetry(scope)
     const sent = await attachments.forModel(history)
     const compaction = await compactFor({
       ...owner,
-      contextTokens,
+      compactAt: resolveCompactAt(pick.model, data.chat.compactAt),
       history: sent,
       key: data.payer.key,
       telemetry,
@@ -127,8 +125,9 @@ export const startChatTurn = async (data: {
 
     const stream = await turn.start({
       ...pick,
-      contextTokens,
+      connection: data.chat.connection,
       fast: data.settings.fast,
+      isSubagent: data.chat.isSubagent,
       messages: afterCompaction(sent, compaction),
       onFinish: async (message) => {
         try {

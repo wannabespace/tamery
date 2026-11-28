@@ -1,14 +1,10 @@
-import { FolderAddIcon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
 import { Separator } from '@tamery/ui/components/separator'
-import { SidebarMenuButton } from '@tamery/ui/components/sidebar'
 import type { ComponentRef, RefObject } from 'react'
 
 import { getCapabilities } from '~/core/catalog/capabilities'
 import { useObjectNames } from '~/core/catalog/names'
 import { useConnectionContext } from '~/core/connection/route'
 
-import { createSchemaDialogRef } from './create-schema-dialog'
 import type { DropSchemaDialog } from './drop-schema-dialog'
 import type { DropTableDialog } from './drop-table-dialog'
 import type { RenameSchemaDialog } from './rename-schema-dialog'
@@ -66,22 +62,6 @@ export const TreeRowContent = ({
       <p className="text-muted-foreground flex h-full items-center pb-0.5 pl-2 text-xs">
         No {names.table}s
       </p>
-    )
-  }
-
-  if (row.kind === 'new-schema') {
-    return (
-      <div className="pt-4">
-        <SidebarMenuButton
-          id={controlId}
-          variant="muted"
-          tabIndex={-1}
-          onClick={() => createSchemaDialogRef.current?.create()}
-        >
-          <HugeiconsIcon icon={FolderAddIcon} strokeWidth={2} />
-          <span>New schema</span>
-        </SidebarMenuButton>
-      </div>
     )
   }
 

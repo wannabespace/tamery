@@ -48,7 +48,13 @@ export interface AppMenuRadioGroup {
   type: 'radio'
   value: string
   onValueChange: (value: string) => void
-  options: { value: string; label: string; disabled?: boolean }[]
+  options: {
+    value: string
+    label: string
+    disabled?: boolean
+    /** Web only. */
+    icon?: IconSvgElement
+  }[]
 }
 
 export type AppMenuNode =

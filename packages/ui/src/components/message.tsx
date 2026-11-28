@@ -46,7 +46,7 @@ const MessageContent = ({
   <div
     data-slot="message-content"
     className={cn(
-      `flex w-full min-w-0 flex-col gap-2.5 wrap-break-word select-text group-data-[align=end]/message:*:data-slot:self-end`,
+      `flex w-full min-w-0 flex-col gap-6 wrap-break-word select-text group-data-[align=end]/message:gap-2.5 group-data-[align=end]/message:*:data-slot:self-end`,
       className
     )}
     {...props}

@@ -3,7 +3,16 @@ import { createRetryableModel } from 'ai-retry/language-model'
 import { type } from 'arktype'
 import { memoize } from 'memoza'
 
-/** The models the chat offers, first is the default; the picker groups them by provider in this order. Every id is an OpenRouter id that takes tools and `reasoning.effort`; `context` is its window in tokens, from OpenRouter's catalog. */
+interface ChatModel {
+  context: number
+  defaultEffort?: ChatEffort
+  efforts?: readonly ChatEffort[]
+  id: string
+  name: string
+  provider: string
+}
+
+/** The models the chat offers, first is the default; the picker groups them by provider in this order. Every id is an OpenRouter id that takes tools and `reasoning.effort`; from OpenRouter's catalog, `context` is its window in tokens and `efforts` the levels of `CHAT_EFFORTS` it supports (all when unset), with `defaultEffort` replacing `DEFAULT_CHAT_EFFORT` where that is not one of them. */
 export const chatModels = [
   {
     id: 'anthropic/claude-opus-5.5',
@@ -50,92 +59,123 @@ export const chatModels = [
   {
     id: 'google/gemini-4-argon',
     context: 1_048_576,
+    efforts: ['low', 'medium', 'high'],
     name: 'Gemini 4 Argon',
     provider: 'Google',
   },
   {
     id: 'google/gemini-4-carbon',
     context: 1_048_576,
+    efforts: ['low', 'medium', 'high'],
     name: 'Gemini 4 Carbon',
     provider: 'Google',
   },
   {
     id: 'google/gemini-4-neon',
     context: 1_048_576,
+    efforts: ['low', 'medium', 'high', 'xhigh'],
     name: 'Gemini 4 Neon',
     provider: 'Google',
   },
   {
     id: 'google/gemini-4-hydrogen',
     context: 1_048_576,
+    efforts: ['low', 'medium', 'high', 'xhigh'],
     name: 'Gemini 4 Hydrogen',
     provider: 'Google',
   },
   {
     id: 'google/gemini-3.8-flash',
     context: 1_048_576,
+    efforts: ['low', 'medium', 'high'],
     name: 'Gemini 3.8 Flash',
     provider: 'Google',
   },
   {
     id: 'x-ai/grok-4.7',
     context: 500_000,
+    efforts: ['low', 'medium', 'high', 'xhigh'],
     name: 'Grok 4.7',
     provider: 'xAI',
   },
   {
     id: '~deepseek/deepseek-pro-latest',
     context: 1_048_576,
+    defaultEffort: 'high',
+    efforts: ['low', 'high', 'max'],
     name: 'DeepSeek Pro',
     provider: 'DeepSeek',
   },
   {
     id: 'moonshotai/kimi-k3.1-pro',
     context: 1_048_576,
+    defaultEffort: 'high',
+    efforts: ['low', 'high', 'max'],
     name: 'Kimi K3.1 Pro',
     provider: 'Moonshot',
   },
   {
     id: 'qwen/qwen3.8-max-0902',
     context: 1_000_000,
+    efforts: ['low', 'medium', 'high', 'xhigh'],
     name: 'Qwen3.8 Max',
     provider: 'Qwen',
   },
-  { id: 'z-ai/glm-5.3', context: 1_048_576, name: 'GLM 5.3', provider: 'Z.ai' },
+  {
+    id: 'z-ai/glm-5.3',
+    context: 1_048_576,
+    defaultEffort: 'high',
+    efforts: ['low', 'high', 'max'],
+    name: 'GLM 5.3',
+    provider: 'Z.ai',
+  },
   {
     id: 'mistralai/mistral-large-4-0',
     context: 1_048_576,
+    defaultEffort: 'high',
+    efforts: ['high'],
     name: 'Mistral Large 4',
     provider: 'Mistral',
   },
-] as const
+] as const satisfies readonly ChatModel[]
 
 /** OpenRouter's `reasoning.effort` levels the picker offers, lowest first. */
-export const CHAT_EFFORTS = ['low', 'medium', 'high', 'xhigh'] as const
+export const CHAT_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
 
 export type ChatEffort = (typeof CHAT_EFFORTS)[number]
 
+export const chatEffort = type.enumerated(...CHAT_EFFORTS)
+
 export const DEFAULT_CHAT_EFFORT: ChatEffort = 'medium'
 
-/** The smaller window the picker offers next to a model's full one: older turns are dropped to fit it, which keeps long chats cheaper and faster. */
-export const STANDARD_CHAT_CONTEXT = 200_000
-
-/** The windows a model offers, smallest first. */
-export const chatContexts = (id: ChatModelId) => {
-  const full =
-    chatModels.find((model) => model.id === id)?.context ??
-    STANDARD_CHAT_CONTEXT
-  return full > STANDARD_CHAT_CONTEXT ? [STANDARD_CHAT_CONTEXT, full] : [full]
+/** The window a model reads, in tokens, and the efforts it supports, lowest first. */
+export const chatModelVariations = (id: ChatModelId) => {
+  const model: ChatModel =
+    chatModels.find((option) => option.id === id) ?? chatModels[0]
+  return {
+    context: model.context,
+    defaultEffort: model.defaultEffort ?? DEFAULT_CHAT_EFFORT,
+    efforts: model.efforts ?? CHAT_EFFORTS,
+  }
 }
 
-/** A pick outside the model's windows falls back to its full one. */
-export const resolveChatContext = (id: ChatModelId, context?: number) => {
-  const contexts = chatContexts(id)
-  return (
-    contexts.find((option) => option === context) ??
-    contexts.at(-1) ??
-    STANDARD_CHAT_CONTEXT
-  )
+/** Raised toward 1, a turn compacting at the cap has no room left for its answer and tool steps before the window overflows. */
+const COMPACT_SHARE = 0.8
+
+export const MIN_COMPACT_AT = 50_000
+
+export const compactAt = type(`number.integer >= ${MIN_COMPACT_AT}`)
+
+/** No pick, or one above the model's cap, compacts at the cap. */
+export const resolveCompactAt = (id: ChatModelId, picked: number | null) => {
+  const limit = Math.floor(chatModelVariations(id).context * COMPACT_SHARE)
+  return Math.min(picked ?? limit, limit)
+}
+
+/** A pick outside the model's efforts falls back to its default one. */
+export const resolveChatEffort = (id: ChatModelId, effort?: ChatEffort) => {
+  const { defaultEffort, efforts } = chatModelVariations(id)
+  return efforts.find((option) => option === effort) ?? defaultEffort
 }
 
 export type ChatModelId = (typeof chatModels)[number]['id']
@@ -166,7 +206,7 @@ export const AUTO_CHAT_MODELS: ChatModelId[] = [
   'anthropic/claude-opus-5.5',
 ]
 
-/** Auto's effort for each level of difficulty, in the same order as `AUTO_CHAT_MODELS`. */
+/** Auto's effort for each level of difficulty, in the same order as `AUTO_CHAT_MODELS`; each must be one its model supports. */
 export const AUTO_CHAT_EFFORTS: ChatEffort[] = ['low', 'medium', 'high']
 
 const CHAT_FALLBACKS: ChatModelId[] = [
@@ -183,9 +223,9 @@ export const FIM_PRICED_ID = `mistral/${FIM_MODEL}`
 
 /** Each fixed model and the one it retries on. */
 export const MODEL_IDS = {
-  fast: ['anthropic/claude-haiku-4.5', 'google/gemini-3.8-flash'],
+  fast: ['anthropic/claude-haiku-5.5', 'google/gemini-3.8-flash'],
   query: ['anthropic/claude-opus-5.5', 'x-ai/grok-4.7'],
-  search: ['google/gemini-3.8-flash', 'anthropic/claude-haiku-4.5'],
+  search: ['google/gemini-3.8-flash', 'anthropic/claude-haiku-5.5'],
   structured: ['anthropic/claude-sonnet-5.5', 'x-ai/grok-4.7'],
   summary: ['google/gemini-3.8-flash', 'anthropic/claude-sonnet-5.5'],
   transcribe: ['google/gemini-3.8-flash', 'google/gemini-4-argon'],

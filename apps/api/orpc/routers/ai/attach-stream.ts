@@ -1,5 +1,9 @@
 import { chatStream } from '@tamery/ai/features'
-import { chatModelPick, MODEL_UNAVAILABLE_MESSAGE } from '@tamery/ai/models'
+import {
+  chatEffort,
+  chatModelPick,
+  MODEL_UNAVAILABLE_MESSAGE,
+} from '@tamery/ai/models'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
@@ -14,8 +18,7 @@ export const attachStream = orpc
   .input(
     type({
       chatId: 'string.uuid.v7',
-      'context?': 'number.integer > 0',
-      'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
+      'effort?': chatEffort,
       'fast?': 'boolean',
       'model?': chatModelPick,
     })
@@ -24,6 +27,7 @@ export const attachStream = orpc
   .handler(async function* attachStream({ context, input }) {
     const owned = await db.query.chats.findFirst({
       columns: {
+        compactAt: true,
         connectionResourceId: true,
         parentChatId: true,
         title: true,
@@ -49,6 +53,7 @@ export const attachStream = orpc
 
     const restarted = await startChatTurn({
       chat: {
+        compactAt: owned.compactAt ?? context.user.chatCompactAt ?? null,
         connection: await chatSession.connection({
           connectionResourceId: owned.connectionResourceId,
           userId: context.user.id,

@@ -13,8 +13,8 @@ import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 import { useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { WriteEstimate } from '~/core/agent/write-estimate'
 import { getQueryLanguage } from '~/core/runtime/language'
-import { plural } from '~/utils/plural'
 
 import { approval } from './approval'
 
@@ -77,22 +77,13 @@ export const ApprovalDialog = () => {
             wrap
             className="max-h-60"
           />
-          {item.estimate !== undefined && (
-            <p className="text-muted-foreground text-xs">
-              The database estimates it changes about{' '}
-              {plural(item.estimate, 'row')}.
-            </p>
+          {item.estimate.kind === 'rows' && (
+            <WriteEstimate rows={item.estimate.rows} />
           )}
           <AlertDialogFooter>
             <AlertDialogCancel ref={declineRef}>Decline</AlertDialogCancel>
             <AlertDialogAction
-              variant={
-                getQueryLanguage(getDialect(item.connection.type)).destructive(
-                  item.sql
-                ).length > 0
-                  ? 'destructive'
-                  : 'warning'
-              }
+              variant={item.kind === 'destructive' ? 'destructive' : 'warning'}
               onClick={() => item.decide(true)}
             >
               Run

@@ -7,6 +7,7 @@ import { createClient } from 'redis'
 import { v7 } from 'uuid'
 
 import { env } from '../env'
+import { CHAT_LIMITS } from '../limits'
 import { logProviderError } from '../provider-error'
 import type { ChatStepInput } from './chat-step'
 import { streamChatStep } from './chat-step'
@@ -80,7 +81,7 @@ type StepChunk =
 
 type ChatStreamInput = Omit<
   ChatStepInput,
-  'abortSignal' | 'onEnd' | 'onError'
+  'abortSignal' | 'limits' | 'onEnd' | 'onError'
 > & { onFinish: ChatStepInput['onEnd'] }
 
 const TOOL_CALL_CLAIM_SECONDS = 3600
@@ -130,6 +131,7 @@ export const chatStream = {
           const uiStream = await streamChatStep({
             ...data,
             abortSignal: abortController.signal,
+            limits: CHAT_LIMITS.message,
             onEnd: data.onFinish,
             onError: (error) => {
               logProviderError(`chat stream ${id}`, error)

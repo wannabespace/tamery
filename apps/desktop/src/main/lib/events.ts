@@ -4,6 +4,7 @@ import type {
   MenuPopupResult,
 } from '@tamery/shared/context-menu'
 import { Dialect } from '@tamery/shared/enums/connection-type'
+import { localSkills } from '@tamery/shared/local-skills'
 import type { IpcMainInvokeEvent } from 'electron'
 import { app, ipcMain, nativeTheme } from 'electron'
 
@@ -78,6 +79,7 @@ export const electron = {
       return localDatabases.unlock(connectionString)
     },
   },
+  localSkills,
   machine: { ...machineHost, fetch: machineFetch },
   mcp,
   menu: {

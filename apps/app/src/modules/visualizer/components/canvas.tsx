@@ -212,7 +212,7 @@ export const Canvas = ({
       deleteKeyCode={null}
       proOptions={{ hideAttribution: true }}
       style={flowStyle}
-      className="bg-background"
+      className="bg-background ph-no-capture"
     >
       <ZoomVariable />
       <Background

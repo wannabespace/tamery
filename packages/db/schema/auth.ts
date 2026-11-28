@@ -7,6 +7,8 @@ import { baseTable } from '../base-table'
 
 export const users = d.snakeCase.table('users', {
   ...baseTable,
+  /** The compaction threshold this user's chats follow unless one picks its own; null leaves it to each model's window. */
+  chatCompactAt: d.integer(),
   desktopVersion: d.text(),
   email: d.text().notNull().unique(),
   emailVerified: d.boolean().default(false).notNull(),

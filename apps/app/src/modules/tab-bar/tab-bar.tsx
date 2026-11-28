@@ -10,6 +10,7 @@ import { IconButton } from '@tamery/ui/components/custom/icon-button'
 import { ScrollArea } from '@tamery/ui/components/scroll-area'
 import { Separator } from '@tamery/ui/components/separator'
 import { cn } from '@tamery/ui/lib/utils'
+import { eq, useLiveQuery } from '@tanstack/react-db'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useRouter } from '@tanstack/react-router'
@@ -17,6 +18,7 @@ import { Reorder } from 'motion/react'
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useSubscription } from 'seitu/react'
 
+import { useCollections } from '~/core/collections'
 import { useConnectionContext } from '~/core/connection/route'
 import { getConnectionResourceStore } from '~/core/connection/stores'
 import { ShortcutKbd } from '~/core/keyboard/shortcut-kbd'
@@ -25,8 +27,9 @@ import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list
 import { removeTabs, updateTabs } from '~/core/tabs/actions'
 import { parseTableTabId, tableTabId } from '~/core/tabs/ids'
 import { resolveTab, tabLabels } from '~/core/tabs/kinds'
-import { ChatToggle } from '~/modules/chat/chat-toggle'
+import { chatTabId } from '~/modules/chat/tab'
 import { toggleNavigator } from '~/modules/navigator/stores'
+import { QueryLoggerToggle } from '~/modules/query-logger/query-logger-toggle'
 
 import { HistoryNav } from './history-nav'
 import { NewTabMenu } from './new-tab-menu'
@@ -66,9 +69,11 @@ export const TabBar = ({ className }: { className?: string }) => {
 
   useEffect(() => {
     closeTabsEvent(
-      tabs.filter((tab) => !resolveTab(tab.id)).map((tab) => tab.id)
+      tabs
+        .filter((tab) => !resolveTab(tab.id, connectionResource.id))
+        .map((tab) => tab.id)
     )
-  }, [tabs])
+  }, [tabs, connectionResource.id])
 
   const closeDroppedTableTabsEvent = useEffectEvent(
     (existingTableTabIds: Set<string>) => {
@@ -99,7 +104,24 @@ export const TabBar = ({ className }: { className?: string }) => {
     )
   }, [tablesAndSchemas])
 
-  const labels = tabLabels(tabs)
+  const { chatsCollection } = useCollections()
+  const { data: chats } = useLiveQuery({
+    query: (q) =>
+      q
+        .from({ chats: chatsCollection })
+        .where(({ chats: chat }) =>
+          eq(chat.connectionResourceId, connectionResource.id)
+        ),
+  })
+  const labels = tabLabels(
+    connectionResource.id,
+    tabs,
+    new Map(
+      chats.flatMap((chat) =>
+        chat.title ? [[chatTabId(chat.id), chat.title]] : []
+      )
+    )
+  )
   const [isDragging, setIsDragging] = useState(false)
   const stripRef = useRef<HTMLUListElement>(null)
   const tabStopId = tabIds.includes(activeTabId ?? '') ? activeTabId : tabIds[0]
@@ -136,7 +158,7 @@ export const TabBar = ({ className }: { className?: string }) => {
         />
         <Separator orientation="vertical" className="mx-0.5 h-4!" />
         <HistoryNav />
-        <TabRefresh tabId={activeTabId} />
+        <TabRefresh resourceId={connectionResource.id} tabId={activeTabId} />
       </div>
       {tabs.length > 0 ? (
         <ScrollArea
@@ -144,14 +166,14 @@ export const TabBar = ({ className }: { className?: string }) => {
           className="h-full min-w-0 flex-1"
           viewportClassName="scroll-fade-x [--scroll-fade-mask:linear-gradient(to_top,#000_1px,transparent_1px),var(--scroll-fade-inline)] [-webkit-mask-composite:source-over]! [mask-composite:add]!"
         >
-          <div className="flex h-8 w-max min-w-full items-stretch">
+          <div className="flex h-8 items-stretch">
             <Reorder.Group
               axis="x"
               values={tabs}
               onReorder={(next) => updateTabs(connectionResource.id, next)}
               ref={stripRef}
               role="tablist"
-              className="flex items-stretch"
+              className="flex min-w-0 items-stretch"
             >
               {tabs.map((tab, index) => (
                 <Tab
@@ -215,7 +237,7 @@ export const TabBar = ({ className }: { className?: string }) => {
           tablesAndSchemas={tablesAndSchemas}
         />
         <Separator orientation="vertical" className="mx-0.5 h-4!" />
-        <ChatToggle resourceId={connectionResource.id} />
+        <QueryLoggerToggle />
       </div>
     </div>
   )

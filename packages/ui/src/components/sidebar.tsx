@@ -9,7 +9,7 @@ const SidebarContent = ({ className, ...props }: ComponentProps<'div'>) => (
   <div
     data-slot="sidebar-content"
     className={cn(
-      'no-scrollbar -mt-0.5 -mr-0.5 flex min-h-0 flex-1 flex-col gap-2 overflow-auto pt-0.5 pr-0.5',
+      'no-scrollbar -mt-0.5 -mr-0.5 flex min-h-0 flex-1 flex-col gap-2 overflow-auto pt-0.5 pr-0.5 outline-none',
       className
     )}
     {...props}
@@ -23,28 +23,27 @@ const SidebarMenu = ({ className, ...props }: ComponentProps<'ul'>) => (
   />
 )
 
+const sidebarMenuItemClassName = 'group/menu-item relative'
+
 const SidebarMenuItem = ({ className, ...props }: ComponentProps<'li'>) => (
-  <li className={cn('group/menu-item relative', className)} {...props} />
+  <li className={cn(sidebarMenuItemClassName, className)} {...props} />
 )
 
 const SidebarMenuButton = ({
   render,
   isActive = false,
   className,
-  variant = 'default',
   ...props
 }: useRender.ComponentProps<'button'> &
   ComponentProps<'button'> & {
     isActive?: boolean
-    variant?: 'default' | 'muted'
   }) =>
   useRender({
     defaultTagName: 'button',
     props: mergeProps<'button'>(
       {
         className: cn(
-          `peer/menu-button text-foreground hover:bg-foreground/5 group-data-highlighted/menu-item:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 active:bg-foreground/10 active:text-accent-foreground aria-pressed:bg-foreground/10 data-active:bg-foreground/5 group-data-highlighted/menu-item:data-active:bg-foreground/10 data-active:focus-visible:bg-foreground/10 flex h-7 w-full cursor-default items-center gap-2 overflow-hidden rounded-md px-2 py-2 text-left text-sm whitespace-nowrap outline-hidden select-none disabled:pointer-events-none disabled:opacity-50 data-active:font-[550] [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate`,
-          variant === 'muted' && 'text-muted-foreground',
+          `peer/menu-button text-foreground hover:bg-foreground/5 group-hover/menu-item:bg-foreground/5 group-has-focus-visible/menu-item:bg-foreground/5 group-has-data-popup-open/menu-item:bg-foreground/5 group-data-highlighted/menu-item:bg-foreground/10 hover:text-foreground focus-visible:bg-foreground/10 active:bg-foreground/10 active:text-accent-foreground aria-pressed:bg-foreground/10 data-active:bg-foreground/5 group-data-highlighted/menu-item:data-active:bg-foreground/10 data-active:focus-visible:bg-foreground/10 flex h-7 w-full cursor-default items-center gap-2 overflow-hidden rounded-md px-2 py-2 text-left text-sm whitespace-nowrap outline-hidden select-none disabled:pointer-events-none disabled:opacity-50 data-active:font-[550] [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate`,
           className
         ),
       },
@@ -74,7 +73,7 @@ const SidebarMenuAction = ({
         className: cn(
           `text-muted-foreground peer-hover/menu-button:text-accent-foreground hover:bg-foreground/10 hover:text-accent-foreground focus-visible:focus-ring absolute top-1 right-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 outline-hidden [&>svg]:size-4 [&>svg]:shrink-0`,
           showOnHover &&
-            `peer-data-active/menu-button:text-accent-foreground opacity-0 group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 aria-expanded:opacity-100`,
+            `peer-data-active/menu-button:text-accent-foreground opacity-0 group-hover/menu-item:opacity-100 group-has-focus-visible/menu-item:opacity-100 aria-expanded:opacity-100`,
           className
         ),
       },
@@ -121,7 +120,7 @@ const SidebarGroupLabel = ({
     props: mergeProps<'div'>(
       {
         className: cn(
-          `text-muted-foreground font-row group-data-highlighted/menu-item:bg-foreground/10 focus-visible:bg-foreground/10 flex h-6 shrink-0 items-center rounded-md px-2 text-xs outline-hidden [&>svg]:size-4 [&>svg]:shrink-0`,
+          `text-muted-foreground group-data-highlighted/menu-item:bg-foreground/10 focus-visible:bg-foreground/10 flex h-7 shrink-0 items-center rounded-md px-2 text-sm outline-hidden [&>svg]:size-4 [&>svg]:shrink-0`,
           className
         ),
       },
@@ -141,4 +140,5 @@ export {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSkeleton,
+  sidebarMenuItemClassName,
 }
