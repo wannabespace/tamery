@@ -36,7 +36,7 @@ const HI: AppUIMessage = {
 const send = async (messages: AppUIMessage[] = [HI]) => {
   calls.length = 0
   const stream = await streamChatStep({
-    key: null,
+    key: 'tamery',
     messages,
     onEnd: () => {},
     onError: () => 'error',
