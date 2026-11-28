@@ -1,6 +1,8 @@
 import { AppLogo } from '@tamery/ui/components/brand/app-logo'
 import { cn } from '@tamery/ui/lib/utils'
 
+import { ComposerStandIn } from './modules/chat/composer-stand-in'
+
 export const titleBarClassName =
   'flex h-10 shrink-0 items-center border-b border-transparent'
 
@@ -10,7 +12,7 @@ export const resourcePanelClassName =
 export const centeredPageClassName =
   'mx-auto flex min-h-full w-full max-w-2xl flex-col px-6 py-12'
 
-export const settingsPageClassName = 'flex min-h-0 flex-1 p-2'
+export const settingsPageClassName = 'flex min-h-0 flex-1 p-2 outline-none'
 
 // w-70 is the navigator panel's defaultSize (modules/navigator/panel.ts): keep them equal or, at the default width, the panel edge jumps entering Settings.
 export const settingsSidebarClassName =
@@ -24,12 +26,12 @@ const ShellFrame = ({
   id: string
 }) => (
   <div
-    aria-hidden
     className="pointer-events-none fixed inset-0 flex flex-col"
     data-shell
     id={id}
   >
     <div
+      aria-hidden
       className={cn(
         titleBarClassName,
         'border-b-border bg-card gap-1.5 [-webkit-app-region:drag]'
@@ -53,18 +55,14 @@ const ConnectionShell = () => (
       <div className="flex min-w-0 flex-1 flex-col">
         <div className={resourcePanelClassName}>
           <div className="h-8 shrink-0" />
+          <div className="flex min-h-0 flex-1 flex-col" data-shell-chat>
+            <ComposerStandIn autoFocus data-shell-composer />
+          </div>
         </div>
         <div
           className="flex min-h-0 shrink-0 flex-col pt-1.5"
           data-shell-bottom
         >
-          <div className={resourcePanelClassName}>
-            <div className="h-8 shrink-0" />
-          </div>
-        </div>
-      </div>
-      <div className="h-full shrink-0" data-shell-right>
-        <div className="flex h-full flex-col pl-1.5">
           <div className={resourcePanelClassName}>
             <div className="h-8 shrink-0" />
           </div>

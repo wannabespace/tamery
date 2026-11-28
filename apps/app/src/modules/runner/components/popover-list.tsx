@@ -62,7 +62,8 @@ export const ActionItem = ({
     render={<CommandItem {...props} />}
   >
     {children}
-    <div className="flex shrink-0 items-center">
+    {/* The negative margin keeps the buttons inside the row's 16px line, so a row with them is as tall as one without. */}
+    <div className="-my-0.5 ml-auto flex shrink-0 items-center">
       {actions.map(({ icon, label, onSelect, variant }) => (
         <Tooltip key={label}>
           <TooltipTrigger
@@ -73,7 +74,7 @@ export const ActionItem = ({
                     ? 'ghost-destructive'
                     : 'ghost-muted'
                 }
-                size="icon-xs"
+                size="icon-2xs"
                 aria-label={label}
                 tabIndex={-1}
                 onPointerDown={(event) => {
@@ -87,7 +88,7 @@ export const ActionItem = ({
               />
             }
           >
-            <HugeiconsIcon icon={icon} strokeWidth={2} />
+            <HugeiconsIcon icon={icon} strokeWidth={2} className="size-3" />
           </TooltipTrigger>
           <TooltipContent side="top">{label}</TooltipContent>
         </Tooltip>

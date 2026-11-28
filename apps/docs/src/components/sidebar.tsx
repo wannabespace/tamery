@@ -31,7 +31,6 @@ export const Sidebar = ({ onNavigate }: { onNavigate?: () => void }) => {
                     onClick={onNavigate}
                   />
                 }
-                variant={current ? 'default' : 'muted'}
               >
                 {page.title}
               </SidebarMenuButton>

@@ -123,7 +123,9 @@ export const startChatTurn = async (data: {
 
     const stream = await turn.start({
       ...pick,
+      connection: data.chat.connection,
       fast: data.settings.fast,
+      isSubagent: data.chat.isSubagent,
       messages: afterCompaction(history, compaction),
       onFinish: async (message) => {
         try {

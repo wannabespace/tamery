@@ -50,7 +50,7 @@ It works with **PostgreSQL**, **TimescaleDB**, **MySQL**, **MariaDB**, **SQL Ser
 
 ## Run it yourself
 
-You need [pnpm](https://pnpm.io), [Bun](https://bun.sh), and Postgres + Redis (or [Docker](https://docs.docker.com/get-docker/)).
+You need [pnpm](https://pnpm.io), [Bun](https://bun.sh), and Postgres, Redis and an S3-compatible store for chat attachments (or [Docker](https://docs.docker.com/get-docker/)).
 
 ```bash
 pnpm install

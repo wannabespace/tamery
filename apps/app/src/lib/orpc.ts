@@ -57,7 +57,8 @@ export const orpcProxy = createORPCClient(
     fetch: (url, init) =>
       globalThis.fetch(url, {
         ...init,
-        credentials: 'include',
+        // The proxy refuses a cookie from any page but the web app's, and the desktop's `file:` page signs in by its bearer alone.
+        credentials: window.electron ? 'omit' : 'include',
       }),
     headers: () => {
       const token = bearerToken.get()

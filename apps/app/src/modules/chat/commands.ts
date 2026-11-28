@@ -1,23 +1,23 @@
-import { AiChat01Icon } from '@hugeicons/core-free-icons'
+import { AiChat02Icon } from '@hugeicons/core-free-icons'
 
 import type {
   CommandContext,
   CommandEntry,
 } from '~/modules/actions-center/types'
 
-import { toggleChat } from './chat-toggle'
+import { startNewChat } from './open-chat'
 
 export const chatCommands = ({ current }: CommandContext): CommandEntry[] =>
   current
     ? [
         {
-          action: () => toggleChat(current.connectionResource.id),
+          action: () => startNewChat(current.connectionResource.id),
           group: 'View',
-          icon: AiChat01Icon,
-          keywords: ['assistant', 'ai', 'panel'],
+          icon: AiChat02Icon,
+          keywords: ['assistant', 'ai', 'agent', 'tab'],
           order: 20,
           shortcut: 'aiChat',
-          value: 'Toggle AI chat',
+          value: 'New chat',
         },
       ]
     : []

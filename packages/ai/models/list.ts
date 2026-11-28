@@ -162,7 +162,7 @@ export const chatModelVariations = (id: ChatModelId) => {
 /** Raised toward 1, a turn compacting at the cap has no room left for its answer and tool steps before the window overflows. */
 const COMPACT_SHARE = 0.8
 
-const MIN_COMPACT_AT = 50_000
+export const MIN_COMPACT_AT = 50_000
 
 export const compactAt = type(`number.integer >= ${MIN_COMPACT_AT}`)
 

@@ -1,5 +1,6 @@
 import { describe, expect, mock, test } from 'bun:test'
 
+import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test'
 
 import type { AppUIMessage } from '../message'
@@ -36,7 +37,15 @@ const HI: AppUIMessage = {
 const send = async (messages: AppUIMessage[] = [HI]) => {
   calls.length = 0
   const stream = await streamChatStep({
+    connection: {
+      id: 'c',
+      name: 'db',
+      notes: [],
+      resource: null,
+      type: ConnectionType.Postgres,
+    },
     key: 'tamery',
+    limits: { steps: 10, tokens: 100_000 },
     messages,
     onEnd: () => {},
     onError: () => 'error',
@@ -53,10 +62,35 @@ const send = async (messages: AppUIMessage[] = [HI]) => {
   }
 }
 
+const answeredWithTools = {
+  id: 'm2',
+  parts: [
+    { type: 'step-start' },
+    {
+      input: { connectionId: 'c' },
+      output: { schemas: [] },
+      state: 'output-available',
+      toolCallId: 't1',
+      type: 'tool-list_tables',
+    },
+  ],
+  role: 'assistant',
+} as AppUIMessage
+
+const NEXT: AppUIMessage = {
+  id: 'm3',
+  parts: [{ text: 'and now?', type: 'text' }],
+  role: 'user',
+}
+
 describe('chat step', () => {
-  test('offers no tools, since no window answers them yet', async () => {
-    const { contentTypes, tools } = await send()
-    expect(tools).toEqual([])
-    expect(contentTypes).toEqual(['system', 'user:text'])
+  test('every step gets the tools the window answers', async () => {
+    const { tools } = await send()
+    expect(tools).toContain('execute')
+  })
+
+  test('finished tool calls stay in the transcript', async () => {
+    const { contentTypes } = await send([HI, answeredWithTools, NEXT])
+    expect(contentTypes).toContain('assistant:tool-call')
   })
 })

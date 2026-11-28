@@ -1,4 +1,8 @@
-import type { AppMessagePart, AppUIMessage } from '@tamery/ai/message'
+import type {
+  AppMessagePart,
+  AppUIMessage,
+  ChatCompaction,
+} from '@tamery/ai/message'
 import { persistedCollectionOptions } from '@tanstack/browser-db-sqlite-persistence'
 import { createCollection } from '@tanstack/react-db'
 
@@ -7,9 +11,14 @@ import { orpc } from '~/lib/orpc'
 import type { BaseTable } from '~/lib/sync'
 import { PERSISTED_SCHEMA_VERSION, syncCollectionOptions } from '~/lib/sync'
 
+// Rows desktop v0.99.6 stored lack compaction, parentChatId and pinnedAt, and PERSISTED_SCHEMA_VERSION still reads them: keep the three optional.
 export interface Chat extends BaseTable {
   compactAt: number | null
+  compaction?: ChatCompaction | null
   connectionResourceId: string
+  /** Set on a subagent's chat; lists of chats leave those out. */
+  parentChatId?: string | null
+  pinnedAt?: Date | null
   title: string | null
 }
 
@@ -38,6 +47,11 @@ export const createChatsCollection = () =>
         },
         getKey: (item) => item.id,
         id: 'chats',
+        mutations: {
+          delete: (id) => orpc.chats.remove.call({ id }),
+          update: (id, { compactAt, pinnedAt, title }) =>
+            orpc.chats.update.call({ compactAt, id, pinnedAt, title }),
+        },
         sync: ({ rows, signal }) => orpc.chats.sync.call(rows, { signal }),
       }),
       persistence,

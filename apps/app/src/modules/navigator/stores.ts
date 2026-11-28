@@ -4,8 +4,9 @@ import { createRef } from 'react'
 import { createStore } from 'seitu'
 import { createWebStorageValue } from 'seitu/web'
 
-import { schemaItems } from '~/core/tabs/kinds'
+import { resolveTab, schemaItems } from '~/core/tabs/kinds'
 import { posthog } from '~/lib/posthog'
+import { chatTab } from '~/modules/chat/tab'
 
 export const navigatorOpenValue = createWebStorageValue({
   defaultValue: true,
@@ -45,14 +46,22 @@ export const navigatorStore = memoize((resourceId: string) =>
   })
 )
 
-export type NavigatorMode = 'tables' | 'definitions'
+export type NavigatorMode = 'tables' | 'definitions' | 'chats'
+
+const getNavigatorSection = (
+  resourceId: string,
+  tabId?: string
+): NavigatorMode => {
+  if (tabId && resolveTab(tabId, resourceId)?.kind === chatTab) {
+    return 'chats'
+  }
+  return schemaItems.some((item) => item.tabId === tabId)
+    ? 'definitions'
+    : 'tables'
+}
 
 export const getNavigatorStore = memoize(
-  (_resourceId: string, activeTabId?: string) =>
-    createStore<NavigatorMode>(
-      schemaItems.some((item) => item.tabId === activeTabId)
-        ? 'definitions'
-        : 'tables'
-    ),
+  (resourceId: string, activeTabId?: string) =>
+    createStore<NavigatorMode>(getNavigatorSection(resourceId, activeTabId)),
   { cacheKey: (resourceId) => resourceId }
 )
