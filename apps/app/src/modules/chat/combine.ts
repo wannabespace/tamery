@@ -2,8 +2,10 @@ import * as SQLite from '@journeyapps/wa-sqlite'
 import SQLiteESMFactory from '@journeyapps/wa-sqlite/dist/wa-sqlite.mjs'
 import type { AppUIMessage } from '@tamery/ai/message'
 import type { ChatTools } from '@tamery/ai/tools'
+import { Dialect } from '@tamery/shared/enums/connection-type'
 import { MCP_MAX_ROWS } from '@tamery/shared/mcp'
 import { toToolOutput } from '@tamery/shared/tool-output'
+import { quoteIdentifier } from '@tamery/sql/identifier'
 
 import { uniqueColumns } from '~/core/table/result-grid'
 
@@ -12,8 +14,6 @@ import { findChatResult } from './chat-results'
 let loading: Promise<SQLiteAPI> | null = null
 
 type SQLiteAPI = ReturnType<typeof SQLite.Factory>
-
-const quote = (name: string) => `"${name.replaceAll('"', '""')}"`
 
 const toSqliteValue = (value: unknown) => {
   if (typeof value === 'boolean') {
@@ -44,12 +44,12 @@ export const combineResults = async (
       // oxlint-disable-next-line no-await-in-loop
       await sqlite3.exec(
         db,
-        `CREATE TABLE ${quote(name)} (${columns.map(quote).join(', ')})`
+        `CREATE TABLE ${quoteIdentifier(name, Dialect.SQLite)} (${columns.map((column) => quoteIdentifier(column, Dialect.SQLite)).join(', ')})`
       )
       // oxlint-disable-next-line no-await-in-loop
       for await (const insert of sqlite3.statements(
         db,
-        `INSERT INTO ${quote(name)} VALUES (${columns.map(() => '?').join(', ')})`
+        `INSERT INTO ${quoteIdentifier(name, Dialect.SQLite)} VALUES (${columns.map(() => '?').join(', ')})`
       )) {
         for (const row of set.rows) {
           sqlite3.bind_collection(insert, row.map(toSqliteValue))
