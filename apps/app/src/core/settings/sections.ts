@@ -96,6 +96,7 @@ export const settingsSections = [
       'OpenAI',
       'Google',
       'OpenRouter',
+      'Compact at',
       'Dictation model',
       'AI credits',
       'Add credits',
