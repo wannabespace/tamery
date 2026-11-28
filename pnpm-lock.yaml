@@ -1305,6 +1305,9 @@ importers:
       ssh2:
         specifier: 'catalog:'
         version: 1.17.0
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -2228,6 +2231,9 @@ importers:
       input-otp:
         specifier: 'catalog:'
         version: 1.5.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      mermaid:
+        specifier: 'catalog:'
+        version: 12.3.0
       motion:
         specifier: 'catalog:'
         version: 14.14.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)

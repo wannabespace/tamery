@@ -1,21 +1,19 @@
-import type { McpSource } from '@tamery/shared/mcp'
-
+import { getCollections } from '~/core/collections'
 import { resourceConstraintsQueryOptions } from '~/core/queries/constraints/list'
 import { findEnum, resourceEnumsQueryOptions } from '~/core/queries/enums/list'
 import { resourceIndexesQueryOptions } from '~/core/queries/indexes/list'
 import { resourceTableColumnsQueryOptions } from '~/core/queries/tables/columns'
 import { resourceTablesAndSchemasQueryOptions } from '~/core/queries/tables/list'
-import { posthog } from '~/lib/posthog'
 
+import type { AgentTarget } from './target'
 import { fetchForAgent, resolveResource } from './target'
 
-export const describeTable: McpSource['describeTable'] = async ({
+export const describeTable = async ({
   schema,
   table,
   ...target
-}) => {
-  const { connection, resource: connectionResource } = resolveResource(target)
-  posthog.capture('mcp_table_described', { connection_type: connection.type })
+}: AgentTarget & { schema: string; table: string }) => {
+  const { resource: connectionResource } = resolveResource(target)
   const inTable = (row: { schema: string; table: string }) =>
     row.schema === schema && row.table === table
   const [columns, constraints, indexes, enums, catalog] = await Promise.all([
@@ -72,6 +70,13 @@ export const describeTable: McpSource['describeTable'] = async ({
         type: first?.type,
       }
     }),
+    notes: getCollections().schemaNotesCollection.toArray.flatMap((note) =>
+      note.connectionResourceId === connectionResource.id &&
+      note.schema === schema &&
+      note.table === table
+        ? [{ column: note.column, note: note.note }]
+        : []
+    ),
     indexes: [...Map.groupBy(indexes.filter(inTable), (row) => row.name)].map(
       ([name, group]) => {
         const [first] = group

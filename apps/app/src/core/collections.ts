@@ -16,6 +16,7 @@ import {
   createConnectionMachinesCollection,
   createMachinesCollection,
 } from '~/core/runtime/machine/sync'
+import { createSchemaNotesCollection } from '~/core/schema-notes/sync'
 import { createWorkspacesCollection } from '~/core/workspace/sync'
 import {
   createChatsCollection,
@@ -43,6 +44,7 @@ const createCollections = () => {
     connectionsResourcesCollection,
     machinesCollection: createMachinesCollection(),
     queriesCollection: createQueriesCollection(),
+    schemaNotesCollection: createSchemaNotesCollection(),
     workspacesCollection: createWorkspacesCollection(),
   }
 }

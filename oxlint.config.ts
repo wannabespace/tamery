@@ -16,6 +16,7 @@ const callSiteClasses = [
   'scroll-fade',
   'scroll-fade-x',
   'table-scroller',
+  'ph-no-capture',
 ]
 
 export default defineConfig({
@@ -111,7 +112,7 @@ export default defineConfig({
         ],
       },
     ],
-    'shadcn/no-unknown-classes': 'error',
+    'shadcn/no-unknown-classes': ['error', { allow: ['ph-no-capture'] }],
     'shadcn/require-static-classes': 'error',
 
     'tailwindcss/consistent-variant-order': 'error',
@@ -129,6 +130,7 @@ export default defineConfig({
       'error',
       {
         allowlist: [
+          'ph-no-capture',
           'toaster',
           'typography',
           'typography-disabled',

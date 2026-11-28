@@ -1,5 +1,3 @@
-import type { McpTarget } from '@tamery/shared/mcp'
-
 import { getCollections } from '~/core/collections'
 import { fetchingConfig } from '~/core/connection/fetching-config'
 import type { Connection } from '~/core/connection/sync'
@@ -10,6 +8,13 @@ import {
 import { queryClient } from '~/lib/query-client'
 
 const AGENT_STALE_TIME = 5000
+
+export const OWN_DATABASE = null
+
+export interface AgentTarget {
+  connectionId: string
+  resource: string | typeof OWN_DATABASE
+}
 
 export const fetchForAgent: typeof queryClient.query = (options) =>
   queryClient.query({ ...options, staleTime: AGENT_STALE_TIME })
@@ -31,7 +36,7 @@ const openResources = (connection: Connection) => {
 export const resolveTarget = ({
   connectionId,
   resource: resourceName,
-}: McpTarget) => {
+}: AgentTarget) => {
   const {
     connectionStringsCollection,
     connectionsCollection,
@@ -54,7 +59,10 @@ export const resolveTarget = ({
     throw new Error(reason ?? `Open "${connection.name}" in Tamery first.`)
   }
 
-  const name = resourceName ?? connectionString?.defaultResourceName ?? null
+  const name =
+    resourceName === OWN_DATABASE
+      ? (connectionString?.defaultResourceName ?? null)
+      : resourceName
   const resource = connectionsResourcesCollection.toArray.find(
     (item) => item.connectionId === connectionId && item.name === name
   )
@@ -67,7 +75,7 @@ export const resolveTarget = ({
   return { connection, resource }
 }
 
-export const resolveResource = (target: McpTarget) => {
+export const resolveResource = (target: AgentTarget) => {
   const { connection, resource } = resolveTarget(target)
   if (!resource) {
     throw new Error(
