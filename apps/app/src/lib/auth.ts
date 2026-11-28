@@ -1,5 +1,9 @@
 import { type } from 'arktype'
-import { anonymousClient, organizationClient } from 'better-auth/client/plugins'
+import {
+  anonymousClient,
+  inferAdditionalFields,
+  organizationClient,
+} from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
 import { Result } from 'better-result'
 import { useSubscription } from 'seitu/react'
@@ -62,7 +66,13 @@ export const authClient = createAuthClient({
       }
     },
   },
-  plugins: [anonymousClient(), organizationClient()],
+  plugins: [
+    anonymousClient(),
+    organizationClient(),
+    inferAdditionalFields({
+      user: { chatCompactAt: { required: false, type: 'number' } },
+    }),
+  ],
 })
 
 const sessionCache = createWebStorageValue({

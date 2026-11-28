@@ -49,8 +49,8 @@ export const createChatsCollection = () =>
         id: 'chats',
         mutations: {
           delete: (id) => orpc.chats.remove.call({ id }),
-          update: (id, { pinnedAt, title }) =>
-            orpc.chats.update.call({ id, pinnedAt, title }),
+          update: (id, { compactAt, pinnedAt, title }) =>
+            orpc.chats.update.call({ compactAt, id, pinnedAt, title }),
         },
         sync: ({ rows, signal }) => orpc.chats.sync.call(rows, { signal }),
       }),

@@ -23,6 +23,15 @@ export const chatActions = {
       mutateOffline(() => chatsCollection.delete(chatId))
     }
   },
+  setCompactAt: (chatId: string, compactAt: number | null) => {
+    posthog.capture('ai_chat_compact_at_set', { custom: compactAt !== null })
+    mutateOffline(() =>
+      getCollections().chatsCollection.update(chatId, (draft) => {
+        draft.compactAt = compactAt
+        draft.updatedAt = new Date()
+      })
+    )
+  },
   togglePin: (chatId: string, pinned: boolean) => {
     posthog.capture('ai_chat_pinned', { pinned })
     mutateOffline(() =>
