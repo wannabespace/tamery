@@ -4,7 +4,7 @@ import { Activity } from 'react'
 import { useSubscription } from 'seitu/react'
 
 import { useConnectionContext } from '~/core/connection/route'
-import { ChatList } from '~/modules/chat/chat-list'
+import { ChatList } from '~/modules/chat/list/chat-list'
 import { ReleaseAnnouncement } from '~/modules/release-announcement/release-announcement'
 
 import { CreateSchemaDialog } from './create-schema-dialog'
