@@ -1,5 +1,5 @@
 import type { ChatModelPick } from '@tamery/ai/models/list'
-import { AUTO_MODEL, chatModelPick } from '@tamery/ai/models/list'
+import { AUTO_MODEL, chatEffort, chatModelPick } from '@tamery/ai/models/list'
 import type { ChatTools } from '@tamery/ai/tools'
 import type { FileUIPart } from 'ai'
 import { type } from 'arktype'
@@ -47,7 +47,7 @@ export const recentChatModelsValue = createWebStorageValue({
 
 const chatModelOptions = type({
   'context?': 'number',
-  'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
+  'effort?': chatEffort,
   'fast?': 'boolean',
 })
 
