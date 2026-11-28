@@ -10,7 +10,11 @@ import { v7 } from 'uuid'
 
 import type { AppUIMessage } from '../message'
 import type { ChatEffort, ChatModelId } from '../models/list'
-import { DEFAULT_CHAT_MODEL, resolveChatEffort } from '../models/list'
+import {
+  chatModelVariations,
+  DEFAULT_CHAT_MODEL,
+  resolveChatEffort,
+} from '../models/list'
 import type { PayingKey } from '../models/own-key'
 import { chatModelFor } from '../models/own-key'
 import type { ChatDataParts } from '../tools'
@@ -93,8 +97,6 @@ const PROMPT_CACHE = {
 export interface ChatStepInput {
   abortSignal?: AbortSignal
   auto?: boolean
-  /** The transcript is cut to this many tokens, oldest turns first; the model's full window when unset. */
-  contextTokens?: number
   effort?: ChatEffort
   fast?: boolean
   key: PayingKey
@@ -131,9 +133,7 @@ export const streamChatStep = async (data: ChatStepInput) => {
       role: 'system',
     },
     messages: await toModelMessages(
-      data.contextTokens
-        ? fitContext(data.messages, data.contextTokens)
-        : data.messages
+      fitContext(data.messages, chatModelVariations(model).context)
     ),
     model: chatModelFor(
       model,
