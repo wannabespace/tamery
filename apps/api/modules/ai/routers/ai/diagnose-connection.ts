@@ -7,7 +7,7 @@ import { redactSecrets } from '@tamery/shared/sanitize-log'
 import { type } from 'arktype'
 
 import { redis } from '~/lib/redis'
-import { aiUsage } from '~/modules/ai/ai-usage'
+import { aiUsage } from '~/modules/billing/ai-usage'
 import { authMiddleware, callerRateLimitKey, orpc } from '~/orpc'
 
 const limiter = new RedisRateLimiter(redis, {

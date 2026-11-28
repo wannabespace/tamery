@@ -7,7 +7,7 @@ import { chats } from '@tamery/db/schema'
 import type { TelemetryOptions } from 'ai'
 import { and, eq } from 'drizzle-orm'
 
-import { publisher as chatsPublisher } from '~/modules/chat/routers/chats/events'
+import { publisher as chatsPublisher } from './routers/chats/events'
 
 export const chatCompaction = {
   /** Summarizes everything before the last user message into the chat's compaction, keeping the latest exchange whole so a turn in progress keeps its own messages. Returns the compaction the model should read, the previous one when there is nothing new to fold in or the summary fails. */

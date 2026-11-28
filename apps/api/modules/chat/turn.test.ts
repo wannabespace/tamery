@@ -30,18 +30,18 @@ mock.module('~/modules/billing/credits', () => ({
   PAID_CALLS_BUSY_MESSAGE: 'busy',
 }))
 const markStopped = mock(() => Promise.resolve())
-mock.module('~/modules/chat/compaction', () => ({ chatCompaction: {} }))
-mock.module('~/modules/chat/persist', () => ({
+mock.module('./compaction', () => ({ chatCompaction: {} }))
+mock.module('./persist', () => ({
   chatPersist: {
     loadMessages: () =>
       Promise.resolve([{ id: 'm1', parts: [], role: 'user' }]),
     markStopped,
   },
 }))
-mock.module('~/modules/chat/suggestion', () => ({
+mock.module('./suggestion', () => ({
   persistChatSuggestion: mock(),
 }))
-mock.module('~/modules/chat/title', () => ({ persistChatTitle: mock() }))
+mock.module('./title', () => ({ persistChatTitle: mock() }))
 
 const { startChatTurn } = await import('./turn')
 

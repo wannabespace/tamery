@@ -8,12 +8,13 @@ import normalizeEmail from 'validator/lib/normalizeEmail.js'
 import { env } from '~/env'
 import { redis } from '~/lib/redis'
 import { sendEmail } from '~/lib/resend'
+import { accountMiddleware, orpc } from '~/orpc'
+
 import {
   getAssignableSeats,
   getSubscription,
   OWNER_SEATS,
-} from '~/modules/billing/subscription'
-import { accountMiddleware, orpc } from '~/orpc'
+} from '../../../subscription'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 

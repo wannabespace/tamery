@@ -1,8 +1,9 @@
 import { CREDIT_TOP_UP } from '@tamery/shared/credits'
 import { type } from 'arktype'
 
-import { credits } from '~/modules/billing/credits'
 import { orpc, permissionsMiddleware } from '~/orpc'
+
+import { credits } from '../../../credits'
 
 const amount = type.number
   .divisibleBy(1)

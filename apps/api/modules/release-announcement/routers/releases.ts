@@ -1,8 +1,9 @@
 import { GITHUB_REPO_NAME, GITHUB_REPO_OWNER } from '@tamery/shared/constants'
 
 import { octokit } from '~/lib/octokit'
-import { releaseAnnouncement } from '~/modules/release-announcement/release-announcement'
 import { cacheMiddleware, orpc } from '~/orpc'
+
+import { releaseAnnouncement } from '../release-announcement'
 
 export const releases = orpc.use(cacheMiddleware(60 * 60)).handler(async () => {
   const { data } = await octokit.repos.listReleases({

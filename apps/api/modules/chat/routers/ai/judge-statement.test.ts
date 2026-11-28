@@ -14,10 +14,10 @@ mock.module('@tamery/db', () => ({
   },
 }))
 let messages: unknown[] = []
-mock.module('~/modules/chat/persist', () => ({
+mock.module('../../persist', () => ({
   chatPersist: { loadMessages: () => Promise.resolve(messages) },
 }))
-mock.module('~/modules/chat/session', () => ({
+mock.module('../../session', () => ({
   chatSession: {
     connection: () => Promise.resolve({ id: 'connection', type: 'postgres' }),
   },

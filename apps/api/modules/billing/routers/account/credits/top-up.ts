@@ -2,9 +2,9 @@ import { CREDIT_TOP_UP, topUpChargeCents } from '@tamery/shared/credits'
 import { type } from 'arktype'
 
 import { getStripeCustomerId, stripe } from '~/lib/stripe'
-import { CREDITS_PAYMENT_KIND } from '~/modules/billing/credits'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 
+import { CREDITS_PAYMENT_KIND } from '../../../credits'
 import { billingDestination } from '../subscription/billing-destination'
 
 export const topUp = orpc

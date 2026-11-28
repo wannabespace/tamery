@@ -13,9 +13,10 @@ import { additiveOnly, dialects } from '@tamery/sql'
 import { type } from 'arktype'
 
 import { redis } from '~/lib/redis'
-import { chatPersist } from '~/modules/chat/persist'
-import { chatSession } from '~/modules/chat/session'
 import { aiPermissionsMiddleware, orpc, paidAiMiddleware, permix } from '~/orpc'
+
+import { chatPersist } from '../../persist'
+import { chatSession } from '../../session'
 
 const REQUEST_LIMIT = 4000
 // The window judges a call as soon as the model makes it, which can be before the step's answer is stored.

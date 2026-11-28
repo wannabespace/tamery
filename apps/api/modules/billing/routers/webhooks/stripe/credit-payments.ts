@@ -2,7 +2,8 @@ import { topUpChargeCents } from '@tamery/shared/credits'
 import type Stripe from 'stripe'
 
 import { stripe } from '~/lib/stripe'
-import { CREDITS_PAYMENT_KIND, credits } from '~/modules/billing/credits'
+
+import { CREDITS_PAYMENT_KIND, credits } from '../../../credits'
 
 /** The events the Stripe endpoint must send for AI credits; `apps/api/SECRETS.md` lists them for its setup. */
 export const CREDIT_PAYMENT_EVENTS = new Set<Stripe.Event.Type>([

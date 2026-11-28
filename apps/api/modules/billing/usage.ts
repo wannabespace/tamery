@@ -4,9 +4,9 @@ import type { MeteredFeature } from '@tamery/shared/usage'
 import { FREE_WEEKLY_LIMITS, usageResetsAt } from '@tamery/shared/usage'
 
 import { redis } from '~/lib/redis'
-import { payForAi } from '~/modules/ai/ai-key'
 import type { permix } from '~/orpc'
 
+import { payForAi } from './ai-key'
 import { credits } from './credits'
 
 const unlimitedPermission = {

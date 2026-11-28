@@ -1,7 +1,8 @@
 import { type } from 'arktype'
 
-import { usage } from '~/modules/billing/usage'
 import { orpc, permissionsMiddleware } from '~/orpc'
+
+import { usage } from '../usage'
 
 export const get = orpc
   .use(permissionsMiddleware)

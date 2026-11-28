@@ -5,9 +5,9 @@ import { eq } from 'drizzle-orm'
 
 import { env } from '~/env'
 import { stripe } from '~/lib/stripe'
-import { getSubscription } from '~/modules/billing/subscription'
 import { authMiddleware, orpc } from '~/orpc'
 
+import { getSubscription } from '../../../subscription'
 import { billingDestination } from './billing-destination'
 
 export const billingPortal = orpc

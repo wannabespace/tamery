@@ -1,10 +1,8 @@
 import { pick } from '@tamery/shared/utils'
 
-import {
-  getAssignableSeats,
-  getSubscriptions,
-} from '~/modules/billing/subscription'
 import { authMiddleware, orpc } from '~/orpc'
+
+import { getAssignableSeats, getSubscriptions } from '../../../subscription'
 
 export const list = orpc.use(authMiddleware).handler(async ({ context }) => {
   const subscriptions = await getSubscriptions(context.user.id)

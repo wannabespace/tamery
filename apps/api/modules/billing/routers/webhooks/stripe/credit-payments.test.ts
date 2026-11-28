@@ -7,7 +7,7 @@ const credit = mock(() => Promise.resolve())
 const failAutoTopUp = mock(() => Promise.resolve())
 let credited = true
 const reverse = mock(() => Promise.resolve(credited))
-mock.module('~/modules/billing/credits', () => ({
+mock.module('../../../credits', () => ({
   CREDITS_PAYMENT_KIND: 'ai_credits',
   credits: { credit, failAutoTopUp, reverse },
 }))

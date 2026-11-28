@@ -1,9 +1,10 @@
 import { AiFeature } from '@tamery/ai/usage'
 import { type } from 'arktype'
 
-import { chatCompaction } from '~/modules/chat/compaction'
-import { chatPersist } from '~/modules/chat/persist'
 import { aiPermissionsMiddleware, orpc, paidAiMiddleware, permix } from '~/orpc'
+
+import { chatCompaction } from '../../compaction'
+import { chatPersist } from '../../persist'
 
 export const compact = orpc
   .use(aiPermissionsMiddleware)

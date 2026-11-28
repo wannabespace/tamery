@@ -18,7 +18,7 @@ Object.assign(process.env, {
 })
 
 let subscription: { periodStart: Date | null } | null = null
-mock.module('~/modules/billing/subscription', () => ({
+mock.module('./subscription', () => ({
   getSubscription: () => Promise.resolve(subscription),
 }))
 const createIntent = mock(() =>

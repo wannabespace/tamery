@@ -2,8 +2,9 @@ import { chatStream } from '@tamery/ai/features'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
-import { chatPersist } from '~/modules/chat/persist'
 import { orpc, aiPermissionsMiddleware, permix } from '~/orpc'
+
+import { chatPersist } from '../../persist'
 
 export const abortStream = orpc
   .use(aiPermissionsMiddleware)

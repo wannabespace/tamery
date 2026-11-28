@@ -3,10 +3,11 @@ import { chatModelPick, MODEL_UNAVAILABLE_MESSAGE } from '@tamery/ai/models'
 import { db } from '@tamery/db'
 import { type } from 'arktype'
 
-import { payForAi } from '~/modules/ai/ai-key'
-import { chatSession } from '~/modules/chat/session'
-import { startChatTurn } from '~/modules/chat/turn'
+import { payForAi } from '~/modules/billing/ai-key'
 import { aiPermissionsMiddleware, orpc, permix } from '~/orpc'
+
+import { chatSession } from '../../session'
+import { startChatTurn } from '../../turn'
 
 export const attachStream = orpc
   .use(aiPermissionsMiddleware)

@@ -6,11 +6,12 @@ import { parseAttachmentRef } from '@tamery/shared/attachments'
 import { validateUIMessages } from 'ai'
 import { type } from 'arktype'
 
-import { attachments } from '~/modules/chat/attachments'
-import { chatPersist } from '~/modules/chat/persist'
-import { chatSession } from '~/modules/chat/session'
-import { startChatTurn } from '~/modules/chat/turn'
 import { aiPermissionsMiddleware, orpc, paidAiMiddleware, permix } from '~/orpc'
+
+import { attachments } from '../../attachments'
+import { chatPersist } from '../../persist'
+import { chatSession } from '../../session'
+import { startChatTurn } from '../../turn'
 
 const isAttachmentId = type('string.uuid.v7')
 

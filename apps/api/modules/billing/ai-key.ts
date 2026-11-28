@@ -6,9 +6,8 @@ import { aiKeys } from '@tamery/db/schema'
 import type { AiKeyProvider } from '@tamery/shared/ai-key'
 import { and, asc, eq } from 'drizzle-orm'
 
-import { credits } from '~/modules/billing/credits'
-
 import { aiUsage } from './ai-usage'
+import { credits } from './credits'
 
 const enabledFor = (userId: string) =>
   and(eq(aiKeys.userId, userId), eq(aiKeys.enabled, true))

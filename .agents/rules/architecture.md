@@ -28,13 +28,19 @@
 
 `apps/app` and `apps/main` are a core plus `src/modules/<name>/` folders. Core is everything outside `src/modules/`.
 
-`apps/api` has the same shape: `modules/<name>/` holds a feature's logic and tests at its root and its procedures under `routers/`, mirroring the router path they mount at (`modules/chat/routers/ai/stream.ts` is `ai.stream`). Core is `lib/` (infrastructure with no feature: auth, Redis, Stripe and other clients, shutdown, workspace scoping), `orpc/` (context, middleware, sync helpers and the router tree in `orpc/routers/`, which imports each module's procedures directly) and procedures that belong to no module. The modules are `chat` (chats, their messages, turns, streams, attachments, titles and the approval judge), `ai` (who pays for AI, own keys, AI usage and the query-editor AI tools), `billing` (credits, plans, the Free weekly limits and the Stripe webhook) and `release-announcement`. A module imports another module's files by `~/modules/...`, and its own by relative path.
-
 - **No registries.** Whoever renders or runs a feature imports it directly from the module file that defines it — a titlebar button in the titlebar, a panel in the workspace layout, a command in the actions center, a tab kind in `core/tabs/kinds.ts`, a tab view in `core/tabs/views.ts`, a collection in `core/collections.ts`. Deleting a module means deleting its folder and those imports. Never add an `import.meta.glob` module loader or a slot array: it hides the wiring from find-references.
 - **Import where the chunk loads.** A module's import lands in its importer's chunk, so wire a feature from the layout that shows it (root, `_protected`, the connection workspace); anything reachable from the entry must stay off `lib/database`.
 - A module owns its state under its own storage key. The resource store keeps only `activeTabId`, `tabs` and `showSystem`.
 - In `apps/main`, a module's pages live in its own `routes/`, mirroring where they mount (`routes/_layout/blog.index.tsx` nests under `_layout`), and each module's `routes/` folder is listed in `vite.config.ts`'s `virtualRouteConfig`.
 - `apps/main` is server-rendered, so a page never shows a loading state on first paint: its route `loader` awaits `context.queryClient.query({ ...options, staleTime: 'static' })` for every query it renders, and the router's SSR-query integration ships that cache to the client. A query left to `useQuery` alone renders its pending state into the server HTML. Auth guards go in `beforeLoad`, which runs before child loaders, never in a `loader`, which runs in parallel with them. Start splits route files itself, so no `.lazy.tsx`.
+
+### API modules
+
+`apps/api` is a core plus `modules/<name>/` folders, one per feature, named by its domain term (`domain.md`).
+
+- **A module holds a feature's logic and tests at its root and its procedures under `routers/`**, in folders that mirror the router path they mount at (`routers/ai/stream.ts` mounts as `ai.stream`).
+- **Core is everything outside `modules/`**: `index.ts` (the server), `env.ts` and `variables.ts`, `lib/` (infrastructure with no feature: auth, Redis, Stripe and the other clients, shutdown, workspace scoping, encryption keys), `orpc/` (context, middleware, sync helpers and the router tree in `orpc/routers/`, with the procedures no module owns), `routers/` (the plain HTTP routes) and `scripts/`.
+- **Modules depend one way.** A module may import another module's files by `~/modules/<name>/...`, never back from a module it is imported by, and its own files by relative path, test mocks included. Code two modules both need belongs to one of them or to core.
 
 ## Core layout (`apps/app/src/core`)
 

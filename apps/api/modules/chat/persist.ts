@@ -6,10 +6,10 @@ import { omit } from '@tamery/shared/utils'
 import { isDeepEqualData, isToolUIPart } from 'ai'
 import { and, asc, desc, eq, gte, inArray } from 'drizzle-orm'
 
-import { attachments } from '~/modules/chat/attachments'
-import { chatCompaction } from '~/modules/chat/compaction'
-import { publisher as chatsMessagesPartsPublisher } from '~/modules/chat/routers/chats-messages-parts/events'
-import { publisher as chatsMessagesPublisher } from '~/modules/chat/routers/chats-messages/events'
+import { attachments } from './attachments'
+import { chatCompaction } from './compaction'
+import { publisher as chatsMessagesPartsPublisher } from './routers/chats-messages-parts/events'
+import { publisher as chatsMessagesPublisher } from './routers/chats-messages/events'
 
 const TOOL_OUTPUT_KEYS: ('errorText' | 'output' | 'state')[] = [
   'errorText',

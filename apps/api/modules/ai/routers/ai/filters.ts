@@ -6,7 +6,7 @@ import { AiFeature } from '@tamery/ai/usage'
 import { type } from 'arktype'
 
 import { redis } from '~/lib/redis'
-import { aiUsage } from '~/modules/ai/ai-usage'
+import { aiUsage } from '~/modules/billing/ai-usage'
 import { usage } from '~/modules/billing/usage'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 

@@ -15,7 +15,8 @@ import { v7 } from 'uuid'
 
 import { redis } from '~/lib/redis'
 import { getStripeCustomerId, stripe } from '~/lib/stripe'
-import { getSubscription } from '~/modules/billing/subscription'
+
+import { getSubscription } from './subscription'
 
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000
 

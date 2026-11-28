@@ -4,7 +4,8 @@ import { chats, schemaNotes } from '@tamery/db/schema'
 import { and, eq } from 'drizzle-orm'
 
 import { inMemberWorkspace } from '~/lib/workspace'
-import { publisher as chatsPublisher } from '~/modules/chat/routers/chats/events'
+
+import { publisher as chatsPublisher } from './routers/chats/events'
 
 export const chatSession = {
   connection: async (data: {

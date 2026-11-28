@@ -6,8 +6,9 @@ import { db } from '@tamery/db'
 import { chatsMessages } from '@tamery/db/schema'
 import { and, eq } from 'drizzle-orm'
 
-import type { AiPayer } from '~/modules/ai/ai-key'
-import { publisher as chatsMessagesPublisher } from '~/modules/chat/routers/chats-messages/events'
+import type { AiPayer } from '~/modules/billing/ai-key'
+
+import { publisher as chatsMessagesPublisher } from './routers/chats-messages/events'
 
 export const persistChatSuggestion = async (data: {
   chatId: string

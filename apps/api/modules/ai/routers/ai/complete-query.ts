@@ -4,7 +4,7 @@ import { AiFeature } from '@tamery/ai/usage'
 import { ConnectionType } from '@tamery/shared/enums/connection-type'
 import { type } from 'arktype'
 
-import { aiUsage } from '~/modules/ai/ai-usage'
+import { aiUsage } from '~/modules/billing/ai-usage'
 import { usage } from '~/modules/billing/usage'
 import { orpc, permissionsMiddleware, permix } from '~/orpc'
 

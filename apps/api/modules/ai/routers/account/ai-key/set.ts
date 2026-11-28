@@ -2,7 +2,7 @@ import { verifyAiKey } from '@tamery/ai/models'
 import { logProviderError } from '@tamery/ai/provider-error'
 import { type } from 'arktype'
 
-import { aiKey } from '~/modules/ai/ai-key'
+import { aiKey } from '~/modules/billing/ai-key'
 import { accountMiddleware, orpc } from '~/orpc'
 
 import { aiKeyProvider } from './provider'

@@ -1,6 +1,6 @@
 import { type } from 'arktype'
 
-import { aiKey } from '~/modules/ai/ai-key'
+import { aiKey } from '~/modules/billing/ai-key'
 import { accountMiddleware, orpc } from '~/orpc'
 
 import { aiKeyProvider } from './provider'

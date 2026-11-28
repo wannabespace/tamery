@@ -16,7 +16,7 @@ import { auth } from '~/lib/auth'
 import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { redis } from '~/lib/redis'
 import { sessionActivity } from '~/lib/session-activity'
-import { aiKey, payForAi } from '~/modules/ai/ai-key'
+import { aiKey, payForAi } from '~/modules/billing/ai-key'
 import { credits } from '~/modules/billing/credits'
 import { getSubscription } from '~/modules/billing/subscription'
 

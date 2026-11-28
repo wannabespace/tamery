@@ -26,7 +26,7 @@ mock.module('@tamery/db/schema', () => ({
   schemaNotes: {},
 }))
 mock.module('~/lib/workspace', () => ({ inMemberWorkspace: () => null }))
-mock.module('~/modules/chat/routers/chats/events', () => ({ publisher: {} }))
+mock.module('./routers/chats/events', () => ({ publisher: {} }))
 
 const { chatSession } = await import('./session')
 

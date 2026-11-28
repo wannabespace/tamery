@@ -6,7 +6,8 @@ import { eq } from 'drizzle-orm'
 
 import { env } from '~/env'
 import { sendEmail } from '~/lib/resend'
-import { credits } from '~/modules/billing/credits'
+
+import { credits } from './credits'
 
 const getWorkspaceIdFromChat = async (chatId: string) => {
   const [row] = await db

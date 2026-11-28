@@ -31,7 +31,7 @@ mock.module('~/lib/redis', () => ({
 }))
 
 let aiBudgetLeft = true
-mock.module('~/modules/ai/ai-key', () => ({
+mock.module('./ai-key', () => ({
   payForAi: () => Promise.resolve(aiBudgetLeft ? {} : null),
 }))
 

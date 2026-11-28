@@ -1,5 +1,6 @@
-import { credits } from '~/modules/billing/credits'
 import { accountMiddleware, orpc } from '~/orpc'
+
+import { credits } from '../../../credits'
 
 export const get = orpc
   .use(accountMiddleware)

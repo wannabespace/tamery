@@ -7,12 +7,9 @@ import type Stripe from 'stripe'
 import { env } from '~/env'
 import { sendEmail } from '~/lib/resend'
 import { stripePrices } from '~/lib/stripe'
-import {
-  syncSubscription,
-  tamerySubscriptions,
-} from '~/modules/billing/subscription'
 import { orpc } from '~/orpc'
 
+import { syncSubscription, tamerySubscriptions } from '../../../subscription'
 import { CREDIT_PAYMENT_EVENTS, creditPayments } from './credit-payments'
 import { validateRequest } from './validate'
 

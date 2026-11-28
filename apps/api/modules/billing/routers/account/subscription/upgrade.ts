@@ -13,12 +13,9 @@ import {
   stripePrices,
   timedOutUnderLock,
 } from '~/lib/stripe'
-import {
-  getSubscription,
-  tamerySubscriptions,
-} from '~/modules/billing/subscription'
 import { accountMiddleware, orpc } from '~/orpc'
 
+import { getSubscription, tamerySubscriptions } from '../../../subscription'
 import { billingDestination } from './billing-destination'
 
 const DEFAULT_TEAM_SEATS = 2

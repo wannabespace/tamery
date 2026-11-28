@@ -15,13 +15,14 @@ import { AiFeature } from '@tamery/ai/usage'
 import { runInBackground } from '@tamery/shared/background'
 import { isToolUIPart } from 'ai'
 
-import type { AiPayer } from '~/modules/ai/ai-key'
+import type { AiPayer } from '~/modules/billing/ai-key'
 import { credits, PAID_CALLS_BUSY_MESSAGE } from '~/modules/billing/credits'
-import { chatCompaction } from '~/modules/chat/compaction'
-import { chatPersist } from '~/modules/chat/persist'
-import type { chatSession } from '~/modules/chat/session'
-import { persistChatSuggestion } from '~/modules/chat/suggestion'
-import { persistChatTitle } from '~/modules/chat/title'
+
+import { chatCompaction } from './compaction'
+import { chatPersist } from './persist'
+import type { chatSession } from './session'
+import { persistChatSuggestion } from './suggestion'
+import { persistChatTitle } from './title'
 
 const compactFor = async ({
   contextTokens,

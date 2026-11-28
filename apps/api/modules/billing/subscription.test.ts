@@ -79,14 +79,10 @@ const { subscriptions, subscriptionSeats, users } =
   await import('@tamery/db/schema')
 const { migrate } = await import('drizzle-orm/node-postgres/migrator')
 const { stripe } = await import('~/lib/stripe')
-const { getSubscription, syncSubscription } =
-  await import('~/modules/billing/subscription')
-const { seats } =
-  await import('~/modules/billing/routers/account/subscription/seats')
-const { list } =
-  await import('~/modules/billing/routers/account/subscription/list')
-const { upgrade } =
-  await import('~/modules/billing/routers/account/subscription/upgrade')
+const { getSubscription, syncSubscription } = await import('./subscription')
+const { seats } = await import('./routers/account/subscription/seats')
+const { list } = await import('./routers/account/subscription/list')
+const { upgrade } = await import('./routers/account/subscription/upgrade')
 
 if (!stripe) {
   throw new Error('Stripe is not configured')

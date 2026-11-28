@@ -31,12 +31,12 @@ mock.module('@tamery/db/schema', () => ({
   chatsMessages: {},
   chatsMessagesParts: {},
 }))
-mock.module('~/modules/chat/attachments', () => ({ attachments: {} }))
-mock.module('~/modules/chat/compaction', () => ({ chatCompaction: {} }))
-mock.module('~/modules/chat/routers/chats-messages-parts/events', () => ({
+mock.module('./attachments', () => ({ attachments: {} }))
+mock.module('./compaction', () => ({ chatCompaction: {} }))
+mock.module('./routers/chats-messages-parts/events', () => ({
   publisher: { publish: mock() },
 }))
-mock.module('~/modules/chat/routers/chats-messages/events', () => ({
+mock.module('./routers/chats-messages/events', () => ({
   publisher: { publish: mock() },
 }))
 
