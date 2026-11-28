@@ -20,8 +20,9 @@ import type { ChatModelOptions } from './stores'
 export const EFFORT_LABELS: Record<ChatEffort, string> = {
   high: 'High',
   low: 'Low',
+  max: 'Max',
   medium: 'Medium',
-  xhigh: 'Max',
+  xhigh: 'Extra high',
 }
 
 export const formatContext = (tokens: number) =>
@@ -81,28 +82,32 @@ export const ModelOptions = ({
   )
   return (
     <div ref={ref} className="flex flex-col gap-4 p-3">
-      <Field>
-        <Field orientation="horizontal">
-          <FieldLabel>Effort</FieldLabel>
-          <span className="text-muted-foreground text-sm">
-            {EFFORT_LABELS[options.effort]}
-          </span>
-        </Field>
-        <Slider
-          variant="steps"
-          aria-label="Effort"
-          min={0}
-          max={efforts.length - 1}
-          value={effortIndex}
-          onValueChange={(index) => {
-            const effort = efforts[index as number]
-            if (effort) {
-              onChange({ effort })
-            }
-          }}
-        />
-      </Field>
-      <Separator />
+      {efforts.length > 1 && (
+        <>
+          <Field>
+            <Field orientation="horizontal">
+              <FieldLabel>Effort</FieldLabel>
+              <span className="text-muted-foreground text-sm">
+                {EFFORT_LABELS[options.effort]}
+              </span>
+            </Field>
+            <Slider
+              variant="steps"
+              aria-label="Effort"
+              min={0}
+              max={efforts.length - 1}
+              value={effortIndex}
+              onValueChange={(index) => {
+                const effort = efforts[index as number]
+                if (effort) {
+                  onChange({ effort })
+                }
+              }}
+            />
+          </Field>
+          <Separator />
+        </>
+      )}
       <div>
         <FieldTitle>Context</FieldTitle>
         {/* Pulled out to the popover's edge so the rows' text lines up with the titles while their highlight keeps a menu's inset, and up by the group's bottom padding so the gaps around the separators match. */}
