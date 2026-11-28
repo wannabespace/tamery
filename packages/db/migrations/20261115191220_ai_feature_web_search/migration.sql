@@ -1,0 +1,1 @@
+ALTER TYPE "ai_feature" ADD VALUE 'web_search';

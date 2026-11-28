@@ -26,6 +26,7 @@ mock.module('~/lib/encryption-key', () => ({ workspaceEncryptionKey: {} }))
 mock.module('~/lib/connection-string', () => ({ encryptConnectionString: {} }))
 const passThrough = os.middleware(({ next }) => next())
 mock.module('~/orpc', () => ({
+  aiPermissionsMiddleware: passThrough,
   authMiddleware: passThrough,
   orpc: os,
   permissionsMiddleware: passThrough,
@@ -41,6 +42,7 @@ const [
   connectionsUpdate,
   connectionsResources,
   queries,
+  schemaNotes,
 ] = await Promise.all([
   import('./chats/create'),
   import('./chats-messages/create'),
@@ -49,6 +51,7 @@ const [
   import('./connections/update'),
   import('./connections-resources/create'),
   import('./queries/create'),
+  import('./schema-notes/create'),
 ])
 const procedures = {
   'chats.create': [chats.create, { connectionResourceId: id(2), id: id(1) }],
@@ -79,6 +82,10 @@ const procedures = {
   'queries.create': [
     queries.create,
     { connectionResourceId: id(2), id: id(1), name: 'q', query: 'select 1' },
+  ],
+  'schemaNotes.create': [
+    schemaNotes.create,
+    { connectionResourceId: id(2), id: id(1), note: 'n' },
   ],
 } as const
 

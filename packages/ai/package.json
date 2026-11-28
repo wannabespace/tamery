@@ -3,9 +3,13 @@
   "type": "module",
   "scripts": {
     "check-types": "bun check",
-    "test": "bun test"
+    "economics": "bun run scripts/economics.ts",
+    "test": "bun test --isolate"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/google": "catalog:",
+    "@ai-sdk/openai": "catalog:",
     "@mistralai/mistralai": "catalog:",
     "@openrouter/ai-sdk-provider": "catalog:",
     "@tamery/shared": "workspace:*",

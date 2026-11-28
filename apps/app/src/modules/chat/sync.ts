@@ -8,6 +8,7 @@ import type { BaseTable } from '~/lib/sync'
 import { PERSISTED_SCHEMA_VERSION, syncCollectionOptions } from '~/lib/sync'
 
 export interface Chat extends BaseTable {
+  compactAt: number | null
   connectionResourceId: string
   title: string | null
 }

@@ -2,6 +2,7 @@ import type {
   AppMessagePart,
   AppMessageMetadata,
   AppUIMessage,
+  ChatCompaction,
 } from '@tamery/ai/message'
 import { defineRelationsPart } from 'drizzle-orm'
 import {
@@ -12,7 +13,7 @@ import {
 import * as d from 'drizzle-orm/pg-core'
 
 import { baseTable } from '../base-table'
-import { encryptedJson } from '../utils'
+import { encryptedJson, encryptedText } from '../utils'
 import { users } from './auth'
 import { connectionsResources } from './connections'
 
@@ -24,13 +25,26 @@ export const chats = d.snakeCase.table(
       .uuid()
       .references(() => connectionsResources.id, { onDelete: 'cascade' })
       .notNull(),
-    title: d.text(),
+    /** Set on a subagent's chat: the chat whose agent started it. Chat lists show only chats without one. */
+    parentChatId: d
+      .uuid()
+      .references((): d.AnyPgColumn => chats.id, { onDelete: 'cascade' }),
+    /** Tokens the chat fills before a new message compacts it; null follows the user's `chatCompactAt`. */
+    compactAt: d.integer(),
+    compaction: encryptedJson().$type<ChatCompaction>(),
+    pinnedAt: d.timestamp({ withTimezone: true }),
+    // The table still has the plaintext `title` column, which the API empties into this one at boot (`apps/api/lib/chat/encrypt-titles.ts`): the migration that drops it must ship after a deploy has run that, and remove it.
+    title: encryptedText('encrypted_title'),
     userId: d
       .uuid()
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),
   },
-  (t) => [d.index().on(t.userId), d.index().on(t.connectionResourceId)]
+  (t) => [
+    d.index().on(t.userId),
+    d.index().on(t.connectionResourceId),
+    d.index().on(t.parentChatId),
+  ]
 )
 
 export const chatsSelectSchema = createSelectSchema(chats)

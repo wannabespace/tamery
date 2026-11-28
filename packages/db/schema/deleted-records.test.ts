@@ -8,7 +8,10 @@ const KEEP_DELETED_RECORD_TRIGGER =
   /CREATE TRIGGER "keep_deleted_record" AFTER DELETE ON "(?<table>\w+)"/gu
 const TABLES_NOT_KEPT = [
   'accounts',
+  'ai_keys',
   'ai_usage',
+  'credit_accounts',
+  'credit_top_ups',
   'deleted_records',
   'early_access',
   'invitations',

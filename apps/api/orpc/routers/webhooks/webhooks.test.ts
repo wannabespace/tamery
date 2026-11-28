@@ -30,6 +30,10 @@ Object.assign(process.env, {
   REDIS_CA: '',
   REDIS_URL: 'redis://127.0.0.1:1',
   RESEND_API_KEY: 'test',
+  S3_ACCESS_KEY_ID: 'test',
+  S3_BUCKET: 'test',
+  S3_ENDPOINT: 'https://s3.tamery.test',
+  S3_SECRET_ACCESS_KEY: 'test',
   STRIPE_PORTAL_CONFIGURATION_ID: 'bpc_test',
   STRIPE_PRO_ANNUAL_PRICE_ID: 'price_pro_annual',
   STRIPE_PRO_MONTH_PRICE_ID: 'price_pro_month',
@@ -49,6 +53,9 @@ const redisClient = {
 mock.module('redis', () => ({ createClient: () => redisClient }))
 const sendEmail = mock()
 mock.module('~/lib/resend', () => ({ resend: null, sendEmail }))
+mock.module('~/lib/chat/encrypt-titles', () => ({
+  encryptChatTitles: () => Promise.resolve(),
+}))
 
 const createRelease = mock(() =>
   Promise.resolve({

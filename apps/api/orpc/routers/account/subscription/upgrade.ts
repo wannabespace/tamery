@@ -1,17 +1,19 @@
 import { db } from '@tamery/db'
-import { users } from '@tamery/db/schema'
+import { subscriptions, users } from '@tamery/db/schema'
+import { PRO_TRIAL_DAYS } from '@tamery/shared/credits'
 import { type } from 'arktype'
 import { Result } from 'better-result'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
 import {
+  getStripeCustomerId,
   LOCK_TIMEOUT,
   STRIPE_UNDER_LOCK,
   stripe,
   stripePrices,
   timedOutUnderLock,
 } from '~/lib/stripe'
-import { getSubscription } from '~/lib/subscription'
+import { getSubscription, tamerySubscriptions } from '~/lib/subscription'
 import { accountMiddleware, orpc } from '~/orpc'
 
 import { billingDestination } from './billing-destination'
@@ -37,7 +39,6 @@ export const upgrade = orpc
       message: 'Checkout took too long to open. Try again in a moment.',
     },
     INTERNAL_SERVER_ERROR: { message: 'Stripe is not configured' },
-    NOT_FOUND: { message: 'User not found' },
   })
   .handler(async ({ context, errors, input }) => {
     const client = stripe
@@ -60,54 +61,46 @@ export const upgrade = orpc
     const checkout = db.transaction(async (tx) => {
       await tx.execute(LOCK_TIMEOUT)
 
-      const [user] = await tx
-        .select()
+      await tx
+        .select({ id: users.id })
         .from(users)
         .where(eq(users.id, context.user.id))
-        .limit(1)
         .for('update')
 
-      if (!user) {
-        throw errors.NOT_FOUND()
-      }
+      const subscription = await getSubscription(context.user.id)
 
-      const subscription = await getSubscription(user.id)
-
-      if (subscription?.userId === user.id) {
+      if (subscription?.userId === context.user.id) {
         throw errors.CONFLICT()
       }
 
-      let customerId = user.stripeCustomerId
-
-      if (customerId) {
-        const open = await client.checkout.sessions.list(
-          { customer: customerId, status: 'open' },
-          STRIPE_UNDER_LOCK
+      const [previous] = await tx
+        .select({ id: subscriptions.id })
+        .from(subscriptions)
+        .where(
+          and(eq(subscriptions.userId, context.user.id), tamerySubscriptions)
         )
+        .limit(1)
 
-        await Promise.all(
-          open.data.map((session) =>
-            client.checkout.sessions.expire(session.id, {}, STRIPE_UNDER_LOCK)
+      const customerId = await getStripeCustomerId(
+        client,
+        context.user.id,
+        tx,
+        STRIPE_UNDER_LOCK
+      )
+
+      const open = await client.checkout.sessions.list(
+        { customer: customerId, status: 'open' },
+        STRIPE_UNDER_LOCK
+      )
+
+      // An open AI credits checkout is the same customer's, in payment mode.
+      await Promise.all(
+        open.data
+          .filter(({ mode }) => mode === 'subscription')
+          .map(({ id }) =>
+            client.checkout.sessions.expire(id, {}, STRIPE_UNDER_LOCK)
           )
-        )
-      } else {
-        const customer = await client.customers.create(
-          {
-            email: user.email,
-            metadata: {
-              userId: user.id,
-            },
-            name: user.name,
-          },
-          STRIPE_UNDER_LOCK
-        )
-        customerId = customer.id
-
-        await tx
-          .update(users)
-          .set({ stripeCustomerId: customerId })
-          .where(eq(users.id, user.id))
-      }
+      )
 
       const session = await client.checkout.sessions.create(
         {
@@ -125,14 +118,14 @@ export const upgrade = orpc
             },
           ],
           metadata: {
-            userId: user.id,
+            userId: context.user.id,
           },
           mode: 'subscription',
           subscription_data: {
             metadata: {
-              userId: user.id,
+              userId: context.user.id,
             },
-            trial_period_days: 7,
+            ...(!previous && { trial_period_days: PRO_TRIAL_DAYS }),
           },
           success_url: successUrl,
         },

@@ -34,6 +34,7 @@ export const filters = orpc
         signal,
         telemetry: aiUsage.telemetry({
           feature: AiFeature.Filters,
+          ownKey: false,
           userId: context.user.id,
         }),
       })
