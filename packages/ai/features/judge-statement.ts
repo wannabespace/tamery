@@ -3,7 +3,7 @@ import { generateText, Output } from 'ai'
 import { type } from 'arktype'
 
 import type { PayingKey } from '../models/own-key'
-import { modelsFor } from '../models/own-key'
+import { modelsFor, ownApiKey, TAMERY_ACCOUNT } from '../models/own-key'
 import { logProviderError } from '../provider-error'
 import type { JevUsage } from './jev'
 import { askJev } from './jev'
@@ -61,7 +61,7 @@ const askJevToAutoRun = async (
 ): Promise<StatementVerdict | null> => {
   try {
     const answers = await askJev({
-      apiKey: data.key?.key,
+      apiKey: ownApiKey(data.key),
       onUsage: data.onJevUsage,
       questions: { auto_run: { instructions: QUESTION, type: 'noul' } },
       signal: data.signal,
@@ -94,7 +94,7 @@ export const judgeStatement = async (
   }
 ): Promise<StatementVerdict | null> => {
   const verdict =
-    data.key && data.key.provider !== 'openrouter'
+    data.key !== TAMERY_ACCOUNT && data.key.provider !== 'openrouter'
       ? null
       : await askJevToAutoRun(data)
   if (verdict) {

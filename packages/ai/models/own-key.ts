@@ -16,8 +16,11 @@ export interface AiKey {
   provider: AiKeyProvider
 }
 
-export const TAMERY_ACCOUNT = null
+export const TAMERY_ACCOUNT = 'tamery' as const
 export type PayingKey = AiKey | typeof TAMERY_ACCOUNT
+
+export const ownApiKey = (key: PayingKey) =>
+  key === TAMERY_ACCOUNT ? undefined : key.key
 
 type FixedModels = Record<'fast' | 'search' | 'summary', LanguageModel>
 
@@ -120,7 +123,7 @@ export const chatModelsFor = (keys: AiKey[]) =>
 
 /** The chat's helper models (titles, suggestions, compaction, web search, dictation) on the user's key; Tamery's otherwise. */
 export const modelsFor = (key: PayingKey): FixedModels =>
-  key ? providerModels[key.provider](key.key).models : models
+  key === TAMERY_ACCOUNT ? models : providerModels[key.provider](key.key).models
 
 /** Only an OpenRouter account has cross-provider fallbacks and `:nitro` routing. */
 export const chatModelFor = (
@@ -128,9 +131,9 @@ export const chatModelFor = (
   routing: ChatRouting,
   key: PayingKey
 ) =>
-  key
-    ? providerModels[key.provider](key.key).chat(id, routing)
-    : chatModel(id, routing)
+  key === TAMERY_ACCOUNT
+    ? chatModel(id, routing)
+    : providerModels[key.provider](key.key).chat(id, routing)
 
 /** How a call dictates: on Tamery's model without a key, else on the pick of the keys' models; null when none of their providers takes audio. */
 export const dictationFor = (
@@ -154,8 +157,11 @@ export const dictationFor = (
 }
 
 export const ownKeyWebSearchTools = (key: PayingKey): ToolSet | undefined => {
-  const webSearch = key && providerModels[key.provider](key.key).webSearch
-  return webSearch?.kind === 'tool' ? { web_search: webSearch.tool } : undefined
+  if (key === TAMERY_ACCOUNT) {
+    return undefined
+  }
+  const { webSearch } = providerModels[key.provider](key.key)
+  return webSearch.kind === 'tool' ? { web_search: webSearch.tool } : undefined
 }
 
 /** Throws when the provider refuses the key; a one-token call on the user's bill. */
