@@ -57,7 +57,6 @@ export const stream = orpc
       chatId: 'string.uuid.v7',
       connectionResourceId: 'string.uuid.v7',
       messages: 'object[]',
-      'context?': 'number.integer > 0',
       'effort?': chatEffort,
       'fast?': 'boolean',
       'model?': chatModelPick,
@@ -98,7 +97,10 @@ export const stream = orpc
     const owner = { chatId: input.chatId, userId: context.user.id }
     const started = await startChatTurn({
       ...owner,
-      chat,
+      chat: {
+        ...chat,
+        compactAt: chat.compactAt ?? context.user.chatCompactAt ?? null,
+      },
       payer: context.payer,
       persistTurn: async () => {
         if (turn.role !== 'user') {

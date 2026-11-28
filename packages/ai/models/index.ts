@@ -1,6 +1,7 @@
 export {
   AUTO_CHAT_MODELS,
   AUTO_MODEL,
+  compactAt,
   chatEffort,
   chatModel,
   chatModelPick,
@@ -9,9 +10,8 @@ export {
   DEFAULT_CHAT_MODEL,
   MODEL_UNAVAILABLE_MESSAGE,
   models,
-  resolveChatContext,
   resolveChatEffort,
-  STANDARD_CHAT_CONTEXT,
+  resolveCompactAt,
 } from './list'
 export type { ChatEffort, ChatModelId, ChatModelPick } from './list'
 export {

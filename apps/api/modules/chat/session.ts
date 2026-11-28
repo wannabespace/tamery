@@ -51,7 +51,7 @@ export const chatSession = {
 
     const findOwnedChat = () =>
       db.query.chats.findFirst({
-        columns: { parentChatId: true, title: true },
+        columns: { compactAt: true, parentChatId: true, title: true },
         where: {
           connectionResourceId: { eq: data.connectionResourceId },
           id: { eq: data.chatId },
@@ -100,6 +100,7 @@ export const chatSession = {
       chatsPublisher.publish(data.userId, { type: 'insert', value: inserted })
     }
     return {
+      compactAt: chat.compactAt,
       connection,
       isSubagent: !!chat.parentChatId,
       title: chat.title,

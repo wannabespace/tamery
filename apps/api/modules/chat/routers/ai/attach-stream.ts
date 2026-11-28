@@ -19,7 +19,6 @@ export const attachStream = orpc
   .input(
     type({
       chatId: 'string.uuid.v7',
-      'context?': 'number.integer > 0',
       'effort?': chatEffort,
       'fast?': 'boolean',
       'model?': chatModelPick,
@@ -29,6 +28,7 @@ export const attachStream = orpc
   .handler(async function* attachStream({ context, input }) {
     const owned = await db.query.chats.findFirst({
       columns: {
+        compactAt: true,
         connectionResourceId: true,
         parentChatId: true,
         title: true,
@@ -54,6 +54,7 @@ export const attachStream = orpc
 
     const restarted = await startChatTurn({
       chat: {
+        compactAt: owned.compactAt ?? context.user.chatCompactAt ?? null,
         connection: await chatSession.connection({
           connectionResourceId: owned.connectionResourceId,
           userId: context.user.id,
