@@ -20,8 +20,9 @@ import type { ChatModelOptions } from './stores'
 export const EFFORT_LABELS: Record<ChatEffort, string> = {
   high: 'High',
   low: 'Low',
+  max: 'Max',
   medium: 'Medium',
-  xhigh: 'Max',
+  xhigh: 'Extra high',
 }
 
 export const formatContext = (tokens: number) =>
