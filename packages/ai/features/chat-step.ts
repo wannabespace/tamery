@@ -10,7 +10,7 @@ import { v7 } from 'uuid'
 
 import type { AppUIMessage } from '../message'
 import type { ChatEffort, ChatModelId } from '../models/list'
-import { DEFAULT_CHAT_EFFORT, DEFAULT_CHAT_MODEL } from '../models/list'
+import { DEFAULT_CHAT_MODEL, resolveChatEffort } from '../models/list'
 import type { PayingKey } from '../models/own-key'
 import { chatModelFor } from '../models/own-key'
 import type { ChatDataParts } from '../tools'
@@ -115,7 +115,7 @@ export const streamChatStep = async (data: ChatStepInput) => {
   const startedAt = continued?.metadata?.startedAt ?? Date.now()
 
   const model = data.model ?? DEFAULT_CHAT_MODEL
-  const effort = data.effort ?? DEFAULT_CHAT_EFFORT
+  const effort = resolveChatEffort(model, data.effort)
   const result = streamText({
     abortSignal: data.abortSignal,
     experimental_transform: smoothStream(),
