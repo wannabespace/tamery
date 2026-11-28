@@ -1,5 +1,5 @@
 import type { ChatModelPick } from '@tamery/ai/models/list'
-import { AUTO_MODEL, chatModelPick } from '@tamery/ai/models/list'
+import { AUTO_MODEL, chatEffort, chatModelPick } from '@tamery/ai/models/list'
 import type { ChatTools } from '@tamery/ai/tools'
 import type { FileUIPart } from 'ai'
 import { type } from 'arktype'
@@ -46,14 +46,13 @@ export const recentChatModelsValue = createWebStorageValue({
 })
 
 const chatModelOptions = type({
-  'context?': 'number',
-  'effort?': "'low' | 'medium' | 'high' | 'xhigh'",
+  'effort?': chatEffort,
   'fast?': 'boolean',
 })
 
 export type ChatModelOptions = typeof chatModelOptions.infer
 
-/** Effort, context window and fast routing per model id; a missing option follows the model's default. */
+/** Effort and fast routing per model id; a missing option follows the model's default. */
 export const chatModelOptionsValue = createWebStorageValue({
   defaultValue: {},
   key: 'chat-model-options',

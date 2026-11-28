@@ -159,7 +159,6 @@ export const DataGrid = ({
             row: getCapabilities(dialect).names.row,
           })
         }
-        // oxlint-disable-next-line shadcn/no-restyle, shadcn/no-unknown-classes, tailwindcss/no-unknown-classes -- Renaming PostHog's marker would re-enable recording grid rows.
         render={<div {...pointer} className="ph-no-capture" />}
       >
         {body}

@@ -1,5 +1,5 @@
 import { Slider as SliderPrimitive } from '@base-ui/react/slider'
-import { DitherFill } from '@tamery/ui/components/dither-fill'
+import { DitherFill } from '@tamery/ui/components/custom/dither-fill'
 import { cn } from '@tamery/ui/lib/utils'
 import type { CSSProperties } from 'react'
 

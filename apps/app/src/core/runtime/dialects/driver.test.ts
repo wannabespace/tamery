@@ -59,8 +59,8 @@ mock.module('~/core/runtime/machine/pairing', () => ({
       ? 'cloud'
       : (state.route?.machineId ??
         (window.electron ? 'this-computer' : 'cloud')),
-  getMachineRoute: (connectionId: string | null) =>
-    connectionId === null ? null : state.route,
+  getMachineRouteById: (runsOn: string) =>
+    state.route?.machineId === runsOn ? state.route : null,
 }))
 Object.assign(globalThis, { window: {} })
 
@@ -226,5 +226,24 @@ test('on desktop a connection the cloud cannot reach fails there instead of runn
     await Promise.resolve()
   })
   expect(execute).not.toHaveBeenCalled()
+  expect(cloud.execute).not.toHaveBeenCalled()
+})
+
+test('a run pinned to where it started keeps going there after Runs on changes', async () => {
+  state.route = paired
+  const pinned = (runsOn: 'this-computer' | typeof paired.machineId) =>
+    createDialectProvider(Dialect.Postgres, {
+      connectionString: publicString,
+      resourceId: 'resource',
+      runsOn,
+    }).execute(select)
+
+  state.inCloud = true
+  await pinned(paired.machineId)
+  state.inCloud = false
+  const electron = await onDesktop(() => pinned('this-computer'))
+
+  expect(machine.execute).toHaveBeenCalledTimes(1)
+  expect(electron).toHaveBeenCalledTimes(1)
   expect(cloud.execute).not.toHaveBeenCalled()
 })

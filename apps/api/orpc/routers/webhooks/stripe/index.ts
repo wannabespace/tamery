@@ -10,7 +10,7 @@ import { stripePrices } from '~/lib/stripe'
 import { syncSubscription, tamerySubscriptions } from '~/lib/subscription'
 import { orpc } from '~/orpc'
 
-import { creditsPaid } from './credits-paid'
+import { CREDIT_PAYMENT_EVENTS, creditPayments } from './credit-payments'
 import { validateRequest } from './validate'
 
 const SUBSCRIPTION_EVENTS = new Set<Stripe.Event.Type>([
@@ -60,7 +60,7 @@ export const stripe = orpc
         ? object
         : null
 
-    if (!subscription && event.type !== 'payment_intent.succeeded') {
+    if (!(subscription || CREDIT_PAYMENT_EVENTS.has(event.type))) {
       throw errors.BAD_REQUEST()
     }
 
@@ -71,7 +71,7 @@ export const stripe = orpc
 
       const handled: Promise<unknown> = subscription
         ? syncSubscription(subscription.id)
-        : creditsPaid(event)
+        : creditPayments(event)
 
       await handled.catch(async (error) => {
         if (env.ALERTS_EMAIL) {

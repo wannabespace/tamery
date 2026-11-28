@@ -29,9 +29,11 @@ export const chats = d.snakeCase.table(
     parentChatId: d
       .uuid()
       .references((): d.AnyPgColumn => chats.id, { onDelete: 'cascade' }),
+    /** Tokens the chat fills before a new message compacts it; null follows the user's `chatCompactAt`. */
+    compactAt: d.integer(),
     compaction: encryptedJson().$type<ChatCompaction>(),
     pinnedAt: d.timestamp({ withTimezone: true }),
-    // The table still has the plaintext `title` column until `scripts/encrypt-chat-titles.ts` has run in production, and the next generated migration drops it: generate one only after that run.
+    // The table still has the plaintext `title` column, which the API empties into this one at boot (`apps/api/lib/chat/encrypt-titles.ts`): the migration that drops it must ship after a deploy has run that, and remove it.
     title: encryptedText('encrypted_title'),
     userId: d
       .uuid()

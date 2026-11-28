@@ -28,7 +28,7 @@ mock.module('@tamery/db/schema', () => ({
 mock.module('~/lib/workspace', () => ({ inMemberWorkspace: () => null }))
 mock.module('~/orpc/routers/chats/events', () => ({ publisher: {} }))
 
-const { chatSession } = await import('./chat-session')
+const { chatSession } = await import('./session')
 
 const session = {
   chatId: 'chat',
@@ -44,7 +44,7 @@ test('a concurrent chat insert requires a matching owner and resource', async ()
   })
   expect(findFirst).toHaveBeenCalledTimes(2)
   expect(findFirst).toHaveBeenLastCalledWith({
-    columns: { parentChatId: true, title: true },
+    columns: { compactAt: true, parentChatId: true, title: true },
     where: {
       connectionResourceId: { eq: session.connectionResourceId },
       id: { eq: session.chatId },

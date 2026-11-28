@@ -9,12 +9,14 @@ import {
   AUTO_MODEL,
   DEFAULT_CHAT_EFFORT,
   DEFAULT_CHAT_MODEL,
+  resolveChatEffort,
 } from '../models/list'
 import type { AiKey, PayingKey } from '../models/own-key'
 import {
   chatKeyFor,
   chatModelsFor,
   OWN_KEY_AUTO_MODELS,
+  ownApiKey,
   TAMERY_ACCOUNT,
 } from '../models/own-key'
 import { logProviderError } from '../provider-error'
@@ -84,20 +86,16 @@ export const pickChatModel = async (data: {
     return picked
       ? {
           auto: false,
-          effort: data.effort ?? DEFAULT_CHAT_EFFORT,
-          key: chatKeyFor(data.keys, picked),
+          effort: resolveChatEffort(picked.id, data.effort),
+          key: chatKeyFor(data.keys, picked) ?? TAMERY_ACCOUNT,
           model: picked.id,
         }
       : null
   }
   const [key = TAMERY_ACCOUNT] = data.keys
-  if (key && key.provider !== 'openrouter') {
-    return {
-      auto: true,
-      effort: DEFAULT_CHAT_EFFORT,
-      key,
-      model: OWN_KEY_AUTO_MODELS[key.provider],
-    }
+  if (key !== TAMERY_ACCOUNT && key.provider !== 'openrouter') {
+    const model = OWN_KEY_AUTO_MODELS[key.provider]
+    return { auto: true, effort: resolveChatEffort(model), key, model }
   }
   const previous = data.messages.findLast(
     (message) => message.role === 'assistant'
@@ -115,7 +113,7 @@ export const pickChatModel = async (data: {
     }
   }
   const floor = previous?.model ? AUTO_CHAT_MODELS.indexOf(previous.model) : -1
-  const level = await rate(turn, data.onJevUsage, key?.key)
+  const level = await rate(turn, data.onJevUsage, ownApiKey(key))
   return {
     auto: true,
     effort: AUTO_CHAT_EFFORTS[level] ?? DEFAULT_CHAT_EFFORT,

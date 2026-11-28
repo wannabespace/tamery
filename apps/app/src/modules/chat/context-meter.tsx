@@ -1,6 +1,21 @@
 import type { AppUIMessage } from '@tamery/ai/message'
+import {
+  chatModelVariations,
+  MIN_COMPACT_AT,
+  resolveCompactAt,
+} from '@tamery/ai/models/list'
 import { Button } from '@tamery/ui/components/button'
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+} from '@tamery/ui/components/field'
 import { InputGroupButton } from '@tamery/ui/components/input-group'
+import {
+  NumberField,
+  NumberFieldGroup,
+  NumberFieldInput,
+} from '@tamery/ui/components/number-field'
 import {
   Popover,
   PopoverContent,
@@ -8,14 +23,16 @@ import {
 } from '@tamery/ui/components/popover'
 import { Progress } from '@tamery/ui/components/progress'
 import { Spinner } from '@tamery/ui/components/spinner'
+import { eq, useLiveQuery } from '@tanstack/react-db'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useSubscription } from 'seitu/react'
 import { toast } from 'sonner'
 
+import { useCollections } from '~/core/collections'
+import { authClient } from '~/lib/auth'
 import { orpc } from '~/lib/orpc'
 
-import { chatModelOptionsValue, chatModelValue } from './stores'
+import { chatActions } from './chat-actions'
 
 const RING_RADIUS = 6
 const RING_LENGTH = 2 * Math.PI * RING_RADIUS
@@ -38,11 +55,16 @@ export const ContextMeter = ({
   messages: AppUIMessage[]
 }) => {
   const [open, setOpen] = useState(false)
-  const picked = useSubscription(chatModelValue)
-  const options = useSubscription(chatModelOptionsValue)
-  const { data: catalog } = useQuery(
-    orpc.ai.models.queryOptions({ staleTime: Infinity })
+  const { chatsCollection } = useCollections()
+  const { data: chat } = useLiveQuery(
+    (q) =>
+      q
+        .from({ row: chatsCollection })
+        .where(({ row }) => eq(row.id, chatId))
+        .findOne(),
+    [chatId]
   )
+  const userCompactAt = authClient.useSession().data?.user.chatCompactAt
   const { data: cost } = useQuery(
     orpc.ai.chatCost.queryOptions({
       enabled: open,
@@ -60,13 +82,16 @@ export const ContextMeter = ({
     (message) => message.role === 'assistant' && message.metadata?.context
   )
   const { context = 0, model } = answer?.metadata ?? {}
-  const full = catalog?.models.find(({ id }) => id === model)?.contexts.at(-1)
-  const window =
-    (model && picked === model ? options[model]?.context : undefined) ?? full
-  if (!(context && window)) {
+  if (!(context && model)) {
     return null
   }
-  const share = Math.min(context / window, 1)
+  const window = chatModelVariations(model).context
+  const limit = resolveCompactAt(model, null)
+  const threshold = resolveCompactAt(
+    model,
+    chat?.compactAt ?? userCompactAt ?? null
+  )
+  const share = Math.min(context / threshold, 1)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -75,7 +100,7 @@ export const ContextMeter = ({
           <InputGroupButton
             size="icon-round"
             variant="ghost-muted"
-            aria-label={`Context ${Math.round(share * 100)}% full`}
+            aria-label={`Context ${Math.round(share * 100)}% of the way to compacting`}
           />
         }
       >
@@ -97,7 +122,7 @@ export const ContextMeter = ({
             strokeLinecap="round"
             strokeDasharray={RING_LENGTH}
             strokeDashoffset={RING_LENGTH * (1 - share)}
-            className={share >= 0.8 ? 'stroke-warning' : 'stroke-current'}
+            className={share >= 0.9 ? 'stroke-warning' : 'stroke-current'}
           />
         </svg>
       </PopoverTrigger>
@@ -107,14 +132,39 @@ export const ContextMeter = ({
             <div className="flex items-baseline justify-between">
               <span className="font-medium">Context</span>
               <span className="text-muted-foreground text-xs tabular-nums">
-                {formatTokens(context)} of {formatTokens(window)}
+                {formatTokens(context)} of {formatTokens(threshold)}
               </span>
             </div>
             <Progress value={share * 100} />
             <p className="text-muted-foreground text-xs">
-              At 80%, earlier messages are summarized before your next one.
+              {`At ${formatTokens(threshold)} of the model's ${formatTokens(window)}, earlier messages are summarized before your next one.`}
             </p>
           </div>
+          <Field>
+            <FieldLabel>Compact at</FieldLabel>
+            <NumberField
+              size="sm"
+              min={MIN_COMPACT_AT}
+              max={limit}
+              step={10_000}
+              defaultValue={chat?.compactAt ?? undefined}
+              onValueCommitted={(value) =>
+                value !== (chat?.compactAt ?? null) &&
+                chatActions.setCompactAt(chatId, value)
+              }
+            >
+              <NumberFieldGroup>
+                <NumberFieldInput
+                  placeholder={`Default, ${formatTokens(
+                    resolveCompactAt(model, userCompactAt ?? null)
+                  )}`}
+                />
+              </NumberFieldGroup>
+            </NumberField>
+            <FieldDescription>
+              Tokens, up to {formatTokens(limit)}. Empty follows your default.
+            </FieldDescription>
+          </Field>
           <div className="flex items-baseline justify-between">
             <span className="font-medium">Spent in this chat</span>
             <span className="text-muted-foreground text-xs tabular-nums">

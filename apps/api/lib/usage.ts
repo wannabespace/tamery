@@ -5,6 +5,7 @@ import { FREE_WEEKLY_LIMITS, usageResetsAt } from '@tamery/shared/usage'
 
 import type { permix } from '~/orpc'
 
+import { payForAi } from './ai-key'
 import { credits } from './credits'
 import { redis } from './redis'
 
@@ -21,9 +22,8 @@ const limitReachedMessage = {
     'You have reached the free AI usage limit. Please subscribe to a Pro plan to continue using AI features.',
 } as const satisfies Partial<Record<MeteredFeature, string>>
 
-type UsageContext = ReturnType<typeof permix.setupContext> & {
-  user: { id: string }
-}
+type UsageContext = ReturnType<typeof permix.setupContext> &
+  Parameters<typeof payForAi>[0]
 
 const getKey = (userId: string, feature: MeteredFeature, resetsAt: number) =>
   `usage:${userId}:${feature}:${resetsAt}`
@@ -53,23 +53,24 @@ export const usage = {
           feature,
           Number(await redis.get(getKey(user.id, feature, usageResetsAt())))
         ),
-  /** Free takes the unit before `run` starts, so parallel calls cannot pass the limit, and gets it back when `run` throws or calls `skipCount`; unlimited is held to the AI budget and credits instead. */
+  /** Free takes the unit before `run` starts, so parallel calls cannot pass the limit, and gets it back when `run` throws or calls `skipCount`; unlimited is held to the AI budget and credits instead, in one of the user's Tamery-paid slots (it always runs on Tamery). */
   metered: async <T>(
-    { permissions, user }: UsageContext,
+    context: UsageContext,
     feature: keyof typeof limitReachedMessage,
     run: (skipCount: () => void) => Promise<T>
   ) => {
+    const { permissions, user } = context
     let counts = true
     const skipCount = () => {
       counts = false
     }
     if (permissions.check(unlimitedPermission[feature])) {
-      if (!(await credits.canUseAi(user.id))) {
+      if (!(await payForAi(context))) {
         throw new ORPCError('TOO_MANY_REQUESTS', {
           message: AI_BUDGET_SPENT_MESSAGE,
         })
       }
-      return run(skipCount)
+      return credits.inPaidSlot(user.id, () => run(skipCount))
     }
     const { release, used } = await increment(user.id, feature)
     if (used > FREE_WEEKLY_LIMITS[feature]) {

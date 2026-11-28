@@ -488,9 +488,6 @@ catalogs:
     electron-store:
       specifier: ^12.0.0
       version: 12.0.0
-    entities:
-      specifier: ^6.0.1
-      version: 6.0.1
     fast-xml-parser:
       specifier: ^5.12.1
       version: 5.12.1
@@ -814,9 +811,15 @@ importers:
       '@tamery/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@tamery/mongo':
+        specifier: workspace:*
+        version: link:../../packages/mongo
       '@tamery/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@tamery/sql':
+        specifier: workspace:*
+        version: link:../../packages/sql
       '@upstash/context7-tools-ai-sdk':
         specifier: 'catalog:'
         version: 1.0.4(@upstash/context7-sdk@0.5.1)(ai@7.0.179(zod@4.6.7))(zod@4.6.7)
@@ -1811,9 +1814,6 @@ importers:
       arktype:
         specifier: 'catalog:'
         version: 2.2.10
-      entities:
-        specifier: 'catalog:'
-        version: 6.0.1
       memoza:
         specifier: 'catalog:'
         version: 1.4.0

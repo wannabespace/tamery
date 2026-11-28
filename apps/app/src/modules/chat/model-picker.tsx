@@ -29,12 +29,7 @@ import { orpc } from '~/lib/orpc'
 import { posthog } from '~/lib/posthog'
 import { ActionItem, ListEmpty } from '~/modules/runner/components/popover-list'
 
-import {
-  CONTROLS,
-  EFFORT_LABELS,
-  ModelOptions,
-  formatContext,
-} from './model-options'
+import { CONTROLS, EFFORT_LABELS, ModelOptions } from './model-options'
 import type { ChatModelOptions } from './stores'
 import {
   chatModelOptionsValue,
@@ -106,19 +101,19 @@ export const ModelPicker = () => {
     recentRows.get(active) ?? models.find((model) => model.id === active)
   const providers = [...new Set(models.map((model) => model.provider))]
 
-  const optionsOf = (model: (typeof models)[number]) => ({
-    context: allOptions[model.id]?.context ?? model.contexts.at(-1) ?? 0,
-    effort: allOptions[model.id]?.effort ?? data?.defaultEffort ?? 'medium',
-    fast: allOptions[model.id]?.fast ?? false,
-  })
+  const optionsOf = (model: (typeof models)[number]) => {
+    const stored = allOptions[model.id]
+    return {
+      effort:
+        model.efforts.find((effort) => effort === stored?.effort) ??
+        model.defaultEffort,
+      fast: stored?.fast ?? false,
+    }
+  }
 
   const summary = (model: (typeof models)[number]) => {
     const options = optionsOf(model)
-    return [
-      EFFORT_LABELS[options.effort],
-      formatContext(options.context),
-      options.fast && 'Fast',
-    ]
+    return [EFFORT_LABELS[options.effort], options.fast && 'Fast']
       .filter(Boolean)
       .join(' · ')
   }
@@ -327,11 +322,10 @@ export const ModelPicker = () => {
             initialFocus={false}
             finalFocus={false}
           >
-            {activeModel && data && (
+            {activeModel && (
               <ModelOptions
                 ref={optionsRef}
-                contexts={activeModel.contexts}
-                efforts={data.efforts}
+                efforts={activeModel.efforts}
                 options={optionsOf(activeModel)}
                 onChange={(option) => setOption(activeModel.id, option)}
                 onLeave={() => searchRef.current?.focus()}

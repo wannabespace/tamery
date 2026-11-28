@@ -2,14 +2,14 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { CodeBlock } from '@tamery/ui/components/custom/code-block'
 import { CopyButton } from '@tamery/ui/components/custom/copy-button'
 import { Mermaid } from '@tamery/ui/components/custom/mermaid'
-import { ResponseLink } from '@tamery/ui/components/response-link'
+import { ResponseLink } from '@tamery/ui/components/custom/response-link'
 import {
   ResponseTable,
   ResponseTableBody,
   ResponseTableCell,
   ResponseTableHead,
   ResponseTableHeader,
-} from '@tamery/ui/components/response-table'
+} from '@tamery/ui/components/custom/response-table'
 import { cn } from '@tamery/ui/lib/utils'
 import type { VariantProps } from 'class-variance-authority'
 import type * as React from 'react'
@@ -17,11 +17,11 @@ import { use } from 'react'
 import { Streamdown } from 'streamdown'
 import type { ExtraProps } from 'streamdown'
 
-import type { ResponseSlots } from './response-slots'
-import { ResponseSlotsContext } from './response-slots'
+import type { ResponseSlots } from './custom/response-slots'
+import { ResponseSlotsContext } from './custom/response-slots'
 import { responseVariants } from './response.utils'
 
-export type { ColumnAlign, ResponseSlots } from './response-slots'
+export type { ColumnAlign, ResponseSlots } from './custom/response-slots'
 
 const LANGUAGE_LABELS: Record<string, string> = {
   bash: 'Bash',

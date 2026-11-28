@@ -13,6 +13,7 @@ import { PERSISTED_SCHEMA_VERSION, syncCollectionOptions } from '~/lib/sync'
 
 // Rows desktop v0.99.6 stored lack compaction, parentChatId and pinnedAt, and PERSISTED_SCHEMA_VERSION still reads them: keep the three optional.
 export interface Chat extends BaseTable {
+  compactAt: number | null
   compaction?: ChatCompaction | null
   connectionResourceId: string
   /** Set on a subagent's chat; lists of chats leave those out. */
@@ -48,8 +49,8 @@ export const createChatsCollection = () =>
         id: 'chats',
         mutations: {
           delete: (id) => orpc.chats.remove.call({ id }),
-          update: (id, { pinnedAt, title }) =>
-            orpc.chats.update.call({ id, pinnedAt, title }),
+          update: (id, { compactAt, pinnedAt, title }) =>
+            orpc.chats.update.call({ compactAt, id, pinnedAt, title }),
         },
         sync: ({ rows, signal }) => orpc.chats.sync.call(rows, { signal }),
       }),
