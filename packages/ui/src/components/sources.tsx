@@ -1,4 +1,4 @@
-import { Favicon } from '@tamery/ui/components/favicon'
+import { Favicon } from '@tamery/ui/components/custom/favicon'
 import {
   Tooltip,
   TooltipContent,

@@ -1,6 +1,6 @@
 import { ArrowUpRight01Icon, GlobeIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Favicon } from '@tamery/ui/components/favicon'
+import { Favicon } from '@tamery/ui/components/custom/favicon'
 import {
   Popover,
   PopoverContent,
