@@ -8,7 +8,7 @@ import { LegalDocument } from '../../legal-document'
 const PrivacyPolicy = () => (
   <LegalDocument
     title="Privacy Policy"
-    updatedAt="November 8, 2026"
+    updatedAt="November 24, 2026"
     content={privacyPolicyContent}
   />
 )

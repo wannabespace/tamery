@@ -45,8 +45,8 @@ const ConfirmSignIn = () => {
         title="This sign-in request expired"
         description={`Start signing in again in ${clientName}.`}
       >
-        <Button variant="outline" render={<Link to="/account" />}>
-          Go to account
+        <Button variant="outline" render={<Link to="/home" />}>
+          Go home
         </Button>
       </OpenStatus>
     )
@@ -63,7 +63,7 @@ const ConfirmSignIn = () => {
       }
     >
       <div className="flex items-center gap-2">
-        <Button variant="outline" render={<Link to="/account" />}>
+        <Button variant="outline" render={<Link to="/home" />}>
           Cancel
         </Button>
         <Button disabled={isPending} onClick={() => publish({ codeChallenge })}>

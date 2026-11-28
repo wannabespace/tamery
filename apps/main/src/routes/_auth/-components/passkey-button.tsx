@@ -2,13 +2,14 @@ import { PASSKEY_ERROR_CODES } from '@better-auth/passkey/client'
 import { FingerPrintIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { UNKNOWN_ERROR_MESSAGE } from '@tamery/shared/constants'
+import { isPasskeyPromptDismissed } from '@tamery/shared/passkey'
 import { Button } from '@tamery/ui/components/button'
 import { LoadingContent } from '@tamery/ui/components/custom/loading-content'
 import { useMutation } from '@tanstack/react-query'
 import type { ComponentProps } from 'react'
 import { toast } from 'sonner'
 
-import { authClient, isPasskeyPromptDismissed } from '~/lib/auth'
+import { authClient } from '~/lib/auth'
 
 import { useFinishSignIn } from '../-lib/sign-in'
 

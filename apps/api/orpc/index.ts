@@ -17,6 +17,7 @@ import { auth } from '~/lib/auth'
 import { credits } from '~/lib/credits'
 import { workspaceEncryptionKey } from '~/lib/encryption-key'
 import { redis } from '~/lib/redis'
+import { sessionActivity } from '~/lib/session-activity'
 import { getSubscription } from '~/lib/subscription'
 
 import type { Context } from './context'
@@ -131,6 +132,10 @@ export const authMiddleware = logMiddleware.use(
     }
 
     context.addLogData({ userId: session.user.id })
+    void sessionActivity.touch(
+      session.session.id,
+      context.headers.get(CLIENT_IP_HEADER)
+    )
 
     try {
       return await next({

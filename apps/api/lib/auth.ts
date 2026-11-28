@@ -85,8 +85,8 @@ const passkeyPlugin = passkey({
     residentKey: 'required',
     userVerification: 'required',
   },
-  // Every sign-in runs on the site, not on the API's own host the plugin would default to.
-  origin: mainUrl.origin,
+  // Sign-in runs on the site and Settings → Security registers passkeys in the web app, neither on the API's own host the plugin would default to.
+  origin: [mainUrl.origin, ORIGINS.web],
   registration: {
     afterVerification: async ({ ctx, user, verification }) => {
       const { aaguid, credentialDeviceType } =

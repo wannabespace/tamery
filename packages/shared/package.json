@@ -7,9 +7,11 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@better-auth/passkey": "catalog:",
     "@hackylabs/deep-redact": "catalog:",
     "@noble/hashes": "catalog:",
     "@orpc/client": "catalog:",
+    "@simplewebauthn/browser": "catalog:",
     "@tamery/configs": "workspace:*",
     "arktype": "catalog:",
     "better-result": "catalog:",
